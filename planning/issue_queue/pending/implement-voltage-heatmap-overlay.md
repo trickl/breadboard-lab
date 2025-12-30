@@ -6,7 +6,7 @@ Breadboard Lab simulates circuits and computes node voltages internally, but the
 
 ## Gap Analysis
 
-**Long-term goal**: Real-time visual feedback showing voltage levels across the breadboard using color-coded overlays tied to solver output (planning/vision/goal.md, lines 766-791).
+**Long-term goal**: Real-time visual feedback showing voltage levels across the breadboard using color-coded overlays tied to solver output (planning/vision/goal.md, lines 764-791).
 
 **Current state**: Circuit simulation runs successfully and produces `nodeVoltages` map, but the UI shows only text statistics in the info panel. No visual overlays exist (planning/state/system_capabilities.md, lines 192-209).
 
@@ -47,7 +47,7 @@ This feature directly enables the core learning experience: students see immedia
 ### Alignment with Roadmap
 
 This task is part of MVP milestone (planning/vision/goal.md, lines 1041-1069):
-- ✅ "Voltage heatmap overlay" is listed as MVP requirement
+- 🎯 "Voltage heatmap overlay" is listed as MVP requirement
 - Enables subsequent features (current animation, error overlays)
 - Prerequisite for educational "Explain" panel
 
@@ -65,7 +65,7 @@ None - all required data already exists in simulation results
 ### Risks
 
 - Color choices may not work for all users (mitigated by using patterns option)
-- Performance with 300 holes (mitigated by efficient DOM updates)
+- Performance with 300 holes (30 rows × 10 columns) (mitigated by efficient DOM updates)
 
 ## Why This Task Now
 
