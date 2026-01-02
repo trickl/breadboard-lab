@@ -6,7 +6,7 @@ Breadboard Lab now displays voltage levels through color-coded overlays (complet
 
 ## Gap Analysis
 
-**Long-term goal**: Real-time animated visualization showing current flow direction and magnitude through components and wires, with particles moving along paths to indicate current (planning/vision/goal.md, lines 792-815).
+**Long-term goal**: Real-time animated visualization showing current flow direction and magnitude through components and wires, with particles moving along paths to indicate current (planning/vision/goal.md, lines 792-816).
 
 **Current state**: The system computes branch currents and stores them in `SimulationResult.edgeCurrents`, but these values are not visualized in any form. Voltage heatmap shows static voltage levels but provides no information about current flow (planning/state/system_capabilities.md, lines 191-232).
 
@@ -82,7 +82,9 @@ This feature transforms Breadboard Lab from a static visualization tool into a d
 ### Alignment with Roadmap
 
 This task is part of MVP milestone (planning/vision/goal.md, lines 1041-1069):
-- 🎯 "Current animation overlay" is listed as MVP requirement (line 1052 shows it with aspirational checkmark)
+- 🎯 "Current animation overlay" is listed as MVP requirement (line 1052)
+- Note: The checkmark in the planning document represents the aspirational roadmap goal, not current implementation status
+- System capabilities document confirms current animation is NOT implemented (planning/state/system_capabilities.md, line 541: "❌ Current animation or flow visualization")
 - Natural progression after voltage heatmap (completed)
 - Enables subsequent educational features (error explanations, interactive hints)
 - Critical for differentiating from competitors (Falstad has this; we need it too)
