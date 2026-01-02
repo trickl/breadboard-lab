@@ -16,6 +16,8 @@ export class BreadboardApp {
   private simulator: CircuitSimulator;
   private componentIdCounter = 0;
   private tooltipElement: HTMLElement | null = null;
+  private cachedCircuit: Circuit | null = null;
+  private cachedSimulation: SimulationResult | null = null;
 
   constructor(private container: HTMLElement) {
     this.state = { components: [] };
@@ -77,12 +79,12 @@ export class BreadboardApp {
 
     breadboard.innerHTML = '';
 
-    // Extract circuit and run simulation
-    const circuit = this.extractor.extract(this.state);
-    const simulation = this.simulator.simulate(circuit);
+    // Extract circuit and run simulation (cache for performance)
+    this.cachedCircuit = this.extractor.extract(this.state);
+    this.cachedSimulation = this.simulator.simulate(this.cachedCircuit);
 
     // Build position-to-node mapping for voltage lookup
-    const positionToNode = this.buildPositionToNodeMap(circuit);
+    const positionToNode = this.buildPositionToNodeMap(this.cachedCircuit);
 
     for (let row = 0; row < BreadboardLayout.ROWS; row++) {
       const rowEl = document.createElement('div');
@@ -101,8 +103,8 @@ export class BreadboardApp {
         }
 
         // Apply voltage overlay if simulation succeeded
-        if (simulation.success) {
-          this.applyVoltageOverlay(hole, position, positionToNode, simulation);
+        if (this.cachedSimulation.success) {
+          this.applyVoltageOverlay(hole, position, positionToNode, this.cachedSimulation);
         }
 
         rowEl.appendChild(hole);
@@ -364,7 +366,6 @@ export class BreadboardApp {
       if (voltage !== undefined) {
         const color = voltageToColor(voltage);
         hole.classList.add('voltage-overlay');
-        hole.style.setProperty('--voltage-color', color.rgb);
         hole.style.background = color.rgb;
         hole.dataset.voltage = voltage.toFixed(3);
       }
@@ -377,18 +378,17 @@ export class BreadboardApp {
   private showVoltageTooltip(event: MouseEvent, position: Position): void {
     if (!this.tooltipElement) return;
 
-    // Get voltage for this position
-    const circuit = this.extractor.extract(this.state);
-    const simulation = this.simulator.simulate(circuit);
-    
-    if (!simulation.success) return;
+    // Use cached circuit and simulation results for performance
+    if (!this.cachedCircuit || !this.cachedSimulation || !this.cachedSimulation.success) {
+      return;
+    }
 
-    const positionToNode = this.buildPositionToNodeMap(circuit);
+    const positionToNode = this.buildPositionToNodeMap(this.cachedCircuit);
     const posKey = this.positionToKey(position);
     const nodeId = positionToNode.get(posKey);
     
     if (nodeId) {
-      const voltage = simulation.nodeVoltages.get(nodeId);
+      const voltage = this.cachedSimulation.nodeVoltages.get(nodeId);
       
       if (voltage !== undefined) {
         const color = voltageToColor(voltage);
