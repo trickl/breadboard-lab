@@ -1,6 +1,6 @@
 # Current System Capabilities of Breadboard Lab
 
-**Date**: 2025-12-30  
+**Date**: 2026-01-02  
 **Purpose**: Factual description of what the system demonstrably does today
 
 ---
@@ -93,7 +93,6 @@ The UI consists of three panels:
 - No component rotation
 - No visual representation of placed components (only "occupied" marker on holes)
 - No wire rendering (wires are invisible except for hole markers)
-- No voltage/current visualization
 - No error highlighting or user feedback for invalid placements
 
 ---
@@ -186,6 +185,50 @@ Returns a `SimulationResult` containing:
 
 - Defined in `CircuitSimulator` class (`src/core/circuit-simulator.ts`)
 - Simulates `Circuit` objects (not directly from breadboard state)
+
+---
+
+## Voltage Visualization
+
+### Real-Time Voltage Overlay
+
+The system displays voltage levels on the breadboard using color-coded overlays tied directly to simulation results.
+
+**Visual feedback**:
+- All holes in the same electrical net display the same voltage-based color
+- Colors update automatically after component placement
+- Semi-transparent background overlays on hole elements
+
+**Color mapping**:
+- Color-blind friendly gradient: 0V (dark blue) → 1.25V (cyan) → 2.5V (yellow) → 3.75V (orange) → 5V (red)
+- Linear interpolation between color stops for smooth gradients
+- Voltage values are clamped to 0-5V range
+
+**Hover tooltips**:
+- Mouse hover on any hole displays exact voltage value
+- Formatted description includes voltage and qualitative level (e.g., "2.50V (mid)")
+- Tooltip follows mouse cursor position
+- Only shown when simulation is successful
+
+### Implementation Details
+
+**Voltage-to-color mapping** (`src/ui/voltage-colors.ts`):
+- `voltageToColor()`: Converts voltage to RGB color string with description
+- `voltageToClass()`: Alternative CSS class-based mapping for pattern-based fallback
+- 13 unit tests covering edge cases, interpolation, and clamping
+
+**Rendering approach**:
+- Position-to-node mapping extracts which circuit node each hole belongs to
+- Voltage overlay applied during breadboard rendering
+- Cached circuit/simulation results avoid redundant computation on hover
+- Inline CSS styles for colors (not CSS classes)
+
+### Constraints
+
+- Only displays voltages when simulation succeeds
+- Color scheme assumes 0-5V range (voltages outside are clamped)
+- No animation or flow visualization (static color display)
+- Requires successful circuit extraction and simulation
 
 ---
 
@@ -311,7 +354,7 @@ npm run format    # Run Prettier
 
 ### Test Coverage
 
-Two test suites with 13 passing tests:
+Three test suites with 26 passing tests:
 
 1. **breadboard-layout.test.ts** (9 tests)
    - Position validity checking
@@ -323,6 +366,12 @@ Two test suites with 13 passing tests:
    - Wire edge creation across nodes
    - Same-node component handling
    - Multiple component extraction
+
+3. **voltage-colors.test.ts** (13 tests)
+   - Color gradient mapping at key voltage stops (0V, 1.25V, 2.5V, 3.75V, 5V)
+   - Linear interpolation between color stops
+   - Voltage clamping (negative and above 5V)
+   - CSS class mapping for pattern-based alternatives
 
 ### Testing Approach
 
@@ -337,11 +386,12 @@ Two test suites with 13 passing tests:
 - No tests for `BreadboardApp` (UI layer)
 - No tests for component placement logic
 - No tests for simulation correctness with actual circuits
+- No tests for voltage overlay rendering behavior
 
 ### Test Execution
 
 - All tests pass
-- Test duration: ~14ms execution, ~780ms total (including setup)
+- Test duration: ~20ms execution, ~940ms total (including setup)
 - No flaky tests observed
 
 ---
@@ -387,7 +437,7 @@ Two test suites with 13 passing tests:
 2. **No component editing**: Cannot change component values or positions
 3. **No visual components**: Components are not drawn (only hole occupancy shown)
 4. **No wire rendering**: Wires are invisible
-5. **No voltage/current display**: Simulation results are not visualized
+5. **No current display**: Current values are computed but not visualized
 6. **Limited circuit types**: Only simple series circuits from power to ground
 7. **No parallel circuits**: Simulator does not handle parallel branches
 8. **No error detection**: No validation of circuit correctness
@@ -445,9 +495,10 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/core/breadboard-layout.ts` | 84 | Breadboard connectivity logic |
 | `src/core/circuit-extractor.ts` | 144 | Circuit graph extraction with union-find |
 | `src/core/circuit-simulator.ts` | 195 | DC circuit simulation |
-| `src/ui/breadboard-app.ts` | 300 | Main UI application class |
+| `src/ui/breadboard-app.ts` | 426 | Main UI application class |
+| `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
 | `src/main.ts` | 11 | Application entry point |
-| `src/style.css` | ~200 | Application styles |
+| `src/style.css` | ~224 | Application styles |
 
 ### Test Files
 
@@ -455,6 +506,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 |------|-------|---------|
 | `src/core/__tests__/breadboard-layout.test.ts` | 9 | Breadboard connectivity tests |
 | `src/core/__tests__/circuit-extractor.test.ts` | 4 | Circuit extraction tests |
+| `src/ui/__tests__/voltage-colors.test.ts` | 13 | Voltage-to-color mapping tests |
 
 ### Configuration Files
 
@@ -485,7 +537,7 @@ For clarity, these capabilities are explicitly **not present**:
 - ❌ Import/export circuits
 - ❌ Microcontroller simulation
 - ❌ Advanced circuit analysis (AC, transient, frequency response)
-- ❌ Real-time voltage/current visualization
+- ❌ Current animation or flow visualization
 - ❌ Error detection and helpful messages
 - ❌ Touch/mobile gestures
 - ❌ Collaboration or multi-user features
@@ -499,15 +551,16 @@ For clarity, these capabilities are explicitly **not present**:
 
 ## Verification
 
-This document describes the system as observed on 2025-12-30:
+This document describes the system as observed on 2026-01-02:
 
 - ✅ All source files examined
-- ✅ Tests executed successfully (13/13 passing)
+- ✅ Tests executed successfully (26/26 passing)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
 - ✅ Circuit extraction algorithm verified
 - ✅ Simulation algorithm verified
 - ✅ UI capabilities verified from BreadboardApp source
+- ✅ Voltage visualization capabilities verified from PR #12 changes
 
 This is a snapshot of reality, not aspirations or plans.
