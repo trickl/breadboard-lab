@@ -1,8 +1,9 @@
-import type { AnyComponent, BreadboardState, Position } from '@/core/types';
+import type { AnyComponent, BreadboardState, Position, Circuit, SimulationResult } from '@/core/types';
 import { ComponentType } from '@/core/types';
 import { BreadboardLayout } from '@/core/breadboard-layout';
 import { CircuitExtractor } from '@/core/circuit-extractor';
 import { CircuitSimulator } from '@/core/circuit-simulator';
+import { voltageToColor } from './voltage-colors';
 
 /**
  * Main application class managing the breadboard UI and simulation
@@ -14,6 +15,7 @@ export class BreadboardApp {
   private extractor: CircuitExtractor;
   private simulator: CircuitSimulator;
   private componentIdCounter = 0;
+  private tooltipElement: HTMLElement | null = null;
 
   constructor(private container: HTMLElement) {
     this.state = { components: [] };
@@ -50,6 +52,7 @@ export class BreadboardApp {
         <div class="workspace">
           <div class="breadboard-container">
             <div id="breadboard" class="breadboard"></div>
+            <div class="voltage-tooltip" id="voltage-tooltip"></div>
           </div>
         </div>
         <div class="info-panel">
@@ -59,6 +62,7 @@ export class BreadboardApp {
       </div>
     `;
 
+    this.tooltipElement = document.getElementById('voltage-tooltip');
     this.renderBreadboard();
     this.attachEventListeners();
     this.updateCircuitInfo();
@@ -72,6 +76,13 @@ export class BreadboardApp {
     if (!breadboard) return;
 
     breadboard.innerHTML = '';
+
+    // Extract circuit and run simulation
+    const circuit = this.extractor.extract(this.state);
+    const simulation = this.simulator.simulate(circuit);
+
+    // Build position-to-node mapping for voltage lookup
+    const positionToNode = this.buildPositionToNodeMap(circuit);
 
     for (let row = 0; row < BreadboardLayout.ROWS; row++) {
       const rowEl = document.createElement('div');
@@ -87,6 +98,11 @@ export class BreadboardApp {
         const position = { row, col };
         if (this.isPositionOccupied(position)) {
           hole.classList.add('occupied');
+        }
+
+        // Apply voltage overlay if simulation succeeded
+        if (simulation.success) {
+          this.applyVoltageOverlay(hole, position, positionToNode, simulation);
         }
 
         rowEl.appendChild(hole);
@@ -118,6 +134,21 @@ export class BreadboardApp {
         const row = parseInt((e.target as HTMLElement).dataset.row || '0');
         const col = parseInt((e.target as HTMLElement).dataset.col || '0');
         this.handleHoleClick({ row, col });
+      });
+
+      // Add hover listeners for voltage tooltip
+      hole.addEventListener('mouseenter', (e) => {
+        const row = parseInt((e.target as HTMLElement).dataset.row || '0');
+        const col = parseInt((e.target as HTMLElement).dataset.col || '0');
+        this.showVoltageTooltip(e as MouseEvent, { row, col });
+      });
+
+      hole.addEventListener('mousemove', (e) => {
+        this.updateTooltipPosition(e as MouseEvent);
+      });
+
+      hole.addEventListener('mouseleave', () => {
+        this.hideVoltageTooltip();
       });
     });
 
@@ -297,5 +328,99 @@ export class BreadboardApp {
       default:
         return '';
     }
+  }
+
+  /**
+   * Build a map from breadboard position to circuit node ID
+   */
+  private buildPositionToNodeMap(circuit: Circuit): Map<string, string> {
+    const map = new Map<string, string>();
+    
+    for (const [nodeId, node] of circuit.nodes) {
+      for (const pos of node.positions) {
+        const key = this.positionToKey(pos);
+        map.set(key, nodeId);
+      }
+    }
+    
+    return map;
+  }
+
+  /**
+   * Apply voltage overlay styling to a hole element
+   */
+  private applyVoltageOverlay(
+    hole: HTMLElement,
+    position: Position,
+    positionToNode: Map<string, string>,
+    simulation: SimulationResult
+  ): void {
+    const posKey = this.positionToKey(position);
+    const nodeId = positionToNode.get(posKey);
+    
+    if (nodeId) {
+      const voltage = simulation.nodeVoltages.get(nodeId);
+      
+      if (voltage !== undefined) {
+        const color = voltageToColor(voltage);
+        hole.classList.add('voltage-overlay');
+        hole.style.setProperty('--voltage-color', color.rgb);
+        hole.style.background = color.rgb;
+        hole.dataset.voltage = voltage.toFixed(3);
+      }
+    }
+  }
+
+  /**
+   * Show voltage tooltip on hole hover
+   */
+  private showVoltageTooltip(event: MouseEvent, position: Position): void {
+    if (!this.tooltipElement) return;
+
+    // Get voltage for this position
+    const circuit = this.extractor.extract(this.state);
+    const simulation = this.simulator.simulate(circuit);
+    
+    if (!simulation.success) return;
+
+    const positionToNode = this.buildPositionToNodeMap(circuit);
+    const posKey = this.positionToKey(position);
+    const nodeId = positionToNode.get(posKey);
+    
+    if (nodeId) {
+      const voltage = simulation.nodeVoltages.get(nodeId);
+      
+      if (voltage !== undefined) {
+        const color = voltageToColor(voltage);
+        this.tooltipElement.textContent = color.description;
+        this.tooltipElement.classList.add('visible');
+        this.updateTooltipPosition(event);
+      }
+    }
+  }
+
+  /**
+   * Update tooltip position
+   */
+  private updateTooltipPosition(event: MouseEvent): void {
+    if (!this.tooltipElement) return;
+    
+    this.tooltipElement.style.left = `${event.clientX + 10}px`;
+    this.tooltipElement.style.top = `${event.clientY + 10}px`;
+  }
+
+  /**
+   * Hide voltage tooltip
+   */
+  private hideVoltageTooltip(): void {
+    if (!this.tooltipElement) return;
+    this.tooltipElement.classList.remove('visible');
+  }
+
+  /**
+   * Convert position to string key
+   */
+  private positionToKey(pos: Position): string {
+    return `${pos.row},${pos.col}`;
   }
 }
