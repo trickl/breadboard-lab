@@ -1,4 +1,4 @@
-Implement current animation overlay on breadboard components and wires
+# Implement current animation overlay on breadboard components and wires
 
 ## Context
 
@@ -82,7 +82,7 @@ This feature transforms Breadboard Lab from a static visualization tool into a d
 ### Alignment with Roadmap
 
 This task is part of MVP milestone (planning/vision/goal.md, lines 1041-1069):
-- 🎯 "Current animation overlay" is listed as MVP requirement (line 1052)
+- 🎯 "Current animation overlay" is listed as MVP requirement (line 1052 shows it with aspirational checkmark)
 - Natural progression after voltage heatmap (completed)
 - Enables subsequent educational features (error explanations, interactive hints)
 - Critical for differentiating from competitors (Falstad has this; we need it too)
@@ -155,7 +155,7 @@ This is the most important next gap because:
 ## Next Steps After This Task
 
 Once current animation works:
-1. Implement error detection and visual error overlays (planning/vision/goal.md, lines 832-849)
+1. Implement error detection and visual error overlays (planning/vision/goal.md, lines 832-845)
 2. Create "Explain" panel with contextual circuit explanations (planning/vision/goal.md, lines 851-881)
-3. Add power dissipation visualization for resistors (planning/vision/goal.md, lines 817-830)
+3. Add power dissipation visualization for resistors (planning/vision/goal.md, lines 817-829)
 4. Improve simulation accuracy for more complex circuits (parallel branches, voltage dividers)
