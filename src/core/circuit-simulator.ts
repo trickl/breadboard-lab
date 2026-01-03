@@ -64,8 +64,8 @@ export class CircuitSimulator {
       // Extract node voltages from solution
       const nodeVoltages = this.extractNodeVoltages(solution, nodeIndexMap, groundNodes, circuit);
 
-      // Calculate edge currents from voltage differences
-      const edgeCurrents = this.calculateEdgeCurrents(circuit, nodeVoltages);
+      // Calculate edge currents from voltage differences and MNA solution
+      const edgeCurrents = this.calculateEdgeCurrents(circuit, nodeVoltages, solution, numNodes, voltageSources);
 
       return {
         success: true,
@@ -313,8 +313,21 @@ export class CircuitSimulator {
   /**
    * Calculate edge currents from node voltages using Ohm's law
    */
-  private calculateEdgeCurrents(circuit: Circuit, nodeVoltages: Map<string, number>): Map<string, number> {
+  private calculateEdgeCurrents(
+    circuit: Circuit,
+    nodeVoltages: Map<string, number>,
+    solution: number[],
+    numNodes: number,
+    voltageSources: Array<{ edge: CircuitEdge; voltage: number; positiveNode: string; negativeNode: string }>
+  ): Map<string, number> {
     const edgeCurrents = new Map<string, number>();
+
+    // Build map from voltage source edge ID to current from MNA solution
+    const voltageSourceCurrents = new Map<string, number>();
+    for (let i = 0; i < voltageSources.length; i++) {
+      const current = solution[numNodes + i]; // Current variables start after node voltages
+      voltageSourceCurrents.set(voltageSources[i].edge.id, current);
+    }
 
     for (const edge of circuit.edges) {
       const voltageA = nodeVoltages.get(edge.nodeA) || 0;
@@ -330,12 +343,11 @@ export class CircuitSimulator {
         current = voltageDiff * CircuitSimulator.WIRE_CONDUCTANCE;
       } else if (component.type === ComponentType.LED) {
         // Simplified: treat as 100 ohm resistor
+        // More accurate model would include forward voltage drop (Vf) as a voltage source in series
         current = voltageDiff / 100;
       } else if (component.type === ComponentType.POWER_SUPPLY) {
-        // For power supply, current depends on the load
-        // This is a simplification - in full MNA, we'd extract from solution vector
-        // For now, estimate based on voltage difference and typical load
-        current = 0; // Placeholder - would need current variable from MNA solution
+        // Extract current from MNA solution vector
+        current = voltageSourceCurrents.get(edge.id) || 0;
       } else if (component.type === ComponentType.GROUND) {
         current = 0;
       }
