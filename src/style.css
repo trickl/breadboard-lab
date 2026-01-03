@@ -109,10 +109,30 @@ body {
   border-radius: 12px;
   padding: 2rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  position: relative;
 }
 
 .breadboard {
   display: inline-block;
+  position: relative;
+}
+
+/* SVG overlay for component rendering */
+.component-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Component styles */
+.component {
+  transition: opacity 0.2s;
+}
+
+.component:hover {
+  opacity: 0.9;
 }
 
 .breadboard-row {
