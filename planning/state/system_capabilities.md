@@ -1,6 +1,6 @@
 # Current System Capabilities of Breadboard Lab
 
-**Date**: 2026-01-02  
+**Date**: 2026-01-03  
 **Purpose**: Factual description of what the system demonstrably does today
 
 ---
@@ -75,6 +75,7 @@ The UI consists of three panels:
 **Visual feedback**:
 - Selected component button gets "active" styling
 - Occupied holes display with "occupied" class
+- Placed components render visually on the breadboard (power supplies, resistors, LEDs, ground symbols, and wires)
 - No drag-and-drop
 - No visual preview before second click
 
@@ -91,8 +92,6 @@ The UI consists of three panels:
 - No undo/redo
 - No save/load functionality
 - No component rotation
-- No visual representation of placed components (only "occupied" marker on holes)
-- No wire rendering (wires are invisible except for hole markers)
 - No error highlighting or user feedback for invalid placements
 
 ---
@@ -232,6 +231,67 @@ The system displays voltage levels on the breadboard using color-coded overlays 
 
 ---
 
+## Component Visual Rendering
+
+### SVG-Based Component Rendering
+
+The system displays all placed components with distinctive visual representations on the breadboard using SVG overlays.
+
+**Visual representations**:
+- **Power supply**: Blue battery rectangle with +/- symbols and voltage label (e.g., "5V")
+- **Resistor**: Tan rectangle with resistance value label and connection leads (displays "100Ω" for values < 1kΩ, "1kΩ" for values ≥ 1kΩ)
+- **LED**: Red circle with "+" polarity indicator and cathode marker (flat side)
+- **Ground**: Standard ground symbol (three horizontal lines of decreasing width)
+- **Wire**: Colored path with Manhattan routing (orthogonal lines) and connection dots at endpoints
+
+**Wire color cycling**:
+- Wires cycle through 8 distinct colors: red, black, yellow, green, blue, orange, white, purple
+- Color assignment resets on each render for consistency
+- Each wire gets the next color in the sequence
+
+**Rendering characteristics**:
+- Components render automatically after placement
+- SVG overlay positioned absolutely over breadboard grid
+- Components render in layered order: wires first (behind), then other components
+- Visual representations use geometric shapes with text labels (no proprietary graphics)
+- Component overlay has `pointer-events: none` to avoid interfering with hole interaction
+- Components display above breadboard grid but below voltage overlay
+
+**Coordinate mapping**:
+- Grid positions (row, col) map to pixel coordinates for SVG rendering
+- Hole spacing: 26px per hole (20px hole size + 6px total margin)
+- Breadboard dimensions: 520px width (10 columns) × 780px height (30 rows)
+
+### Implementation Details
+
+**Component renderer** (`src/ui/component-renderer.ts`):
+- `ComponentRenderer` class handles all visual rendering logic
+- `renderComponents()`: Creates SVG element with all component visuals
+- Individual render methods for each component type (wire, resistor, LED, power supply, ground)
+- Position-to-pixel coordinate conversion
+- Smart resistance value formatting
+
+**Integration** (`src/ui/breadboard-app.ts`):
+- Component overlay renders after breadboard grid creation
+- Re-renders automatically on state changes (component placement, clear all)
+- SVG dimensions calculated based on breadboard size
+- Existing component overlay removed before re-rendering
+
+**Styling** (`src/style.css`):
+- `.component-overlay`: Absolute positioning with z-index 10
+- `.component`: Base component styling with opacity transition
+- Breadboard container has `position: relative` for overlay positioning
+
+### Constraints
+
+- Components are not interactive (SVG has pointer-events disabled)
+- No drag-and-drop of rendered components (placement uses two-click interaction)
+- No animation of component placement (instant rendering)
+- Visual representations are simplified geometric shapes, not photorealistic
+- Wire routing is orthogonal (Manhattan style), not customizable by user
+
+---
+
 ## Information Display
 
 ### Circuit Info Panel
@@ -354,7 +414,7 @@ npm run format    # Run Prettier
 
 ### Test Coverage
 
-Three test suites with 26 passing tests:
+Four test suites with 35 passing tests:
 
 1. **breadboard-layout.test.ts** (9 tests)
    - Position validity checking
@@ -373,6 +433,13 @@ Three test suites with 26 passing tests:
    - Voltage clamping (negative and above 5V)
    - CSS class mapping for pattern-based alternatives
 
+4. **component-renderer.test.ts** (9 tests)
+   - SVG element creation
+   - Individual component rendering (wire, resistor, LED, power supply, ground)
+   - Multiple component rendering
+   - Component layering (wires render before other components)
+   - Wire color cycling and reset behavior
+
 ### Testing Approach
 
 - Unit tests for core logic only
@@ -387,11 +454,12 @@ Three test suites with 26 passing tests:
 - No tests for component placement logic
 - No tests for simulation correctness with actual circuits
 - No tests for voltage overlay rendering behavior
+- No integration tests for component rendering with voltage overlays
 
 ### Test Execution
 
-- All tests pass
-- Test duration: ~20ms execution, ~940ms total (including setup)
+- All 35 tests pass
+- Test duration: Fast execution (typically < 50ms)
 - No flaky tests observed
 
 ---
@@ -434,15 +502,14 @@ Three test suites with 26 passing tests:
 ### Functional
 
 1. **No component deletion**: Cannot remove individual components (only "Clear All")
-2. **No component editing**: Cannot change component values or positions
-3. **No visual components**: Components are not drawn (only hole occupancy shown)
-4. **No wire rendering**: Wires are invisible
-5. **No current display**: Current values are computed but not visualized
-6. **Limited circuit types**: Only simple series circuits from power to ground
-7. **No parallel circuits**: Simulator does not handle parallel branches
-8. **No error detection**: No validation of circuit correctness
-9. **No persistence**: No save/load functionality
-10. **No undo/redo**: No operation history
+2. **No component editing**: Cannot change component values or positions after placement
+3. **No component dragging**: Components cannot be moved once placed (two-click placement only)
+4. **No current display**: Current values are computed but not visualized on components
+5. **Limited circuit types**: Only simple series circuits from power to ground
+6. **No parallel circuits**: Simulator does not handle parallel branches
+7. **No error detection**: No validation of circuit correctness
+8. **No persistence**: No save/load functionality
+9. **No undo/redo**: No operation history
 
 ### Simulation Accuracy
 
@@ -495,10 +562,11 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/core/breadboard-layout.ts` | 84 | Breadboard connectivity logic |
 | `src/core/circuit-extractor.ts` | 144 | Circuit graph extraction with union-find |
 | `src/core/circuit-simulator.ts` | 195 | DC circuit simulation |
-| `src/ui/breadboard-app.ts` | 426 | Main UI application class |
+| `src/ui/breadboard-app.ts` | 455 | Main UI application class |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
+| `src/ui/component-renderer.ts` | 443 | SVG-based visual component rendering |
 | `src/main.ts` | 11 | Application entry point |
-| `src/style.css` | ~224 | Application styles |
+| `src/style.css` | ~244 | Application styles |
 
 ### Test Files
 
@@ -507,6 +575,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/core/__tests__/breadboard-layout.test.ts` | 9 | Breadboard connectivity tests |
 | `src/core/__tests__/circuit-extractor.test.ts` | 4 | Circuit extraction tests |
 | `src/ui/__tests__/voltage-colors.test.ts` | 13 | Voltage-to-color mapping tests |
+| `src/ui/__tests__/component-renderer.test.ts` | 9 | Component visual rendering tests |
 
 ### Configuration Files
 
@@ -551,10 +620,10 @@ For clarity, these capabilities are explicitly **not present**:
 
 ## Verification
 
-This document describes the system as observed on 2026-01-02:
+This document describes the system as observed on 2026-01-03 after merging PR #71:
 
 - ✅ All source files examined
-- ✅ Tests executed successfully (26/26 passing)
+- ✅ Tests executed successfully (35/35 passing)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
@@ -562,5 +631,6 @@ This document describes the system as observed on 2026-01-02:
 - ✅ Simulation algorithm verified
 - ✅ UI capabilities verified from BreadboardApp source
 - ✅ Voltage visualization capabilities verified from PR #12 changes
+- ✅ Component visual rendering capabilities verified from PR #71 changes
 
 This is a snapshot of reality, not aspirations or plans.
