@@ -7,7 +7,12 @@ An open-source, browser-based breadboard simulator designed to teach electronics
 - **Interactive Breadboard UI**: Place components and wires on a realistic breadboard with power rails and terminal strips
 - **Power Rails**: 4 vertical power distribution rails (2 per side: positive and negative) with color coding
 - **Realistic Layout**: 30 rows × 14 columns matching physical breadboard structure
-- **Component Library**: Wire, Resistor (1kΩ), LED, Power Supply (5V), and Ground
+- **Component Library**: Real-world components with physically accurate specifications:
+  - 23 resistor values (E12 series, 5% and 1% tolerance)
+  - 4 LED types (3mm yellow, 5mm red/green/blue with accurate forward voltages)
+  - Speaker module (8Ω breadboard-compatible)
+  - Multiple power supplies (3.3V, 5V, 9V, 12V)
+  - See [COMPONENT_LIBRARY.md](COMPONENT_LIBRARY.md) for complete catalog
 - **Circuit Extraction**: Automatically extracts electrical circuit topology from component placement
 - **Real-time Simulation**: Calculates voltages and currents using Modified Nodal Analysis (MNA)
 - **Voltage Heatmap Visualization**: Color-coded voltage display on breadboard holes (0V=blue → 5V=red)
@@ -96,10 +101,21 @@ The project follows a clean architecture with clear separation of concerns:
 
 ### Core Layer (`src/core/`)
 
-- **types.ts**: Domain types and interfaces for components, circuit nodes, and simulation results
-- **breadboard-layout.ts**: Models the breadboard's internal connection structure (terminal strips)
+- **types.ts**: Domain types and interfaces for components, circuit nodes, simulation results, and component library
+- **breadboard-layout.ts**: Models the breadboard's internal connection structure (terminal strips and power rails)
 - **circuit-extractor.ts**: Extracts circuit graph from breadboard state using union-find algorithm
-- **circuit-simulator.ts**: Simulates circuit voltages and currents using simplified nodal analysis
+- **circuit-simulator.ts**: Simulates circuit voltages and currents using Modified Nodal Analysis (MNA)
+- **component-library.ts**: Registry for real-world component specifications
+- **component-library-utils.ts**: Helper functions for component lookups and mapping
+
+### Library Catalog (`src/library/`)
+
+- **resistors.ts**: 23 standard resistor values (E12 series, multiple tolerances)
+- **leds.ts**: 4 LED variants with accurate specifications
+- **other-components.ts**: Power supplies, wires, ground, and speaker module
+- **index.ts**: Exports all library entries (35 components total)
+
+See [COMPONENT_LIBRARY.md](COMPONENT_LIBRARY.md) for detailed library documentation.
 
 ### UI Layer (`src/ui/`)
 
@@ -124,11 +140,11 @@ The project follows a clean architecture with clear separation of concerns:
 
 ## Future Enhancements
 
-- More component types (capacitors, switches, batteries, transistors)
+- Component library browser UI (selection by specification)
+- Library-aware component rendering (size-accurate visuals)
+- More component types (capacitors, switches, transistors, ICs)
 - Advanced circuit analysis (AC analysis, transient analysis)
-- Error detection overlays (short circuits, floating nodes, reversed polarity)
-- Component value customization (user-adjustable resistance, voltage)
-- Component deletion and editing capabilities
+- Component value customization through library parts
 - Undo/redo functionality
 - Export/import circuit designs
 - Power dissipation visualization (heat indicators on resistors)
