@@ -114,6 +114,31 @@ export interface Circuit {
 }
 
 /**
+ * Error types that can occur in a circuit
+ */
+export enum ErrorType {
+  SHORT_CIRCUIT = 'SHORT_CIRCUIT',
+  FLOATING_NODE = 'FLOATING_NODE',
+  REVERSED_LED = 'REVERSED_LED',
+  OPEN_CIRCUIT = 'OPEN_CIRCUIT',
+  OVERCURRENT = 'OVERCURRENT',
+}
+
+/**
+ * Circuit error with location and description
+ */
+export interface CircuitError {
+  type: ErrorType;
+  severity: 'error' | 'warning';
+  nodeId?: string; // Node where error occurred
+  componentId?: string; // Component involved in error
+  positions: Position[]; // Breadboard positions to highlight
+  message: string; // Short error message
+  explanation: string; // Educational explanation of the problem
+  suggestions: string[]; // Actionable fix suggestions
+}
+
+/**
  * Simulation result
  */
 export interface SimulationResult {
@@ -121,4 +146,5 @@ export interface SimulationResult {
   error?: string;
   nodeVoltages: Map<string, number>; // Node ID -> Voltage
   edgeCurrents: Map<string, number>; // Edge ID -> Current
+  errors: CircuitError[]; // Detected circuit errors
 }

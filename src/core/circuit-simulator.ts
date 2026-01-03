@@ -1,5 +1,5 @@
-import type { Circuit, SimulationResult, CircuitEdge } from './types';
-import { ComponentType } from './types';
+import type { Circuit, SimulationResult, CircuitEdge, CircuitError } from './types';
+import { ComponentType, ErrorType } from './types';
 
 /**
  * Circuit simulator using Modified Nodal Analysis (MNA).
@@ -24,6 +24,7 @@ export class CircuitSimulator {
           error: 'No ground node found. Circuit must have at least one ground connection.',
           nodeVoltages: new Map(),
           edgeCurrents: new Map(),
+          errors: [],
         };
       }
 
@@ -43,6 +44,7 @@ export class CircuitSimulator {
           success: true,
           nodeVoltages,
           edgeCurrents: new Map(),
+          errors: [],
         };
       }
 
@@ -58,6 +60,7 @@ export class CircuitSimulator {
           error: 'Circuit simulation failed. Possible short circuit or singular configuration.',
           nodeVoltages: new Map(),
           edgeCurrents: new Map(),
+          errors: [],
         };
       }
 
@@ -67,10 +70,14 @@ export class CircuitSimulator {
       // Calculate edge currents from voltage differences and MNA solution
       const edgeCurrents = this.calculateEdgeCurrents(circuit, nodeVoltages, solution, numNodes, voltageSources);
 
+      // Detect circuit errors
+      const errors = this.detectErrors(circuit, nodeVoltages, edgeCurrents, groundNodes, voltageSources);
+
       return {
         success: true,
         nodeVoltages,
         edgeCurrents,
+        errors,
       };
     } catch (error) {
       return {
@@ -78,6 +85,7 @@ export class CircuitSimulator {
         error: error instanceof Error ? error.message : 'Unknown simulation error',
         nodeVoltages: new Map(),
         edgeCurrents: new Map(),
+        errors: [],
       };
     }
   }
@@ -356,5 +364,165 @@ export class CircuitSimulator {
     }
 
     return edgeCurrents;
+  }
+
+  /**
+   * Detect circuit errors based on simulation results
+   */
+  private detectErrors(
+    circuit: Circuit,
+    nodeVoltages: Map<string, number>,
+    edgeCurrents: Map<string, number>,
+    groundNodes: Set<string>,
+    voltageSources: Array<{ edge: CircuitEdge; voltage: number; positiveNode: string; negativeNode: string }>
+  ): CircuitError[] {
+    const errors: CircuitError[] = [];
+
+    // 1. Detect short circuits (power supply with very high current)
+    for (const vs of voltageSources) {
+      const current = Math.abs(edgeCurrents.get(vs.edge.id) || 0);
+      if (current > 10) { // More than 10A indicates potential short circuit
+        const node = circuit.nodes.get(vs.positiveNode);
+        errors.push({
+          type: ErrorType.SHORT_CIRCUIT,
+          severity: 'error',
+          componentId: vs.edge.component.id,
+          nodeId: vs.positiveNode,
+          positions: node?.positions || [],
+          message: 'Short circuit detected',
+          explanation: 'The power supply is delivering excessive current (>10A), which indicates a direct or near-direct connection to ground with very little resistance. This would damage a real power supply.',
+          suggestions: [
+            'Add resistors to limit current flow',
+            'Check for unintended wire connections between power and ground',
+            'Verify component placement and connections',
+          ],
+        });
+      }
+    }
+
+    // 2. Detect floating nodes (nodes with very low voltage that should be powered)
+    for (const [nodeId, node] of circuit.nodes) {
+      if (groundNodes.has(nodeId)) continue;
+      
+      const voltage = nodeVoltages.get(nodeId) || 0;
+      
+      // Check if node is connected to any components
+      const connectedEdges = circuit.edges.filter(
+        (edge) => edge.nodeA === nodeId || edge.nodeB === nodeId
+      );
+      
+      // Skip if node has no components (shouldn't happen but be safe)
+      if (connectedEdges.length === 0) continue;
+      
+      // Check if any edge has non-zero current (indicating node is in active circuit)
+      const hasActiveCurrent = connectedEdges.some(
+        (edge) => Math.abs(edgeCurrents.get(edge.id) || 0) > 1e-6
+      );
+      
+      // If node has components but very low voltage and no current, it might be floating
+      if (Math.abs(voltage) < 0.1 && !hasActiveCurrent && connectedEdges.length > 0) {
+        // Check if it's connected to a power source or ground (not floating)
+        const hasGroundConnection = connectedEdges.some(
+          (edge) => edge.component.type === ComponentType.GROUND
+        );
+        const hasPowerConnection = connectedEdges.some(
+          (edge) => edge.component.type === ComponentType.POWER_SUPPLY
+        );
+        
+        if (!hasGroundConnection && !hasPowerConnection) {
+          errors.push({
+            type: ErrorType.FLOATING_NODE,
+            severity: 'warning',
+            nodeId: nodeId,
+            positions: node.positions,
+            message: 'Floating node detected',
+            explanation: 'This node is not connected to either power or ground, so it has no defined voltage. Components connected to floating nodes will not function.',
+            suggestions: [
+              'Connect this node to a power supply or ground',
+              'Add a wire to complete the circuit path',
+              'Verify all component connections are complete',
+            ],
+          });
+        }
+      }
+    }
+
+    // 3. Detect reversed LEDs (negative current through LED)
+    for (const edge of circuit.edges) {
+      if (edge.component.type === ComponentType.LED) {
+        const current = edgeCurrents.get(edge.id) || 0;
+        
+        if (current < -1e-6) {
+          // Current is flowing backwards through LED
+          errors.push({
+            type: ErrorType.REVERSED_LED,
+            severity: 'error',
+            componentId: edge.component.id,
+            positions: edge.component.positions,
+            message: 'LED connected backwards',
+            explanation: 'LEDs only conduct current in one direction (from anode to cathode). When connected backwards, they block current flow and will not light up. The longer leg (anode) should connect toward the positive voltage.',
+            suggestions: [
+              'Rotate the LED 180 degrees to reverse polarity',
+              'Verify the LED anode (longer leg) is connected to higher voltage',
+              'Check that current flows from positive to negative through the LED',
+            ],
+          });
+        }
+      }
+    }
+
+    // 4. Detect open circuits (LEDs with zero current when they should conduct)
+    for (const edge of circuit.edges) {
+      if (edge.component.type === ComponentType.LED) {
+        const current = Math.abs(edgeCurrents.get(edge.id) || 0);
+        const voltageA = nodeVoltages.get(edge.nodeA) || 0;
+        const voltageB = nodeVoltages.get(edge.nodeB) || 0;
+        const voltageDiff = Math.abs(voltageA - voltageB);
+        
+        // If there's voltage across the LED but no current, it might be an open circuit
+        if (voltageDiff > 1.0 && current < 1e-6) {
+          errors.push({
+            type: ErrorType.OPEN_CIRCUIT,
+            severity: 'warning',
+            componentId: edge.component.id,
+            positions: edge.component.positions,
+            message: 'Possible open circuit',
+            explanation: 'There is voltage across this LED but no current flowing. This could indicate a broken connection, a component not properly inserted, or the LED is connected backwards.',
+            suggestions: [
+              'Check all wire and component connections',
+              'Verify the LED is oriented correctly (not backwards)',
+              'Ensure all components are fully inserted into breadboard holes',
+            ],
+          });
+        }
+      }
+    }
+
+    // 5. Detect overcurrent through LEDs
+    for (const edge of circuit.edges) {
+      if (edge.component.type === ComponentType.LED) {
+        const current = Math.abs(edgeCurrents.get(edge.id) || 0);
+        const maxCurrent = edge.component.maxCurrent;
+        
+        if (current > maxCurrent * 1.5) {
+          // Current is significantly above max rating
+          errors.push({
+            type: ErrorType.OVERCURRENT,
+            severity: 'warning',
+            componentId: edge.component.id,
+            positions: edge.component.positions,
+            message: 'LED overcurrent detected',
+            explanation: `The LED is conducting ${(current * 1000).toFixed(1)}mA, which exceeds its maximum rating of ${(maxCurrent * 1000).toFixed(1)}mA. This will damage the LED over time. LEDs need a current-limiting resistor in series.`,
+            suggestions: [
+              'Add a series resistor to limit current',
+              `For a 5V supply and ${(maxCurrent * 1000).toFixed(1)}mA max current, use a ${Math.round((5 - 2) / maxCurrent / 100) * 100}Ω or larger resistor`,
+              'Use Ohm\'s Law: R = (Vsupply - VLED) / Idesired',
+            ],
+          });
+        }
+      }
+    }
+
+    return errors;
   }
 }
