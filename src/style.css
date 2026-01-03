@@ -135,6 +135,11 @@ body {
   opacity: 0.9;
 }
 
+/* Selected component visual feedback */
+.component-selected {
+  filter: drop-shadow(0 0 8px rgba(68, 136, 255, 0.8)) drop-shadow(0 0 4px rgba(68, 136, 255, 1));
+}
+
 .breadboard-row {
   display: flex;
   gap: 0;

@@ -81,6 +81,7 @@ export type AnyComponent = Resistor | LED | Wire | PowerSupply | Ground;
  */
 export interface BreadboardState {
   components: AnyComponent[];
+  selectedComponentId: string | null;
 }
 
 /**
