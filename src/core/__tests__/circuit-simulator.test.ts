@@ -347,7 +347,7 @@ describe('CircuitSimulator - MNA Implementation', () => {
             type: ComponentType.LED,
             forwardVoltage: 2.0,
             maxCurrent: 0.02,
-          rotation: 0,
+            rotation: 0,
             positions: [],
           },
           nodeA: 'middle',
