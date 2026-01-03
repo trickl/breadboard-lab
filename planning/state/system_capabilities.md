@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-03  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After implementing component drag-and-drop repositioning
+**Last Updated**: After implementing component rotation (PR #107)
 
 ---
 
@@ -85,11 +85,12 @@ The UI consists of three panels:
 - **Place component**: Select component type, click two holes
 - **Select component**: Click on a rendered component to select it (visual feedback: blue drop-shadow)
 - **Move component**: Click and drag selected component to reposition (ghost preview shows new position)
+- **Rotate component**: Press R key to rotate selected component 90° clockwise (cycles through 0°, 90°, 180°, 270°)
 - **Edit component values**: Select component to open property editor, modify values through text input or preset buttons
 - **Delete component**: Press Delete or Backspace key to remove selected component
 - **Deselect component**: Click breadboard background or another component
 - **Clear all**: Removes all components and resets the breadboard
-- **View circuit info**: Automatically updated after each placement, deletion, value change, or repositioning
+- **View circuit info**: Automatically updated after each placement, deletion, rotation, value change, or repositioning
 
 ### Component Selection and Deletion
 
@@ -171,6 +172,49 @@ The UI consists of three panels:
 - Property editor input listeners attached dynamically when component selected
 - Event cleanup via `destroy()` method prevents memory leaks (includes debounce timer cleanup)
 
+### Component Rotation
+
+**Rotation system**: After placing and selecting a component, users can rotate it 90° clockwise using the R key, with validation to prevent invalid orientations.
+
+**Rotation interaction**:
+1. Select a component (click on it)
+2. Press R or r key to rotate 90° clockwise
+3. Rotation cycles through four orientations: 0° → 90° → 180° → 270° → 0°
+4. Invalid rotations are prevented (component retains current orientation)
+
+**Visual rendering**:
+- SVG `transform` attribute applies rotation around component center
+- All component types render correctly at all rotation angles
+- Polarity indicators (LED, power supply) rotate with component
+- Component selection persists after rotation
+
+**Position validation**:
+- All component pins must align to valid breadboard holes after rotation
+- No collision with existing components (pins cannot occupy same holes)
+- Out-of-bounds rotations are prevented
+- Invalid rotations fail silently (no error message, component unchanged)
+
+**Circuit integration**:
+- Pin positions recalculated using 2D rotation matrix transformation
+- Circuit automatically re-extracts after successful rotation
+- Simulation re-runs with new topology
+- Voltage overlay and current animation update to reflect new orientation
+
+**Implementation details**:
+- Rotation stored as component property (`rotation: 0 | 90 | 180 | 270`)
+- Rotation transform calculated using standard 2D rotation formulas:
+  - 90° clockwise: (x, y) → (y, -x)
+  - 180°: (x, y) → (-x, -y)  
+  - 270° clockwise: (x, y) → (-y, x)
+- Rotation applied around component center (midpoint between pins)
+- Single-position components (ground) can rotate without position change
+- Keyboard handler prevents rotation during active drag operation
+
+**Supported components**:
+- All component types support rotation (wire, resistor, LED, power supply, ground)
+- Rotation state defaults to 0° for newly placed components
+- Rotation state persists with component until deletion
+
 ### Component Property Editor
 
 **Property editing system**: When a component is selected, a property editor panel displays in the info panel, allowing users to modify component-specific values.
@@ -210,9 +254,9 @@ The UI consists of three panels:
 
 - No undo/redo
 - No save/load functionality
-- No component rotation
 - No multi-select or bulk operations
 - No error highlighting for invalid placements (only for property values)
+- No visual rotation handle (keyboard R key only)
 
 ---
 
@@ -639,7 +683,7 @@ npm run format    # Run Prettier
 
 ### Test Coverage
 
-Eight test suites with 83 passing tests:
+Eight test suites with 95 passing tests:
 
 1. **breadboard-layout.test.ts** (9 tests)
    - Position validity checking
@@ -682,7 +726,7 @@ Eight test suites with 83 passing tests:
    - Component type support (wire, resistor, LED)
    - Edge cases (zero current, negative current, empty components, failed simulation)
 
-7. **breadboard-app.test.ts** (13 tests) — **Updated in PR #101**
+7. **breadboard-app.test.ts** (25 tests) — **Updated in PR #107**
    - Component initialization
    - Component selection (click to select)
    - Component deselection (background click)
@@ -691,12 +735,22 @@ Eight test suites with 83 passing tests:
    - Circuit simulation updates after deletion
    - No deletion when nothing selected
    - Multiple component selection handling
-   - **Drag-and-drop repositioning** (5 new tests):
+   - **Drag-and-drop repositioning** (5 tests):
      - Drag operation initiation on mousedown
      - Ghost preview display during drag
      - Component position update on successful drop
      - Drag cancellation via Escape key
      - Component selection persistence after drag
+   - **Component rotation** (12 new tests in PR #107):
+     - Rotation via R key press
+     - Cycling through all four rotation angles (0°, 90°, 180°, 270°)
+     - SVG rotation transform application
+     - No rotation when no component selected
+     - No rotation during drag operation
+     - Lowercase r key support
+     - Out-of-bounds rotation prevention
+     - Circuit simulation updates after rotation
+     - Rotation for all component types (LED, power supply, wire, resistor, ground)
 
 8. **property-editor.test.ts** (12 tests) — **New in PR #95**
    - Property editor visibility toggle (shown when component selected, hidden otherwise)
@@ -725,7 +779,7 @@ Eight test suites with 83 passing tests:
 
 ### Test Execution
 
-- All 83 tests pass
+- All 95 tests pass
 - Test duration: Fast execution (typically < 300ms, including async debounce waits)
 - No flaky tests observed
 
@@ -785,9 +839,9 @@ Eight test suites with 83 passing tests:
 ### User Experience
 
 1. **No visual feedback during initial placement**: No preview shown during two-click component placement (preview only available when repositioning)
-2. **No validation feedback**: Silent failure on invalid operations
+2. **No validation feedback for invalid rotations**: Silent failure when rotation would be invalid (no error message)
 3. **No help system**: No tooltips or guidance beyond voltage tooltips on hover
-4. **Limited keyboard shortcuts**: Only Delete/Backspace for component deletion, Escape for canceling drag
+4. **Limited keyboard shortcuts**: Delete/Backspace for deletion, R for rotation, Escape for canceling drag
 
 ---
 
@@ -820,13 +874,13 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `src/core/types.ts` | 123 | Type definitions for domain model (includes BreadboardState with selectedComponentId) |
+| `src/core/types.ts` | 124 | Type definitions for domain model (includes Component rotation property) |
 | `src/core/breadboard-layout.ts` | 84 | Breadboard connectivity logic |
 | `src/core/circuit-extractor.ts` | 144 | Circuit graph extraction with union-find |
 | `src/core/circuit-simulator.ts` | 360 | DC circuit simulation using Modified Nodal Analysis |
-| `src/ui/breadboard-app.ts` | 1065 | Main UI application class with selection/deletion, property editor, and drag-and-drop repositioning |
+| `src/ui/breadboard-app.ts` | 1172 | Main UI application class with selection/deletion, rotation, property editor, and drag-and-drop |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
-| `src/ui/component-renderer.ts` | 534 | SVG-based visual component rendering with selection support and drag preview |
+| `src/ui/component-renderer.ts` | 568 | SVG-based visual component rendering with rotation transform support |
 | `src/ui/current-animator.ts` | 426 | Animated current flow visualization using particles |
 | `src/main.ts` | 11 | Application entry point |
 | `src/style.css` | 346 | Application styles (includes .component-selected, .property-editor, and drag preview styling) |
@@ -841,7 +895,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/ui/__tests__/voltage-colors.test.ts` | 13 | Voltage-to-color mapping tests |
 | `src/ui/__tests__/component-renderer.test.ts` | 9 | Component visual rendering tests |
 | `src/ui/__tests__/current-animator.test.ts` | 11 | Current animation tests (particle system, magnitude scaling) |
-| `src/ui/__tests__/breadboard-app.test.ts` | 13 | Component selection, deletion, and drag-and-drop interaction tests (PR #89, PR #101) |
+| `src/ui/__tests__/breadboard-app.test.ts` | 25 | Component selection, deletion, rotation, and drag-and-drop interaction tests (PR #89, PR #101, PR #107) |
 | `src/ui/__tests__/property-editor.test.ts` | 12 | Property editor tests (visibility, editing, presets, validation) (PR #95) |
 
 ### Configuration Files
@@ -886,10 +940,10 @@ For clarity, these capabilities are explicitly **not present**:
 
 ## Verification
 
-This document describes the system as observed on 2026-01-03 after merging PR #101:
+This document describes the system as observed on 2026-01-03 after merging PR #107:
 
 - ✅ All source files examined
-- ✅ Tests executed successfully (83/83 passing)
+- ✅ Tests executed successfully (95/95 passing)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
@@ -903,5 +957,6 @@ This document describes the system as observed on 2026-01-03 after merging PR #1
 - ✅ Component selection and deletion capabilities verified from PR #89 changes
 - ✅ Component property editing capabilities verified from PR #95 changes
 - ✅ Component drag-and-drop repositioning capabilities verified from PR #101 changes
+- ✅ Component rotation capabilities verified from PR #107 changes
 
 This is a snapshot of reality, not aspirations or plans.
