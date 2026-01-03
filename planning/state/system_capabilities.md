@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-03  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After implementing component rotation (PR #107)
+**Last Updated**: After implementing error detection and explain panel (PR #113)
 
 ---
 
@@ -490,6 +490,182 @@ The system visualizes current flow through circuit components using animated par
 
 ---
 
+## Error Detection and Explain Panel
+
+### Automated Error Detection
+
+The system automatically detects and categorizes five types of common circuit errors during simulation, providing visual feedback and educational explanations to help users understand and fix problems.
+
+**Error types detected:**
+
+1. **Short Circuit** - Power supply delivering excessive current (>10A), indicating near-zero resistance path from power to ground
+2. **Floating Node** - Nodes not connected to power or ground with no current flow
+3. **Reversed LED** - LED with negative current (connected backwards, blocking current)
+4. **Open Circuit** - LED with voltage across terminals but no current flow
+5. **Overcurrent** - LED current exceeding 1.5× its maximum rated current
+
+**Error detection algorithm:**
+- Runs automatically after circuit simulation completes
+- Analyzes simulation results (node voltages, edge currents, component types)
+- Detects errors using heuristic rules and threshold checks
+- Categorizes errors by severity: "error" (critical) or "warning" (advisory)
+- Each error includes:
+  - Type and severity classification
+  - Affected node/component IDs
+  - Breadboard positions to highlight
+  - Short message describing the problem
+  - Educational explanation of why it's wrong
+  - Actionable fix suggestions (3-5 steps)
+
+### Visual Error Overlays
+
+Error icons render automatically on the breadboard SVG overlay at problem locations, making errors immediately visible and interactive.
+
+**Visual characteristics:**
+- **Short circuits**: Red circle with white ✕ symbol
+- **Floating nodes**: Orange circle with white ? symbol
+- **Reversed LEDs**: Yellow circle with white ! symbol
+- **Open circuits**: Yellow circle with white ⚠ symbol
+- **Overcurrent warnings**: Orange circle with white ! symbol
+
+**Interactive features:**
+- Error icons are clickable to open Explain panel with details
+- Hover effects: icon grows from 8px to 10px radius on hover
+- Drop shadow effect increases on hover for visual feedback
+- Icons positioned at center of error location (average of all affected positions)
+- Cursor changes to pointer on hover
+- White stroke (2px) around colored background for visibility
+
+**Rendering behavior:**
+- Error overlay renders above breadboard holes but below component overlay
+- Icons update automatically when circuit changes or simulation re-runs
+- Multiple errors can be displayed simultaneously
+- Error overlay clears when no errors are present
+- Icons remain clickable even when other interactions are active
+
+### Explain Panel UI
+
+Interactive side panel that provides contextual explanations about circuit behavior, including technical details and educational content.
+
+**Panel structure:**
+- Slide-in panel from right side of screen
+- Header with "Circuit Explanation" title and close button (✕)
+- Content area that changes based on what was clicked
+- Initially hidden until triggered by user interaction
+- Close button and background click dismiss the panel
+
+**Three content modes:**
+
+1. **Error Explanations** (click error icon):
+   - Error title with emoji indicator (⚠️)
+   - "What's happening" section with educational explanation
+   - "How to fix it" section with bulleted action steps
+   - Specific, actionable suggestions tailored to error type
+   - Example: For reversed LED, suggests rotating 180° and explains polarity
+
+2. **Node Information** (click breadboard hole/net):
+   - Net voltage display (formatted to 3 decimal places)
+   - List of connected components with current flow direction
+   - Current values for each component (in mA)
+   - Educational explanation of voltage level:
+     - Ground nodes (0V): Explained as reference point
+     - Power nodes (>4V): Explained as power supply connection
+     - Intermediate voltages: Voltage divider or voltage drop explanation
+   - Context-aware content based on connected component types
+
+3. **Component Details** (click rendered component):
+   - Component name and key specifications
+   - Terminal voltage readings (both terminals + voltage across)
+   - Current flow magnitude and direction (→ or ←)
+   - Power dissipation (in mW)
+   - Component-specific explanations:
+     - **Resistor**: Ohm's Law explanation with actual values
+     - **LED**: Operating status, polarity check, overcurrent warning
+     - **Power Supply**: Output voltage and power delivery
+   - Role in circuit explanation with educational context
+
+**Educational content features:**
+- Circuit theory concepts explained in accessible language
+- Ohm's Law (V = IR) referenced with actual circuit values
+- Voltage divider principles explained when relevant
+- LED polarity and current limiting concepts
+- Power calculation (P = V × I) with real measurements
+- Warning messages for unsafe operating conditions
+- Troubleshooting hints for zero-current scenarios
+
+**UI/UX characteristics:**
+- Slide-in animation with CSS transitions
+- Responsive design adapts to screen size
+- Readable typography with clear hierarchy (h4, h5, p elements)
+- Color-coded sections for different information types
+- Emoji indicators for visual scanning (⚡ for nets, 🔌 for components, ⚠️ for errors)
+- Close button always visible in header
+- Panel overlay does not block breadboard interactions
+- Clicking another element updates panel content without closing
+
+### Integration Points
+
+**Circuit simulator integration:**
+- `SimulationResult` interface extended with `errors: CircuitError[]` array
+- `CircuitError` interface defined in `types.ts` with all error metadata
+- `ErrorType` enum defines five error categories
+- Error detection runs after successful simulation (after voltage/current calculation)
+- Errors returned even when simulation succeeds (non-blocking)
+
+**UI integration:**
+- `ErrorOverlayRenderer` instance created in `BreadboardApp`
+- `ExplainPanel` instance created and initialized with DOM container
+- Error icons render into same SVG as component overlay
+- Click handlers attached to error icons, components, and holes
+- Panel receives circuit data (Circuit, SimulationResult, components) on each update
+- Error overlay updates automatically when circuit changes
+
+**Event handling:**
+- Error icon clicks: Extract error data from SVG dataset attributes, open panel with error content
+- Component clicks: Find component by ID, open panel with component content
+- Hole clicks: Map position to node ID, open panel with node content
+- Close button click: Hide panel with slide-out animation
+- Background clicks: Can deselect but does not auto-close panel (user must explicitly close)
+
+### Implementation Details
+
+**Files added:**
+- `src/ui/error-overlay-renderer.ts` (140 lines): Error icon SVG rendering
+- `src/ui/explain-panel.ts` (370 lines): Panel UI and content generation
+
+**Files modified:**
+- `src/core/types.ts`: Added `ErrorType` enum and `CircuitError` interface
+- `src/core/circuit-simulator.ts`: Added `detectErrors()` method (155 lines of error detection logic)
+- `src/ui/breadboard-app.ts`: Integrated error overlay and explain panel
+- `src/style.css`: Added styles for error icons and explain panel (`.error-icon`, `.explain-panel`, etc.)
+
+**Error detection logic:**
+- Short circuit: Checks if voltage source current exceeds 10A threshold
+- Floating node: Node with <0.1V, no current flow, and no power/ground connections
+- Reversed LED: LED with negative current (current < -1µA)
+- Open circuit: LED with >1V across terminals but <1µA current
+- Overcurrent: LED current exceeds 1.5× `maxCurrent` property
+
+**Explain panel content generation:**
+- Separate private methods for each content type (`generateErrorContent`, `generateNodeContent`, `generateComponentContent`)
+- Context-aware heuristics for generating explanations
+- Component role analysis based on circuit topology
+- Educational content insertion using template literals
+- Safe handling of missing data (checks for null circuit/simulation)
+
+### Constraints
+
+- Error detection runs only after successful simulation (not on simulation failure)
+- Limited to five predefined error types (not extensible without code changes)
+- Error positions calculated as average center (may not align perfectly with visual component location)
+- Explain panel content is generated on-demand (not cached)
+- No persistence of panel state across circuit changes
+- Panel does not auto-open on error detection (user must click icon)
+- Educational content is English-only (no localization)
+- No keyboard navigation for error icons (mouse/touch only)
+
+---
+
 ## Component Visual Rendering
 
 ### SVG-Based Component Rendering
@@ -704,6 +880,7 @@ Eight test suites with 95 passing tests:
    - Error cases (missing ground, short circuit detection)
    - Multiple voltage sources
    - Current calculations through parallel branches
+   - Note: Error detection logic validated through integration but not yet unit tested
 
 4. **voltage-colors.test.ts** (13 tests)
    - Color gradient mapping at key voltage stops (0V, 1.25V, 2.5V, 3.75V, 5V)
@@ -775,6 +952,9 @@ Eight test suites with 95 passing tests:
 - No integration tests for component rendering with voltage overlays
 - No integration tests for current animation with full circuit simulation
 - No integration tests for property editor behavior with circuit simulation
+- No unit tests for error detection heuristics (detection logic validated through integration only)
+- No unit tests for error overlay rendering
+- No unit tests for explain panel content generation
 - No UI/end-to-end tests
 
 ### Test Execution
@@ -823,11 +1003,11 @@ Eight test suites with 95 passing tests:
 
 ### Functional
 
-1. **No error detection for circuit validity**: Limited validation of circuit correctness beyond ground/singularity checks
-2. **No persistence**: No save/load functionality
-3. **No undo/redo**: No operation history
-4. **No multi-select**: Can only select one component at a time
-5. **No copy/paste**: Cannot duplicate components
+1. **No persistence**: No save/load functionality
+2. **No undo/redo**: No operation history
+3. **No multi-select**: Can only select one component at a time
+4. **No copy/paste**: Cannot duplicate components
+5. **Limited error types**: Only five predefined error categories detected
 
 ### Simulation Accuracy
 
@@ -840,8 +1020,8 @@ Eight test suites with 95 passing tests:
 
 1. **No visual feedback during initial placement**: No preview shown during two-click component placement (preview only available when repositioning)
 2. **No validation feedback for invalid rotations**: Silent failure when rotation would be invalid (no error message)
-3. **No help system**: No tooltips or guidance beyond voltage tooltips on hover
-4. **Limited keyboard shortcuts**: Delete/Backspace for deletion, R for rotation, Escape for canceling drag
+3. **Limited keyboard shortcuts**: Delete/Backspace for deletion, R for rotation, Escape for canceling drag
+4. **No keyboard navigation for error icons**: Error icons require mouse/touch interaction (not keyboard accessible)
 
 ---
 
@@ -874,16 +1054,18 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `src/core/types.ts` | 124 | Type definitions for domain model (includes Component rotation property) |
+| `src/core/types.ts` | 150 | Type definitions including ErrorType enum and CircuitError interface |
 | `src/core/breadboard-layout.ts` | 84 | Breadboard connectivity logic |
 | `src/core/circuit-extractor.ts` | 144 | Circuit graph extraction with union-find |
-| `src/core/circuit-simulator.ts` | 360 | DC circuit simulation using Modified Nodal Analysis |
+| `src/core/circuit-simulator.ts` | 528 | DC circuit simulation using MNA and error detection (5 error types) |
 | `src/ui/breadboard-app.ts` | 1172 | Main UI application class with selection/deletion, rotation, property editor, and drag-and-drop |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
 | `src/ui/component-renderer.ts` | 568 | SVG-based visual component rendering with rotation transform support |
 | `src/ui/current-animator.ts` | 426 | Animated current flow visualization using particles |
+| `src/ui/error-overlay-renderer.ts` | 140 | Error icon SVG rendering with hover effects |
+| `src/ui/explain-panel.ts` | 370 | Contextual explanation panel with educational content |
 | `src/main.ts` | 11 | Application entry point |
-| `src/style.css` | 346 | Application styles (includes .component-selected, .property-editor, and drag preview styling) |
+| `src/style.css` | 346 | Application styles (includes error icons and explain panel styling) |
 
 ### Test Files
 
@@ -927,7 +1109,6 @@ For clarity, these capabilities are explicitly **not present**:
 - ❌ Import/export circuits
 - ❌ Microcontroller simulation
 - ❌ Advanced circuit analysis (AC, transient, frequency response)
-- ❌ Error detection and helpful messages
 - ❌ Touch/mobile gestures
 - ❌ Collaboration or multi-user features
 - ❌ Data persistence or cloud storage
@@ -935,12 +1116,13 @@ For clarity, these capabilities are explicitly **not present**:
 - ❌ 3D visualization
 - ❌ Embedded firmware simulation
 - ❌ SPICE netlist import/export
+- ❌ Auto-fix for detected errors (user must manually fix)
 
 ---
 
 ## Verification
 
-This document describes the system as observed on 2026-01-03 after merging PR #107:
+This document describes the system as observed on 2026-01-03 after merging PR #113:
 
 - ✅ All source files examined
 - ✅ Tests executed successfully (95/95 passing)
@@ -958,5 +1140,8 @@ This document describes the system as observed on 2026-01-03 after merging PR #1
 - ✅ Component property editing capabilities verified from PR #95 changes
 - ✅ Component drag-and-drop repositioning capabilities verified from PR #101 changes
 - ✅ Component rotation capabilities verified from PR #107 changes
+- ✅ Error detection system verified from PR #113 changes
+- ✅ Error overlay rendering verified from PR #113 changes
+- ✅ Explain panel capabilities verified from PR #113 changes
 
 This is a snapshot of reality, not aspirations or plans.
