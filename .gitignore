@@ -6,6 +6,11 @@ node_modules
 # Testing
 /coverage
 
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
 # Production
 /dist
 /build
