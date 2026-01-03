@@ -453,58 +453,64 @@ export class ExplainPanel {
 
     switch (component.type) {
       case ComponentType.RESISTOR:
-        explanation = `
-          <div class="explain-section">
-            <h5>Role in Circuit:</h5>
-            <p>This resistor limits current flow according to Ohm's Law (V = IR). 
-            With ${Math.abs(voltageDiff).toFixed(2)}V across it and ${(component as any).resistance}Ω resistance,
-            it allows ${(Math.abs(current) * 1000).toFixed(2)}mA of current to flow.</p>
-          </div>
-        `;
+        if (component.type === ComponentType.RESISTOR) {
+          explanation = `
+            <div class="explain-section">
+              <h5>Role in Circuit:</h5>
+              <p>This resistor limits current flow according to Ohm's Law (V = IR). 
+              With ${Math.abs(voltageDiff).toFixed(2)}V across it and ${component.resistance}Ω resistance,
+              it allows ${(Math.abs(current) * 1000).toFixed(2)}mA of current to flow.</p>
+            </div>
+          `;
+        }
         break;
 
       case ComponentType.LED:
-        if (Math.abs(current) < 1e-6) {
-          explanation = `
-            <div class="explain-section">
-              <h5>Why isn't it lighting?</h5>
-              <p>The LED has no current flowing through it. Check if it's connected backwards or if the circuit is incomplete.</p>
-            </div>
-          `;
-        } else if (current < 0) {
-          explanation = `
-            <div class="explain-section">
-              <h5>Problem Detected:</h5>
-              <p>Current is flowing backwards through this LED. LEDs only conduct in one direction - rotate it 180° to fix.</p>
-            </div>
-          `;
-        } else {
-          const maxCurrent = (component as any).maxCurrent;
-          if (current > maxCurrent * 1.2) {
+        if (component.type === ComponentType.LED) {
+          if (Math.abs(current) < 1e-6) {
             explanation = `
               <div class="explain-section">
-                <h5>⚠️ Warning:</h5>
-                <p>This LED is drawing ${(current * 1000).toFixed(1)}mA, which is above its ${(maxCurrent * 1000).toFixed(1)}mA rating. Add a larger resistor to reduce current.</p>
+                <h5>Why isn't it lighting?</h5>
+                <p>The LED has no current flowing through it. Check if it's connected backwards or if the circuit is incomplete.</p>
+              </div>
+            `;
+          } else if (current < 0) {
+            explanation = `
+              <div class="explain-section">
+                <h5>Problem Detected:</h5>
+                <p>Current is flowing backwards through this LED. LEDs only conduct in one direction - rotate it 180° to fix.</p>
               </div>
             `;
           } else {
-            explanation = `
-              <div class="explain-section">
-                <h5>Status:</h5>
-                <p>✓ The LED is conducting properly with ${(current * 1000).toFixed(1)}mA of current, which is within its safe operating range.</p>
-              </div>
-            `;
+            const maxCurrent = component.maxCurrent;
+            if (current > maxCurrent * 1.2) {
+              explanation = `
+                <div class="explain-section">
+                  <h5>⚠️ Warning:</h5>
+                  <p>This LED is drawing ${(current * 1000).toFixed(1)}mA, which is above its ${(maxCurrent * 1000).toFixed(1)}mA rating. Add a larger resistor to reduce current.</p>
+                </div>
+              `;
+            } else {
+              explanation = `
+                <div class="explain-section">
+                  <h5>Status:</h5>
+                  <p>✓ The LED is conducting properly with ${(current * 1000).toFixed(1)}mA of current, which is within its safe operating range.</p>
+                </div>
+              `;
+            }
           }
         }
         break;
 
       case ComponentType.POWER_SUPPLY:
-        explanation = `
-          <div class="explain-section">
-            <h5>Role in Circuit:</h5>
-            <p>This power supply provides ${(component as any).voltage}V to the circuit. It's currently delivering ${(Math.abs(current) * 1000).toFixed(1)}mA with ${(power * 1000).toFixed(1)}mW of total power.</p>
-          </div>
-        `;
+        if (component.type === ComponentType.POWER_SUPPLY) {
+          explanation = `
+            <div class="explain-section">
+              <h5>Role in Circuit:</h5>
+              <p>This power supply provides ${component.voltage}V to the circuit. It's currently delivering ${(Math.abs(current) * 1000).toFixed(1)}mA with ${(power * 1000).toFixed(1)}mW of total power.</p>
+            </div>
+          `;
+        }
         break;
     }
 
@@ -517,13 +523,13 @@ export class ExplainPanel {
   private getComponentName(component: AnyComponent): string {
     switch (component.type) {
       case ComponentType.RESISTOR:
-        return `Resistor (${(component as any).resistance >= 1000 ? (component as any).resistance / 1000 + 'kΩ' : (component as any).resistance + 'Ω'})`;
+        return `Resistor (${component.resistance >= 1000 ? component.resistance / 1000 + 'kΩ' : component.resistance + 'Ω'})`;
       case ComponentType.LED:
         return 'LED';
       case ComponentType.WIRE:
         return 'Wire';
       case ComponentType.POWER_SUPPLY:
-        return `Power Supply (${(component as any).voltage}V)`;
+        return `Power Supply (${component.voltage}V)`;
       case ComponentType.GROUND:
         return 'Ground';
       default:
