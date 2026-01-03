@@ -208,7 +208,6 @@ The UI consists of three panels:
 
 ### Limitations
 
-- No component moving (position cannot be changed after placement)
 - No undo/redo
 - No save/load functionality
 - No component rotation
@@ -640,7 +639,7 @@ npm run format    # Run Prettier
 
 ### Test Coverage
 
-Eight test suites with 78 passing tests:
+Eight test suites with 83 passing tests:
 
 1. **breadboard-layout.test.ts** (9 tests)
    - Position validity checking
@@ -683,7 +682,8 @@ Eight test suites with 78 passing tests:
    - Component type support (wire, resistor, LED)
    - Edge cases (zero current, negative current, empty components, failed simulation)
 
-7. **breadboard-app.test.ts** (8 tests) — **From PR #89**
+7. **breadboard-app.test.ts** (13 tests) — **Updated in PR #101**
+   - Component initialization
    - Component selection (click to select)
    - Component deselection (background click)
    - Deletion via Delete key
@@ -691,6 +691,12 @@ Eight test suites with 78 passing tests:
    - Circuit simulation updates after deletion
    - No deletion when nothing selected
    - Multiple component selection handling
+   - **Drag-and-drop repositioning** (5 new tests):
+     - Drag operation initiation on mousedown
+     - Ghost preview display during drag
+     - Component position update on successful drop
+     - Drag cancellation via Escape key
+     - Component selection persistence after drag
 
 8. **property-editor.test.ts** (12 tests) — **New in PR #95**
    - Property editor visibility toggle (shown when component selected, hidden otherwise)
@@ -704,7 +710,7 @@ Eight test suites with 78 passing tests:
 ### Testing Approach
 
 - Unit tests for core logic
-- UI interaction tests for component selection and deletion
+- UI interaction tests for component selection, deletion, and drag-and-drop repositioning
 - No end-to-end tests
 - Tests use Vitest with jsdom environment
 
@@ -719,7 +725,7 @@ Eight test suites with 78 passing tests:
 
 ### Test Execution
 
-- All 78 tests pass
+- All 83 tests pass
 - Test duration: Fast execution (typically < 300ms, including async debounce waits)
 - No flaky tests observed
 
@@ -763,13 +769,11 @@ Eight test suites with 78 passing tests:
 
 ### Functional
 
-1. **No component position editing**: Cannot change component positions after placement (values can be edited)
-2. **No component dragging**: Components cannot be moved once placed (two-click placement only)
-3. **No error detection for circuit validity**: Limited validation of circuit correctness beyond ground/singularity checks
-4. **No persistence**: No save/load functionality
-5. **No undo/redo**: No operation history
-6. **No multi-select**: Can only select one component at a time
-7. **No copy/paste**: Cannot duplicate components
+1. **No error detection for circuit validity**: Limited validation of circuit correctness beyond ground/singularity checks
+2. **No persistence**: No save/load functionality
+3. **No undo/redo**: No operation history
+4. **No multi-select**: Can only select one component at a time
+5. **No copy/paste**: Cannot duplicate components
 
 ### Simulation Accuracy
 
@@ -780,11 +784,10 @@ Eight test suites with 78 passing tests:
 
 ### User Experience
 
-1. **No drag and drop**: Two-click placement only (components cannot be moved)
-2. **No visual feedback**: No preview during placement
-3. **No validation feedback**: Silent failure on invalid operations
-4. **No help system**: No tooltips or guidance beyond voltage tooltips on hover
-5. **Limited keyboard shortcuts**: Only Delete/Backspace for component deletion
+1. **No visual feedback during initial placement**: No preview shown during two-click component placement (preview only available when repositioning)
+2. **No validation feedback**: Silent failure on invalid operations
+3. **No help system**: No tooltips or guidance beyond voltage tooltips on hover
+4. **Limited keyboard shortcuts**: Only Delete/Backspace for component deletion, Escape for canceling drag
 
 ---
 
@@ -821,12 +824,12 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/core/breadboard-layout.ts` | 84 | Breadboard connectivity logic |
 | `src/core/circuit-extractor.ts` | 144 | Circuit graph extraction with union-find |
 | `src/core/circuit-simulator.ts` | 360 | DC circuit simulation using Modified Nodal Analysis |
-| `src/ui/breadboard-app.ts` | 833 | Main UI application class with selection/deletion and property editor logic |
+| `src/ui/breadboard-app.ts` | 1065 | Main UI application class with selection/deletion, property editor, and drag-and-drop repositioning |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
-| `src/ui/component-renderer.ts` | 452 | SVG-based visual component rendering with selection support |
+| `src/ui/component-renderer.ts` | 534 | SVG-based visual component rendering with selection support and drag preview |
 | `src/ui/current-animator.ts` | 426 | Animated current flow visualization using particles |
 | `src/main.ts` | 11 | Application entry point |
-| `src/style.css` | 333 | Application styles (includes .component-selected and .property-editor styling) |
+| `src/style.css` | 346 | Application styles (includes .component-selected, .property-editor, and drag preview styling) |
 
 ### Test Files
 
@@ -838,7 +841,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/ui/__tests__/voltage-colors.test.ts` | 13 | Voltage-to-color mapping tests |
 | `src/ui/__tests__/component-renderer.test.ts` | 9 | Component visual rendering tests |
 | `src/ui/__tests__/current-animator.test.ts` | 11 | Current animation tests (particle system, magnitude scaling) |
-| `src/ui/__tests__/breadboard-app.test.ts` | 8 | Component selection and deletion interaction tests (PR #89) |
+| `src/ui/__tests__/breadboard-app.test.ts` | 13 | Component selection, deletion, and drag-and-drop interaction tests (PR #89, PR #101) |
 | `src/ui/__tests__/property-editor.test.ts` | 12 | Property editor tests (visibility, editing, presets, validation) (PR #95) |
 
 ### Configuration Files
@@ -883,10 +886,10 @@ For clarity, these capabilities are explicitly **not present**:
 
 ## Verification
 
-This document describes the system as observed on 2026-01-03 after merging PR #95:
+This document describes the system as observed on 2026-01-03 after merging PR #101:
 
 - ✅ All source files examined
-- ✅ Tests executed successfully (78/78 passing)
+- ✅ Tests executed successfully (83/83 passing)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
@@ -899,5 +902,6 @@ This document describes the system as observed on 2026-01-03 after merging PR #9
 - ✅ Animated current flow visualization verified from PR #83 changes
 - ✅ Component selection and deletion capabilities verified from PR #89 changes
 - ✅ Component property editing capabilities verified from PR #95 changes
+- ✅ Component drag-and-drop repositioning capabilities verified from PR #101 changes
 
 This is a snapshot of reality, not aspirations or plans.
