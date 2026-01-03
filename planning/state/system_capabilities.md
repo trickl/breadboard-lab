@@ -242,8 +242,87 @@ The system displays voltage levels on the breadboard using color-coded overlays 
 
 - Only displays voltages when simulation succeeds
 - Color scheme assumes 0-5V range (voltages outside are clamped)
-- No animation or flow visualization (static color display)
 - Requires successful circuit extraction and simulation
+
+---
+
+## Current Flow Visualization
+
+### Animated Current Flow
+
+The system visualizes current flow through circuit components using animated particles that move along wires and through components, providing real-time feedback on current direction and magnitude.
+
+**Visual feedback**:
+- Animated blue particles flow along wires and through components
+- Particles appear automatically when simulation succeeds and current exceeds threshold (1µA)
+- Particle movement shows current direction (from higher voltage to lower voltage)
+- Particle speed and density indicate current magnitude
+- Animation runs at 60fps using `requestAnimationFrame`
+
+**Visual characteristics**:
+- Particle size: 3px diameter circles
+- Current threshold: 1µA minimum (filters out negligible currents)
+- Animation wraps around (particles reappear at start when reaching end)
+
+**Current magnitude visualization**:
+- **Low current (< 1mA)**: 
+  - Faint blue color: `rgba(0, 100, 255, 0.4)`
+  - Slow speed: 0.15 units/second
+  - 1 particle per edge
+- **Medium current (1-10mA)**:
+  - Medium blue color: `rgba(0, 150, 255, 0.7)`
+  - Medium speed: 0.3 units/second
+  - 3 particles per edge
+- **High current (> 10mA)**:
+  - Bright blue color: `rgba(0, 200, 255, 1.0)`
+  - Fast speed: 0.6 units/second
+  - 5 particles per edge
+
+**Current direction handling**:
+- Positive current: particles flow from first position to second position
+- Negative current: particles flow in reverse direction (second to first)
+- Direction automatically determined from MNA solver output
+
+**Path rendering**:
+- **Wires**: Manhattan routing (orthogonal path with 3 segments)
+- **Other components**: Straight line from start to end position
+- Coordinates calculated from breadboard grid positions using shared layout constants
+
+### Implementation Details
+
+**Current animator** (`src/ui/current-animator.ts`, 426 lines):
+- `CurrentAnimator` class manages particle lifecycle and animation
+- `start()`: Initializes animation with simulation results and components
+- `stop()`: Cleans up animation and removes particles
+- `animate()`: Animation loop using `requestAnimationFrame`
+- Private methods for particle creation, path building, position calculation
+
+**Particle system**:
+- Each particle tracks: edge ID, progress (0-1), speed, brightness, color
+- Particles update position based on elapsed time (delta time)
+- Progress wraps to create continuous flow effect
+- Particle count, speed, and visual properties scale with current magnitude
+
+**Integration** (`src/ui/breadboard-app.ts`):
+- `CurrentAnimator` instance created with application
+- Animation starts automatically after successful simulation
+- Animation stops automatically on circuit changes or simulation failure
+- Particles render into same SVG container as component overlays
+
+**Testing** (`src/ui/__tests__/current-animator.test.ts`, 11 tests):
+- Current threshold filtering (particles only appear above 1µA)
+- Magnitude scaling (more particles and faster speed for higher current)
+- Component type support (wire, resistor, LED)
+- Edge cases (zero current, negative current, empty components)
+- Start/stop lifecycle management
+
+### Constraints
+
+- Only displays current when simulation succeeds
+- Current must exceed 1µA threshold to display particles
+- No customization of particle appearance (size, color scheme fixed)
+- Animation performance not tested with very large circuits (>100 components)
+- Particles do not show exact current values (magnitude indicated through speed/density only)
 
 ---
 
@@ -430,7 +509,7 @@ npm run format    # Run Prettier
 
 ### Test Coverage
 
-Five test suites with 47 passing tests:
+Six test suites with 58 passing tests:
 
 1. **breadboard-layout.test.ts** (9 tests)
    - Position validity checking
@@ -443,7 +522,7 @@ Five test suites with 47 passing tests:
    - Same-node component handling
    - Multiple component extraction
 
-3. **circuit-simulator.test.ts** (12 tests) — **New in PR #77**
+3. **circuit-simulator.test.ts** (12 tests)
    - Basic circuits (ground only, simple series, voltage divider)
    - Parallel circuits (two parallel resistors, voltage divider with parallel load, complex networks)
    - Wire handling (low resistance validation)
@@ -465,6 +544,14 @@ Five test suites with 47 passing tests:
    - Component layering (wires render before other components)
    - Wire color cycling and reset behavior
 
+6. **current-animator.test.ts** (11 tests) — **New in PR #83**
+   - Start/stop lifecycle management
+   - Current threshold filtering (1µA minimum)
+   - Particle creation for currents above threshold
+   - Current magnitude scaling (particle count and speed)
+   - Component type support (wire, resistor, LED)
+   - Edge cases (zero current, negative current, empty components, failed simulation)
+
 ### Testing Approach
 
 - Unit tests for core logic only
@@ -478,12 +565,13 @@ Five test suites with 47 passing tests:
 - No tests for component placement logic
 - No integration tests for voltage overlay rendering behavior
 - No integration tests for component rendering with voltage overlays
+- No integration tests for current animation with full circuit simulation
 - No UI/end-to-end tests
 
 ### Test Execution
 
-- All 47 tests pass
-- Test duration: Fast execution (typically < 100ms)
+- All 58 tests pass
+- Test duration: Fast execution (typically < 200ms)
 - No flaky tests observed
 
 ---
@@ -528,10 +616,9 @@ Five test suites with 47 passing tests:
 1. **No component deletion**: Cannot remove individual components (only "Clear All")
 2. **No component editing**: Cannot change component values or positions after placement
 3. **No component dragging**: Components cannot be moved once placed (two-click placement only)
-4. **No current display**: Current values are computed but not visualized on components
-5. **No error detection for circuit validity**: Limited validation of circuit correctness beyond ground/singularity checks
-6. **No persistence**: No save/load functionality
-7. **No undo/redo**: No operation history
+4. **No error detection for circuit validity**: Limited validation of circuit correctness beyond ground/singularity checks
+5. **No persistence**: No save/load functionality
+6. **No undo/redo**: No operation history
 
 ### Simulation Accuracy
 
@@ -583,9 +670,10 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/core/breadboard-layout.ts` | 84 | Breadboard connectivity logic |
 | `src/core/circuit-extractor.ts` | 144 | Circuit graph extraction with union-find |
 | `src/core/circuit-simulator.ts` | 360 | DC circuit simulation using Modified Nodal Analysis |
-| `src/ui/breadboard-app.ts` | 455 | Main UI application class |
+| `src/ui/breadboard-app.ts` | 467 | Main UI application class |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
 | `src/ui/component-renderer.ts` | 443 | SVG-based visual component rendering |
+| `src/ui/current-animator.ts` | 426 | Animated current flow visualization using particles |
 | `src/main.ts` | 11 | Application entry point |
 | `src/style.css` | ~244 | Application styles |
 
@@ -598,6 +686,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/core/__tests__/circuit-simulator.test.ts` | 12 | Circuit simulation tests (MNA solver) |
 | `src/ui/__tests__/voltage-colors.test.ts` | 13 | Voltage-to-color mapping tests |
 | `src/ui/__tests__/component-renderer.test.ts` | 9 | Component visual rendering tests |
+| `src/ui/__tests__/current-animator.test.ts` | 11 | Current animation tests (particle system, magnitude scaling) |
 
 ### Configuration Files
 
@@ -628,7 +717,6 @@ For clarity, these capabilities are explicitly **not present**:
 - ❌ Import/export circuits
 - ❌ Microcontroller simulation
 - ❌ Advanced circuit analysis (AC, transient, frequency response)
-- ❌ Current animation or flow visualization
 - ❌ Error detection and helpful messages
 - ❌ Touch/mobile gestures
 - ❌ Collaboration or multi-user features
@@ -642,10 +730,10 @@ For clarity, these capabilities are explicitly **not present**:
 
 ## Verification
 
-This document describes the system as observed on 2026-01-03 after merging PR #77:
+This document describes the system as observed on 2026-01-03 after merging PR #83:
 
 - ✅ All source files examined
-- ✅ Tests executed successfully (47/47 passing)
+- ✅ Tests executed successfully (58/58 passing)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
@@ -655,5 +743,6 @@ This document describes the system as observed on 2026-01-03 after merging PR #7
 - ✅ Voltage visualization capabilities verified from PR #12 changes
 - ✅ Component visual rendering capabilities verified from PR #71 changes
 - ✅ MNA solver capabilities verified from PR #77 changes
+- ✅ Animated current flow visualization verified from PR #83 changes
 
 This is a snapshot of reality, not aspirations or plans.
