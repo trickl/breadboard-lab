@@ -7,10 +7,13 @@ An open-source, browser-based breadboard simulator designed to teach electronics
 - **Interactive Breadboard UI**: Place components and wires on a realistic 30x10 breadboard grid
 - **Component Library**: Wire, Resistor (1kΩ), LED, Power Supply (5V), and Ground
 - **Circuit Extraction**: Automatically extracts electrical circuit topology from component placement
-- **Real-time Simulation**: Calculates voltages and currents using simplified circuit analysis
+- **Real-time Simulation**: Calculates voltages and currents using Modified Nodal Analysis (MNA)
+- **Voltage Heatmap Visualization**: Color-coded voltage display on breadboard holes (0V=blue → 5V=red)
+- **Animated Current Flow**: Particles flow along wires and components showing current direction and magnitude
+- **Component Rendering**: Visual representation of components with proper symbols and labels
 - **Clean Architecture**: Separation of concerns between UI, circuit extraction, and simulation layers
 - **Strong Typing**: Fully typed with TypeScript for reliability and maintainability
-- **Test Coverage**: Unit tests for core logic (breadboard layout, circuit extraction)
+- **Test Coverage**: Unit tests for core logic (breadboard layout, circuit extraction, simulation, animation)
 
 ## Getting Started
 
@@ -67,7 +70,21 @@ npm run lint
 1. **Select a Component**: Click on a component button in the left toolbar (Wire, Resistor, LED, Power Supply, or Ground)
 2. **Place Component**: Click on a breadboard hole for the first pin, then click on another hole for the second pin
 3. **View Circuit Info**: The right panel shows component count, circuit nodes, connections, and simulation status
-4. **Clear All**: Click the "Clear All" button to remove all components and start over
+4. **Observe Visualization**: 
+   - Voltage levels shown as color-coded overlays on breadboard holes (hover for exact values)
+   - Current flow shown as animated blue particles moving along wires and components
+   - Particle speed and density indicate current magnitude
+5. **Clear All**: Click the "Clear All" button to remove all components and start over
+
+### Current Flow Animation
+
+When a circuit simulation succeeds, animated particles automatically appear showing:
+- **Direction**: Particles flow from higher voltage to lower voltage (positive to negative)
+- **Magnitude**: Faster/more particles = higher current
+- **Color coding**:
+  - Faint blue (< 1mA): Low current
+  - Medium blue (1-10mA): Moderate current
+  - Bright blue (> 10mA): High current
 
 ## Architecture
 
@@ -83,6 +100,9 @@ The project follows a clean architecture with clear separation of concerns:
 ### UI Layer (`src/ui/`)
 
 - **breadboard-app.ts**: Main application class managing UI rendering and user interactions
+- **component-renderer.ts**: Renders visual representations of components as SVG elements
+- **current-animator.ts**: Animates current flow using particles along circuit paths
+- **voltage-colors.ts**: Maps voltage values to color-blind friendly color gradients
 
 ### Tests
 
@@ -100,11 +120,15 @@ The project follows a clean architecture with clear separation of concerns:
 
 ## Future Enhancements
 
-- Visual representation of wires and components on the breadboard
-- More component types (capacitors, switches, batteries)
-- Voltage/current visualization with color coding
+- More component types (capacitors, switches, batteries, transistors)
+- Advanced circuit analysis (AC analysis, transient analysis)
+- Error detection overlays (short circuits, floating nodes, reversed polarity)
+- Component value customization (user-adjustable resistance, voltage)
+- Component deletion and editing capabilities
+- Undo/redo functionality
 - Export/import circuit designs
-- More sophisticated circuit simulation (AC analysis, transient analysis)
+- Power dissipation visualization (heat indicators on resistors)
+- Derived schematic view from breadboard layout
 - Mobile-friendly touch interface
 
 ## Contributing
