@@ -1,5 +1,6 @@
 import type { AnyComponent, SimulationResult, Position } from '@/core/types';
 import { ComponentType } from '@/core/types';
+import { ComponentRenderer } from './component-renderer';
 
 /**
  * Represents an animated particle showing current flow
@@ -98,9 +99,9 @@ export class CurrentAnimator {
     this.particles = [];
     this.animationPaths.clear();
     
-    // Remove particle rendering group
-    if (this.particleGroup && this.particleGroup.parentNode) {
-      this.particleGroup.parentNode.removeChild(this.particleGroup);
+    // Remove particle rendering group using modern API
+    if (this.particleGroup) {
+      this.particleGroup.remove();
     }
     this.particleGroup = null;
   }
@@ -187,12 +188,10 @@ export class CurrentAnimator {
 
   /**
    * Convert breadboard position to pixel coordinates
-   * (Matches ComponentRenderer.positionToPixels)
+   * (Uses ComponentRenderer constants for consistency)
    */
   private positionToPixels(pos: Position): { x: number; y: number } {
-    const HOLE_SIZE = 20;
-    const HOLE_MARGIN = 3;
-    const HOLE_SPACING = HOLE_SIZE + HOLE_MARGIN * 2;
+    const HOLE_SPACING = ComponentRenderer.HOLE_SPACING;
 
     return {
       x: pos.col * HOLE_SPACING + HOLE_SPACING / 2,
@@ -345,10 +344,8 @@ export class CurrentAnimator {
       this.svgElement.appendChild(this.particleGroup);
     }
 
-    // Clear existing particles by removing all children
-    while (this.particleGroup.firstChild) {
-      this.particleGroup.removeChild(this.particleGroup.firstChild);
-    }
+    // Clear existing particles using modern DOM API
+    this.particleGroup.replaceChildren();
 
     // Render each particle
     for (const particle of this.particles) {

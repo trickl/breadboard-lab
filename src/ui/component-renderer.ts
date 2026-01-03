@@ -6,9 +6,9 @@ import { ComponentType } from '@/core/types';
  */
 export class ComponentRenderer {
   // Breadboard grid spacing (matches CSS in style.css)
-  private static readonly HOLE_SIZE = 20;
-  private static readonly HOLE_MARGIN = 3;
-  private static readonly HOLE_SPACING = ComponentRenderer.HOLE_SIZE + ComponentRenderer.HOLE_MARGIN * 2;
+  public static readonly HOLE_SIZE = 20;
+  public static readonly HOLE_MARGIN = 3;
+  public static readonly HOLE_SPACING = ComponentRenderer.HOLE_SIZE + ComponentRenderer.HOLE_MARGIN * 2;
 
   // Visual styling constants
   private static readonly WIRE_COLORS = [
