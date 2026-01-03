@@ -48,6 +48,7 @@ describe('AudioManager', () => {
 
   beforeEach(() => {
     // Mock AudioContext globally
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     global.AudioContext = MockAudioContext as any;
     
     // Mock localStorage
@@ -154,6 +155,7 @@ describe('AudioManager', () => {
   });
 
   it('should load volume from localStorage on initialization', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (global.localStorage.getItem as any).mockReturnValue('0.6');
     const newManager = new AudioManager();
     expect(newManager.getVolume()).toBe(0.6);
