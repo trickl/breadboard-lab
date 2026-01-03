@@ -131,46 +131,62 @@ Produces a `Circuit` object containing:
 
 ### Solver Type
 
-Simplified DC circuit simulator using basic series path analysis.
+Modified Nodal Analysis (MNA) solver for DC circuits.
 
 ### Algorithm
 
-1. Identify ground nodes (from GROUND components)
-2. Identify power supply nodes (from POWER_SUPPLY components)
-3. Set ground nodes to 0V
-4. Set power supply nodes to their voltage value
-5. Find series paths from power nodes to ground nodes using depth-first search
-6. For each path:
-   - Calculate total resistance (sum of all resistors and wires)
-   - Calculate current using Ohm's law: I = V / R_total
-   - Calculate voltage drops across each component
-   - Assign voltages to intermediate nodes
+Implements industry-standard Modified Nodal Analysis technique:
+
+1. **Circuit analysis phase**:
+   - Identify ground nodes (from GROUND components) as reference (0V)
+   - Identify voltage sources (from POWER_SUPPLY components)
+   - Build node-to-index mapping (excluding ground nodes)
+
+2. **Matrix construction phase** (MNA stamp method):
+   - Build conductance matrix **G** (size: n_nodes + n_voltage_sources)
+   - Build current vector **i**
+   - For resistive components (resistors, wires, LEDs):
+     - Add conductance values (G = 1/R) to matrix diagonal/off-diagonal
+   - For voltage sources:
+     - Add constraint equations to enforce voltage difference
+     - Add current variables for voltage source currents
+
+3. **Solver phase**:
+   - Solve linear system **G × v = i** using Gaussian elimination with partial pivoting
+   - Extract node voltages from solution vector
+   - Detect singular matrices (short circuits) via pivot threshold check
+
+4. **Current calculation phase**:
+   - Calculate edge currents using Ohm's law: I = (V₁ - V₂) / R
+   - Extract voltage source currents from MNA solution vector
 
 ### Component Models
 
-- **Resistor**: Ohmic (V = I × R)
-- **Wire**: Small resistance (0.01Ω)
-- **LED**: Simplified model (treated as 100Ω resistance + 2V forward voltage drop)
-- **Power Supply**: Ideal voltage source
-- **Ground**: Reference (0V)
+- **Resistor**: Pure conductance (G = 1/R) using Ohm's law
+- **Wire**: Very high conductance (G = 100 S, equivalent to 0.01Ω)
+- **LED**: Simplified model (treated as 100Ω resistor; forward voltage model deferred)
+- **Power Supply**: Ideal voltage source with current variable
+- **Ground**: Reference node (0V)
 
 ### Capabilities
 
-- DC operating point analysis for simple series circuits
-- Voltage calculation at circuit nodes
-- Current calculation through components
-- Success/failure status reporting
+- **DC operating point analysis** for resistive circuits with voltage sources
+- **Parallel circuit support**: Handles multiple current paths correctly
+- **Voltage dividers with loads**: Correctly computes voltages in branching circuits
+- **Multiple voltage sources**: Supports circuits with multiple power supplies
+- **Node voltage calculation**: Solves for voltages at all circuit nodes
+- **Edge current calculation**: Computes current through each component
+- **Matrix singularity detection**: Detects and reports short circuit conditions
+- **Missing ground detection**: Validates circuit has at least one ground connection
+- **Success/failure status reporting**: Returns detailed error messages on failure
 
 ### Limitations
 
-- **No parallel circuits**: Only finds one series path from power to ground
-- **No Kirchhoff analysis**: Does not use nodal or mesh analysis matrices
-- **No nonlinear components**: LED model is oversimplified
-- **No AC analysis**: DC only
+- **Simplified LED model**: Treated as 100Ω resistor (no forward voltage drop or reverse bias modeling)
+- **No nonlinear components**: Only linear resistive elements supported
+- **No AC analysis**: DC steady-state only
 - **No transient analysis**: No capacitors or inductors supported
-- **No short circuit detection**: No error checking for impossible configurations
-- **No floating node detection**: No warnings for disconnected components
-- **No convergence checks**: Assumes all circuits are solvable
+- **No convergence iterations**: Linear solver only (no Newton-Raphson for nonlinear elements)
 
 ### Output
 
@@ -414,7 +430,7 @@ npm run format    # Run Prettier
 
 ### Test Coverage
 
-Four test suites with 35 passing tests:
+Five test suites with 47 passing tests:
 
 1. **breadboard-layout.test.ts** (9 tests)
    - Position validity checking
@@ -427,13 +443,22 @@ Four test suites with 35 passing tests:
    - Same-node component handling
    - Multiple component extraction
 
-3. **voltage-colors.test.ts** (13 tests)
+3. **circuit-simulator.test.ts** (12 tests) — **New in PR #77**
+   - Basic circuits (ground only, simple series, voltage divider)
+   - Parallel circuits (two parallel resistors, voltage divider with parallel load, complex networks)
+   - Wire handling (low resistance validation)
+   - LED handling (series resistor model)
+   - Error cases (missing ground, short circuit detection)
+   - Multiple voltage sources
+   - Current calculations through parallel branches
+
+4. **voltage-colors.test.ts** (13 tests)
    - Color gradient mapping at key voltage stops (0V, 1.25V, 2.5V, 3.75V, 5V)
    - Linear interpolation between color stops
    - Voltage clamping (negative and above 5V)
    - CSS class mapping for pattern-based alternatives
 
-4. **component-renderer.test.ts** (9 tests)
+5. **component-renderer.test.ts** (9 tests)
    - SVG element creation
    - Individual component rendering (wire, resistor, LED, power supply, ground)
    - Multiple component rendering
@@ -449,17 +474,16 @@ Four test suites with 35 passing tests:
 
 ### Coverage Gaps
 
-- No tests for `CircuitSimulator`
 - No tests for `BreadboardApp` (UI layer)
 - No tests for component placement logic
-- No tests for simulation correctness with actual circuits
-- No tests for voltage overlay rendering behavior
+- No integration tests for voltage overlay rendering behavior
 - No integration tests for component rendering with voltage overlays
+- No UI/end-to-end tests
 
 ### Test Execution
 
-- All 35 tests pass
-- Test duration: Fast execution (typically < 50ms)
+- All 47 tests pass
+- Test duration: Fast execution (typically < 100ms)
 - No flaky tests observed
 
 ---
@@ -505,19 +529,16 @@ Four test suites with 35 passing tests:
 2. **No component editing**: Cannot change component values or positions after placement
 3. **No component dragging**: Components cannot be moved once placed (two-click placement only)
 4. **No current display**: Current values are computed but not visualized on components
-5. **Limited circuit types**: Only simple series circuits from power to ground
-6. **No parallel circuits**: Simulator does not handle parallel branches
-7. **No error detection**: No validation of circuit correctness
-8. **No persistence**: No save/load functionality
-9. **No undo/redo**: No operation history
+5. **No error detection for circuit validity**: Limited validation of circuit correctness beyond ground/singularity checks
+6. **No persistence**: No save/load functionality
+7. **No undo/redo**: No operation history
 
 ### Simulation Accuracy
 
-1. **Simplified LED model**: Not physically accurate
+1. **Simplified LED model**: Treated as 100Ω resistor; not physically accurate (no forward voltage drop or reverse bias)
 2. **No diode behavior**: LEDs don't model forward/reverse bias correctly
-3. **No component limits**: No overcurrent or overvoltage protection
-4. **No real analysis**: Not using proper nodal/mesh analysis
-5. **Path-finding limitation**: Only finds first path, ignores other paths
+3. **No component limits**: No overcurrent or overvoltage protection warnings
+4. **Linear circuits only**: No support for nonlinear components beyond simplified LED model
 
 ### User Experience
 
@@ -561,7 +582,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/core/types.ts` | 123 | Type definitions for domain model |
 | `src/core/breadboard-layout.ts` | 84 | Breadboard connectivity logic |
 | `src/core/circuit-extractor.ts` | 144 | Circuit graph extraction with union-find |
-| `src/core/circuit-simulator.ts` | 195 | DC circuit simulation |
+| `src/core/circuit-simulator.ts` | 360 | DC circuit simulation using Modified Nodal Analysis |
 | `src/ui/breadboard-app.ts` | 455 | Main UI application class |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
 | `src/ui/component-renderer.ts` | 443 | SVG-based visual component rendering |
@@ -574,6 +595,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 |------|-------|---------|
 | `src/core/__tests__/breadboard-layout.test.ts` | 9 | Breadboard connectivity tests |
 | `src/core/__tests__/circuit-extractor.test.ts` | 4 | Circuit extraction tests |
+| `src/core/__tests__/circuit-simulator.test.ts` | 12 | Circuit simulation tests (MNA solver) |
 | `src/ui/__tests__/voltage-colors.test.ts` | 13 | Voltage-to-color mapping tests |
 | `src/ui/__tests__/component-renderer.test.ts` | 9 | Component visual rendering tests |
 
@@ -620,17 +642,18 @@ For clarity, these capabilities are explicitly **not present**:
 
 ## Verification
 
-This document describes the system as observed on 2026-01-03 after merging PR #71:
+This document describes the system as observed on 2026-01-03 after merging PR #77:
 
 - ✅ All source files examined
-- ✅ Tests executed successfully (35/35 passing)
+- ✅ Tests executed successfully (47/47 passing)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
 - ✅ Circuit extraction algorithm verified
-- ✅ Simulation algorithm verified
+- ✅ Circuit simulation algorithm verified (MNA implementation)
 - ✅ UI capabilities verified from BreadboardApp source
 - ✅ Voltage visualization capabilities verified from PR #12 changes
 - ✅ Component visual rendering capabilities verified from PR #71 changes
+- ✅ MNA solver capabilities verified from PR #77 changes
 
 This is a snapshot of reality, not aspirations or plans.
