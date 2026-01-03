@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-03  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After implementing error detection and explain panel (PR #113)
+**Last Updated**: After implementing save/load functionality with canonical example library (PR #119)
 
 ---
 
@@ -253,10 +253,10 @@ The UI consists of three panels:
 ### Limitations
 
 - No undo/redo
-- No save/load functionality
 - No multi-select or bulk operations
 - No error highlighting for invalid placements (only for property values)
 - No visual rotation handle (keyboard R key only)
+- No circuit versioning or history
 
 ---
 
@@ -666,6 +666,204 @@ Interactive side panel that provides contextual explanations about circuit behav
 
 ---
 
+## Circuit Persistence and Examples
+
+### Circuit Serialization
+
+The system provides JSON-based serialization for saving and loading circuits with full fidelity.
+
+**JSON Schema (v1.0)**:
+- **Version**: Schema version identifier ("1.0")
+- **Metadata**: Circuit name, description, author, created/modified timestamps
+- **Components**: Full component array with type, positions, rotation, and component-specific properties
+
+**Serialization features**:
+- Converts `BreadboardState` to human-readable JSON format
+- Preserves all component types: Wire, Resistor, LED, Power Supply, Ground
+- Maintains component positions, rotation angles, and all configurable properties
+- Stores metadata for circuit identification and organization
+- Named default constants: DEFAULT_RESISTANCE (1000Ω), DEFAULT_LED_FORWARD_VOLTAGE (2.0V), DEFAULT_POWER_SUPPLY_VOLTAGE (5.0V)
+
+**Deserialization features**:
+- Validates JSON structure and format before loading
+- Validates component types and rotation values (0°, 90°, 180°, 270°)
+- Applies default values for missing component properties
+- Throws descriptive errors for invalid/corrupted data
+- Automatic component ID counter extraction to avoid ID conflicts
+- Roundtrip fidelity: serialize → deserialize preserves all data
+
+**Testing**:
+- 14 unit tests covering serialization, deserialization, validation, and roundtrip
+- Edge cases: empty circuits, missing properties, invalid JSON, invalid rotation
+- All component types tested individually and in combination
+
+**Implementation**:
+- `src/core/circuit-serializer.ts` (306 lines)
+- `src/core/__tests__/circuit-serializer.test.ts` (453 lines, 14 tests)
+
+### Circuit Storage
+
+The system provides multiple storage mechanisms for persisting circuits locally and sharing them externally.
+
+**LocalStorage persistence**:
+- Save circuits to browser localStorage with user-defined names
+- Indexed storage with O(1) retrieval by name
+- Storage key sanitization: removes special characters, normalizes whitespace
+- Fallback naming: empty/invalid names become "untitled-circuit"
+- Circuit index maintains metadata for fast listing without parsing JSON
+- Quota exceeded handling with descriptive error messages
+- Auto-recovery from corrupted index by rebuilding from localStorage scan
+
+**File operations**:
+- Download circuit as `.json` file via Blob API
+- Upload circuit from `.json` file via FileReader API
+- Automatic `.json` extension enforcement on download
+- File selection cancellation handling
+
+**Circuit management**:
+- List all saved circuits with metadata (name, description, timestamps)
+- Delete saved circuits from localStorage
+- Sort circuits by most recently modified
+- Update circuit metadata on each save
+
+**Implementation**:
+- `src/core/circuit-storage.ts` (250 lines)
+- Storage key prefix: `breadboard-lab-circuit-`
+- Index key: `breadboard-lab-circuit-index`
+
+### Example Circuit Library
+
+The system includes four canonical example circuits demonstrating different electrical concepts and tool features.
+
+**Available examples**:
+
+1. **LED and Resistor** (Basic)
+   - Simplest circuit: LED with 220Ω current-limiting resistor
+   - Learning objectives: Basic circuit construction, voltage drop, LED usage, series circuits
+   - Components: Power supply (5V), resistor (220Ω), LED (2V), ground, wires
+
+2. **Voltage Divider** (Basic)
+   - Two 10kΩ resistors in series dividing 9V input
+   - Learning objectives: Voltage division, series resistance, Ohm's Law, proportional relationships
+   - Components: Power supply (9V), two resistors (10kΩ each), ground, wires
+
+3. **Parallel LEDs** (Intermediate)
+   - Three LEDs in parallel, each with individual 220Ω resistor
+   - Learning objectives: Parallel configuration, current division, independent current limiting
+   - Components: Power supply (5V), three resistors (220Ω), three LEDs (2V), ground, wires
+
+4. **Short Circuit Demo** (Demo)
+   - Intentional short circuit for error detection demonstration
+   - Learning objectives: Recognizing short circuits, error detection system, circuit safety
+   - Components: Power supply (5V), wire, ground (power connected directly to ground)
+
+**Example metadata**:
+- ID, name, description for each example
+- Category classification: basic, intermediate, demo
+- Learning objectives list (3-4 objectives per example)
+- JSON circuit data embedded in application
+
+**Implementation**:
+- `src/examples/index.ts` (96 lines): Example registry and lookup functions
+- `src/examples/led-resistor.json` (83 lines): LED and Resistor example
+- `src/examples/voltage-divider.json` (93 lines): Voltage Divider example
+- `src/examples/parallel-leds.json` (203 lines): Parallel LEDs example
+- `src/examples/short-circuit-demo.json` (53 lines): Short Circuit Demo example
+- Total: 4 examples, all pre-validated and simulation-ready
+
+### User Interface for Save/Load/Examples
+
+The system provides modal dialogs for saving, loading, and browsing example circuits, integrated into the left toolbar.
+
+**Toolbar buttons**:
+- **📚 Examples**: Opens example circuits browser (blue primary button)
+- **📂 Load Circuit**: Opens saved circuits list and file upload (secondary button)
+- **💾 Save Circuit**: Opens save dialog with name/description inputs (secondary button)
+- **🗑️ Clear All**: Clears breadboard with unsaved changes confirmation (red button)
+
+**Save dialog features**:
+- Input fields for circuit name and description (optional)
+- Three action buttons:
+  - "Save Locally": Saves to localStorage
+  - "Download JSON": Downloads as .json file
+  - "Cancel": Dismisses dialog without saving
+- Pre-populated with current circuit metadata if already saved
+- Success notification after save
+
+**Load dialog features**:
+- List of saved circuits sorted by most recent modification
+- Each list item displays: name, description, last modified timestamp
+- Relative timestamps: "just now", "5 mins ago", "2 hours ago", "3 days ago", or date
+- Click any saved circuit to load it
+- "Upload from File" button for loading external .json files
+- Empty state message when no circuits saved
+- Confirmation prompt if loading would overwrite unsaved changes
+
+**Examples dialog features**:
+- List of all example circuits with rich metadata
+- Each example displays:
+  - Name with category badge (BASIC/INTERMEDIATE/DEMO)
+  - Description paragraph
+  - "What you'll learn" section with checkmark bullets
+- Color-coded badges: green (basic), orange (intermediate), purple (demo)
+- Click any example to load it immediately
+- Confirmation prompt if loading would overwrite unsaved changes
+
+**Modal dialog system**:
+- Semi-transparent dark overlay (70% black)
+- Centered modal with dark theme matching application
+- Slide-up animation on open, fade-out on close
+- Close via: X button, Cancel button, or clicking overlay background
+- Keyboard-accessible with tab navigation
+- Scrollable content area for long lists
+- Responsive design adapts to screen size
+
+**Unsaved changes tracking**:
+- Changes tracked automatically on: component placement, deletion, rotation, drag, property edit
+- Confirmation prompts prevent accidental data loss on:
+  - Loading saved circuit
+  - Loading example circuit
+  - Clearing breadboard
+- Tracks current circuit metadata for re-save workflow
+- Resets unsaved flag after successful save or load
+
+**Implementation**:
+- Integrated into `src/ui/breadboard-app.ts` (+492 lines)
+- Modal HTML generation with event listeners
+- HTML escaping for safe rendering of user-provided names/descriptions
+- Date formatting utility for relative timestamps
+- CSS animations and styling in `src/style.css` (+356 lines)
+
+### Constraints and Limitations
+
+**Storage constraints**:
+- LocalStorage only (no cloud storage or sync across devices)
+- LocalStorage quota limits apply (typically 5-10MB per origin)
+- Circuit persistence tied to browser and domain
+- Clearing browser data deletes saved circuits
+- No circuit versioning or history
+
+**Serialization constraints**:
+- Schema version v1.0 only (no automatic migration from future versions)
+- Component selection state not serialized (always null on load)
+- No compression (JSON stored as plain text)
+- No circuit thumbnails or preview images
+
+**Example library constraints**:
+- Fixed set of 4 examples (not user-extensible)
+- Examples embedded in application code (not dynamically loaded)
+- No example categories beyond basic/intermediate/demo
+- No search or filter for examples
+
+**UI constraints**:
+- Modal dialogs block background interactions
+- No keyboard shortcuts for save/load (must use buttons)
+- No auto-save functionality
+- No save-as or duplicate circuit features
+- Saved circuit list does not show preview thumbnails
+
+---
+
 ## Component Visual Rendering
 
 ### SVG-Based Component Rendering
@@ -859,7 +1057,7 @@ npm run format    # Run Prettier
 
 ### Test Coverage
 
-Eight test suites with 95 passing tests:
+Nine test suites with 109 passing tests:
 
 1. **breadboard-layout.test.ts** (9 tests)
    - Position validity checking
@@ -882,20 +1080,27 @@ Eight test suites with 95 passing tests:
    - Current calculations through parallel branches
    - Note: Error detection logic validated through integration but not yet unit tested
 
-4. **voltage-colors.test.ts** (13 tests)
+4. **circuit-serializer.test.ts** (14 tests) — **New in PR #119**
+   - Serialization of empty circuits and all component types
+   - Deserialization with validation (JSON format, component types, rotation values)
+   - Default value application for missing properties
+   - Roundtrip fidelity (serialize → deserialize preserves all data)
+   - Edge cases (invalid JSON, missing fields, unknown component types)
+
+5. **voltage-colors.test.ts** (13 tests)
    - Color gradient mapping at key voltage stops (0V, 1.25V, 2.5V, 3.75V, 5V)
    - Linear interpolation between color stops
    - Voltage clamping (negative and above 5V)
    - CSS class mapping for pattern-based alternatives
 
-5. **component-renderer.test.ts** (9 tests)
+6. **component-renderer.test.ts** (9 tests)
    - SVG element creation
    - Individual component rendering (wire, resistor, LED, power supply, ground)
    - Multiple component rendering
    - Component layering (wires render before other components)
    - Wire color cycling and reset behavior
 
-6. **current-animator.test.ts** (11 tests)
+7. **current-animator.test.ts** (11 tests)
    - Start/stop lifecycle management
    - Current threshold filtering (1µA minimum)
    - Particle creation for currents above threshold
@@ -903,7 +1108,7 @@ Eight test suites with 95 passing tests:
    - Component type support (wire, resistor, LED)
    - Edge cases (zero current, negative current, empty components, failed simulation)
 
-7. **breadboard-app.test.ts** (25 tests) — **Updated in PR #107**
+8. **breadboard-app.test.ts** (25 tests) — **Updated in PR #107**
    - Component initialization
    - Component selection (click to select)
    - Component deselection (background click)
@@ -929,7 +1134,7 @@ Eight test suites with 95 passing tests:
      - Circuit simulation updates after rotation
      - Rotation for all component types (LED, power supply, wire, resistor, ground)
 
-8. **property-editor.test.ts** (12 tests) — **New in PR #95**
+9. **property-editor.test.ts** (12 tests) — **New in PR #95**
    - Property editor visibility toggle (shown when component selected, hidden otherwise)
    - Type-specific field rendering (resistor, LED, power supply)
    - Input value updates with debounce wait (resistance, voltage, forward voltage)
@@ -948,6 +1153,8 @@ Eight test suites with 95 passing tests:
 ### Coverage Gaps
 
 - No tests for component placement logic
+- No tests for circuit storage layer (localStorage operations, file download/upload)
+- No tests for save/load/examples UI dialogs and modal interactions
 - No integration tests for voltage overlay rendering behavior
 - No integration tests for component rendering with voltage overlays
 - No integration tests for current animation with full circuit simulation
@@ -959,7 +1166,7 @@ Eight test suites with 95 passing tests:
 
 ### Test Execution
 
-- All 95 tests pass
+- All 109 tests pass
 - Test duration: Fast execution (typically < 300ms, including async debounce waits)
 - No flaky tests observed
 
@@ -980,8 +1187,8 @@ Eight test suites with 95 passing tests:
 
 - No server component
 - No authentication or user accounts
-- No data persistence (state is lost on page reload)
-- No cloud storage or sync
+- Circuits persist in browser localStorage (not cloud-synced)
+- No cloud storage or sync across devices
 
 ### Browser-Only
 
@@ -1003,11 +1210,11 @@ Eight test suites with 95 passing tests:
 
 ### Functional
 
-1. **No persistence**: No save/load functionality
-2. **No undo/redo**: No operation history
-3. **No multi-select**: Can only select one component at a time
-4. **No copy/paste**: Cannot duplicate components
-5. **Limited error types**: Only five predefined error categories detected
+1. **No undo/redo**: No operation history
+2. **No multi-select**: Can only select one component at a time
+3. **No copy/paste**: Cannot duplicate components
+4. **Limited error types**: Only five predefined error categories detected
+5. **No cloud sync**: Circuits saved locally only (no cross-device synchronization)
 
 ### Simulation Accuracy
 
@@ -1058,14 +1265,21 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/core/breadboard-layout.ts` | 84 | Breadboard connectivity logic |
 | `src/core/circuit-extractor.ts` | 144 | Circuit graph extraction with union-find |
 | `src/core/circuit-simulator.ts` | 528 | DC circuit simulation using MNA and error detection (5 error types) |
-| `src/ui/breadboard-app.ts` | 1172 | Main UI application class with selection/deletion, rotation, property editor, and drag-and-drop |
+| `src/core/circuit-serializer.ts` | 306 | Circuit JSON serialization/deserialization with validation |
+| `src/core/circuit-storage.ts` | 250 | localStorage persistence and file download/upload |
+| `src/examples/index.ts` | 96 | Example circuit registry and lookup functions |
+| `src/examples/led-resistor.json` | 83 | LED and Resistor example circuit |
+| `src/examples/voltage-divider.json` | 93 | Voltage Divider example circuit |
+| `src/examples/parallel-leds.json` | 203 | Parallel LEDs example circuit |
+| `src/examples/short-circuit-demo.json` | 53 | Short Circuit Demo example circuit |
+| `src/ui/breadboard-app.ts` | 1664 | Main UI application class with save/load/examples modals, selection/deletion, rotation, property editor, and drag-and-drop |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
 | `src/ui/component-renderer.ts` | 568 | SVG-based visual component rendering with rotation transform support |
 | `src/ui/current-animator.ts` | 426 | Animated current flow visualization using particles |
 | `src/ui/error-overlay-renderer.ts` | 140 | Error icon SVG rendering with hover effects |
 | `src/ui/explain-panel.ts` | 370 | Contextual explanation panel with educational content |
 | `src/main.ts` | 11 | Application entry point |
-| `src/style.css` | 346 | Application styles (includes error icons and explain panel styling) |
+| `src/style.css` | 702 | Application styles (includes modal dialogs, error icons, explain panel styling) |
 
 ### Test Files
 
@@ -1074,6 +1288,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/core/__tests__/breadboard-layout.test.ts` | 9 | Breadboard connectivity tests |
 | `src/core/__tests__/circuit-extractor.test.ts` | 4 | Circuit extraction tests |
 | `src/core/__tests__/circuit-simulator.test.ts` | 12 | Circuit simulation tests (MNA solver) |
+| `src/core/__tests__/circuit-serializer.test.ts` | 14 | Circuit serialization/deserialization tests (roundtrip, validation, edge cases) |
 | `src/ui/__tests__/voltage-colors.test.ts` | 13 | Voltage-to-color mapping tests |
 | `src/ui/__tests__/component-renderer.test.ts` | 9 | Component visual rendering tests |
 | `src/ui/__tests__/current-animator.test.ts` | 11 | Current animation tests (particle system, magnitude scaling) |
@@ -1106,26 +1321,25 @@ For clarity, these capabilities are explicitly **not present**:
 - ❌ PCB layout or design
 - ❌ Schematic editor (separate from breadboard view)
 - ❌ Component library customization
-- ❌ Import/export circuits
 - ❌ Microcontroller simulation
 - ❌ Advanced circuit analysis (AC, transient, frequency response)
 - ❌ Touch/mobile gestures
 - ❌ Collaboration or multi-user features
-- ❌ Data persistence or cloud storage
+- ❌ Cloud storage or cross-device sync
 - ❌ Component libraries or part databases
 - ❌ 3D visualization
 - ❌ Embedded firmware simulation
-- ❌ SPICE netlist import/export
+- ❌ SPICE netlist export (JSON format only)
 - ❌ Auto-fix for detected errors (user must manually fix)
 
 ---
 
 ## Verification
 
-This document describes the system as observed on 2026-01-03 after merging PR #113:
+This document describes the system as observed on 2026-01-03 after merging PR #119:
 
 - ✅ All source files examined
-- ✅ Tests executed successfully (95/95 passing)
+- ✅ Tests executed successfully (109/109 passing)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
@@ -1143,5 +1357,9 @@ This document describes the system as observed on 2026-01-03 after merging PR #1
 - ✅ Error detection system verified from PR #113 changes
 - ✅ Error overlay rendering verified from PR #113 changes
 - ✅ Explain panel capabilities verified from PR #113 changes
+- ✅ Circuit serialization capabilities verified from PR #119 changes
+- ✅ Circuit storage (localStorage and file operations) verified from PR #119 changes
+- ✅ Example circuit library verified from PR #119 changes
+- ✅ Save/Load/Examples UI modals verified from PR #119 changes
 
 This is a snapshot of reality, not aspirations or plans.
