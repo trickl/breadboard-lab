@@ -4,6 +4,7 @@ import { BreadboardLayout } from '@/core/breadboard-layout';
 import { CircuitExtractor } from '@/core/circuit-extractor';
 import { CircuitSimulator } from '@/core/circuit-simulator';
 import { voltageToColor } from './voltage-colors';
+import { ComponentRenderer } from './component-renderer';
 
 /**
  * Main application class managing the breadboard UI and simulation
@@ -14,6 +15,7 @@ export class BreadboardApp {
   private placementStart: Position | null = null;
   private extractor: CircuitExtractor;
   private simulator: CircuitSimulator;
+  private componentRenderer: ComponentRenderer;
   private componentIdCounter = 0;
   private tooltipElement: HTMLElement | null = null;
   private cachedCircuit: Circuit | null = null;
@@ -23,6 +25,7 @@ export class BreadboardApp {
     this.state = { components: [] };
     this.extractor = new CircuitExtractor();
     this.simulator = new CircuitSimulator();
+    this.componentRenderer = new ComponentRenderer();
     this.render();
   }
 
@@ -112,6 +115,32 @@ export class BreadboardApp {
 
       breadboard.appendChild(rowEl);
     }
+
+    // Render components on top of the breadboard
+    this.renderComponents(breadboard);
+  }
+
+  /**
+   * Render all components as SVG overlay
+   */
+  private renderComponents(breadboard: HTMLElement): void {
+    // Remove existing component overlay if present
+    const existingOverlay = breadboard.querySelector('.component-overlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+
+    // Create and add new component overlay
+    const svg = this.componentRenderer.renderComponents(this.state.components);
+    
+    // Calculate SVG dimensions based on breadboard size
+    const width = BreadboardLayout.COLS_PER_SIDE * 2 * 26; // 26px per hole (20px + 6px margin)
+    const height = BreadboardLayout.ROWS * 26;
+    svg.setAttribute('width', width.toString());
+    svg.setAttribute('height', height.toString());
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+    breadboard.appendChild(svg);
   }
 
   /**
