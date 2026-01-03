@@ -1,4 +1,4 @@
-import type { AnyComponent, BreadboardState, Position, Circuit, SimulationResult } from '@/core/types';
+import type { AnyComponent, BreadboardState, Position, Circuit, SimulationResult, ComponentLibraryEntry } from '@/core/types';
 import { ComponentType } from '@/core/types';
 import { BreadboardLayout } from '@/core/breadboard-layout';
 import { CircuitExtractor } from '@/core/circuit-extractor';
@@ -21,6 +21,8 @@ import {
   uploadCircuitFile,
 } from '@/core/circuit-storage';
 import { EXAMPLE_CIRCUITS } from '@/examples';
+import { componentLibrary } from '@/core/component-library';
+import { ALL_LIBRARY_ENTRIES } from '@/library';
 
 /**
  * Drag state for component repositioning
@@ -40,6 +42,7 @@ interface DragState {
 export class BreadboardApp {
   private state: BreadboardState;
   private selectedComponentType: ComponentType | null = null;
+  private selectedLibraryId: string | null = null;
   private placementStart: Position | null = null;
   private extractor: CircuitExtractor;
   private simulator: CircuitSimulator;
@@ -70,7 +73,24 @@ export class BreadboardApp {
     this.handleKeyDownBound = this.handleKeyDown.bind(this);
     this.handleMouseMoveBound = this.handleMouseMove.bind(this);
     this.handleMouseUpBound = this.handleMouseUp.bind(this);
+    
+    // Initialize component library
+    this.initializeLibrary();
+    
     this.render();
+  }
+
+  /**
+   * Initialize the component library with all entries
+   */
+  private initializeLibrary(): void {
+    ALL_LIBRARY_ENTRIES.forEach((entry) => {
+      try {
+        componentLibrary.register(entry);
+      } catch (error) {
+        // Entry might already be registered (e.g., in tests), ignore
+      }
+    });
   }
 
   /**
@@ -86,11 +106,7 @@ export class BreadboardApp {
         <div class="toolbar">
           <h2>Components</h2>
           <div class="component-list">
-            <button class="component-button" data-component="WIRE">📏 Wire</button>
-            <button class="component-button" data-component="RESISTOR">🔲 Resistor (1kΩ)</button>
-            <button class="component-button" data-component="LED">💡 LED</button>
-            <button class="component-button" data-component="POWER_SUPPLY">⚡ Power (5V)</button>
-            <button class="component-button" data-component="GROUND">⏚ Ground</button>
+            <button id="component-library-btn" class="component-button primary">📦 Component Library</button>
           </div>
           <div class="toolbar-actions">
             <button id="examples-btn" class="toolbar-btn primary">📚 Examples</button>
@@ -239,16 +255,13 @@ export class BreadboardApp {
    * Attach event listeners
    */
   private attachEventListeners(): void {
-    // Component selection
-    const componentButtons = document.querySelectorAll('.component-button');
-    componentButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        const componentType = (button as HTMLElement).dataset.component as ComponentType;
-        this.selectComponent(componentType);
-        componentButtons.forEach((b) => b.classList.remove('active'));
-        button.classList.add('active');
+    // Component library button
+    const componentLibraryBtn = document.getElementById('component-library-btn');
+    if (componentLibraryBtn) {
+      componentLibraryBtn.addEventListener('click', () => {
+        this.showComponentLibraryDialog();
       });
-    });
+    }
 
     // Breadboard hole clicks
     const holes = document.querySelectorAll('.hole');
@@ -574,14 +587,6 @@ export class BreadboardApp {
   }
 
   /**
-   * Select a component type for placement
-   */
-  private selectComponent(type: ComponentType): void {
-    this.selectedComponentType = type;
-    this.placementStart = null;
-  }
-
-  /**
    * Handle click on a breadboard hole
    */
   private handleHoleClick(position: Position): void {
@@ -619,14 +624,18 @@ export class BreadboardApp {
 
     let component: AnyComponent;
 
+    // Get properties from library if libraryId is set
+    const libraryEntry = this.selectedLibraryId ? componentLibrary.get(this.selectedLibraryId) : undefined;
+
     switch (this.selectedComponentType) {
       case ComponentType.WIRE:
         component = {
           id,
           type: ComponentType.WIRE,
           positions,
-          resistance: 0.01, // Very low resistance
+          resistance: (libraryEntry?.electrical.resistance as number) ?? 0.01, // Very low resistance
           rotation: 0,
+          libraryId: this.selectedLibraryId ?? undefined,
         };
         break;
 
@@ -635,8 +644,9 @@ export class BreadboardApp {
           id,
           type: ComponentType.RESISTOR,
           positions,
-          resistance: 1000, // 1kΩ
+          resistance: (libraryEntry?.electrical.resistance as number) ?? 1000, // Default 1kΩ
           rotation: 0,
+          libraryId: this.selectedLibraryId ?? undefined,
         };
         break;
 
@@ -645,9 +655,10 @@ export class BreadboardApp {
           id,
           type: ComponentType.LED,
           positions,
-          forwardVoltage: 2.0,
-          maxCurrent: 0.02,
+          forwardVoltage: (libraryEntry?.electrical.forwardVoltage as number) ?? 2.0,
+          maxCurrent: (libraryEntry?.electrical.maxCurrent as number) ?? 0.02,
           rotation: 0,
+          libraryId: this.selectedLibraryId ?? undefined,
         };
         break;
 
@@ -656,8 +667,9 @@ export class BreadboardApp {
           id,
           type: ComponentType.POWER_SUPPLY,
           positions,
-          voltage: 5.0,
+          voltage: (libraryEntry?.electrical.voltage as number) ?? 5.0,
           rotation: 0,
+          libraryId: this.selectedLibraryId ?? undefined,
         };
         break;
 
@@ -667,6 +679,7 @@ export class BreadboardApp {
           type: ComponentType.GROUND,
           positions,
           rotation: 0,
+          libraryId: this.selectedLibraryId ?? undefined,
         };
         break;
 
@@ -676,6 +689,9 @@ export class BreadboardApp {
 
     this.state.components.push(component);
     this.markAsChanged();
+    
+    // Clear library selection after placement
+    this.selectedLibraryId = null;
   }
 
   /**
@@ -1542,6 +1558,311 @@ export class BreadboardApp {
   }
 
   /**
+   * Show component library browser dialog
+   */
+  private showComponentLibraryDialog(): void {
+    const allComponents = componentLibrary.getAll();
+    
+    // Group components by category
+    const categories = new Map<string, ComponentLibraryEntry[]>();
+    allComponents.forEach((entry) => {
+      if (!categories.has(entry.category)) {
+        categories.set(entry.category, []);
+      }
+      categories.get(entry.category)!.push(entry);
+    });
+
+    // Category display names and order
+    const categoryOrder: Array<{key: string; label: string; emoji: string}> = [
+      { key: 'passive', label: 'Passive Components', emoji: '🔲' },
+      { key: 'diode', label: 'Diodes & LEDs', emoji: '💡' },
+      { key: 'power', label: 'Power Supplies', emoji: '⚡' },
+      { key: 'interconnect', label: 'Wires & Connectors', emoji: '📏' },
+      { key: 'electro-acoustic', label: 'Audio Components', emoji: '🔊' },
+      { key: 'virtual-educational', label: 'Virtual Components', emoji: '⏚' },
+    ];
+
+    const modalHTML = `
+      <div class="modal-overlay visible" id="component-library-modal">
+        <div class="modal modal-large">
+          <div class="modal-header">
+            <h2>📦 Component Library</h2>
+            <button class="modal-close" id="library-modal-close">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="library-search">
+              <input 
+                type="text" 
+                id="library-search-input" 
+                placeholder="Search by name, description, or part number..."
+                class="search-input"
+              />
+              <button id="library-search-clear" class="search-clear" style="display: none;">×</button>
+            </div>
+            
+            <div class="library-categories">
+              <button class="category-pill active" data-category="all">All (${allComponents.length})</button>
+              ${categoryOrder
+                .filter(cat => categories.has(cat.key))
+                .map(cat => `
+                  <button class="category-pill" data-category="${cat.key}">
+                    ${cat.emoji} ${cat.label} (${categories.get(cat.key)!.length})
+                  </button>
+                `).join('')}
+            </div>
+
+            <div class="component-grid" id="component-grid">
+              ${this.renderComponentCards(allComponents)}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="library-cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Store current search state
+    let currentCategory = 'all';
+    let currentSearchQuery = '';
+
+    // Function to filter and display components
+    const updateComponentDisplay = () => {
+      let filteredComponents = allComponents;
+
+      // Apply category filter
+      if (currentCategory !== 'all') {
+        filteredComponents = categories.get(currentCategory) || [];
+      }
+
+      // Apply search filter
+      if (currentSearchQuery) {
+        filteredComponents = componentLibrary.search(currentSearchQuery);
+        if (currentCategory !== 'all') {
+          filteredComponents = filteredComponents.filter(c => c.category === currentCategory);
+        }
+      }
+
+      const grid = document.getElementById('component-grid');
+      if (grid) {
+        grid.innerHTML = this.renderComponentCards(filteredComponents);
+        
+        // Re-attach click handlers to new cards
+        grid.querySelectorAll('.component-card').forEach((card) => {
+          card.addEventListener('click', () => {
+            const libraryId = (card as HTMLElement).dataset.libraryId;
+            if (libraryId) {
+              this.selectComponentFromLibrary(libraryId);
+              this.closeModal('component-library-modal');
+            }
+          });
+        });
+      }
+    };
+
+    // Attach event listeners
+    document.getElementById('library-modal-close')?.addEventListener('click', () => {
+      this.closeModal('component-library-modal');
+    });
+
+    document.getElementById('library-cancel')?.addEventListener('click', () => {
+      this.closeModal('component-library-modal');
+    });
+
+    // Search input handler
+    const searchInput = document.getElementById('library-search-input') as HTMLInputElement;
+    const searchClear = document.getElementById('library-search-clear');
+    
+    searchInput?.addEventListener('input', (e) => {
+      const query = (e.target as HTMLInputElement).value;
+      currentSearchQuery = query;
+      
+      if (searchClear) {
+        searchClear.style.display = query ? 'block' : 'none';
+      }
+      
+      updateComponentDisplay();
+    });
+
+    searchClear?.addEventListener('click', () => {
+      if (searchInput) {
+        searchInput.value = '';
+        currentSearchQuery = '';
+        searchClear.style.display = 'none';
+        updateComponentDisplay();
+        searchInput.focus();
+      }
+    });
+
+    // Category pill handlers
+    document.querySelectorAll('.category-pill').forEach((pill) => {
+      pill.addEventListener('click', () => {
+        const category = (pill as HTMLElement).dataset.category || 'all';
+        currentCategory = category;
+        
+        // Update active state
+        document.querySelectorAll('.category-pill').forEach((p) => p.classList.remove('active'));
+        pill.classList.add('active');
+        
+        updateComponentDisplay();
+      });
+    });
+
+    // Component card click handlers
+    document.querySelectorAll('.component-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        const libraryId = (card as HTMLElement).dataset.libraryId;
+        if (libraryId) {
+          this.selectComponentFromLibrary(libraryId);
+          this.closeModal('component-library-modal');
+        }
+      });
+    });
+
+    // Close on overlay click
+    document.getElementById('component-library-modal')?.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        this.closeModal('component-library-modal');
+      }
+    });
+
+    // Focus search input
+    searchInput?.focus();
+  }
+
+  /**
+   * Render component cards for the library browser
+   */
+  private renderComponentCards(components: ComponentLibraryEntry[]): string {
+    if (components.length === 0) {
+      return `
+        <div class="empty-state">
+          <div class="empty-state-icon">🔍</div>
+          <div class="empty-state-text">No components found</div>
+        </div>
+      `;
+    }
+
+    return components
+      .map((entry) => {
+        // Extract key specs for display
+        const specs = this.getComponentSpecs(entry);
+        
+        return `
+          <div class="component-card" data-library-id="${entry.id}">
+            <div class="component-card-header">
+              <div class="component-card-name">${this.escapeHtml(entry.name)}</div>
+              <div class="component-card-category">${this.getCategoryEmoji(entry.category)}</div>
+            </div>
+            <div class="component-card-specs">
+              ${specs.map(spec => `<div class="spec-item">${this.escapeHtml(spec)}</div>`).join('')}
+            </div>
+            ${entry.package ? `
+              <div class="component-card-package">
+                Package: ${this.escapeHtml(entry.package.kind.toUpperCase())} • ${entry.package.pinCount} pins
+              </div>
+            ` : ''}
+            ${entry.description ? `
+              <div class="component-card-description">${this.escapeHtml(entry.description)}</div>
+            ` : ''}
+            ${entry.manufacturerPartNumber ? `
+              <div class="component-card-part-number">Part: ${this.escapeHtml(entry.manufacturerPartNumber)}</div>
+            ` : ''}
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  /**
+   * Get formatted specs for a component
+   */
+  private getComponentSpecs(entry: ComponentLibraryEntry): string[] {
+    const specs: string[] = [];
+    
+    if (entry.electrical.resistance !== undefined) {
+      const r = entry.electrical.resistance as number;
+      const rStr = r >= 1000 ? `${r / 1000}kΩ` : `${r}Ω`;
+      specs.push(`R: ${rStr}`);
+      
+      if (entry.electrical.tolerance !== undefined) {
+        specs.push(`±${entry.electrical.tolerance}%`);
+      }
+    }
+    
+    if (entry.electrical.forwardVoltage !== undefined) {
+      specs.push(`Vf: ${entry.electrical.forwardVoltage}V`);
+    }
+    
+    if (entry.electrical.voltage !== undefined) {
+      specs.push(`${entry.electrical.voltage}V`);
+    }
+    
+    if (entry.electrical.maxCurrent !== undefined) {
+      const current = entry.electrical.maxCurrent as number;
+      const currentStr = current >= 1 ? `${current}A` : `${current * 1000}mA`;
+      specs.push(`Max: ${currentStr}`);
+    }
+    
+    if (entry.electrical.powerRating !== undefined) {
+      specs.push(`${entry.electrical.powerRating}W`);
+    }
+    
+    if (entry.electrical.impedance !== undefined) {
+      specs.push(`Z: ${entry.electrical.impedance}Ω`);
+    }
+    
+    return specs;
+  }
+
+  /**
+   * Get emoji for category
+   */
+  private getCategoryEmoji(category: string): string {
+    const emojiMap: Record<string, string> = {
+      'passive': '🔲',
+      'diode': '💡',
+      'power': '⚡',
+      'interconnect': '📏',
+      'electro-acoustic': '🔊',
+      'virtual-educational': '⏚',
+    };
+    return emojiMap[category] || '📦';
+  }
+
+  /**
+   * Select a component from the library
+   */
+  private selectComponentFromLibrary(libraryId: string): void {
+    const entry = componentLibrary.get(libraryId);
+    if (!entry) return;
+
+    // Determine component type from library entry
+    let componentType: ComponentType;
+    
+    if (entry.electrical.resistance !== undefined && entry.category === 'passive') {
+      componentType = ComponentType.RESISTOR;
+    } else if (entry.electrical.forwardVoltage !== undefined) {
+      componentType = ComponentType.LED;
+    } else if (entry.electrical.voltage !== undefined && entry.category === 'power') {
+      componentType = ComponentType.POWER_SUPPLY;
+    } else if (entry.category === 'interconnect') {
+      componentType = ComponentType.WIRE;
+    } else if (entry.category === 'virtual-educational') {
+      componentType = ComponentType.GROUND;
+    } else {
+      // Default fallback
+      componentType = ComponentType.WIRE;
+    }
+
+    this.selectedComponentType = componentType;
+    this.selectedLibraryId = libraryId;
+    this.placementStart = null;
+  }
+
+  /**
    * Close modal dialog
    */
   private closeModal(modalId: string): void {
@@ -1729,5 +2050,15 @@ export class BreadboardApp {
    */
   private markAsChanged(): void {
     this.hasUnsavedChanges = true;
+  }
+
+  /**
+   * Select a component type for placement (test/programmatic API)
+   * This method is primarily for testing purposes and backward compatibility
+   */
+  selectComponentType(type: ComponentType): void {
+    this.selectedComponentType = type;
+    this.placementStart = null;
+    this.selectedLibraryId = null;
   }
 }

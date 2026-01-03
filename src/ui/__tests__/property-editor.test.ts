@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { BreadboardApp } from '../breadboard-app';
+import { ComponentType } from '@/core/types';
 
 describe('BreadboardApp - Property Editor', () => {
   let container: HTMLElement;
@@ -30,8 +31,7 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should show property editor when a resistor is selected', () => {
     // Place a resistor
-    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
-    resistorButton?.click();
+    app.selectComponentType(ComponentType.RESISTOR);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -53,8 +53,7 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should show property editor when a power supply is selected', () => {
     // Place a power supply
-    const powerButton = container.querySelector('[data-component="POWER_SUPPLY"]') as HTMLElement;
-    powerButton?.click();
+    app.selectComponentType(ComponentType.POWER_SUPPLY);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -76,8 +75,7 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should show property editor when an LED is selected', () => {
     // Place an LED
-    const ledButton = container.querySelector('[data-component="LED"]') as HTMLElement;
-    ledButton?.click();
+    app.selectComponentType(ComponentType.LED);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -99,8 +97,7 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should update resistor value when input changes', async () => {
     // Place a resistor
-    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
-    resistorButton?.click();
+    app.selectComponentType(ComponentType.RESISTOR);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -125,8 +122,7 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should update power supply voltage when input changes', async () => {
     // Place a power supply
-    const powerButton = container.querySelector('[data-component="POWER_SUPPLY"]') as HTMLElement;
-    powerButton?.click();
+    app.selectComponentType(ComponentType.POWER_SUPPLY);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -151,8 +147,7 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should update LED forward voltage when input changes', async () => {
     // Place an LED
-    const ledButton = container.querySelector('[data-component="LED"]') as HTMLElement;
-    ledButton?.click();
+    app.selectComponentType(ComponentType.LED);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -177,8 +172,7 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should apply preset values when preset button is clicked', async () => {
     // Place a resistor
-    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
-    resistorButton?.click();
+    app.selectComponentType(ComponentType.RESISTOR);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -209,8 +203,7 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should hide property editor when component is deselected', () => {
     // Place a resistor
-    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
-    resistorButton?.click();
+    app.selectComponentType(ComponentType.RESISTOR);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -233,8 +226,7 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should not show property editor for wire components', () => {
     // Place a wire
-    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
-    wireButton?.click();
+    app.selectComponentType(ComponentType.WIRE);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -251,8 +243,7 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should not show property editor for ground components', () => {
     // Place a ground
-    const groundButton = container.querySelector('[data-component="GROUND"]') as HTMLElement;
-    groundButton?.click();
+    app.selectComponentType(ComponentType.GROUND);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -269,8 +260,7 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should show preset buttons for different component types', () => {
     // Test resistor presets
-    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
-    resistorButton?.click();
+    app.selectComponentType(ComponentType.RESISTOR);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -286,8 +276,7 @@ describe('BreadboardApp - Property Editor', () => {
     // Delete component and test power supply presets
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete' }));
 
-    const powerButton = container.querySelector('[data-component="POWER_SUPPLY"]') as HTMLElement;
-    powerButton?.click();
+    app.selectComponentType(ComponentType.POWER_SUPPLY);
 
     (holes[0] as HTMLElement)?.click();
     (holes[1] as HTMLElement)?.click();
