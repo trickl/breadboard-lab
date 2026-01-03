@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-03  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After merging PR #95 (Component value customization with property editor)
+**Last Updated**: After implementing component drag-and-drop repositioning
 
 ---
 
@@ -77,18 +77,19 @@ The UI consists of three panels:
 - Selected component button gets "active" styling
 - Occupied holes display with "occupied" class
 - Placed components render visually on the breadboard (power supplies, resistors, LEDs, ground symbols, and wires)
-- No drag-and-drop
-- No visual preview before second click
+- Drag-and-drop with ghost preview for component repositioning
+- Visual indicators for valid/invalid drop positions
 
 ### Available Operations
 
 - **Place component**: Select component type, click two holes
 - **Select component**: Click on a rendered component to select it (visual feedback: blue drop-shadow)
+- **Move component**: Click and drag selected component to reposition (ghost preview shows new position)
 - **Edit component values**: Select component to open property editor, modify values through text input or preset buttons
 - **Delete component**: Press Delete or Backspace key to remove selected component
 - **Deselect component**: Click breadboard background or another component
 - **Clear all**: Removes all components and resets the breadboard
-- **View circuit info**: Automatically updated after each placement, deletion, or value change
+- **View circuit info**: Automatically updated after each placement, deletion, value change, or repositioning
 
 ### Component Selection and Deletion
 
@@ -111,7 +112,62 @@ The UI consists of three panels:
 **Event handling**:
 - Component SVG groups have pointer events enabled (`pointer-events: auto`)
 - Components have cursor: pointer styling for interactivity
-- Keyboard event listener bound to document for Delete/Backspace keys
+- Mousedown on component initiates drag operation
+- Mousemove during drag updates ghost preview position with snap-to-grid
+- Mouseup completes drag and updates component position (or cancels if invalid)
+- Keyboard event listener bound to document for Delete/Backspace and Escape keys
+- Escape key cancels active drag operation
+- Property editor input listeners attached dynamically when component selected
+- Event cleanup via `destroy()` method prevents memory leaks (includes debounce timer cleanup)
+
+### Component Drag-and-Drop Repositioning
+
+**Repositioning system**: After placing a component, users can drag it to a new position with real-time visual feedback.
+
+**Drag interaction flow**:
+1. Click component to select it
+2. Click and hold (mousedown) on selected component to initiate drag
+3. Move mouse to desired location (mousemove updates ghost preview)
+4. Release mouse (mouseup) to drop component at new position
+5. Press Escape at any time to cancel drag and keep original position
+
+**Visual feedback during drag**:
+- Original component fades to 30% opacity
+- Ghost preview renders at cursor position with 70% opacity
+- Preview snaps to nearest valid grid positions (all pins align to holes)
+- Valid positions show green drop-shadow on preview
+- Invalid positions show red overlay circle and prevent drop
+- Preview updates continuously during mouse movement
+
+**Position validation**:
+- All component pins must align to valid breadboard holes (within bounds)
+- No collision with existing components (pins cannot occupy same holes)
+- Snap-to-grid ensures proper hole alignment
+- Invalid positions cannot be dropped (component returns to original position on mouseup)
+
+**Circuit integration**:
+- Circuit automatically re-extracts after successful move
+- Simulation re-runs with new topology
+- Voltage overlay and current animation update to reflect new positions
+- Component selection persists after move (remains selected)
+- No re-extraction if drag is cancelled
+
+**Implementation details**:
+- Drag state tracked in `BreadboardApp` class (`DragState` interface)
+- Mouse event handlers (mousedown, mousemove, mouseup) manage drag lifecycle
+- Position calculation with snap-to-grid (converts pixels to grid coordinates)
+- Collision detection checks all pins against existing components
+- Component renderer supports optional drag state to render ghost preview
+- CSS classes for preview styling (`.component-preview`, `.component-preview-valid`, `.component-preview-invalid`)
+
+**Event handling**:
+- Component SVG groups have pointer events enabled (`pointer-events: auto`)
+- Components have cursor: pointer styling for interactivity
+- Mousedown on component initiates drag operation
+- Mousemove during drag updates ghost preview position with snap-to-grid
+- Mouseup completes drag and updates component position (or cancels if invalid)
+- Keyboard event listener bound to document for Delete/Backspace and Escape keys
+- Escape key cancels active drag operation
 - Property editor input listeners attached dynamically when component selected
 - Event cleanup via `destroy()` method prevents memory leaks (includes debounce timer cleanup)
 
