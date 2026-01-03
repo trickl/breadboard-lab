@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { BreadboardApp } from '../breadboard-app';
+import { ComponentType } from '@/core/types';
 
 describe('BreadboardApp - Component Selection and Deletion', () => {
   let container: HTMLElement;
+  let app: BreadboardApp;
 
   beforeEach(() => {
     // Create a container element for the app
@@ -11,7 +13,7 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
     document.body.appendChild(container);
 
     // Initialize the app
-    new BreadboardApp(container);
+    app = new BreadboardApp(container);
   });
 
   afterEach(() => {
@@ -30,8 +32,7 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
   it('should select a component when clicked', () => {
     // Manually add a component to the state by simulating placement
     // First, select a component type
-    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
-    wireButton?.click();
+    app.selectComponentType(ComponentType.WIRE);
 
     // Place a wire by clicking two holes
     const holes = container.querySelectorAll('.hole');
@@ -53,8 +54,7 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
 
   it('should deselect component when clicking breadboard background', () => {
     // Place and select a component
-    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
-    wireButton?.click();
+    app.selectComponentType(ComponentType.WIRE);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -76,8 +76,7 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
 
   it('should delete selected component on Delete key press', () => {
     // Place a component
-    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
-    wireButton?.click();
+    app.selectComponentType(ComponentType.WIRE);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -101,8 +100,7 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
 
   it('should delete selected component on Backspace key press', () => {
     // Place a component
-    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
-    resistorButton?.click();
+    app.selectComponentType(ComponentType.RESISTOR);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -126,15 +124,13 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
 
   it('should update circuit simulation after component deletion', () => {
     // Place multiple components to create a circuit with voltage overlays
-    const powerButton = container.querySelector('[data-component="POWER_SUPPLY"]') as HTMLElement;
-    powerButton?.click();
+    app.selectComponentType(ComponentType.POWER_SUPPLY);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
     (holes[1] as HTMLElement)?.click();
     
-    const groundButton = container.querySelector('[data-component="GROUND"]') as HTMLElement;
-    groundButton?.click();
+    app.selectComponentType(ComponentType.GROUND);
     
     (holes[30] as HTMLElement)?.click();
     (holes[31] as HTMLElement)?.click();
@@ -157,8 +153,7 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
 
   it('should not delete anything if no component is selected', () => {
     // Place a component
-    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
-    wireButton?.click();
+    app.selectComponentType(ComponentType.WIRE);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -179,15 +174,13 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
 
   it('should handle multiple component selection correctly', () => {
     // Place two components
-    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
-    wireButton?.click();
+    app.selectComponentType(ComponentType.WIRE);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
     (holes[5] as HTMLElement)?.click();
 
-    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
-    resistorButton?.click();
+    app.selectComponentType(ComponentType.RESISTOR);
 
     (holes[10] as HTMLElement)?.click();
     (holes[40] as HTMLElement)?.click();
@@ -243,8 +236,7 @@ describe('BreadboardApp - Component Rotation', () => {
 
   it('should rotate selected component 90 degrees on R key press', () => {
     // Place a resistor component
-    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
-    resistorButton?.click();
+    app.selectComponentType(ComponentType.RESISTOR);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click(); // Row 0, col 0
@@ -265,8 +257,7 @@ describe('BreadboardApp - Component Rotation', () => {
 
   it('should cycle through all four rotation angles (0, 90, 180, 270)', () => {
     // Place a resistor component
-    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
-    resistorButton?.click();
+    app.selectComponentType(ComponentType.RESISTOR);
 
     const holes = container.querySelectorAll('.hole');
     (holes[5] as HTMLElement)?.click(); // Row 0, col 5
@@ -293,8 +284,7 @@ describe('BreadboardApp - Component Rotation', () => {
 
   it('should apply rotation transform to component SVG', () => {
     // Place a resistor
-    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
-    resistorButton?.click();
+    app.selectComponentType(ComponentType.RESISTOR);
 
     const holes = container.querySelectorAll('.hole');
     (holes[10] as HTMLElement)?.click(); // Row 0, col 10
@@ -316,8 +306,7 @@ describe('BreadboardApp - Component Rotation', () => {
 
   it('should not rotate if no component is selected', () => {
     // Place a component but don't select it
-    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
-    wireButton?.click();
+    app.selectComponentType(ComponentType.WIRE);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -338,8 +327,7 @@ describe('BreadboardApp - Component Rotation', () => {
 
   it('should not rotate during drag operation', () => {
     // Place a component
-    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
-    resistorButton?.click();
+    app.selectComponentType(ComponentType.RESISTOR);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -374,8 +362,7 @@ describe('BreadboardApp - Component Rotation', () => {
 
   it('should work with lowercase r key', () => {
     // Place and select component
-    const ledButton = container.querySelector('[data-component="LED"]') as HTMLElement;
-    ledButton?.click();
+    app.selectComponentType(ComponentType.LED);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -395,8 +382,7 @@ describe('BreadboardApp - Component Rotation', () => {
 
   it('should prevent rotation if result would be out of bounds', () => {
     // Place a component at the edge where rotation would go out of bounds
-    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
-    resistorButton?.click();
+    app.selectComponentType(ComponentType.RESISTOR);
 
     const holes = container.querySelectorAll('.hole');
     // Place at top-left corner - row 0, cols 0-1 (very close to edge)
@@ -417,20 +403,17 @@ describe('BreadboardApp - Component Rotation', () => {
 
   it('should update circuit simulation after rotation', () => {
     // Place a simple circuit
-    const powerButton = container.querySelector('[data-component="POWER_SUPPLY"]') as HTMLElement;
-    powerButton?.click();
+    app.selectComponentType(ComponentType.POWER_SUPPLY);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
     (holes[5] as HTMLElement)?.click();
 
-    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
-    resistorButton?.click();
+    app.selectComponentType(ComponentType.RESISTOR);
     (holes[5] as HTMLElement)?.click();
     (holes[10] as HTMLElement)?.click();
 
-    const groundButton = container.querySelector('[data-component="GROUND"]') as HTMLElement;
-    groundButton?.click();
+    app.selectComponentType(ComponentType.GROUND);
     (holes[10] as HTMLElement)?.click();
     (holes[11] as HTMLElement)?.click();
 
@@ -449,8 +432,7 @@ describe('BreadboardApp - Component Rotation', () => {
 
   it('should rotate LED component correctly', () => {
     // Place an LED (has polarity, so rotation matters)
-    const ledButton = container.querySelector('[data-component="LED"]') as HTMLElement;
-    ledButton?.click();
+    app.selectComponentType(ComponentType.LED);
 
     const holes = container.querySelectorAll('.hole');
     (holes[20] as HTMLElement)?.click();
@@ -469,8 +451,7 @@ describe('BreadboardApp - Component Rotation', () => {
 
   it('should rotate power supply component correctly', () => {
     // Place a power supply (has polarity)
-    const powerButton = container.querySelector('[data-component="POWER_SUPPLY"]') as HTMLElement;
-    powerButton?.click();
+    app.selectComponentType(ComponentType.POWER_SUPPLY);
 
     const holes = container.querySelectorAll('.hole');
     (holes[30] as HTMLElement)?.click();
@@ -489,8 +470,7 @@ describe('BreadboardApp - Component Rotation', () => {
 
   it('should rotate wire component correctly', () => {
     // Place a wire
-    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
-    wireButton?.click();
+    app.selectComponentType(ComponentType.WIRE);
 
     const holes = container.querySelectorAll('.hole');
     (holes[40] as HTMLElement)?.click();
@@ -509,8 +489,7 @@ describe('BreadboardApp - Component Rotation', () => {
 
   it('should rotate ground component correctly', () => {
     // Place a ground
-    const groundButton = container.querySelector('[data-component="GROUND"]') as HTMLElement;
-    groundButton?.click();
+    app.selectComponentType(ComponentType.GROUND);
 
     const holes = container.querySelectorAll('.hole');
     (holes[50] as HTMLElement)?.click();
@@ -550,8 +529,7 @@ describe('BreadboardApp - Component Drag and Drop', () => {
 
   it('should start drag operation on mousedown', () => {
     // Place a wire component
-    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
-    wireButton?.click();
+    app.selectComponentType(ComponentType.WIRE);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -580,8 +558,7 @@ describe('BreadboardApp - Component Drag and Drop', () => {
 
   it('should show ghost preview during drag', () => {
     // Place a wire component
-    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
-    wireButton?.click();
+    app.selectComponentType(ComponentType.WIRE);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -618,8 +595,7 @@ describe('BreadboardApp - Component Drag and Drop', () => {
 
   it('should update component position on successful drop', () => {
     // Place a wire component at specific position
-    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
-    wireButton?.click();
+    app.selectComponentType(ComponentType.WIRE);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click(); // Row 0, col 0
@@ -670,8 +646,7 @@ describe('BreadboardApp - Component Drag and Drop', () => {
 
   it('should cancel drag on Escape key', () => {
     // Place a wire component
-    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
-    wireButton?.click();
+    app.selectComponentType(ComponentType.WIRE);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();
@@ -716,8 +691,7 @@ describe('BreadboardApp - Component Drag and Drop', () => {
 
   it('should maintain selection after successful drag', () => {
     // Place a wire component
-    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
-    wireButton?.click();
+    app.selectComponentType(ComponentType.WIRE);
 
     const holes = container.querySelectorAll('.hole');
     (holes[0] as HTMLElement)?.click();

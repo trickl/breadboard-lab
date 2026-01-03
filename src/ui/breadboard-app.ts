@@ -2051,4 +2051,14 @@ export class BreadboardApp {
   private markAsChanged(): void {
     this.hasUnsavedChanges = true;
   }
+
+  /**
+   * Select a component type for placement (test/programmatic API)
+   * This method is primarily for testing purposes and backward compatibility
+   */
+  selectComponentType(type: ComponentType): void {
+    this.selectedComponentType = type;
+    this.placementStart = null;
+    this.selectedLibraryId = null;
+  }
 }
