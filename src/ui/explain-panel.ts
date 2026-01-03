@@ -1,5 +1,6 @@
 import type { Circuit, SimulationResult, AnyComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
+import { resistanceToColorBands, COLOR_TO_RGB, ResistorColor } from '@/core/resistor-color-code';
 
 /**
  * Panel content type - what kind of information to display
@@ -266,7 +267,7 @@ export class ExplainPanel {
   private generateComponentProperties(component: AnyComponent): string {
     switch (component.type) {
       case ComponentType.RESISTOR:
-        return `<div class="explain-section"><h5>Resistance:</h5><p>${component.resistance >= 1000 ? (component.resistance / 1000).toFixed(1) + 'kΩ' : component.resistance + 'Ω'}</p></div>`;
+        return this.generateResistorProperties(component);
       case ComponentType.LED:
         return `<div class="explain-section"><h5>Specifications:</h5><p>Forward Voltage: ${component.forwardVoltage}V<br>Max Current: ${(component.maxCurrent * 1000).toFixed(1)}mA</p></div>`;
       case ComponentType.POWER_SUPPLY:
@@ -274,6 +275,169 @@ export class ExplainPanel {
       default:
         return '';
     }
+  }
+
+  /**
+   * Generate detailed resistor properties including color band explanation
+   */
+  private generateResistorProperties(component: AnyComponent): string {
+    if (component.type !== ComponentType.RESISTOR) return '';
+
+    const resistance = component.resistance;
+    const resistanceStr = resistance >= 1000 
+      ? (resistance / 1000).toFixed(1) + 'kΩ' 
+      : resistance + 'Ω';
+
+    try {
+      // Default to 5% tolerance (4-band resistor)
+      const tolerance = 5;
+      const bands = resistanceToColorBands(resistance, tolerance);
+
+      // Generate color band visualization
+      const bandHTML = bands.map(band => {
+        const colorName = this.formatColorName(band.color);
+        const meaning = this.formatBandMeaning(band.meaning);
+        const bgColor = COLOR_TO_RGB[band.color];
+        const textColor = this.shouldUseDarkText(band.color) ? '#000' : '#fff';
+        
+        return `
+          <div class="color-band-item" style="background: ${bgColor}; color: ${textColor}; border: 1px solid #666;">
+            <div class="band-color">${colorName}</div>
+            <div class="band-meaning">${meaning}</div>
+            <div class="band-value">${this.formatBandValue(band)}</div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="explain-section">
+          <h5>Resistance:</h5>
+          <p class="explain-value">${resistanceStr}</p>
+        </div>
+        <div class="explain-section">
+          <h5>Color Code (${bands.length}-band, ${tolerance}% tolerance):</h5>
+          <div class="color-bands-display">
+            ${bandHTML}
+          </div>
+          <p style="margin-top: 8px; font-size: 0.9em; color: #888;">
+            Reading: ${this.generateColorCodeReading(bands, resistance)}
+          </p>
+        </div>
+      `;
+    } catch (error) {
+      // Fallback if color code calculation fails
+      return `<div class="explain-section"><h5>Resistance:</h5><p>${resistanceStr}</p></div>`;
+    }
+  }
+
+  /**
+   * Format color name for display
+   */
+  private formatColorName(color: ResistorColor): string {
+    return color.charAt(0) + color.slice(1).toLowerCase();
+  }
+
+  /**
+   * Format band meaning for display
+   */
+  private formatBandMeaning(meaning: string): string {
+    switch (meaning) {
+      case 'digit1':
+        return '1st Digit';
+      case 'digit2':
+        return '2nd Digit';
+      case 'digit3':
+        return '3rd Digit';
+      case 'multiplier':
+        return 'Multiplier';
+      case 'tolerance':
+        return 'Tolerance';
+      default:
+        return meaning;
+    }
+  }
+
+  /**
+   * Format band value for display
+   */
+  private formatBandValue(band: { meaning: string; value: number }): string {
+    if (band.meaning === 'multiplier') {
+      if (band.value >= 1000000) {
+        return `×${band.value / 1000000}M`;
+      } else if (band.value >= 1000) {
+        return `×${band.value / 1000}k`;
+      } else if (band.value < 1) {
+        return `×${band.value}`;
+      } else {
+        return `×${band.value}`;
+      }
+    } else if (band.meaning === 'tolerance') {
+      return `±${band.value}%`;
+    } else {
+      return band.value.toString();
+    }
+  }
+
+  /**
+   * Generate a readable explanation of the color code
+   */
+  private generateColorCodeReading(bands: ReturnType<typeof resistanceToColorBands>, resistance: number): string {
+    if (bands.length === 4) {
+      // 4-band: digit1-digit2-multiplier-tolerance
+      const digit1 = bands[0].value;
+      const digit2 = bands[1].value;
+      const multiplier = bands[2].value;
+      const tolerance = bands[3].value;
+      return `${digit1}${digit2} × ${this.formatMultiplier(multiplier)} = ${this.formatResistance(resistance)} ±${tolerance}%`;
+    } else if (bands.length === 5) {
+      // 5-band: digit1-digit2-digit3-multiplier-tolerance
+      const digit1 = bands[0].value;
+      const digit2 = bands[1].value;
+      const digit3 = bands[2].value;
+      const multiplier = bands[3].value;
+      const tolerance = bands[4].value;
+      return `${digit1}${digit2}${digit3} × ${this.formatMultiplier(multiplier)} = ${this.formatResistance(resistance)} ±${tolerance}%`;
+    }
+    return '';
+  }
+
+  /**
+   * Format multiplier for readable display
+   */
+  private formatMultiplier(multiplier: number): string {
+    if (multiplier >= 1000000) {
+      return `${multiplier / 1000000}M`;
+    } else if (multiplier >= 1000) {
+      return `${multiplier / 1000}k`;
+    } else if (multiplier < 1) {
+      return multiplier.toString();
+    } else {
+      return multiplier.toString();
+    }
+  }
+
+  /**
+   * Format resistance value
+   */
+  private formatResistance(resistance: number): string {
+    if (resistance >= 1000000) {
+      return `${(resistance / 1000000).toFixed(2)}MΩ`;
+    } else if (resistance >= 1000) {
+      return `${(resistance / 1000).toFixed(1)}kΩ`;
+    } else {
+      return `${resistance}Ω`;
+    }
+  }
+
+  /**
+   * Determine if dark text should be used on this color background
+   */
+  private shouldUseDarkText(color: ResistorColor): boolean {
+    // Use dark text on light colors
+    return color === ResistorColor.YELLOW || 
+           color === ResistorColor.WHITE || 
+           color === ResistorColor.GOLD || 
+           color === ResistorColor.SILVER;
   }
 
   /**
@@ -289,58 +453,64 @@ export class ExplainPanel {
 
     switch (component.type) {
       case ComponentType.RESISTOR:
-        explanation = `
-          <div class="explain-section">
-            <h5>Role in Circuit:</h5>
-            <p>This resistor limits current flow according to Ohm's Law (V = IR). 
-            With ${Math.abs(voltageDiff).toFixed(2)}V across it and ${(component as any).resistance}Ω resistance,
-            it allows ${(Math.abs(current) * 1000).toFixed(2)}mA of current to flow.</p>
-          </div>
-        `;
+        if (component.type === ComponentType.RESISTOR) {
+          explanation = `
+            <div class="explain-section">
+              <h5>Role in Circuit:</h5>
+              <p>This resistor limits current flow according to Ohm's Law (V = IR). 
+              With ${Math.abs(voltageDiff).toFixed(2)}V across it and ${component.resistance}Ω resistance,
+              it allows ${(Math.abs(current) * 1000).toFixed(2)}mA of current to flow.</p>
+            </div>
+          `;
+        }
         break;
 
       case ComponentType.LED:
-        if (Math.abs(current) < 1e-6) {
-          explanation = `
-            <div class="explain-section">
-              <h5>Why isn't it lighting?</h5>
-              <p>The LED has no current flowing through it. Check if it's connected backwards or if the circuit is incomplete.</p>
-            </div>
-          `;
-        } else if (current < 0) {
-          explanation = `
-            <div class="explain-section">
-              <h5>Problem Detected:</h5>
-              <p>Current is flowing backwards through this LED. LEDs only conduct in one direction - rotate it 180° to fix.</p>
-            </div>
-          `;
-        } else {
-          const maxCurrent = (component as any).maxCurrent;
-          if (current > maxCurrent * 1.2) {
+        if (component.type === ComponentType.LED) {
+          if (Math.abs(current) < 1e-6) {
             explanation = `
               <div class="explain-section">
-                <h5>⚠️ Warning:</h5>
-                <p>This LED is drawing ${(current * 1000).toFixed(1)}mA, which is above its ${(maxCurrent * 1000).toFixed(1)}mA rating. Add a larger resistor to reduce current.</p>
+                <h5>Why isn't it lighting?</h5>
+                <p>The LED has no current flowing through it. Check if it's connected backwards or if the circuit is incomplete.</p>
+              </div>
+            `;
+          } else if (current < 0) {
+            explanation = `
+              <div class="explain-section">
+                <h5>Problem Detected:</h5>
+                <p>Current is flowing backwards through this LED. LEDs only conduct in one direction - rotate it 180° to fix.</p>
               </div>
             `;
           } else {
-            explanation = `
-              <div class="explain-section">
-                <h5>Status:</h5>
-                <p>✓ The LED is conducting properly with ${(current * 1000).toFixed(1)}mA of current, which is within its safe operating range.</p>
-              </div>
-            `;
+            const maxCurrent = component.maxCurrent;
+            if (current > maxCurrent * 1.2) {
+              explanation = `
+                <div class="explain-section">
+                  <h5>⚠️ Warning:</h5>
+                  <p>This LED is drawing ${(current * 1000).toFixed(1)}mA, which is above its ${(maxCurrent * 1000).toFixed(1)}mA rating. Add a larger resistor to reduce current.</p>
+                </div>
+              `;
+            } else {
+              explanation = `
+                <div class="explain-section">
+                  <h5>Status:</h5>
+                  <p>✓ The LED is conducting properly with ${(current * 1000).toFixed(1)}mA of current, which is within its safe operating range.</p>
+                </div>
+              `;
+            }
           }
         }
         break;
 
       case ComponentType.POWER_SUPPLY:
-        explanation = `
-          <div class="explain-section">
-            <h5>Role in Circuit:</h5>
-            <p>This power supply provides ${(component as any).voltage}V to the circuit. It's currently delivering ${(Math.abs(current) * 1000).toFixed(1)}mA with ${(power * 1000).toFixed(1)}mW of total power.</p>
-          </div>
-        `;
+        if (component.type === ComponentType.POWER_SUPPLY) {
+          explanation = `
+            <div class="explain-section">
+              <h5>Role in Circuit:</h5>
+              <p>This power supply provides ${component.voltage}V to the circuit. It's currently delivering ${(Math.abs(current) * 1000).toFixed(1)}mA with ${(power * 1000).toFixed(1)}mW of total power.</p>
+            </div>
+          `;
+        }
         break;
     }
 
@@ -353,13 +523,13 @@ export class ExplainPanel {
   private getComponentName(component: AnyComponent): string {
     switch (component.type) {
       case ComponentType.RESISTOR:
-        return `Resistor (${(component as any).resistance >= 1000 ? (component as any).resistance / 1000 + 'kΩ' : (component as any).resistance + 'Ω'})`;
+        return `Resistor (${component.resistance >= 1000 ? component.resistance / 1000 + 'kΩ' : component.resistance + 'Ω'})`;
       case ComponentType.LED:
         return 'LED';
       case ComponentType.WIRE:
         return 'Wire';
       case ComponentType.POWER_SUPPLY:
-        return `Power Supply (${(component as any).voltage}V)`;
+        return `Power Supply (${component.voltage}V)`;
       case ComponentType.GROUND:
         return 'Ground';
       default:
