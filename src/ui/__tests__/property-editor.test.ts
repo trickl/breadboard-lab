@@ -97,7 +97,7 @@ describe('BreadboardApp - Property Editor', () => {
     expect(forwardVoltageInput?.value).toBe('2');
   });
 
-  it('should update resistor value when input changes', () => {
+  it('should update resistor value when input changes', async () => {
     // Place a resistor
     const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
     resistorButton?.click();
@@ -115,12 +115,15 @@ describe('BreadboardApp - Property Editor', () => {
     resistanceInput.value = '10000';
     resistanceInput.dispatchEvent(new Event('input', { bubbles: true }));
 
+    // Wait for debounce (300ms)
+    await new Promise(resolve => setTimeout(resolve, 350));
+
     // Check that component list shows updated value
     const componentItem = container.querySelector('.component-item');
     expect(componentItem?.textContent).toContain('10kΩ');
   });
 
-  it('should update power supply voltage when input changes', () => {
+  it('should update power supply voltage when input changes', async () => {
     // Place a power supply
     const powerButton = container.querySelector('[data-component="POWER_SUPPLY"]') as HTMLElement;
     powerButton?.click();
@@ -138,12 +141,15 @@ describe('BreadboardApp - Property Editor', () => {
     voltageInput.value = '12';
     voltageInput.dispatchEvent(new Event('input', { bubbles: true }));
 
+    // Wait for debounce (300ms)
+    await new Promise(resolve => setTimeout(resolve, 350));
+
     // Check that component list shows updated value
     const componentItem = container.querySelector('.component-item');
     expect(componentItem?.textContent).toContain('12V');
   });
 
-  it('should update LED forward voltage when input changes', () => {
+  it('should update LED forward voltage when input changes', async () => {
     // Place an LED
     const ledButton = container.querySelector('[data-component="LED"]') as HTMLElement;
     ledButton?.click();
@@ -161,12 +167,15 @@ describe('BreadboardApp - Property Editor', () => {
     forwardVoltageInput.value = '3.0';
     forwardVoltageInput.dispatchEvent(new Event('input', { bubbles: true }));
 
+    // Wait for debounce (300ms)
+    await new Promise(resolve => setTimeout(resolve, 350));
+
     // Check that component list shows updated value
     const componentItem = container.querySelector('.component-item');
     expect(componentItem?.textContent).toContain('3V');
   });
 
-  it('should apply preset values when preset button is clicked', () => {
+  it('should apply preset values when preset button is clicked', async () => {
     // Place a resistor
     const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
     resistorButton?.click();
@@ -185,6 +194,9 @@ describe('BreadboardApp - Property Editor', () => {
       btn => (btn as HTMLElement).dataset.preset === '10000'
     ) as HTMLElement;
     tenKOhmButton?.click();
+
+    // Wait for debounce (300ms)
+    await new Promise(resolve => setTimeout(resolve, 350));
 
     // Check that value was updated
     const resistanceInput = container.querySelector('#prop-resistance') as HTMLInputElement;

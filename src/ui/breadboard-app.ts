@@ -23,6 +23,7 @@ export class BreadboardApp {
   private cachedCircuit: Circuit | null = null;
   private cachedSimulation: SimulationResult | null = null;
   private handleKeyDownBound: (e: KeyboardEvent) => void;
+  private updateDebounceTimer: number | null = null;
 
   constructor(private container: HTMLElement) {
     this.state = { components: [], selectedComponentId: null };
@@ -235,6 +236,12 @@ export class BreadboardApp {
   destroy(): void {
     document.removeEventListener('keydown', this.handleKeyDownBound);
     this.currentAnimator.stop();
+    
+    // Clear any pending debounce timers
+    if (this.updateDebounceTimer !== null) {
+      clearTimeout(this.updateDebounceTimer);
+      this.updateDebounceTimer = null;
+    }
   }
 
   /**
@@ -506,7 +513,7 @@ export class BreadboardApp {
               <button class="preset-button" data-preset="10000">10kΩ</button>
               <button class="preset-button" data-preset="100000">100kΩ</button>
             </div>
-            <div class="error-message" id="prop-error" style="display: none;"></div>
+            <div class="error-message property-error" style="display: none;"></div>
           </div>
         `;
         break;
@@ -522,7 +529,7 @@ export class BreadboardApp {
               <button class="preset-button" data-preset="2.2">2.2V (Yellow)</button>
               <button class="preset-button" data-preset="3.0">3.0V (Blue)</button>
             </div>
-            <div class="error-message" id="prop-error" style="display: none;"></div>
+            <div class="error-message property-error" style="display: none;"></div>
           </div>
         `;
         break;
@@ -538,7 +545,7 @@ export class BreadboardApp {
               <button class="preset-button" data-preset="9">9V</button>
               <button class="preset-button" data-preset="12">12V</button>
             </div>
-            <div class="error-message" id="prop-error" style="display: none;"></div>
+            <div class="error-message property-error" style="display: none;"></div>
           </div>
         `;
         break;
@@ -552,10 +559,6 @@ export class BreadboardApp {
     return `
       <div class="property-editor">
         <h3>Component Properties</h3>
-        <div class="info-section">
-          <h3>Type</h3>
-          <div class="info-value">${component.type}</div>
-        </div>
         ${fields}
       </div>
     `;
@@ -592,12 +595,14 @@ export class BreadboardApp {
     });
 
     // Handle preset buttons
-    const presetButtons = document.querySelectorAll('.preset-button');
+    const presetButtons = document.querySelectorAll('.property-editor .preset-button');
     presetButtons.forEach(button => {
       button.addEventListener('click', (e) => {
         const target = e.target as HTMLButtonElement;
         const presetValue = parseFloat(target.dataset.preset || '0');
-        const input = document.querySelector('.property-field input[type="number"]') as HTMLInputElement;
+        // Find the input field within the same property editor
+        const propertyEditor = document.querySelector('.property-editor');
+        const input = propertyEditor?.querySelector('.property-field input[type="number"]') as HTMLInputElement;
         
         if (input) {
           input.value = presetValue.toString();
@@ -626,7 +631,7 @@ export class BreadboardApp {
 
       case ComponentType.LED:
         if (fieldId === 'prop-forwardVoltage') {
-          return value > 0 && value <= 5;
+          return value >= 0.1 && value <= 5;
         }
         break;
 
@@ -675,7 +680,7 @@ export class BreadboardApp {
    * Show property validation error
    */
   private showPropertyError(message: string): void {
-    const errorElement = document.getElementById('prop-error');
+    const errorElement = document.querySelector('.property-editor .property-error') as HTMLElement;
     if (errorElement) {
       errorElement.textContent = message;
       errorElement.style.display = 'block';
@@ -686,7 +691,7 @@ export class BreadboardApp {
    * Hide property validation error
    */
   private hidePropertyError(): void {
-    const errorElement = document.getElementById('prop-error');
+    const errorElement = document.querySelector('.property-editor .property-error') as HTMLElement;
     if (errorElement) {
       errorElement.style.display = 'none';
     }
@@ -722,8 +727,15 @@ export class BreadboardApp {
         break;
     }
 
-    // Re-render to update visualization (with debouncing in real production code)
-    this.render();
+    // Debounce re-render to avoid performance issues with rapid input changes
+    if (this.updateDebounceTimer !== null) {
+      clearTimeout(this.updateDebounceTimer);
+    }
+    
+    this.updateDebounceTimer = window.setTimeout(() => {
+      this.render();
+      this.updateDebounceTimer = null;
+    }, 300);
   }
 
   /**
