@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-03  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After implementing save/load functionality with canonical example library (PR #119)
+**Last Updated**: After implementing visual regression testing with Playwright screenshot comparison (PR #125)
 
 ---
 
@@ -1018,10 +1018,11 @@ src/
 
 - **Language**: TypeScript 5.3
 - **Build tool**: Vite 7.3
-- **Test framework**: Vitest 4.0
+- **Test framework**: Vitest 4.0 (unit/integration tests)
+- **Visual testing**: Playwright 1.57 (visual regression tests)
 - **Linter**: ESLint 8.55
 - **Formatter**: Prettier 3.1
-- **Test environment**: jsdom 27.4
+- **Test environment**: jsdom 27.4 (for unit tests), Chromium (for visual tests)
 
 ### Available Commands
 
@@ -1031,6 +1032,9 @@ npm run build     # TypeScript compilation + Vite production build
 npm run preview   # Preview production build
 npm test          # Run unit tests
 npm run test:ui   # Run tests with Vitest UI
+npm run test:visual          # Run visual regression tests with Playwright
+npm run test:visual:ui       # Run visual tests with Playwright UI (interactive)
+npm run test:visual:update   # Update visual test baseline screenshots
 npm run lint      # Run ESLint
 npm run format    # Run Prettier
 ```
@@ -1049,7 +1053,30 @@ npm run format    # Run Prettier
 
 - **TypeScript**: Strict mode enabled, ES2020 target
 - **Vite**: Path alias `@` → `./src`
-- **Vitest**: Global test APIs, jsdom environment
+- **Vitest**: Global test APIs, jsdom environment, excludes `tests/visual/**` (Playwright tests)
+- **Playwright**: Chromium browser, dev server integration, screenshot comparison with 100px max diff / 0.2 threshold
+
+### Continuous Integration
+
+GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and pull request with two jobs:
+
+**Job 1: Unit and Integration Tests** (`test`)
+- Node.js 20 on Ubuntu
+- Runs linter (`npm run lint`)
+- Runs unit tests (`npm test -- --run`)
+- Duration: ~1-2 minutes
+
+**Job 2: Visual Regression Tests** (`visual-tests`)
+- Node.js 20 on Ubuntu
+- Installs Playwright Chromium browser with dependencies
+- Runs visual regression tests (`npm run test:visual`)
+- Uploads artifacts on failure:
+  - Playwright HTML report (`playwright-report/`)
+  - Visual diff images (`test-results/`)
+  - Retention: 30 days
+- Duration: ~2-3 minutes (includes browser install and dev server startup)
+
+Both jobs must pass for PR approval. Visual regression failures block merge.
 
 ---
 
@@ -1057,7 +1084,7 @@ npm run format    # Run Prettier
 
 ### Test Coverage
 
-Nine test suites with 109 passing tests:
+Ten test suites with 116 passing tests (109 unit/integration + 7 visual regression):
 
 1. **breadboard-layout.test.ts** (9 tests)
    - Position validity checking
@@ -1143,12 +1170,22 @@ Nine test suites with 109 passing tests:
    - Component type filtering (wire and ground have no property editor)
    - Preset button counts for different component types
 
+10. **examples.spec.ts** (7 visual regression tests) — **New in PR #125**
+    - Screenshot comparison for all 4 example circuits (LED+resistor, voltage divider, parallel LEDs, short circuit demo)
+    - Visual verification that voltage overlays render with colors
+    - Visual verification that current animation elements are present
+    - Visual verification that error overlays render when present
+    - Automated visual regression detection using Playwright screenshot comparison
+    - 100px max diff tolerance, 0.2 color threshold for consistency
+    - Baseline screenshots: ~68KB total (4 PNG files in `tests/visual/examples.spec.ts-snapshots/`)
+
 ### Testing Approach
 
-- Unit tests for core logic
+- Unit tests for core logic (Vitest with jsdom environment)
 - UI interaction tests for component selection, deletion, and drag-and-drop repositioning
-- No end-to-end tests
-- Tests use Vitest with jsdom environment
+- Visual regression tests using Playwright screenshot comparison
+- Tests use Vitest for unit/integration testing and Playwright for visual regression
+- Visual tests run in headless Chromium browser for consistency
 
 ### Coverage Gaps
 
@@ -1162,13 +1199,82 @@ Nine test suites with 109 passing tests:
 - No unit tests for error detection heuristics (detection logic validated through integration only)
 - No unit tests for error overlay rendering
 - No unit tests for explain panel content generation
-- No UI/end-to-end tests
 
 ### Test Execution
 
-- All 109 tests pass
-- Test duration: Fast execution (typically < 300ms, including async debounce waits)
+- All 116 tests pass (109 unit/integration + 7 visual regression)
+- Unit test duration: Fast execution (typically < 300ms, including async debounce waits)
+- Visual test duration: ~18 seconds for all 7 tests
 - No flaky tests observed
+
+### Visual Regression Testing
+
+The system includes automated visual regression testing to protect critical visual features from accidental breakage.
+
+**Testing infrastructure**:
+- **Framework**: Playwright test framework with screenshot comparison
+- **Browser**: Chromium only (for cross-platform consistency)
+- **Coverage**: All 4 canonical example circuits
+- **Baseline storage**: ~68KB of baseline screenshots committed to git
+
+**Test capabilities**:
+- Automated screenshot capture of breadboard view with all overlays
+- Pixel-perfect comparison against baseline images
+- Detection of visual regressions in:
+  - Component rendering (resistors, LEDs, power supplies, wires, ground symbols)
+  - Breadboard grid layout and hole positioning
+  - Voltage color overlays (when simulation succeeds)
+  - Current animation SVG elements
+  - Error indicators (when present)
+- Configurable tolerance: 100px max diff, 0.2 (20%) color threshold
+
+**CI integration**:
+- Separate `visual-tests` job in GitHub Actions workflow
+- Runs on every pull request and push to main
+- Automatic failure on visual regressions
+- Failed test artifacts automatically uploaded:
+  - Diff images showing pixel differences
+  - HTML report with visual comparison
+  - Retention: 30 days
+
+**Test implementation**:
+- Helper functions for programmatic example loading (`loadExample()`)
+- Render stabilization waits (1.5s after component overlay appears)
+- Breadboard container viewport capture (not full page)
+- Tests verify visual element presence before screenshot:
+  - Component overlay SVG exists
+  - Voltage overlays with colors (on successful simulation)
+  - Current animation elements
+  - Error overlay elements (when applicable)
+
+**Baseline management**:
+- Baselines stored in `tests/visual/examples.spec.ts-snapshots/`
+- Update command: `npm run test:visual:update`
+- Manual review required before updating baselines
+- Baselines committed with code changes
+
+**Example tests**:
+1. LED and Resistor circuit visual rendering
+2. Voltage Divider circuit visual rendering
+3. Parallel LEDs circuit visual rendering
+4. Short Circuit Demo visual rendering
+5. Voltage overlay color verification
+6. Current animation element verification
+7. Error overlay rendering verification
+
+**Configuration** (`playwright.config.ts`):
+- Test directory: `./tests/visual`
+- Base URL: `http://localhost:5173`
+- Dev server integration (auto-start before tests)
+- Retry: 2 times on CI, 0 times locally
+- Reporter: HTML report
+- Screenshot on failure only
+- Workers: 1 on CI (sequential), parallel locally
+
+**npm scripts**:
+- `npm run test:visual`: Run visual regression tests
+- `npm run test:visual:ui`: Run with interactive Playwright UI
+- `npm run test:visual:update`: Update baseline screenshots
 
 ---
 
@@ -1243,8 +1349,9 @@ Nine test suites with 109 passing tests:
 Core development tools:
 - `typescript` (5.3.0): Type checking and compilation
 - `vite` (7.3.0): Build tool and dev server
-- `vitest` (4.0.16): Test framework
+- `vitest` (4.0.16): Unit test framework
 - `@vitest/ui` (4.0.16): Test UI
+- `@playwright/test` (1.57.0): Visual regression testing framework
 - `eslint` (8.55.0): Linting
 - `@typescript-eslint/*` (6.13.0): TypeScript ESLint rules
 - `prettier` (3.1.0): Code formatting
@@ -1294,16 +1401,22 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/ui/__tests__/current-animator.test.ts` | 11 | Current animation tests (particle system, magnitude scaling) |
 | `src/ui/__tests__/breadboard-app.test.ts` | 25 | Component selection, deletion, rotation, and drag-and-drop interaction tests (PR #89, PR #101, PR #107) |
 | `src/ui/__tests__/property-editor.test.ts` | 12 | Property editor tests (visibility, editing, presets, validation) (PR #95) |
+| `tests/visual/examples.spec.ts` | 7 | Visual regression tests using Playwright screenshot comparison (PR #125) |
+| `tests/visual/helpers.ts` | - | Helper functions for visual tests (example loading, render stabilization) |
+| `tests/visual/examples.spec.ts-snapshots/` | - | Baseline screenshots for visual regression (4 PNG files, ~68KB total) |
+| `tests/visual/README.md` | - | Visual regression testing documentation |
 
 ### Configuration Files
 
 - `package.json`: Dependencies and scripts
 - `tsconfig.json`: TypeScript compiler configuration
 - `tsconfig.node.json`: TypeScript config for build tools
-- `vite.config.ts`: Vite build configuration
+- `vite.config.ts`: Vite build configuration (includes Vitest config with visual test exclusion)
+- `playwright.config.ts`: Playwright visual testing configuration
 - `.eslintrc.json`: ESLint rules
 - `.prettierrc.json`: Prettier formatting rules
 - `index.html`: HTML entry point
+- `.github/workflows/ci.yml`: CI workflow with unit and visual test jobs
 
 ### Documentation Files
 
@@ -1336,10 +1449,10 @@ For clarity, these capabilities are explicitly **not present**:
 
 ## Verification
 
-This document describes the system as observed on 2026-01-03 after merging PR #119:
+This document describes the system as observed on 2026-01-03 after merging PR #125:
 
 - ✅ All source files examined
-- ✅ Tests executed successfully (109/109 passing)
+- ✅ Tests executed successfully (116/116 passing: 109 unit/integration + 7 visual regression)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
@@ -1361,5 +1474,9 @@ This document describes the system as observed on 2026-01-03 after merging PR #1
 - ✅ Circuit storage (localStorage and file operations) verified from PR #119 changes
 - ✅ Example circuit library verified from PR #119 changes
 - ✅ Save/Load/Examples UI modals verified from PR #119 changes
+- ✅ Visual regression testing infrastructure verified from PR #125 changes
+- ✅ Playwright integration and configuration verified from PR #125 changes
+- ✅ CI visual test job verified from PR #125 changes
+- ✅ Visual test helpers and baseline screenshots verified from PR #125 changes
 
 This is a snapshot of reality, not aspirations or plans.
