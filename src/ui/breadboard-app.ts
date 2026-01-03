@@ -22,13 +22,15 @@ export class BreadboardApp {
   private tooltipElement: HTMLElement | null = null;
   private cachedCircuit: Circuit | null = null;
   private cachedSimulation: SimulationResult | null = null;
+  private handleKeyDownBound: (e: KeyboardEvent) => void;
 
   constructor(private container: HTMLElement) {
-    this.state = { components: [] };
+    this.state = { components: [], selectedComponentId: null };
     this.extractor = new CircuitExtractor();
     this.simulator = new CircuitSimulator();
     this.componentRenderer = new ComponentRenderer();
     this.currentAnimator = new CurrentAnimator();
+    this.handleKeyDownBound = this.handleKeyDown.bind(this);
     this.render();
   }
 
@@ -133,8 +135,11 @@ export class BreadboardApp {
       existingOverlay.remove();
     }
 
-    // Create and add new component overlay
-    const svg = this.componentRenderer.renderComponents(this.state.components);
+    // Create and add new component overlay with selection state
+    const svg = this.componentRenderer.renderComponents(
+      this.state.components,
+      this.state.selectedComponentId
+    );
     
     // Calculate SVG dimensions based on breadboard size
     const width = BreadboardLayout.COLS_PER_SIDE * 2 * 26; // 26px per hole (20px + 6px margin)
@@ -144,6 +149,9 @@ export class BreadboardApp {
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
     breadboard.appendChild(svg);
+
+    // Attach component click handlers
+    this.attachComponentEventHandlers(svg);
 
     // Start current animation if simulation succeeded
     if (this.cachedSimulation && this.cachedSimulation.success) {
@@ -200,10 +208,104 @@ export class BreadboardApp {
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
         this.state.components = [];
+        this.state.selectedComponentId = null;
         this.placementStart = null;
         this.render();
       });
     }
+
+    // Breadboard background click to deselect
+    const breadboard = document.getElementById('breadboard');
+    if (breadboard) {
+      breadboard.addEventListener('click', (e) => {
+        // Only deselect if clicking on breadboard itself, not holes or components
+        if (e.target === breadboard) {
+          this.deselectComponent();
+        }
+      });
+    }
+
+    // Delete key handler
+    document.addEventListener('keydown', this.handleKeyDownBound);
+  }
+
+  /**
+   * Remove event listeners (cleanup)
+   */
+  destroy(): void {
+    document.removeEventListener('keydown', this.handleKeyDownBound);
+    this.currentAnimator.stop();
+  }
+
+  /**
+   * Attach event handlers to component SVG elements
+   */
+  private attachComponentEventHandlers(svg: SVGElement): void {
+    const components = svg.querySelectorAll('.component');
+    components.forEach((componentEl) => {
+      componentEl.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent hole click from firing
+        const componentId = (componentEl as HTMLElement).dataset.componentId;
+        if (componentId) {
+          this.selectComponentById(componentId);
+        }
+      });
+    });
+
+    // Click on SVG background to deselect
+    svg.addEventListener('click', (e) => {
+      if (e.target === svg) {
+        this.deselectComponent();
+      }
+    });
+  }
+
+  /**
+   * Handle keyboard events (Delete key)
+   */
+  private handleKeyDown = (e: KeyboardEvent): void => {
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      // Prevent browser back navigation on Backspace
+      e.preventDefault();
+      
+      if (this.state.selectedComponentId) {
+        this.deleteSelectedComponent();
+      }
+    }
+  };
+
+  /**
+   * Select a component by ID
+   */
+  private selectComponentById(componentId: string): void {
+    this.state.selectedComponentId = componentId;
+    this.render();
+  }
+
+  /**
+   * Deselect the currently selected component
+   */
+  private deselectComponent(): void {
+    this.state.selectedComponentId = null;
+    this.render();
+  }
+
+  /**
+   * Delete the currently selected component
+   */
+  private deleteSelectedComponent(): void {
+    if (!this.state.selectedComponentId) return;
+
+    // Remove component from state
+    this.state.components = this.state.components.filter(
+      (c) => c.id !== this.state.selectedComponentId
+    );
+
+    // Clear selection
+    this.state.selectedComponentId = null;
+
+    // Re-render to update circuit
+    this.render();
   }
 
   /**

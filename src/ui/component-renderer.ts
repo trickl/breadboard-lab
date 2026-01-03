@@ -53,7 +53,7 @@ export class ComponentRenderer {
   /**
    * Render all components to an SVG element
    */
-  renderComponents(components: AnyComponent[]): SVGElement {
+  renderComponents(components: AnyComponent[], selectedComponentId: string | null = null): SVGElement {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('class', 'component-overlay');
 
@@ -64,7 +64,7 @@ export class ComponentRenderer {
     components
       .filter((c) => c.type === ComponentType.WIRE)
       .forEach((component) => {
-        const group = this.renderComponent(component);
+        const group = this.renderComponent(component, selectedComponentId);
         svg.appendChild(group);
       });
 
@@ -72,7 +72,7 @@ export class ComponentRenderer {
     components
       .filter((c) => c.type !== ComponentType.WIRE)
       .forEach((component) => {
-        const group = this.renderComponent(component);
+        const group = this.renderComponent(component, selectedComponentId);
         svg.appendChild(group);
       });
 
@@ -82,10 +82,19 @@ export class ComponentRenderer {
   /**
    * Render a single component
    */
-  private renderComponent(component: AnyComponent): SVGGElement {
+  private renderComponent(component: AnyComponent, selectedComponentId: string | null = null): SVGGElement {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     group.setAttribute('class', `component component-${component.type.toLowerCase()}`);
     group.setAttribute('data-component-id', component.id);
+    
+    // Enable pointer events for component interaction
+    group.style.pointerEvents = 'auto';
+    group.style.cursor = 'pointer';
+    
+    // Add selected class if this component is selected
+    if (component.id === selectedComponentId) {
+      group.classList.add('component-selected');
+    }
 
     switch (component.type) {
       case ComponentType.WIRE:

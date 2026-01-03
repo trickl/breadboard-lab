@@ -9,6 +9,7 @@ describe('CircuitExtractor', () => {
   it('should extract empty circuit from empty breadboard', () => {
     const state: BreadboardState = {
       components: [],
+      selectedComponentId: null,
     };
 
     const circuit = extractor.extract(state);
@@ -30,6 +31,7 @@ describe('CircuitExtractor', () => {
           resistance: 0.01,
         },
       ],
+      selectedComponentId: null,
     };
 
     const circuit = extractor.extract(state);
@@ -51,6 +53,7 @@ describe('CircuitExtractor', () => {
           resistance: 0.01,
         },
       ],
+      selectedComponentId: null,
     };
 
     const circuit = extractor.extract(state);
@@ -83,6 +86,7 @@ describe('CircuitExtractor', () => {
           maxCurrent: 0.02,
         },
       ],
+      selectedComponentId: null,
     };
 
     const circuit = extractor.extract(state);
