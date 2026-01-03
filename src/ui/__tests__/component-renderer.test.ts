@@ -56,9 +56,11 @@ describe('ComponentRenderer', () => {
       expect(resistorGroup).not.toBeNull();
       expect(resistorGroup?.getAttribute('data-component-id')).toBe('resistor-1');
       
-      // Check for resistance label
-      const text = resistorGroup?.querySelector('text');
-      expect(text?.textContent).toBe('1kΩ');
+      // Check for color bands instead of text label
+      // 1kΩ 5% should have 4 bands: brown-black-red-gold
+      const bands = resistorGroup?.querySelectorAll('rect[fill]');
+      // Should have body rect + 4 color band rects = 5 rects total
+      expect(bands?.length).toBeGreaterThanOrEqual(5);
     });
 
     it('should render an LED component', () => {

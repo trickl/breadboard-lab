@@ -1,5 +1,6 @@
 import type { AnyComponent, Position } from '@/core/types';
 import { ComponentType } from '@/core/types';
+import { resistanceToColorBands, COLOR_TO_RGB } from '@/core/resistor-color-code';
 
 /**
  * Drag state for rendering ghost preview
@@ -307,24 +308,72 @@ export class ComponentRenderer {
     this.drawLead(group, start, centerX, centerY, angle, start, end);
     this.drawLead(group, end, centerX, centerY, angle, start, end);
 
-    // Add label
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    text.setAttribute('x', centerX.toString());
-    text.setAttribute('y', centerY.toString());
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('dominant-baseline', 'middle');
-    text.setAttribute('fill', '#000');
-    text.setAttribute('font-size', '10');
-    text.setAttribute('font-weight', 'bold');
-    
-    // Format resistance value appropriately
-    if (component.resistance >= 1000) {
-      text.textContent = `${component.resistance / 1000}kΩ`;
-    } else {
-      text.textContent = `${component.resistance}Ω`;
+    // Draw color bands instead of text label
+    try {
+      // Default to 5% tolerance (4-band resistor)
+      const tolerance = 5;
+      const bands = resistanceToColorBands(component.resistance, tolerance);
+      
+      // Draw color bands
+      this.drawColorBands(group, bands, centerX, centerY, bodyWidth, bodyHeight, angle);
+    } catch (error) {
+      // Fallback to text label if color band calculation fails
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', centerX.toString());
+      text.setAttribute('y', centerY.toString());
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('dominant-baseline', 'middle');
+      text.setAttribute('fill', '#000');
+      text.setAttribute('font-size', '10');
+      text.setAttribute('font-weight', 'bold');
+      
+      // Format resistance value appropriately
+      if (component.resistance >= 1000) {
+        text.textContent = `${component.resistance / 1000}kΩ`;
+      } else {
+        text.textContent = `${component.resistance}Ω`;
+      }
+      
+      group.appendChild(text);
     }
-    
-    group.appendChild(text);
+  }
+
+  /**
+   * Draw color bands on a resistor body
+   */
+  private drawColorBands(
+    group: SVGGElement,
+    bands: ReturnType<typeof resistanceToColorBands>,
+    centerX: number,
+    centerY: number,
+    bodyWidth: number,
+    bodyHeight: number,
+    angle: number
+  ): void {
+    const bandCount = bands.length;
+    const bandWidth = 4;
+    const spacing = bodyWidth / (bandCount + 1);
+
+    bands.forEach((band, index) => {
+      const bandX = centerX - bodyWidth / 2 + spacing * (index + 1);
+      
+      const bandRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bandRect.setAttribute('x', (bandX - bandWidth / 2).toString());
+      bandRect.setAttribute('y', (centerY - bodyHeight / 2).toString());
+      bandRect.setAttribute('width', bandWidth.toString());
+      bandRect.setAttribute('height', bodyHeight.toString());
+      bandRect.setAttribute('fill', COLOR_TO_RGB[band.color]);
+      
+      // Add stroke to make bands more visible
+      if (band.color === 'WHITE' || band.color === 'YELLOW') {
+        bandRect.setAttribute('stroke', '#888');
+        bandRect.setAttribute('stroke-width', '0.5');
+      }
+
+      // Apply rotation
+      bandRect.setAttribute('transform', `rotate(${angle} ${centerX} ${centerY})`);
+      group.appendChild(bandRect);
+    });
   }
 
   /**
