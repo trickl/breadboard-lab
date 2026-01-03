@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-03  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After implementing breadboard power rails with vertical connectivity (PR #131)
+**Last Updated**: After implementing resistor color band rendering and interactive lookup tool (PR #137)
 
 ---
 
@@ -589,7 +589,7 @@ Interactive side panel that provides contextual explanations about circuit behav
    - Current flow magnitude and direction (→ or ←)
    - Power dissipation (in mW)
    - Component-specific explanations:
-     - **Resistor**: Ohm's Law explanation with actual values
+     - **Resistor**: Resistance value, IEC 60062 color code breakdown (4-band or 5-band), visual display of each band with color name, meaning (1st digit, 2nd digit, multiplier, tolerance), and value. Human-readable calculation (e.g., "10 × 100 = 1.0kΩ ±5%"). Ohm's Law explanation with actual values.
      - **LED**: Operating status, polarity check, overcurrent warning
      - **Power Supply**: Output voltage and power delivery
    - Role in circuit explanation with educational context
@@ -882,7 +882,7 @@ The system displays all placed components with distinctive visual representation
 
 **Visual representations**:
 - **Power supply**: Blue battery rectangle with +/- symbols and voltage label (e.g., "5V")
-- **Resistor**: Tan rectangle with resistance value label and connection leads (displays "100Ω" for values < 1kΩ, "1kΩ" for values ≥ 1kΩ)
+- **Resistor**: Tan rectangle with IEC 60062 compliant color bands representing resistance and tolerance (4 bands for 5% tolerance, 5 bands for 1-2% tolerance). Includes connection leads. Fallback to text label if color band calculation fails.
 - **LED**: Red circle with "+" polarity indicator and cathode marker (flat side)
 - **Ground**: Standard ground symbol (three horizontal lines of decreasing width)
 - **Wire**: Colored path with Manhattan routing (orthogonal lines) and connection dots at endpoints
@@ -913,6 +913,8 @@ The system displays all placed components with distinctive visual representation
 - `ComponentRenderer` class handles all visual rendering logic
 - `renderComponents()`: Creates SVG element with all component visuals, accepts optional `selectedComponentId` parameter
 - Individual render methods for each component type (wire, resistor, LED, power supply, ground)
+- Resistor rendering: `renderResistorAtPositions()` generates color bands using `resistanceToColorBands()` from color code module
+- Resistor color bands: Procedurally drawn with correct IEC 60062 colors, positioned along body, with stroke added to light colors for visibility
 - Position-to-pixel coordinate conversion
 - Smart resistance value formatting
 - Selection rendering: adds `.component-selected` CSS class to selected component
@@ -939,6 +941,76 @@ The system displays all placed components with distinctive visual representation
 - Visual representations are simplified geometric shapes, not photorealistic
 - Wire routing is orthogonal (Manhattan style), not customizable by user
 - Single component selection only (no multi-select)
+
+---
+
+## Resistor Color Code System
+
+### IEC 60062 Compliant Implementation
+
+The system implements standard resistor color code calculations per IEC 60062, enabling physically accurate resistor rendering and educational color code learning.
+
+**Core algorithm** (`src/core/resistor-color-code.ts`):
+- `resistanceToColorBands(resistance, tolerance)`: Converts resistance value (Ω) and tolerance (%) to array of color bands
+- `colorBandsToResistance(bands)`: Decodes color bands back to resistance and tolerance values
+- Supports 4-band resistors (5% and 10% tolerance)
+- Supports 5-band resistors (1% and 2% tolerance)
+- Handles resistance range from 1Ω to 1GΩ
+- 50+ unit tests covering E12/E24 series, edge cases, and round-trip verification
+
+**Color encoding:**
+- **Digit colors**: Black (0), Brown (1), Red (2), Orange (3), Yellow (4), Green (5), Blue (6), Violet (7), Gray (8), White (9)
+- **Multiplier colors**: All digit colors plus Gold (×0.1), Silver (×0.01)
+- **Tolerance colors**: Brown (1%), Red (2%), Gold (5%), Silver (10%), plus precision values for 5-band resistors
+- RGB color values defined for visual rendering (`COLOR_TO_RGB` map)
+
+**Band structure:**
+- 4-band: digit1, digit2, multiplier, tolerance
+- 5-band: digit1, digit2, digit3, multiplier, tolerance
+- Band count determined by tolerance value (≤2% uses 5-band, >2% uses 4-band)
+
+**Examples:**
+- 1kΩ 5% → Brown (1), Black (0), Red (×100), Gold (±5%)
+- 10kΩ 5% → Brown (1), Black (0), Orange (×1000), Gold (±5%)
+- 220Ω 5% → Red (2), Red (2), Brown (×10), Gold (±5%)
+
+### Visual Rendering Integration
+
+Resistor color bands render automatically on all placed resistors:
+
+- Color bands drawn as SVG rectangles positioned along resistor body
+- 4 bands spaced evenly across 60px body width
+- Band width: 4px per band
+- Light colors (white, yellow, gold, silver) have stroke added for visibility
+- Bands rotate with component when rotated
+- Fallback to text label if color calculation fails (invalid resistance value)
+
+### Interactive Color Code Learning
+
+Click any resistor to open the Explain Panel with color code breakdown:
+
+**Display features:**
+- Each band shown with background color and readable text
+- Band information includes:
+  - Color name (e.g., "Brown", "Black", "Red")
+  - Meaning label ("1st Digit", "2nd Digit", "Multiplier", "Tolerance")
+  - Value (digit value, multiplier notation like "×100", tolerance like "±5%")
+- Human-readable calculation: "10 × 100 = 1.0kΩ ±5%"
+- Text color adapts for readability (dark text on light colors, light text on dark colors)
+- Band count and tolerance displayed in section header
+
+**Educational value:**
+- Students learn to read physical resistor color codes
+- Interactive feedback reinforces color-to-value associations
+- Real-time updates when resistance value changes
+- Matches physical reality of actual electronic components
+
+### Constraints
+
+- Tolerance is fixed at 5% for all resistors (not user-configurable)
+- Color code calculation only handles standard resistor values representable in 2 or 3 significant digits
+- No support for 6-band resistors (temperature coefficient)
+- No support for non-standard color codes or manufacturer-specific variants
 
 ---
 
@@ -982,11 +1054,20 @@ src/
 │   ├── breadboard-layout.ts       # Breadboard connectivity model
 │   ├── circuit-extractor.ts       # Circuit graph extraction
 │   ├── circuit-simulator.ts       # Circuit simulation
+│   ├── circuit-serializer.ts      # Circuit save/load JSON serialization
+│   ├── circuit-storage.ts         # LocalStorage persistence
+│   ├── resistor-color-code.ts     # IEC 60062 color band calculations
 │   └── __tests__/                 # Unit tests
 │       ├── breadboard-layout.test.ts
-│       └── circuit-extractor.test.ts
+│       ├── circuit-extractor.test.ts
+│       ├── circuit-serializer.test.ts
+│       ├── circuit-simulator.test.ts
+│       └── resistor-color-code.test.ts
 ├── ui/                            # Presentation layer
-│   └── breadboard-app.ts          # Main UI application class
+│   ├── breadboard-app.ts          # Main UI application class
+│   ├── component-renderer.ts      # SVG component rendering
+│   ├── error-overlay-renderer.ts  # Error icon rendering
+│   └── explain-panel.ts           # Interactive explanation panel
 ├── main.ts                        # Application entry point
 └── style.css                      # Styles
 ```
