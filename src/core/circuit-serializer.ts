@@ -7,6 +7,15 @@ import type { BreadboardState, AnyComponent, Position } from './types';
 import { ComponentType } from './types';
 
 /**
+ * Default component values
+ */
+const DEFAULT_RESISTANCE = 1000; // 1kΩ
+const DEFAULT_LED_FORWARD_VOLTAGE = 2.0; // 2V
+const DEFAULT_LED_MAX_CURRENT = 0.02; // 20mA
+const DEFAULT_WIRE_RESISTANCE = 0.01; // Very low
+const DEFAULT_POWER_SUPPLY_VOLTAGE = 5.0; // 5V
+
+/**
  * Circuit metadata for saved circuits
  */
 export interface CircuitMetadata {
@@ -182,7 +191,7 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         type: ComponentType.RESISTOR,
         positions,
         rotation,
-        resistance: metadata.resistance || 1000,
+        resistance: metadata.resistance || DEFAULT_RESISTANCE,
       };
 
     case ComponentType.LED:
@@ -191,8 +200,8 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         type: ComponentType.LED,
         positions,
         rotation,
-        forwardVoltage: metadata.forwardVoltage || 2.0,
-        maxCurrent: metadata.maxCurrent || 0.02,
+        forwardVoltage: metadata.forwardVoltage || DEFAULT_LED_FORWARD_VOLTAGE,
+        maxCurrent: metadata.maxCurrent || DEFAULT_LED_MAX_CURRENT,
       };
 
     case ComponentType.WIRE:
@@ -201,7 +210,7 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         type: ComponentType.WIRE,
         positions,
         rotation,
-        resistance: metadata.resistance || 0.01,
+        resistance: metadata.resistance || DEFAULT_WIRE_RESISTANCE,
       };
 
     case ComponentType.POWER_SUPPLY:
@@ -210,7 +219,7 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         type: ComponentType.POWER_SUPPLY,
         positions,
         rotation,
-        voltage: metadata.voltage || 5.0,
+        voltage: metadata.voltage || DEFAULT_POWER_SUPPLY_VOLTAGE,
       };
 
     case ComponentType.GROUND:

@@ -1635,9 +1635,10 @@ export class BreadboardApp {
       // Update component ID counter to avoid conflicts
       let maxId = 0;
       for (const component of this.state.components) {
-        const idMatch = component.id.match(/(\d+)$/);
+        // Extract numeric ID from any component ID format (component-N, comp_N, etc.)
+        const idMatch = component.id.match(/\d+$/);
         if (idMatch) {
-          const id = parseInt(idMatch[1]);
+          const id = parseInt(idMatch[0]);
           if (id > maxId) {
             maxId = id;
           }

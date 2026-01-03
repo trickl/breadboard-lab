@@ -238,10 +238,13 @@ function rebuildCircuitIndex(): Record<string, SavedCircuitInfo> {
  */
 function sanitizeStorageKey(name: string): string {
   // Remove special characters and normalize whitespace
-  return name
+  const sanitized = name
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .trim();
+
+  // Ensure we have a valid key - use fallback if empty
+  return sanitized || 'untitled-circuit';
 }
