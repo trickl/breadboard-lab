@@ -180,3 +180,54 @@ export interface SimulationResult {
   edgeCurrents: Map<string, number>; // Edge ID -> Current
   errors: CircuitError[]; // Detected circuit errors
 }
+
+/**
+ * Component library category types
+ */
+export type ComponentCategory =
+  | 'passive'
+  | 'diode'
+  | 'transistor'
+  | 'ic'
+  | 'power'
+  | 'interconnect'
+  | 'electro-acoustic'
+  | 'virtual-educational';
+
+/**
+ * Package types for components
+ */
+export type PackageKind = 'axial' | 't1' | 't1-3-4' | 'dip' | 'sip' | 'header' | 'module';
+
+/**
+ * Component library entry representing a real-world part
+ * Based on specification in planning/vision/goal.md Section 4
+ */
+export interface ComponentLibraryEntry {
+  id: string;
+  name: string;
+  category: ComponentCategory;
+  manufacturer?: string;
+  partFamily?: string;
+  manufacturerPartNumber?: string;
+  package: {
+    kind: PackageKind;
+    pinCount: number;
+    leadSpacingMm?: number;
+    body: {
+      lengthMm?: number;
+      widthMm?: number;
+      heightMm?: number;
+      diameterMm?: number;
+    };
+  };
+  footprint: {
+    pins: Array<{ pinId: string; role?: string }>;
+  };
+  electrical: Record<string, number | string>;
+  visuals: {
+    renderer: 'procedural' | 'svg';
+  };
+  description?: string;
+  typicalUses?: string[];
+}
