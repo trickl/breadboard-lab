@@ -1,6 +1,6 @@
 import type { AnyComponent, Position } from '@/core/types';
 import { ComponentType } from '@/core/types';
-import { resistanceToColorBands, COLOR_TO_RGB } from '@/core/resistor-color-code';
+import { resistanceToColorBands, COLOR_TO_RGB, ResistorColor } from '@/core/resistor-color-code';
 
 /**
  * Drag state for rendering ghost preview
@@ -365,7 +365,7 @@ export class ComponentRenderer {
       bandRect.setAttribute('fill', COLOR_TO_RGB[band.color]);
       
       // Add stroke to make bands more visible
-      if (band.color === 'WHITE' || band.color === 'YELLOW') {
+      if (band.color === ResistorColor.WHITE || band.color === ResistorColor.YELLOW) {
         bandRect.setAttribute('stroke', '#888');
         bandRect.setAttribute('stroke-width', '0.5');
       }
