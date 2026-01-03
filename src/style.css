@@ -861,6 +861,62 @@ body {
   background-color: #5599ff;
 }
 
+/* Audio Controls */
+.audio-controls {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #3c3c3c;
+}
+
+.audio-controls h3 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-color);
+}
+
+.audio-toggle.active {
+  background-color: #44aa44;
+  border-color: #55bb55;
+}
+
+.audio-toggle.active:hover {
+  background-color: #55bb55;
+}
+
+.volume-control {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background-color: #2c2c2c;
+  border-radius: 4px;
+}
+
+.volume-control label {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+  color: #999;
+}
+
+.volume-control input[type="range"] {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.volume-control #volume-value {
+  font-size: 0.85rem;
+  color: #ccc;
+}
+
+.audio-indicator {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background-color: #2c2c2c;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #44aa44;
+  text-align: center;
+}
+
 /* Learning Objectives List */
 .learning-objectives {
   margin-top: 1rem;
