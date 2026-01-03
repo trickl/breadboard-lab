@@ -892,3 +892,39 @@ body {
   color: #44aa44;
   font-weight: bold;
 }
+
+/* Color band display in explain panel */
+.color-bands-display {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.color-band-item {
+  flex: 1;
+  min-width: 80px;
+  padding: 0.5rem;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.color-band-item .band-color {
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.color-band-item .band-meaning {
+  font-size: 0.7rem;
+  opacity: 0.9;
+  font-style: italic;
+}
+
+.color-band-item .band-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+}

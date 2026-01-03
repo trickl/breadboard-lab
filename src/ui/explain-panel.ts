@@ -1,5 +1,6 @@
 import type { Circuit, SimulationResult, AnyComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
+import { resistanceToColorBands, COLOR_TO_RGB, ResistorColor } from '@/core/resistor-color-code';
 
 /**
  * Panel content type - what kind of information to display
@@ -266,7 +267,7 @@ export class ExplainPanel {
   private generateComponentProperties(component: AnyComponent): string {
     switch (component.type) {
       case ComponentType.RESISTOR:
-        return `<div class="explain-section"><h5>Resistance:</h5><p>${component.resistance >= 1000 ? (component.resistance / 1000).toFixed(1) + 'kΩ' : component.resistance + 'Ω'}</p></div>`;
+        return this.generateResistorProperties(component);
       case ComponentType.LED:
         return `<div class="explain-section"><h5>Specifications:</h5><p>Forward Voltage: ${component.forwardVoltage}V<br>Max Current: ${(component.maxCurrent * 1000).toFixed(1)}mA</p></div>`;
       case ComponentType.POWER_SUPPLY:
@@ -274,6 +275,169 @@ export class ExplainPanel {
       default:
         return '';
     }
+  }
+
+  /**
+   * Generate detailed resistor properties including color band explanation
+   */
+  private generateResistorProperties(component: AnyComponent): string {
+    if (component.type !== ComponentType.RESISTOR) return '';
+
+    const resistance = component.resistance;
+    const resistanceStr = resistance >= 1000 
+      ? (resistance / 1000).toFixed(1) + 'kΩ' 
+      : resistance + 'Ω';
+
+    try {
+      // Default to 5% tolerance (4-band resistor)
+      const tolerance = 5;
+      const bands = resistanceToColorBands(resistance, tolerance);
+
+      // Generate color band visualization
+      const bandHTML = bands.map(band => {
+        const colorName = this.formatColorName(band.color);
+        const meaning = this.formatBandMeaning(band.meaning);
+        const bgColor = COLOR_TO_RGB[band.color];
+        const textColor = this.shouldUseDarkText(band.color) ? '#000' : '#fff';
+        
+        return `
+          <div class="color-band-item" style="background: ${bgColor}; color: ${textColor}; border: 1px solid #666;">
+            <div class="band-color">${colorName}</div>
+            <div class="band-meaning">${meaning}</div>
+            <div class="band-value">${this.formatBandValue(band)}</div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="explain-section">
+          <h5>Resistance:</h5>
+          <p class="explain-value">${resistanceStr}</p>
+        </div>
+        <div class="explain-section">
+          <h5>Color Code (${bands.length}-band, ${tolerance}% tolerance):</h5>
+          <div class="color-bands-display">
+            ${bandHTML}
+          </div>
+          <p style="margin-top: 8px; font-size: 0.9em; color: #888;">
+            Reading: ${this.generateColorCodeReading(bands, resistance)}
+          </p>
+        </div>
+      `;
+    } catch (error) {
+      // Fallback if color code calculation fails
+      return `<div class="explain-section"><h5>Resistance:</h5><p>${resistanceStr}</p></div>`;
+    }
+  }
+
+  /**
+   * Format color name for display
+   */
+  private formatColorName(color: ResistorColor): string {
+    return color.charAt(0) + color.slice(1).toLowerCase();
+  }
+
+  /**
+   * Format band meaning for display
+   */
+  private formatBandMeaning(meaning: string): string {
+    switch (meaning) {
+      case 'digit1':
+        return '1st Digit';
+      case 'digit2':
+        return '2nd Digit';
+      case 'digit3':
+        return '3rd Digit';
+      case 'multiplier':
+        return 'Multiplier';
+      case 'tolerance':
+        return 'Tolerance';
+      default:
+        return meaning;
+    }
+  }
+
+  /**
+   * Format band value for display
+   */
+  private formatBandValue(band: { meaning: string; value: number }): string {
+    if (band.meaning === 'multiplier') {
+      if (band.value >= 1000000) {
+        return `×${band.value / 1000000}M`;
+      } else if (band.value >= 1000) {
+        return `×${band.value / 1000}k`;
+      } else if (band.value < 1) {
+        return `×${band.value}`;
+      } else {
+        return `×${band.value}`;
+      }
+    } else if (band.meaning === 'tolerance') {
+      return `±${band.value}%`;
+    } else {
+      return band.value.toString();
+    }
+  }
+
+  /**
+   * Generate a readable explanation of the color code
+   */
+  private generateColorCodeReading(bands: ReturnType<typeof resistanceToColorBands>, resistance: number): string {
+    if (bands.length === 4) {
+      // 4-band: digit1-digit2-multiplier-tolerance
+      const digit1 = bands[0].value;
+      const digit2 = bands[1].value;
+      const multiplier = bands[2].value;
+      const tolerance = bands[3].value;
+      return `${digit1}${digit2} × ${this.formatMultiplier(multiplier)} = ${this.formatResistance(resistance)} ±${tolerance}%`;
+    } else if (bands.length === 5) {
+      // 5-band: digit1-digit2-digit3-multiplier-tolerance
+      const digit1 = bands[0].value;
+      const digit2 = bands[1].value;
+      const digit3 = bands[2].value;
+      const multiplier = bands[3].value;
+      const tolerance = bands[4].value;
+      return `${digit1}${digit2}${digit3} × ${this.formatMultiplier(multiplier)} = ${this.formatResistance(resistance)} ±${tolerance}%`;
+    }
+    return '';
+  }
+
+  /**
+   * Format multiplier for readable display
+   */
+  private formatMultiplier(multiplier: number): string {
+    if (multiplier >= 1000000) {
+      return `${multiplier / 1000000}M`;
+    } else if (multiplier >= 1000) {
+      return `${multiplier / 1000}k`;
+    } else if (multiplier < 1) {
+      return multiplier.toString();
+    } else {
+      return multiplier.toString();
+    }
+  }
+
+  /**
+   * Format resistance value
+   */
+  private formatResistance(resistance: number): string {
+    if (resistance >= 1000000) {
+      return `${(resistance / 1000000).toFixed(2)}MΩ`;
+    } else if (resistance >= 1000) {
+      return `${(resistance / 1000).toFixed(1)}kΩ`;
+    } else {
+      return `${resistance}Ω`;
+    }
+  }
+
+  /**
+   * Determine if dark text should be used on this color background
+   */
+  private shouldUseDarkText(color: ResistorColor): boolean {
+    // Use dark text on light colors
+    return color === ResistorColor.YELLOW || 
+           color === ResistorColor.WHITE || 
+           color === ResistorColor.GOLD || 
+           color === ResistorColor.SILVER;
   }
 
   /**
