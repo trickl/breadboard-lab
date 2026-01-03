@@ -1,7 +1,8 @@
 # Current System Capabilities of Breadboard Lab
 
 **Date**: 2026-01-03  
-**Purpose**: Factual description of what the system demonstrably does today
+**Purpose**: Factual description of what the system demonstrably does today  
+**Last Updated**: After merging PR #89 (Component selection and deletion)
 
 ---
 
@@ -82,16 +83,43 @@ The UI consists of three panels:
 ### Available Operations
 
 - **Place component**: Select component type, click two holes
+- **Select component**: Click on a rendered component to select it (visual feedback: blue drop-shadow)
+- **Delete component**: Press Delete or Backspace key to remove selected component
+- **Deselect component**: Click breadboard background or another component
 - **Clear all**: Removes all components and resets the breadboard
-- **View circuit info**: Automatically updated after each placement
+- **View circuit info**: Automatically updated after each placement or deletion
+
+### Component Selection and Deletion
+
+**Selection model**: Single component selection with visual feedback
+
+- Click any rendered component to select it
+- Selected component displays blue drop-shadow filter for visual feedback
+- Only one component can be selected at a time
+- Clicking another component changes selection
+- Clicking breadboard background deselects current selection
+- No component selected on initial load or after deletion
+
+**Deletion mechanism**:
+- Press Delete or Backspace key to remove selected component
+- Circuit automatically re-extracts and re-simulates after deletion
+- Voltage overlay and current animation update to reflect new circuit state
+- Backspace key default browser navigation is prevented
+- No operation performed if no component is selected
+
+**Event handling**:
+- Component SVG groups have pointer events enabled (`pointer-events: auto`)
+- Components have cursor: pointer styling for interactivity
+- Keyboard event listener bound to document for Delete/Backspace keys
+- Event cleanup via `destroy()` method prevents memory leaks
 
 ### Limitations
 
-- No component deletion (individual components)
 - No component editing or moving
 - No undo/redo
 - No save/load functionality
 - No component rotation
+- No multi-select or bulk operations
 - No error highlighting or user feedback for invalid placements
 
 ---
@@ -349,7 +377,9 @@ The system displays all placed components with distinctive visual representation
 - SVG overlay positioned absolutely over breadboard grid
 - Components render in layered order: wires first (behind), then other components
 - Visual representations use geometric shapes with text labels (no proprietary graphics)
-- Component overlay has `pointer-events: none` to avoid interfering with hole interaction
+- Components have pointer events enabled (`pointer-events: auto`) for selection interaction
+- Components display cursor: pointer styling when hovered
+- Selected component displays blue drop-shadow filter for visual feedback
 - Components display above breadboard grid but below voltage overlay
 
 **Coordinate mapping**:
@@ -361,29 +391,34 @@ The system displays all placed components with distinctive visual representation
 
 **Component renderer** (`src/ui/component-renderer.ts`):
 - `ComponentRenderer` class handles all visual rendering logic
-- `renderComponents()`: Creates SVG element with all component visuals
+- `renderComponents()`: Creates SVG element with all component visuals, accepts optional `selectedComponentId` parameter
 - Individual render methods for each component type (wire, resistor, LED, power supply, ground)
 - Position-to-pixel coordinate conversion
 - Smart resistance value formatting
+- Selection rendering: adds `.component-selected` CSS class to selected component
 
 **Integration** (`src/ui/breadboard-app.ts`):
 - Component overlay renders after breadboard grid creation
-- Re-renders automatically on state changes (component placement, clear all)
+- Re-renders automatically on state changes (component placement, deletion, selection, clear all)
 - SVG dimensions calculated based on breadboard size
 - Existing component overlay removed before re-rendering
+- Component click event handlers attached after render for selection
+- Keyboard event listener for Delete/Backspace keys
+- `destroy()` method for event cleanup
 
 **Styling** (`src/style.css`):
 - `.component-overlay`: Absolute positioning with z-index 10
 - `.component`: Base component styling with opacity transition
+- `.component-selected`: Blue drop-shadow filter for selection feedback
 - Breadboard container has `position: relative` for overlay positioning
 
 ### Constraints
 
-- Components are not interactive (SVG has pointer-events disabled)
 - No drag-and-drop of rendered components (placement uses two-click interaction)
 - No animation of component placement (instant rendering)
 - Visual representations are simplified geometric shapes, not photorealistic
 - Wire routing is orthogonal (Manhattan style), not customizable by user
+- Single component selection only (no multi-select)
 
 ---
 
@@ -451,8 +486,11 @@ src/
 ### State Management
 
 - Application state stored in `BreadboardState` object
-- State contains a flat array of `AnyComponent` objects
+- State contains:
+  - `components`: Flat array of `AnyComponent` objects
+  - `selectedComponentId`: ID of currently selected component (string | null)
 - No immutable state pattern (components array is mutated)
+- Selection state tracks single selected component
 - No state history for undo/redo
 
 ### Rendering Strategy
@@ -509,7 +547,7 @@ npm run format    # Run Prettier
 
 ### Test Coverage
 
-Six test suites with 58 passing tests:
+Seven test suites with 66 passing tests:
 
 1. **breadboard-layout.test.ts** (9 tests)
    - Position validity checking
@@ -544,7 +582,7 @@ Six test suites with 58 passing tests:
    - Component layering (wires render before other components)
    - Wire color cycling and reset behavior
 
-6. **current-animator.test.ts** (11 tests) — **New in PR #83**
+6. **current-animator.test.ts** (11 tests)
    - Start/stop lifecycle management
    - Current threshold filtering (1µA minimum)
    - Particle creation for currents above threshold
@@ -552,16 +590,25 @@ Six test suites with 58 passing tests:
    - Component type support (wire, resistor, LED)
    - Edge cases (zero current, negative current, empty components, failed simulation)
 
+7. **breadboard-app.test.ts** (8 tests) — **New in PR #89**
+   - Component selection (click to select)
+   - Component deselection (background click)
+   - Deletion via Delete key
+   - Deletion via Backspace key
+   - Circuit simulation updates after deletion
+   - No deletion when nothing selected
+   - Multiple component selection handling
+
 ### Testing Approach
 
-- Unit tests for core logic only
-- No UI/integration tests
+- Unit tests for core logic
+- UI interaction tests for component selection and deletion
 - No end-to-end tests
 - Tests use Vitest with jsdom environment
 
 ### Coverage Gaps
 
-- No tests for `BreadboardApp` (UI layer)
+- Limited tests for `BreadboardApp` (only selection/deletion covered)
 - No tests for component placement logic
 - No integration tests for voltage overlay rendering behavior
 - No integration tests for component rendering with voltage overlays
@@ -570,7 +617,7 @@ Six test suites with 58 passing tests:
 
 ### Test Execution
 
-- All 58 tests pass
+- All 66 tests pass
 - Test duration: Fast execution (typically < 200ms)
 - No flaky tests observed
 
@@ -613,12 +660,13 @@ Six test suites with 58 passing tests:
 
 ### Functional
 
-1. **No component deletion**: Cannot remove individual components (only "Clear All")
-2. **No component editing**: Cannot change component values or positions after placement
-3. **No component dragging**: Components cannot be moved once placed (two-click placement only)
-4. **No error detection for circuit validity**: Limited validation of circuit correctness beyond ground/singularity checks
-5. **No persistence**: No save/load functionality
-6. **No undo/redo**: No operation history
+1. **No component editing**: Cannot change component values or positions after placement
+2. **No component dragging**: Components cannot be moved once placed (two-click placement only)
+3. **No error detection for circuit validity**: Limited validation of circuit correctness beyond ground/singularity checks
+4. **No persistence**: No save/load functionality
+5. **No undo/redo**: No operation history
+6. **No multi-select**: Can only select one component at a time
+7. **No copy/paste**: Cannot duplicate components
 
 ### Simulation Accuracy
 
@@ -629,11 +677,11 @@ Six test suites with 58 passing tests:
 
 ### User Experience
 
-1. **No drag and drop**: Two-click placement only
+1. **No drag and drop**: Two-click placement only (components cannot be moved)
 2. **No visual feedback**: No preview during placement
 3. **No validation feedback**: Silent failure on invalid operations
-4. **No help system**: No tooltips or guidance
-5. **No keyboard shortcuts**: Mouse-only interaction
+4. **No help system**: No tooltips or guidance beyond voltage tooltips on hover
+5. **Limited keyboard shortcuts**: Only Delete/Backspace for component deletion
 
 ---
 
@@ -666,16 +714,16 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `src/core/types.ts` | 123 | Type definitions for domain model |
+| `src/core/types.ts` | 123 | Type definitions for domain model (includes BreadboardState with selectedComponentId) |
 | `src/core/breadboard-layout.ts` | 84 | Breadboard connectivity logic |
 | `src/core/circuit-extractor.ts` | 144 | Circuit graph extraction with union-find |
 | `src/core/circuit-simulator.ts` | 360 | DC circuit simulation using Modified Nodal Analysis |
-| `src/ui/breadboard-app.ts` | 467 | Main UI application class |
+| `src/ui/breadboard-app.ts` | 569 | Main UI application class with selection/deletion logic |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
-| `src/ui/component-renderer.ts` | 443 | SVG-based visual component rendering |
+| `src/ui/component-renderer.ts` | 452 | SVG-based visual component rendering with selection support |
 | `src/ui/current-animator.ts` | 426 | Animated current flow visualization using particles |
 | `src/main.ts` | 11 | Application entry point |
-| `src/style.css` | ~244 | Application styles |
+| `src/style.css` | 252 | Application styles (includes .component-selected styling) |
 
 ### Test Files
 
@@ -687,6 +735,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/ui/__tests__/voltage-colors.test.ts` | 13 | Voltage-to-color mapping tests |
 | `src/ui/__tests__/component-renderer.test.ts` | 9 | Component visual rendering tests |
 | `src/ui/__tests__/current-animator.test.ts` | 11 | Current animation tests (particle system, magnitude scaling) |
+| `src/ui/__tests__/breadboard-app.test.ts` | 8 | Component selection and deletion interaction tests (PR #89) |
 
 ### Configuration Files
 
@@ -730,10 +779,10 @@ For clarity, these capabilities are explicitly **not present**:
 
 ## Verification
 
-This document describes the system as observed on 2026-01-03 after merging PR #83:
+This document describes the system as observed on 2026-01-03 after merging PR #89:
 
 - ✅ All source files examined
-- ✅ Tests executed successfully (58/58 passing)
+- ✅ Tests executed successfully (66/66 passing)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
@@ -744,5 +793,6 @@ This document describes the system as observed on 2026-01-03 after merging PR #8
 - ✅ Component visual rendering capabilities verified from PR #71 changes
 - ✅ MNA solver capabilities verified from PR #77 changes
 - ✅ Animated current flow visualization verified from PR #83 changes
+- ✅ Component selection and deletion capabilities verified from PR #89 changes
 
 This is a snapshot of reality, not aspirations or plans.
