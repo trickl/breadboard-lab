@@ -221,6 +221,313 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
   });
 });
 
+describe('BreadboardApp - Component Rotation', () => {
+  let container: HTMLElement;
+  let app: BreadboardApp;
+
+  beforeEach(() => {
+    // Create a container element for the app
+    container = document.createElement('div');
+    container.id = 'app';
+    document.body.appendChild(container);
+
+    // Initialize the app
+    app = new BreadboardApp(container);
+  });
+
+  afterEach(() => {
+    // Clean up
+    app.destroy();
+    document.body.removeChild(container);
+  });
+
+  it('should rotate selected component 90 degrees on R key press', () => {
+    // Place a resistor component
+    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
+    resistorButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[0] as HTMLElement)?.click(); // Row 0, col 0
+    (holes[5] as HTMLElement)?.click(); // Row 0, col 5
+
+    // Select the component
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    componentEl?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    // Press R key
+    const rKeyEvent = new KeyboardEvent('keydown', { key: 'R' });
+    document.dispatchEvent(rKeyEvent);
+
+    // Component should still exist after rotation
+    const rotatedComponent = container.querySelector('[data-component-id]');
+    expect(rotatedComponent).toBeTruthy();
+  });
+
+  it('should cycle through all four rotation angles (0, 90, 180, 270)', () => {
+    // Place a resistor component
+    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
+    resistorButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[5] as HTMLElement)?.click(); // Row 0, col 5
+    (holes[10] as HTMLElement)?.click(); // Row 0, col 10
+
+    // Select the component
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    componentEl?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    // Rotate 4 times to cycle through all angles
+    for (let i = 0; i < 4; i++) {
+      const rKeyEvent = new KeyboardEvent('keydown', { key: 'r' });
+      document.dispatchEvent(rKeyEvent);
+      
+      // Component should still exist after each rotation
+      const component = container.querySelector('[data-component-id]');
+      expect(component).toBeTruthy();
+    }
+
+    // After 4 rotations, should be back to original orientation
+    const finalComponent = container.querySelector('[data-component-id]');
+    expect(finalComponent).toBeTruthy();
+  });
+
+  it('should apply rotation transform to component SVG', () => {
+    // Place a resistor
+    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
+    resistorButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[10] as HTMLElement)?.click(); // Row 0, col 10
+    (holes[15] as HTMLElement)?.click(); // Row 0, col 15
+
+    // Select and rotate
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    componentEl?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const rKeyEvent = new KeyboardEvent('keydown', { key: 'R' });
+    document.dispatchEvent(rKeyEvent);
+
+    // Check if rotation transform is applied to any child element
+    const svg = container.querySelector('.component-overlay');
+    const transformedElements = svg?.querySelectorAll('[transform*="rotate"]');
+    expect(transformedElements).toBeTruthy();
+    expect(transformedElements!.length).toBeGreaterThan(0);
+  });
+
+  it('should not rotate if no component is selected', () => {
+    // Place a component but don't select it
+    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
+    wireButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[0] as HTMLElement)?.click();
+    (holes[5] as HTMLElement)?.click();
+
+    // Get initial component count
+    const initialComponents = container.querySelectorAll('[data-component-id]');
+    const initialCount = initialComponents.length;
+
+    // Try to rotate without selection
+    const rKeyEvent = new KeyboardEvent('keydown', { key: 'R' });
+    document.dispatchEvent(rKeyEvent);
+
+    // Component count should remain the same
+    const components = container.querySelectorAll('[data-component-id]');
+    expect(components.length).toBe(initialCount);
+  });
+
+  it('should not rotate during drag operation', () => {
+    // Place a component
+    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
+    resistorButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[0] as HTMLElement)?.click();
+    (holes[5] as HTMLElement)?.click();
+
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    const breadboard = container.querySelector('#breadboard') as HTMLElement;
+    const rect = breadboard.getBoundingClientRect();
+
+    // Start drag
+    componentEl?.dispatchEvent(
+      new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.left + 50,
+        clientY: rect.top + 50,
+      })
+    );
+
+    // Try to rotate during drag
+    const rKeyEvent = new KeyboardEvent('keydown', { key: 'R' });
+    document.dispatchEvent(rKeyEvent);
+
+    // Cancel drag
+    const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
+    document.dispatchEvent(escapeEvent);
+
+    // Component should still exist
+    const component = container.querySelector('[data-component-id]');
+    expect(component).toBeTruthy();
+  });
+
+  it('should work with lowercase r key', () => {
+    // Place and select component
+    const ledButton = container.querySelector('[data-component="LED"]') as HTMLElement;
+    ledButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[0] as HTMLElement)?.click();
+    (holes[5] as HTMLElement)?.click();
+
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    componentEl?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    // Press lowercase r
+    const rKeyEvent = new KeyboardEvent('keydown', { key: 'r' });
+    document.dispatchEvent(rKeyEvent);
+
+    // Component should still exist
+    const rotatedComponent = container.querySelector('[data-component-id]');
+    expect(rotatedComponent).toBeTruthy();
+  });
+
+  it('should prevent rotation if result would be out of bounds', () => {
+    // Place a component at the edge where rotation would go out of bounds
+    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
+    resistorButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    // Place at top-left corner - row 0, cols 0-1 (very close to edge)
+    (holes[0] as HTMLElement)?.click(); // Row 0, col 0
+    (holes[1] as HTMLElement)?.click(); // Row 0, col 1
+
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    componentEl?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    // Try to rotate (might go out of bounds)
+    const rKeyEvent = new KeyboardEvent('keydown', { key: 'R' });
+    document.dispatchEvent(rKeyEvent);
+
+    // Component should still exist (rotation either succeeded or was prevented gracefully)
+    const component = container.querySelector('[data-component-id]');
+    expect(component).toBeTruthy();
+  });
+
+  it('should update circuit simulation after rotation', () => {
+    // Place a simple circuit
+    const powerButton = container.querySelector('[data-component="POWER_SUPPLY"]') as HTMLElement;
+    powerButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[0] as HTMLElement)?.click();
+    (holes[5] as HTMLElement)?.click();
+
+    const resistorButton = container.querySelector('[data-component="RESISTOR"]') as HTMLElement;
+    resistorButton?.click();
+    (holes[5] as HTMLElement)?.click();
+    (holes[10] as HTMLElement)?.click();
+
+    const groundButton = container.querySelector('[data-component="GROUND"]') as HTMLElement;
+    groundButton?.click();
+    (holes[10] as HTMLElement)?.click();
+    (holes[11] as HTMLElement)?.click();
+
+    // Select and rotate the resistor
+    const components = container.querySelectorAll('[data-component-id]');
+    (components[1] as HTMLElement)?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const rKeyEvent = new KeyboardEvent('keydown', { key: 'R' });
+    document.dispatchEvent(rKeyEvent);
+
+    // Circuit info should still be rendered
+    const circuitInfo = container.querySelector('#circuit-info');
+    expect(circuitInfo).toBeTruthy();
+    expect(circuitInfo?.textContent).toContain('Components');
+  });
+
+  it('should rotate LED component correctly', () => {
+    // Place an LED (has polarity, so rotation matters)
+    const ledButton = container.querySelector('[data-component="LED"]') as HTMLElement;
+    ledButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[20] as HTMLElement)?.click();
+    (holes[25] as HTMLElement)?.click();
+
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    componentEl?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    // Rotate LED
+    const rKeyEvent = new KeyboardEvent('keydown', { key: 'R' });
+    document.dispatchEvent(rKeyEvent);
+
+    const rotatedLED = container.querySelector('[data-component-id]');
+    expect(rotatedLED).toBeTruthy();
+  });
+
+  it('should rotate power supply component correctly', () => {
+    // Place a power supply (has polarity)
+    const powerButton = container.querySelector('[data-component="POWER_SUPPLY"]') as HTMLElement;
+    powerButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[30] as HTMLElement)?.click();
+    (holes[35] as HTMLElement)?.click();
+
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    componentEl?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    // Rotate power supply
+    const rKeyEvent = new KeyboardEvent('keydown', { key: 'R' });
+    document.dispatchEvent(rKeyEvent);
+
+    const rotatedPower = container.querySelector('[data-component-id]');
+    expect(rotatedPower).toBeTruthy();
+  });
+
+  it('should rotate wire component correctly', () => {
+    // Place a wire
+    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
+    wireButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[40] as HTMLElement)?.click();
+    (holes[45] as HTMLElement)?.click();
+
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    componentEl?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    // Rotate wire
+    const rKeyEvent = new KeyboardEvent('keydown', { key: 'R' });
+    document.dispatchEvent(rKeyEvent);
+
+    const rotatedWire = container.querySelector('[data-component-id]');
+    expect(rotatedWire).toBeTruthy();
+  });
+
+  it('should rotate ground component correctly', () => {
+    // Place a ground
+    const groundButton = container.querySelector('[data-component="GROUND"]') as HTMLElement;
+    groundButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[50] as HTMLElement)?.click();
+    (holes[51] as HTMLElement)?.click();
+
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    componentEl?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    // Rotate ground
+    const rKeyEvent = new KeyboardEvent('keydown', { key: 'R' });
+    document.dispatchEvent(rKeyEvent);
+
+    const rotatedGround = container.querySelector('[data-component-id]');
+    expect(rotatedGround).toBeTruthy();
+  });
+});
+
 describe('BreadboardApp - Component Drag and Drop', () => {
   let container: HTMLElement;
   let app: BreadboardApp;

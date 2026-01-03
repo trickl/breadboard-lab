@@ -38,6 +38,7 @@ describe('CurrentAnimator', () => {
             { row: 0, col: 1 },
           ],
           resistance: 0.01,
+          rotation: 0,
         },
       ];
 
@@ -69,6 +70,7 @@ describe('CurrentAnimator', () => {
             { row: 0, col: 1 },
           ],
           resistance: 0.01,
+          rotation: 0,
         },
       ];
 
@@ -100,6 +102,7 @@ describe('CurrentAnimator', () => {
             { row: 0, col: 5 },
           ],
           resistance: 0.01,
+          rotation: 0,
         },
       ];
 
@@ -132,6 +135,7 @@ describe('CurrentAnimator', () => {
             { row: 0, col: 1 },
           ],
           resistance: 0.01,
+          rotation: 0,
         },
       ];
 
@@ -167,6 +171,7 @@ describe('CurrentAnimator', () => {
             { row: 0, col: 5 },
           ],
           resistance: 0.01,
+          rotation: 0,
         },
       ];
 
@@ -221,6 +226,7 @@ describe('CurrentAnimator', () => {
             { row: 5, col: 5 },
           ],
           resistance: 0.01,
+          rotation: 0,
         },
       ];
 
@@ -255,6 +261,7 @@ describe('CurrentAnimator', () => {
             { row: 0, col: 5 },
           ],
           resistance: 1000,
+          rotation: 0,
         },
       ];
 
@@ -289,6 +296,7 @@ describe('CurrentAnimator', () => {
           ],
           forwardVoltage: 2.0,
           maxCurrent: 0.02,
+          rotation: 0,
         },
       ];
 
@@ -337,6 +345,7 @@ describe('CurrentAnimator', () => {
             { row: 0, col: 1 },
           ],
           resistance: 0.01,
+          rotation: 0,
         },
       ];
 
@@ -365,6 +374,7 @@ describe('CurrentAnimator', () => {
             { row: 0, col: 5 },
           ],
           resistance: 0.01,
+          rotation: 0,
         },
       ];
 
