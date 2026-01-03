@@ -109,10 +109,48 @@ body {
   border-radius: 12px;
   padding: 2rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  position: relative;
 }
 
 .breadboard {
   display: inline-block;
+  position: relative;
+}
+
+/* SVG overlay for component rendering */
+.component-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Component styles */
+.component {
+  transition: opacity 0.2s;
+}
+
+.component:hover {
+  opacity: 0.9;
+}
+
+/* Selected component visual feedback */
+.component-selected {
+  filter: drop-shadow(0 0 8px rgba(68, 136, 255, 0.8)) drop-shadow(0 0 4px rgba(68, 136, 255, 1));
+}
+
+/* Component drag preview styles */
+.component-preview {
+  pointer-events: none;
+}
+
+.component-preview-valid {
+  filter: drop-shadow(0 0 4px rgba(68, 255, 136, 0.6));
+}
+
+.component-preview-invalid {
+  filter: drop-shadow(0 0 4px rgba(255, 68, 68, 0.6));
 }
 
 .breadboard-row {
@@ -146,6 +184,30 @@ body {
 
 .hole.power-negative {
   background-color: rgba(51, 51, 255, 0.3);
+}
+
+/* Voltage overlay styling */
+.hole.voltage-overlay {
+  position: relative;
+}
+
+/* Tooltip for voltage values */
+.voltage-tooltip {
+  position: fixed;
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: none;
+}
+
+.voltage-tooltip.visible {
+  display: block;
 }
 
 .info-panel {
@@ -185,6 +247,87 @@ body {
   border-radius: 4px;
   margin-bottom: 0.5rem;
   font-size: 0.85rem;
+}
+
+/* Property editor styles */
+.property-editor {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #444;
+}
+
+.property-editor h3 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  color: var(--text-color);
+}
+
+.property-field {
+  margin-bottom: 1rem;
+}
+
+.property-field label {
+  display: block;
+  font-size: 0.85rem;
+  color: #999;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.property-field input[type="number"] {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: #3c3c3c;
+  border: 2px solid #4c4c4c;
+  border-radius: 4px;
+  color: var(--text-color);
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.property-field input[type="number"]:focus {
+  outline: none;
+  border-color: #4488ff;
+}
+
+.property-field input[type="number"]:invalid,
+.property-field input[type="number"].error {
+  border-color: #ff4444;
+}
+
+.property-presets {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.preset-button {
+  padding: 0.4rem 0.6rem;
+  background-color: #3c3c3c;
+  border: 1px solid #4c4c4c;
+  border-radius: 4px;
+  color: var(--text-color);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preset-button:hover {
+  background-color: #4c4c4c;
+  border-color: #5c5c5c;
+}
+
+.preset-button:active {
+  background-color: #4488ff;
+  border-color: #5599ff;
+}
+
+.error-message {
+  color: #ff4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
 }
 
 @media (max-width: 1024px) {

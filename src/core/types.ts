@@ -29,6 +29,7 @@ export interface Component {
   id: string;
   type: ComponentType;
   positions: Position[]; // Positions this component occupies
+  rotation: 0 | 90 | 180 | 270; // Component rotation in degrees
 }
 
 /**
@@ -81,6 +82,7 @@ export type AnyComponent = Resistor | LED | Wire | PowerSupply | Ground;
  */
 export interface BreadboardState {
   components: AnyComponent[];
+  selectedComponentId: string | null;
 }
 
 /**
