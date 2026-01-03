@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-03  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After implementing visual regression testing with Playwright screenshot comparison (PR #125)
+**Last Updated**: After implementing breadboard power rails with vertical connectivity (PR #131)
 
 ---
 
@@ -30,10 +30,12 @@ Component values for resistors, LEDs, and power supplies can be edited after pla
 
 ### Physical Layout
 
-- **Grid dimensions**: 30 rows × 10 columns (300 holes total)
-- **Column arrangement**: 5 columns per side (0-4 left side, 5-9 right side)
+- **Grid dimensions**: 30 rows × 14 columns (420 holes total)
+- **Column arrangement**: 
+  - 4 rail columns (0-1 left side, 12-13 right side)
+  - 10 terminal strip columns (2-6 left side, 7-11 right side)
 - **Row numbering**: 0-29 (zero-indexed)
-- **Column numbering**: 0-9 (zero-indexed)
+- **Column numbering**: 0-13 (zero-indexed)
 
 ### Connectivity Rules
 
@@ -1092,18 +1094,23 @@ Both jobs must pass for PR approval. Visual regression failures block merge.
 
 ### Test Coverage
 
-Ten test suites with 116 passing tests (109 unit/integration + 7 visual regression):
+Ten test suites with 117 passing tests (110 unit/integration + 7 visual regression):
 
-1. **breadboard-layout.test.ts** (9 tests)
-   - Position validity checking
-   - Terminal strip connectivity
-   - Connected position enumeration
+1. **breadboard-layout.test.ts** (12 tests)
+   - Position validity checking (updated for 14 columns)
+   - Terminal strip connectivity (updated column indices)
+   - Connected position enumeration (strips and rails)
+   - Rail position identification (3 new tests)
+   - Rail information retrieval (2 new tests)
+   - Rail vertical connectivity (3 new tests)
 
-2. **circuit-extractor.test.ts** (4 tests)
+2. **circuit-extractor.test.ts** (6 tests)
    - Empty circuit extraction
-   - Wire edge creation across nodes
-   - Same-node component handling
-   - Multiple component extraction
+   - Wire edge creation across nodes (updated column indices)
+   - Same-node component handling (updated column indices)
+   - Multiple component extraction (updated column indices)
+   - Rail-to-strip connectivity (new test)
+   - Same-rail component handling (new test)
 
 3. **circuit-simulator.test.ts** (12 tests)
    - Basic circuits (ground only, simple series, voltage divider)
@@ -1210,7 +1217,7 @@ Ten test suites with 116 passing tests (109 unit/integration + 7 visual regressi
 
 ### Test Execution
 
-- All 116 tests pass (109 unit/integration + 7 visual regression)
+- All 117 tests pass (110 unit/integration + 7 visual regression)
 - Unit test duration: Fast execution (typically < 300ms, including async debounce waits)
 - Visual test duration: ~18 seconds for all 7 tests
 - No flaky tests observed
@@ -1290,7 +1297,7 @@ The system includes automated visual regression testing to protect critical visu
 
 ### Fixed Values
 
-- Breadboard dimensions are fixed (30×10)
+- Breadboard dimensions are fixed (30×14)
 - Component default values (can be changed after placement via property editor):
   - Resistors default to 1kΩ
   - Power supplies default to 5V
@@ -1376,32 +1383,32 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `src/core/types.ts` | 150 | Type definitions including ErrorType enum and CircuitError interface |
-| `src/core/breadboard-layout.ts` | 84 | Breadboard connectivity logic |
-| `src/core/circuit-extractor.ts` | 144 | Circuit graph extraction with union-find |
+| `src/core/types.ts` | 182 | Type definitions including Rail, Strip, BreadboardTopology interfaces, ErrorType enum and CircuitError interface |
+| `src/core/breadboard-layout.ts` | 196 | Breadboard connectivity logic with power rails support |
+| `src/core/circuit-extractor.ts` | 175 | Circuit graph extraction with union-find (handles rails and terminal strips) |
 | `src/core/circuit-simulator.ts` | 528 | DC circuit simulation using MNA and error detection (5 error types) |
 | `src/core/circuit-serializer.ts` | 306 | Circuit JSON serialization/deserialization with validation |
 | `src/core/circuit-storage.ts` | 250 | localStorage persistence and file download/upload |
 | `src/examples/index.ts` | 96 | Example circuit registry and lookup functions |
-| `src/examples/led-resistor.json` | 83 | LED and Resistor example circuit |
-| `src/examples/voltage-divider.json` | 93 | Voltage Divider example circuit |
-| `src/examples/parallel-leds.json` | 203 | Parallel LEDs example circuit |
-| `src/examples/short-circuit-demo.json` | 53 | Short Circuit Demo example circuit |
-| `src/ui/breadboard-app.ts` | 1664 | Main UI application class with save/load/examples modals, selection/deletion, rotation, property editor, and drag-and-drop |
+| `src/examples/led-resistor.json` | 87 | LED and Resistor example circuit (uses power rails) |
+| `src/examples/voltage-divider.json` | 97 | Voltage Divider example circuit (uses power rails) |
+| `src/examples/parallel-leds.json` | 187 | Parallel LEDs example circuit (uses power rails) |
+| `src/examples/short-circuit-demo.json` | 57 | Short Circuit Demo example circuit (uses power rails) |
+| `src/ui/breadboard-app.ts` | 1678 | Main UI application class with save/load/examples modals, selection/deletion, rotation, property editor, drag-and-drop, and rail rendering |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
 | `src/ui/component-renderer.ts` | 568 | SVG-based visual component rendering with rotation transform support |
 | `src/ui/current-animator.ts` | 426 | Animated current flow visualization using particles |
 | `src/ui/error-overlay-renderer.ts` | 140 | Error icon SVG rendering with hover effects |
 | `src/ui/explain-panel.ts` | 370 | Contextual explanation panel with educational content |
 | `src/main.ts` | 11 | Application entry point |
-| `src/style.css` | 702 | Application styles (includes modal dialogs, error icons, explain panel styling) |
+| `src/style.css` | 723 | Application styles (includes modal dialogs, error icons, explain panel styling, rail styling) |
 
 ### Test Files
 
 | File | Tests | Purpose |
 |------|-------|---------|
-| `src/core/__tests__/breadboard-layout.test.ts` | 9 | Breadboard connectivity tests |
-| `src/core/__tests__/circuit-extractor.test.ts` | 4 | Circuit extraction tests |
+| `src/core/__tests__/breadboard-layout.test.ts` | 12 | Breadboard connectivity tests (strips and rails, 8 updated + 3 new) |
+| `src/core/__tests__/circuit-extractor.test.ts` | 6 | Circuit extraction tests (4 updated + 2 new for rail connectivity) |
 | `src/core/__tests__/circuit-simulator.test.ts` | 12 | Circuit simulation tests (MNA solver) |
 | `src/core/__tests__/circuit-serializer.test.ts` | 14 | Circuit serialization/deserialization tests (roundtrip, validation, edge cases) |
 | `src/ui/__tests__/voltage-colors.test.ts` | 13 | Voltage-to-color mapping tests |
@@ -1457,10 +1464,10 @@ For clarity, these capabilities are explicitly **not present**:
 
 ## Verification
 
-This document describes the system as observed on 2026-01-03 after merging PR #125:
+This document describes the system as observed on 2026-01-03 after merging PR #131:
 
 - ✅ All source files examined
-- ✅ Tests executed successfully (116/116 passing: 109 unit/integration + 7 visual regression)
+- ✅ Tests executed successfully (117/117 passing: 110 unit/integration + 7 visual regression)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
@@ -1486,5 +1493,10 @@ This document describes the system as observed on 2026-01-03 after merging PR #1
 - ✅ Playwright integration and configuration verified from PR #125 changes
 - ✅ CI visual test job verified from PR #125 changes
 - ✅ Visual test helpers and baseline screenshots verified from PR #125 changes
+- ✅ Power rail implementation verified from PR #131 changes
+- ✅ Rail interface and topology types verified from PR #131 changes
+- ✅ Rail connectivity logic verified from PR #131 changes
+- ✅ Rail visual rendering verified from PR #131 changes
+- ✅ Updated example circuits with rail-based power distribution verified from PR #131 changes
 
 This is a snapshot of reality, not aspirations or plans.
