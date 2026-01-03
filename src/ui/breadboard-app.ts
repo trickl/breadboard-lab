@@ -142,11 +142,23 @@ export class BreadboardApp {
       const rowEl = document.createElement('div');
       rowEl.className = 'breadboard-row';
 
-      for (let col = 0; col < BreadboardLayout.COLS_PER_SIDE * 2; col++) {
+      for (let col = 0; col < BreadboardLayout.TOTAL_COLS; col++) {
         const hole = document.createElement('div');
         hole.className = 'hole';
         hole.dataset.row = row.toString();
         hole.dataset.col = col.toString();
+
+        // Apply rail styling
+        if (BreadboardLayout.isPositionInRail({ row, col })) {
+          const rail = BreadboardLayout.getRailForPosition({ row, col });
+          if (rail) {
+            if (rail.type === 'positive') {
+              hole.classList.add('rail-positive');
+            } else {
+              hole.classList.add('rail-negative');
+            }
+          }
+        }
 
         // Check if position is occupied
         const position = { row, col };
@@ -187,7 +199,7 @@ export class BreadboardApp {
     );
     
     // Calculate SVG dimensions based on breadboard size
-    const width = BreadboardLayout.COLS_PER_SIDE * 2 * 26; // 26px per hole (20px + 6px margin)
+    const width = BreadboardLayout.TOTAL_COLS * 26; // 26px per hole (20px + 6px margin)
     const height = BreadboardLayout.ROWS * 26;
     svg.setAttribute('width', width.toString());
     svg.setAttribute('height', height.toString());

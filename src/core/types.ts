@@ -12,6 +12,38 @@ export interface Position {
 }
 
 /**
+ * Terminal strip in the breadboard
+ */
+export interface Strip {
+  id: string;
+  holes: Position[];
+}
+
+/**
+ * Power rail in the breadboard
+ */
+export interface Rail {
+  id: string;
+  type: 'positive' | 'negative';
+  side: 'left' | 'right';
+  holes: Position[];
+}
+
+/**
+ * Complete breadboard topology
+ * Note: This interface is defined to match the target architecture specified in
+ * planning/vision/goal.md. Currently, the BreadboardLayout class provides this
+ * functionality through static methods. Future refactoring may create an instance
+ * of this interface for more flexible breadboard configurations.
+ */
+export interface BreadboardTopology {
+  rows: number;
+  columns: number;
+  strips: Strip[];
+  rails: Rail[];
+}
+
+/**
  * Component types supported by the simulator
  */
 export enum ComponentType {

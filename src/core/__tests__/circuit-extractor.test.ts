@@ -25,8 +25,8 @@ describe('CircuitExtractor', () => {
           id: 'wire1',
           type: ComponentType.WIRE,
           positions: [
-            { row: 5, col: 0 }, // Left terminal strip
-            { row: 5, col: 5 }, // Right terminal strip
+            { row: 5, col: 2 }, // Left terminal strip
+            { row: 5, col: 7 }, // Right terminal strip
           ],
           resistance: 0.01,
         rotation: 0,
@@ -48,8 +48,8 @@ describe('CircuitExtractor', () => {
           id: 'wire1',
           type: ComponentType.WIRE,
           positions: [
-            { row: 5, col: 0 }, // Same terminal strip
-            { row: 5, col: 1 }, // Same terminal strip (internally connected)
+            { row: 5, col: 2 }, // Same terminal strip
+            { row: 5, col: 3 }, // Same terminal strip (internally connected)
           ],
           resistance: 0.01,
         rotation: 0,
@@ -72,8 +72,8 @@ describe('CircuitExtractor', () => {
           id: 'resistor1',
           type: ComponentType.RESISTOR,
           positions: [
-            { row: 5, col: 0 },
-            { row: 10, col: 0 },
+            { row: 5, col: 2 },
+            { row: 10, col: 2 },
           ],
           resistance: 1000,
         rotation: 0,
@@ -82,8 +82,8 @@ describe('CircuitExtractor', () => {
           id: 'led1',
           type: ComponentType.LED,
           positions: [
-            { row: 10, col: 5 },
-            { row: 15, col: 5 },
+            { row: 10, col: 7 },
+            { row: 15, col: 7 },
           ],
           forwardVoltage: 2.0,
           maxCurrent: 0.02,
@@ -96,5 +96,52 @@ describe('CircuitExtractor', () => {
     const circuit = extractor.extract(state);
     
     expect(circuit.edges.length).toBe(2);
+  });
+
+  it('should connect components to rails', () => {
+    const state: BreadboardState = {
+      components: [
+        {
+          id: 'wire1',
+          type: ComponentType.WIRE,
+          positions: [
+            { row: 5, col: 1 }, // Left positive rail
+            { row: 5, col: 2 }, // Left terminal strip
+          ],
+          resistance: 0.01,
+          rotation: 0,
+        },
+      ],
+      selectedComponentId: null,
+    };
+
+    const circuit = extractor.extract(state);
+
+    // Wire should connect rail to terminal strip (different nodes)
+    expect(circuit.edges.length).toBe(1);
+  });
+
+  it('should not create edge for component within same rail', () => {
+    const state: BreadboardState = {
+      components: [
+        {
+          id: 'wire1',
+          type: ComponentType.WIRE,
+          positions: [
+            { row: 5, col: 0 }, // Left negative rail
+            { row: 10, col: 0 }, // Same rail (internally connected)
+          ],
+          resistance: 0.01,
+          rotation: 0,
+        },
+      ],
+      selectedComponentId: null,
+    };
+
+    const circuit = extractor.extract(state);
+
+    // Since both positions are in the same rail, they're already connected
+    // So no edge should be created
+    expect(circuit.edges.length).toBe(0);
   });
 });

@@ -37,20 +37,28 @@ Component values for resistors, LEDs, and power supplies can be edited after pla
 
 ### Connectivity Rules
 
-The breadboard models terminal strip connectivity:
+The breadboard models both power rails and terminal strip connectivity:
 
-- **Left terminal strips**: Within each row, columns 0-4 are electrically connected
-- **Right terminal strips**: Within each row, columns 5-9 are electrically connected
-- **Center gap**: Left and right sides are NOT connected (gap between column 4 and 5)
-- **No power rails**: The current implementation does not model power rails
+- **Power rails** (4 columns total):
+  - **Left negative rail** (column 0): Blue-tinted, all 30 holes vertically connected
+  - **Left positive rail** (column 1): Red-tinted, all 30 holes vertically connected
+  - **Right positive rail** (column 12): Red-tinted, all 30 holes vertically connected
+  - **Right negative rail** (column 13): Blue-tinted, all 30 holes vertically connected
+  - Rails provide convenient power distribution for circuits
+- **Left terminal strips**: Within each row, columns 2-6 are electrically connected
+- **Right terminal strips**: Within each row, columns 7-11 are electrically connected
+- **Center gap**: Left and right terminal strips are NOT connected (gap between columns 6 and 7)
+- **Rail independence**: Each rail is separate; rails do not connect to terminal strips automatically
 
 ### Implementation
 
 - Defined in `BreadboardLayout` class (`src/core/breadboard-layout.ts`)
 - Provides methods to:
-  - Check if positions are valid
-  - Check if positions are internally connected
-  - Get all positions connected to a given position
+  - Check if positions are valid (now supports 14 columns)
+  - Check if positions are internally connected (rails + strips)
+  - Check if a position is in a rail (`isPositionInRail`)
+  - Get rail information for a position (`getRailForPosition`)
+  - Get all positions connected to a given position (handles both rails and strips)
 
 ---
 

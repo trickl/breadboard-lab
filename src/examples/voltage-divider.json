@@ -2,7 +2,7 @@
   "version": "1.0",
   "metadata": {
     "name": "Voltage Divider",
-    "description": "Two resistors in series divide the input voltage proportionally to their resistance values. This circuit demonstrates voltage division, series resistance, and basic circuit analysis.",
+    "description": "Two resistors in series divide the input voltage proportionally to their resistance values. This circuit demonstrates voltage division, series resistance, and basic circuit analysis. Power is distributed via breadboard rails.",
     "author": "Breadboard Lab",
     "created": "2026-01-03T14:00:00.000Z"
   },
@@ -11,38 +11,18 @@
       "id": "ps1",
       "type": "POWER_SUPPLY",
       "positions": [
-        { "row": 5, "col": 3 },
-        { "row": 5, "col": 8 }
+        { "row": 5, "col": 1 },
+        { "row": 5, "col": 0 }
       ],
       "rotation": 0,
       "metadata": { "voltage": 9 }
     },
     {
-      "id": "r1",
-      "type": "RESISTOR",
-      "positions": [
-        { "row": 10, "col": 3 },
-        { "row": 15, "col": 3 }
-      ],
-      "rotation": 0,
-      "metadata": { "resistance": 10000 }
-    },
-    {
-      "id": "r2",
-      "type": "RESISTOR",
-      "positions": [
-        { "row": 18, "col": 3 },
-        { "row": 23, "col": 3 }
-      ],
-      "rotation": 0,
-      "metadata": { "resistance": 10000 }
-    },
-    {
       "id": "w1",
       "type": "WIRE",
       "positions": [
-        { "row": 5, "col": 3 },
-        { "row": 10, "col": 3 }
+        { "row": 5, "col": 1 },
+        { "row": 5, "col": 5 }
       ],
       "rotation": 0,
       "metadata": { "resistance": 0.01 }
@@ -51,18 +31,58 @@
       "id": "w2",
       "type": "WIRE",
       "positions": [
-        { "row": 15, "col": 3 },
-        { "row": 18, "col": 3 }
+        { "row": 5, "col": 5 },
+        { "row": 10, "col": 5 }
       ],
       "rotation": 0,
       "metadata": { "resistance": 0.01 }
     },
     {
+      "id": "r1",
+      "type": "RESISTOR",
+      "positions": [
+        { "row": 10, "col": 5 },
+        { "row": 15, "col": 5 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 10000 }
+    },
+    {
       "id": "w3",
       "type": "WIRE",
       "positions": [
-        { "row": 23, "col": 3 },
-        { "row": 28, "col": 3 }
+        { "row": 15, "col": 5 },
+        { "row": 18, "col": 5 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "r2",
+      "type": "RESISTOR",
+      "positions": [
+        { "row": 18, "col": 5 },
+        { "row": 23, "col": 5 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 10000 }
+    },
+    {
+      "id": "w4",
+      "type": "WIRE",
+      "positions": [
+        { "row": 23, "col": 5 },
+        { "row": 28, "col": 5 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w5",
+      "type": "WIRE",
+      "positions": [
+        { "row": 28, "col": 5 },
+        { "row": 28, "col": 0 }
       ],
       "rotation": 0,
       "metadata": { "resistance": 0.01 }
@@ -70,23 +90,7 @@
     {
       "id": "gnd1",
       "type": "GROUND",
-      "positions": [{ "row": 28, "col": 3 }],
-      "rotation": 0
-    },
-    {
-      "id": "w4",
-      "type": "WIRE",
-      "positions": [
-        { "row": 5, "col": 8 },
-        { "row": 28, "col": 8 }
-      ],
-      "rotation": 0,
-      "metadata": { "resistance": 0.01 }
-    },
-    {
-      "id": "gnd2",
-      "type": "GROUND",
-      "positions": [{ "row": 28, "col": 8 }],
+      "positions": [{ "row": 28, "col": 0 }],
       "rotation": 0
     }
   ]

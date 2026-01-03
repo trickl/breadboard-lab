@@ -4,13 +4,17 @@ An open-source, browser-based breadboard simulator designed to teach electronics
 
 ## Features
 
-- **Interactive Breadboard UI**: Place components and wires on a realistic 30x10 breadboard grid
+- **Interactive Breadboard UI**: Place components and wires on a realistic breadboard with power rails and terminal strips
+- **Power Rails**: 4 vertical power distribution rails (2 per side: positive and negative) with color coding
+- **Realistic Layout**: 30 rows × 14 columns matching physical breadboard structure
 - **Component Library**: Wire, Resistor (1kΩ), LED, Power Supply (5V), and Ground
 - **Circuit Extraction**: Automatically extracts electrical circuit topology from component placement
 - **Real-time Simulation**: Calculates voltages and currents using Modified Nodal Analysis (MNA)
 - **Voltage Heatmap Visualization**: Color-coded voltage display on breadboard holes (0V=blue → 5V=red)
 - **Animated Current Flow**: Particles flow along wires and components showing current direction and magnitude
 - **Component Rendering**: Visual representation of components with proper symbols and labels
+- **Error Detection**: Identifies short circuits, floating nodes, reversed LEDs, and other common mistakes
+- **Educational Explanations**: Click on components or errors to see detailed explanations and suggestions
 - **Clean Architecture**: Separation of concerns between UI, circuit extraction, and simulation layers
 - **Strong Typing**: Fully typed with TypeScript for reliability and maintainability
 - **Test Coverage**: Unit tests for core logic (breadboard layout, circuit extraction, simulation, animation)
