@@ -299,7 +299,7 @@ export class BreadboardApp {
   }
 
   /**
-   * Handle keyboard events (Delete key, Escape key)
+   * Handle keyboard events (Delete key, Escape key, R key)
    */
   private handleKeyDown = (e: KeyboardEvent): void => {
     // Cancel drag on Escape
@@ -308,6 +308,14 @@ export class BreadboardApp {
         e.preventDefault();
         this.cancelDrag();
         return;
+      }
+    }
+
+    // Rotate selected component on R key
+    if (e.key === 'r' || e.key === 'R') {
+      if (this.state.selectedComponentId && !this.dragState) {
+        e.preventDefault();
+        this.rotateSelectedComponent();
       }
     }
 
@@ -356,6 +364,100 @@ export class BreadboardApp {
   }
 
   /**
+   * Rotate the currently selected component 90 degrees clockwise
+   */
+  private rotateSelectedComponent(): void {
+    if (!this.state.selectedComponentId) return;
+
+    const component = this.state.components.find(
+      (c) => c.id === this.state.selectedComponentId
+    );
+    if (!component) return;
+
+    // Calculate next rotation (0 -> 90 -> 180 -> 270 -> 0)
+    const currentRotation = component.rotation;
+    const nextRotation = ((currentRotation + 90) % 360) as 0 | 90 | 180 | 270;
+
+    // Calculate new positions after rotation
+    const newPositions = this.calculateRotatedPositions(component.positions, component.rotation, nextRotation);
+
+    // Validate new positions
+    if (!this.isValidComponentPosition(component.id, newPositions)) {
+      // Rotation would result in invalid position - do nothing
+      // Could add visual feedback here (e.g., red flash)
+      return;
+    }
+
+    // Update component rotation and positions
+    component.rotation = nextRotation;
+    component.positions = newPositions;
+
+    // Re-render to update circuit
+    this.render();
+  }
+
+  /**
+   * Calculate new positions after rotating a component
+   */
+  private calculateRotatedPositions(
+    positions: Position[],
+    currentRotation: number,
+    newRotation: number
+  ): Position[] {
+    if (positions.length === 0) return positions;
+
+    // For single-position components (like ground), position doesn't change
+    if (positions.length === 1) return positions;
+
+    // Calculate the center point between the two pins
+    const centerRow = (positions[0].row + positions[1].row) / 2;
+    const centerCol = (positions[0].col + positions[1].col) / 2;
+
+    // Calculate rotation angle difference
+    const rotationDiff = newRotation - currentRotation;
+
+    // Rotate each position around the center
+    return positions.map((pos) => {
+      const relRow = pos.row - centerRow;
+      const relCol = pos.col - centerCol;
+
+      let newRelRow: number;
+      let newRelCol: number;
+
+      // Apply rotation transform
+      switch (rotationDiff) {
+        case 90:
+        case -270:
+          // 90° clockwise: (x, y) -> (y, -x)
+          newRelRow = relCol;
+          newRelCol = -relRow;
+          break;
+        case 180:
+        case -180:
+          // 180°: (x, y) -> (-x, -y)
+          newRelRow = -relRow;
+          newRelCol = -relCol;
+          break;
+        case 270:
+        case -90:
+          // 270° clockwise / 90° counter-clockwise: (x, y) -> (-y, x)
+          newRelRow = -relCol;
+          newRelCol = relRow;
+          break;
+        default:
+          // No rotation
+          newRelRow = relRow;
+          newRelCol = relCol;
+      }
+
+      return {
+        row: Math.round(centerRow + newRelRow),
+        col: Math.round(centerCol + newRelCol),
+      };
+    });
+  }
+
+  /**
    * Select a component type for placement
    */
   private selectComponent(type: ComponentType): void {
@@ -398,6 +500,7 @@ export class BreadboardApp {
           type: ComponentType.WIRE,
           positions,
           resistance: 0.01, // Very low resistance
+          rotation: 0,
         };
         break;
 
@@ -407,6 +510,7 @@ export class BreadboardApp {
           type: ComponentType.RESISTOR,
           positions,
           resistance: 1000, // 1kΩ
+          rotation: 0,
         };
         break;
 
@@ -417,6 +521,7 @@ export class BreadboardApp {
           positions,
           forwardVoltage: 2.0,
           maxCurrent: 0.02,
+          rotation: 0,
         };
         break;
 
@@ -426,6 +531,7 @@ export class BreadboardApp {
           type: ComponentType.POWER_SUPPLY,
           positions,
           voltage: 5.0,
+          rotation: 0,
         };
         break;
 
@@ -434,6 +540,7 @@ export class BreadboardApp {
           id,
           type: ComponentType.GROUND,
           positions,
+          rotation: 0,
         };
         break;
 

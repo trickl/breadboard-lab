@@ -28,6 +28,7 @@ describe('ComponentRenderer', () => {
           { row: 0, col: 5 },
         ],
         resistance: 0.01,
+        rotation: 0,
       };
 
       const svg = renderer.renderComponents([wire]);
@@ -46,6 +47,7 @@ describe('ComponentRenderer', () => {
           { row: 10, col: 2 },
         ],
         resistance: 1000,
+        rotation: 0,
       };
 
       const svg = renderer.renderComponents([resistor]);
@@ -69,6 +71,7 @@ describe('ComponentRenderer', () => {
         ],
         forwardVoltage: 2.0,
         maxCurrent: 0.02,
+        rotation: 0,
       };
 
       const svg = renderer.renderComponents([led]);
@@ -91,6 +94,7 @@ describe('ComponentRenderer', () => {
           { row: 10, col: 7 },
         ],
         voltage: 5.0,
+        rotation: 0,
       };
 
       const svg = renderer.renderComponents([powerSupply]);
@@ -113,6 +117,7 @@ describe('ComponentRenderer', () => {
           { row: 20, col: 7 },
           { row: 20, col: 8 },
         ],
+        rotation: 0,
       };
 
       const svg = renderer.renderComponents([ground]);
@@ -131,6 +136,7 @@ describe('ComponentRenderer', () => {
           { row: 0, col: 5 },
         ],
         resistance: 0.01,
+        rotation: 0,
       };
 
       const resistor: Resistor = {
@@ -141,6 +147,7 @@ describe('ComponentRenderer', () => {
           { row: 10, col: 2 },
         ],
         resistance: 1000,
+        rotation: 0,
       };
 
       const svg = renderer.renderComponents([wire, resistor]);
@@ -158,6 +165,7 @@ describe('ComponentRenderer', () => {
           { row: 10, col: 2 },
         ],
         resistance: 1000,
+        rotation: 0,
       };
 
       const wire: Wire = {
@@ -168,6 +176,7 @@ describe('ComponentRenderer', () => {
           { row: 0, col: 5 },
         ],
         resistance: 0.01,
+        rotation: 0,
       };
 
       // Add resistor first, then wire
@@ -191,6 +200,7 @@ describe('ComponentRenderer', () => {
           { row: 0, col: 5 },
         ],
         resistance: 0.01,
+        rotation: 0,
       };
 
       const wire2: Wire = {
@@ -201,6 +211,7 @@ describe('ComponentRenderer', () => {
           { row: 5, col: 5 },
         ],
         resistance: 0.01,
+        rotation: 0,
       };
 
       // First render

@@ -180,23 +180,57 @@ export class ComponentRenderer {
     component: AnyComponent,
     positions: Position[]
   ): void {
+    // Calculate center point for rotation
+    const centerPos = this.getComponentCenter(positions);
+    const centerPixels = this.positionToPixels(centerPos);
+
+    // Create a group for the component content that will be rotated
+    const contentGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    
+    // Apply rotation transform around the component center
+    if (component.rotation !== 0) {
+      contentGroup.setAttribute(
+        'transform',
+        `rotate(${component.rotation} ${centerPixels.x} ${centerPixels.y})`
+      );
+    }
+
     switch (component.type) {
       case ComponentType.WIRE:
-        this.renderWireAtPositions(group, component, positions);
+        this.renderWireAtPositions(contentGroup, component, positions);
         break;
       case ComponentType.RESISTOR:
-        this.renderResistorAtPositions(group, component, positions);
+        this.renderResistorAtPositions(contentGroup, component, positions);
         break;
       case ComponentType.LED:
-        this.renderLEDAtPositions(group, component, positions);
+        this.renderLEDAtPositions(contentGroup, component, positions);
         break;
       case ComponentType.POWER_SUPPLY:
-        this.renderPowerSupplyAtPositions(group, component, positions);
+        this.renderPowerSupplyAtPositions(contentGroup, component, positions);
         break;
       case ComponentType.GROUND:
-        this.renderGroundAtPositions(group, component, positions);
+        this.renderGroundAtPositions(contentGroup, component, positions);
         break;
     }
+
+    group.appendChild(contentGroup);
+  }
+
+  /**
+   * Get the center position of a component
+   */
+  private getComponentCenter(positions: Position[]): Position {
+    if (positions.length === 0) {
+      return { row: 0, col: 0 };
+    }
+    if (positions.length === 1) {
+      return positions[0];
+    }
+    
+    return {
+      row: (positions[0].row + positions[1].row) / 2,
+      col: (positions[0].col + positions[1].col) / 2,
+    };
   }
 
   /**

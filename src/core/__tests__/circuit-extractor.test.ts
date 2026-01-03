@@ -29,6 +29,7 @@ describe('CircuitExtractor', () => {
             { row: 5, col: 5 }, // Right terminal strip
           ],
           resistance: 0.01,
+        rotation: 0,
         },
       ],
       selectedComponentId: null,
@@ -51,6 +52,7 @@ describe('CircuitExtractor', () => {
             { row: 5, col: 1 }, // Same terminal strip (internally connected)
           ],
           resistance: 0.01,
+        rotation: 0,
         },
       ],
       selectedComponentId: null,
@@ -74,6 +76,7 @@ describe('CircuitExtractor', () => {
             { row: 10, col: 0 },
           ],
           resistance: 1000,
+        rotation: 0,
         },
         {
           id: 'led1',
@@ -84,6 +87,7 @@ describe('CircuitExtractor', () => {
           ],
           forwardVoltage: 2.0,
           maxCurrent: 0.02,
+          rotation: 0,
         },
       ],
       selectedComponentId: null,
