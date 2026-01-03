@@ -106,8 +106,8 @@ function createLEDEntry(spec: LEDSpec): ComponentLibraryEntry {
       maxCurrent: spec.maxCurrent,
       typicalCurrent: spec.typicalCurrent,
       reverseVoltage: 5, // Typical reverse voltage
-      wavelength: spec.wavelength,
-      luminousIntensity: spec.luminousIntensity,
+      ...(spec.wavelength && { wavelength: spec.wavelength }),
+      ...(spec.luminousIntensity && { luminousIntensity: spec.luminousIntensity }),
       color: spec.color,
     },
     visuals: {

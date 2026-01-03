@@ -62,6 +62,7 @@ export interface Component {
   type: ComponentType;
   positions: Position[]; // Positions this component occupies
   rotation: 0 | 90 | 180 | 270; // Component rotation in degrees
+  libraryId?: string; // Optional reference to ComponentLibraryEntry (for real-world parts)
 }
 
 /**
