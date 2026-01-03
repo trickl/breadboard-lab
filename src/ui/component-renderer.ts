@@ -128,8 +128,11 @@ export class ComponentRenderer {
       L ${end.x} ${end.y}
     `;
 
+    // Get wire color once and reuse it
+    const wireColor = this.getNextWireColor();
+    
     path.setAttribute('d', pathData.trim());
-    path.setAttribute('stroke', this.getNextWireColor());
+    path.setAttribute('stroke', wireColor);
     path.setAttribute('stroke-width', '3');
     path.setAttribute('fill', 'none');
     path.setAttribute('stroke-linecap', 'round');
@@ -138,8 +141,8 @@ export class ComponentRenderer {
     group.appendChild(path);
 
     // Add dots at endpoints to show connection points
-    this.addConnectionDot(group, start, path.getAttribute('stroke') || '#000');
-    this.addConnectionDot(group, end, path.getAttribute('stroke') || '#000');
+    this.addConnectionDot(group, start, wireColor);
+    this.addConnectionDot(group, end, wireColor);
   }
 
   /**
@@ -176,8 +179,8 @@ export class ComponentRenderer {
     group.appendChild(rect);
 
     // Draw leads
-    this.drawLead(group, start, centerX, centerY, angle);
-    this.drawLead(group, end, centerX, centerY, angle);
+    this.drawLead(group, start, centerX, centerY, angle, start, end);
+    this.drawLead(group, end, centerX, centerY, angle, start, end);
 
     // Add label
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -188,7 +191,14 @@ export class ComponentRenderer {
     text.setAttribute('fill', '#000');
     text.setAttribute('font-size', '10');
     text.setAttribute('font-weight', 'bold');
-    text.textContent = `${component.resistance / 1000}kΩ`;
+    
+    // Format resistance value appropriately
+    if (component.resistance >= 1000) {
+      text.textContent = `${component.resistance / 1000}kΩ`;
+    } else {
+      text.textContent = `${component.resistance}Ω`;
+    }
+    
     group.appendChild(text);
   }
 
@@ -366,7 +376,9 @@ export class ComponentRenderer {
     endPoint: { x: number; y: number },
     centerX: number,
     centerY: number,
-    angle: number
+    angle: number,
+    startPos: { x: number; y: number },
+    _endPos: { x: number; y: number }
   ): void {
     const leadLength = 20;
     const dx = Math.cos((angle * Math.PI) / 180) * leadLength;
@@ -374,8 +386,8 @@ export class ComponentRenderer {
 
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
 
-    // Determine if this is the start or end lead
-    const isStart = endPoint.x < centerX || (endPoint.x === centerX && endPoint.y < centerY);
+    // Determine if this is the start or end lead by comparing to original positions
+    const isStart = endPoint.x === startPos.x && endPoint.y === startPos.y;
 
     if (isStart) {
       line.setAttribute('x1', endPoint.x.toString());
