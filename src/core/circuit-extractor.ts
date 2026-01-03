@@ -17,17 +17,39 @@ export class CircuitExtractor {
     // Connect positions that are internally connected by breadboard
     // Terminal strips: each row is internally connected on each side
     for (let row = 0; row < BreadboardLayout.ROWS; row++) {
-      // Left terminal strip (cols 0-4)
-      for (let col = 0; col < BreadboardLayout.COLS_PER_SIDE; col++) {
-        if (col > 0) {
-          uf.union(this.positionToKey({ row, col: 0 }), this.positionToKey({ row, col }));
+      // Left terminal strip (cols 2-6)
+      for (let col = BreadboardLayout.STRIP_LEFT_START; col <= BreadboardLayout.STRIP_LEFT_END; col++) {
+        if (col > BreadboardLayout.STRIP_LEFT_START) {
+          uf.union(
+            this.positionToKey({ row, col: BreadboardLayout.STRIP_LEFT_START }),
+            this.positionToKey({ row, col })
+          );
         }
       }
-      // Right terminal strip (cols 5-9)
-      for (let col = BreadboardLayout.COLS_PER_SIDE; col < BreadboardLayout.COLS_PER_SIDE * 2; col++) {
-        if (col > BreadboardLayout.COLS_PER_SIDE) {
+      // Right terminal strip (cols 7-11)
+      for (let col = BreadboardLayout.STRIP_RIGHT_START; col <= BreadboardLayout.STRIP_RIGHT_END; col++) {
+        if (col > BreadboardLayout.STRIP_RIGHT_START) {
           uf.union(
-            this.positionToKey({ row, col: BreadboardLayout.COLS_PER_SIDE }),
+            this.positionToKey({ row, col: BreadboardLayout.STRIP_RIGHT_START }),
+            this.positionToKey({ row, col })
+          );
+        }
+      }
+    }
+
+    // Connect power rails: all holes in each rail are vertically connected
+    const railColumns = [
+      BreadboardLayout.RAIL_LEFT_NEGATIVE,
+      BreadboardLayout.RAIL_LEFT_POSITIVE,
+      BreadboardLayout.RAIL_RIGHT_POSITIVE,
+      BreadboardLayout.RAIL_RIGHT_NEGATIVE,
+    ];
+
+    for (const col of railColumns) {
+      for (let row = 0; row < BreadboardLayout.ROWS; row++) {
+        if (row > 0) {
+          uf.union(
+            this.positionToKey({ row: 0, col }),
             this.positionToKey({ row, col })
           );
         }
@@ -37,7 +59,7 @@ export class CircuitExtractor {
     // Group positions by their root (node) - this gives us the nodes
     const nodeGroups = new Map<string, Position[]>();
     for (let row = 0; row < BreadboardLayout.ROWS; row++) {
-      for (let col = 0; col < BreadboardLayout.COLS_PER_SIDE * 2; col++) {
+      for (let col = 0; col < BreadboardLayout.TOTAL_COLS; col++) {
         const pos = { row, col };
         if (BreadboardLayout.isValidPosition(pos)) {
           const key = this.positionToKey(pos);

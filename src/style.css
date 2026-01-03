@@ -178,6 +178,22 @@ body {
   background-color: #666;
 }
 
+/* Rail styling */
+.hole.rail-positive {
+  background-color: rgba(255, 51, 51, 0.2);
+  border: 2px solid rgba(255, 51, 51, 0.4);
+}
+
+.hole.rail-negative {
+  background-color: rgba(51, 51, 255, 0.2);
+  border: 2px solid rgba(51, 51, 255, 0.4);
+}
+
+.hole.rail-positive:hover,
+.hole.rail-negative:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
 .hole.power-positive {
   background-color: rgba(255, 51, 51, 0.3);
 }

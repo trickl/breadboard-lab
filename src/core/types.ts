@@ -12,6 +12,34 @@ export interface Position {
 }
 
 /**
+ * Terminal strip in the breadboard
+ */
+export interface Strip {
+  id: string;
+  holes: Position[];
+}
+
+/**
+ * Power rail in the breadboard
+ */
+export interface Rail {
+  id: string;
+  type: 'positive' | 'negative';
+  side: 'left' | 'right';
+  holes: Position[];
+}
+
+/**
+ * Complete breadboard topology
+ */
+export interface BreadboardTopology {
+  rows: number;
+  columns: number;
+  strips: Strip[];
+  rails: Rail[];
+}
+
+/**
  * Component types supported by the simulator
  */
 export enum ComponentType {
