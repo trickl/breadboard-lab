@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-03  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After merging PR #89 (Component selection and deletion)
+**Last Updated**: After merging PR #95 (Component value customization with property editor)
 
 ---
 
@@ -17,12 +17,12 @@ Breadboard Lab is a web-based electronics simulator that provides a visual bread
 The system supports exactly five component types:
 
 1. **Wire** - Connects two breadboard holes with minimal resistance (0.01Ω)
-2. **Resistor** - Fixed 1kΩ resistance
-3. **LED** - Forward voltage 2.0V, max current 0.02A
-4. **Power Supply** - Fixed 5V voltage source
+2. **Resistor** - Configurable resistance (default 1kΩ, range: > 0Ω)
+3. **LED** - Configurable forward voltage (default 2.0V, range: 0.1-5V), max current 0.02A
+4. **Power Supply** - Configurable voltage (default 5V, range: 1-20V)
 5. **Ground** - Circuit ground reference
 
-All component values are hardcoded and cannot be modified by the user.
+Component values for resistors, LEDs, and power supplies can be edited after placement through the property editor panel. Wires and ground components have no configurable properties.
 
 ---
 
@@ -84,10 +84,11 @@ The UI consists of three panels:
 
 - **Place component**: Select component type, click two holes
 - **Select component**: Click on a rendered component to select it (visual feedback: blue drop-shadow)
+- **Edit component values**: Select component to open property editor, modify values through text input or preset buttons
 - **Delete component**: Press Delete or Backspace key to remove selected component
 - **Deselect component**: Click breadboard background or another component
 - **Clear all**: Removes all components and resets the breadboard
-- **View circuit info**: Automatically updated after each placement or deletion
+- **View circuit info**: Automatically updated after each placement, deletion, or value change
 
 ### Component Selection and Deletion
 
@@ -111,16 +112,52 @@ The UI consists of three panels:
 - Component SVG groups have pointer events enabled (`pointer-events: auto`)
 - Components have cursor: pointer styling for interactivity
 - Keyboard event listener bound to document for Delete/Backspace keys
-- Event cleanup via `destroy()` method prevents memory leaks
+- Property editor input listeners attached dynamically when component selected
+- Event cleanup via `destroy()` method prevents memory leaks (includes debounce timer cleanup)
+
+### Component Property Editor
+
+**Property editing system**: When a component is selected, a property editor panel displays in the info panel, allowing users to modify component-specific values.
+
+**Editable component types**:
+- **Resistor**: Resistance value (Ω) with validation (must be > 0)
+- **LED**: Forward voltage (V) with validation (range: 0.1-5V)
+- **Power Supply**: Voltage (V) with validation (range: 1-20V)
+- **Wire/Ground**: No editable properties (property editor hidden)
+
+**Preset values**: Quick-select buttons for common values:
+- Resistor presets: 100Ω, 1kΩ, 10kΩ, 100kΩ
+- LED presets: 1.8V (IR), 2.0V (Red), 2.2V (Yellow), 3.0V (Blue)
+- Power supply presets: 3.3V, 5V, 9V, 12V
+
+**Input validation**:
+- Real-time validation on input change
+- Error messages displayed for invalid values (negative resistance, out-of-range voltages)
+- Invalid inputs show red border and error text
+- Preset buttons bypass validation (always valid values)
+
+**Update behavior**:
+- Component metadata updated in-place on valid input
+- Debounced re-render (300ms delay) prevents excessive updates during typing
+- Circuit re-extraction and simulation triggered automatically after debounce
+- Voltage heatmap and current animation reflect new values immediately
+- Component list displays updated values with smart formatting (e.g., "10kΩ" for 10000Ω)
+
+**UI characteristics**:
+- Property editor appears below component list when component selected
+- Editor hidden when component deselected or deleted
+- Class-based selectors (`.property-error`) avoid ID conflicts
+- Preset button handlers scoped to `.property-editor` container
+- Debounce timer cleaned up in `destroy()` method
 
 ### Limitations
 
-- No component editing or moving
+- No component moving (position cannot be changed after placement)
 - No undo/redo
 - No save/load functionality
 - No component rotation
 - No multi-select or bulk operations
-- No error highlighting or user feedback for invalid placements
+- No error highlighting for invalid placements (only for property values)
 
 ---
 
@@ -547,7 +584,7 @@ npm run format    # Run Prettier
 
 ### Test Coverage
 
-Seven test suites with 66 passing tests:
+Eight test suites with 78 passing tests:
 
 1. **breadboard-layout.test.ts** (9 tests)
    - Position validity checking
@@ -590,7 +627,7 @@ Seven test suites with 66 passing tests:
    - Component type support (wire, resistor, LED)
    - Edge cases (zero current, negative current, empty components, failed simulation)
 
-7. **breadboard-app.test.ts** (8 tests) — **New in PR #89**
+7. **breadboard-app.test.ts** (8 tests) — **From PR #89**
    - Component selection (click to select)
    - Component deselection (background click)
    - Deletion via Delete key
@@ -598,6 +635,15 @@ Seven test suites with 66 passing tests:
    - Circuit simulation updates after deletion
    - No deletion when nothing selected
    - Multiple component selection handling
+
+8. **property-editor.test.ts** (12 tests) — **New in PR #95**
+   - Property editor visibility toggle (shown when component selected, hidden otherwise)
+   - Type-specific field rendering (resistor, LED, power supply)
+   - Input value updates with debounce wait (resistance, voltage, forward voltage)
+   - Preset button behavior (applies preset values)
+   - Validation error handling (invalid values)
+   - Component type filtering (wire and ground have no property editor)
+   - Preset button counts for different component types
 
 ### Testing Approach
 
@@ -608,7 +654,6 @@ Seven test suites with 66 passing tests:
 
 ### Coverage Gaps
 
-- Limited tests for `BreadboardApp` (only selection/deletion covered)
 - No tests for component placement logic
 - No integration tests for voltage overlay rendering behavior
 - No integration tests for component rendering with voltage overlays
@@ -617,21 +662,22 @@ Seven test suites with 66 passing tests:
 
 ### Test Execution
 
-- All 66 tests pass
-- Test duration: Fast execution (typically < 200ms)
+- All 78 tests pass
+- Test duration: Fast execution (typically < 300ms, including async debounce waits)
 - No flaky tests observed
 
 ---
 
 ## Constraints and Assumptions
 
-### Hard-Coded Values
+### Fixed Values
 
-- Component values cannot be changed by users
 - Breadboard dimensions are fixed (30×10)
-- All resistors are 1kΩ
-- All power supplies are 5V
-- All LEDs have 2V forward voltage
+- Component default values (can be changed after placement via property editor):
+  - Resistors default to 1kΩ
+  - Power supplies default to 5V
+  - LEDs default to 2V forward voltage
+- Wire resistance is fixed at 0.01Ω (not configurable)
 
 ### Single-User Local Application
 
@@ -660,7 +706,7 @@ Seven test suites with 66 passing tests:
 
 ### Functional
 
-1. **No component editing**: Cannot change component values or positions after placement
+1. **No component position editing**: Cannot change component positions after placement (values can be edited)
 2. **No component dragging**: Components cannot be moved once placed (two-click placement only)
 3. **No error detection for circuit validity**: Limited validation of circuit correctness beyond ground/singularity checks
 4. **No persistence**: No save/load functionality
@@ -718,12 +764,12 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/core/breadboard-layout.ts` | 84 | Breadboard connectivity logic |
 | `src/core/circuit-extractor.ts` | 144 | Circuit graph extraction with union-find |
 | `src/core/circuit-simulator.ts` | 360 | DC circuit simulation using Modified Nodal Analysis |
-| `src/ui/breadboard-app.ts` | 569 | Main UI application class with selection/deletion logic |
+| `src/ui/breadboard-app.ts` | 833 | Main UI application class with selection/deletion and property editor logic |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
 | `src/ui/component-renderer.ts` | 452 | SVG-based visual component rendering with selection support |
 | `src/ui/current-animator.ts` | 426 | Animated current flow visualization using particles |
 | `src/main.ts` | 11 | Application entry point |
-| `src/style.css` | 252 | Application styles (includes .component-selected styling) |
+| `src/style.css` | 333 | Application styles (includes .component-selected and .property-editor styling) |
 
 ### Test Files
 
@@ -736,6 +782,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/ui/__tests__/component-renderer.test.ts` | 9 | Component visual rendering tests |
 | `src/ui/__tests__/current-animator.test.ts` | 11 | Current animation tests (particle system, magnitude scaling) |
 | `src/ui/__tests__/breadboard-app.test.ts` | 8 | Component selection and deletion interaction tests (PR #89) |
+| `src/ui/__tests__/property-editor.test.ts` | 12 | Property editor tests (visibility, editing, presets, validation) (PR #95) |
 
 ### Configuration Files
 
@@ -779,10 +826,10 @@ For clarity, these capabilities are explicitly **not present**:
 
 ## Verification
 
-This document describes the system as observed on 2026-01-03 after merging PR #89:
+This document describes the system as observed on 2026-01-03 after merging PR #95:
 
 - ✅ All source files examined
-- ✅ Tests executed successfully (66/66 passing)
+- ✅ Tests executed successfully (78/78 passing)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
@@ -794,5 +841,6 @@ This document describes the system as observed on 2026-01-03 after merging PR #8
 - ✅ MNA solver capabilities verified from PR #77 changes
 - ✅ Animated current flow visualization verified from PR #83 changes
 - ✅ Component selection and deletion capabilities verified from PR #89 changes
+- ✅ Component property editing capabilities verified from PR #95 changes
 
 This is a snapshot of reality, not aspirations or plans.
