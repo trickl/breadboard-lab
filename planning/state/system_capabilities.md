@@ -127,7 +127,7 @@ The UI consists of three panels:
 
 **Preset values**: Quick-select buttons for common values:
 - Resistor presets: 100Ω, 1kΩ, 10kΩ, 100kΩ
-- LED presets: 1.8V (IR), 2.0V (Red), 2.2V (Yellow), 3.0V (Blue)
+- LED presets: 1.8V (Infrared), 2.0V (Red), 2.2V (Yellow), 3.0V (Blue)
 - Power supply presets: 3.3V, 5V, 9V, 12V
 
 **Input validation**:
@@ -658,6 +658,7 @@ Eight test suites with 78 passing tests:
 - No integration tests for voltage overlay rendering behavior
 - No integration tests for component rendering with voltage overlays
 - No integration tests for current animation with full circuit simulation
+- No integration tests for property editor behavior with circuit simulation
 - No UI/end-to-end tests
 
 ### Test Execution
