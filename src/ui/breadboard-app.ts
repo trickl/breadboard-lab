@@ -23,6 +23,7 @@ import {
 import { EXAMPLE_CIRCUITS } from '@/examples';
 import { componentLibrary } from '@/core/component-library';
 import { ALL_LIBRARY_ENTRIES } from '@/library';
+import { AudioManager } from '@/audio/audio-manager';
 
 /**
  * Drag state for component repositioning
@@ -50,6 +51,7 @@ export class BreadboardApp {
   private currentAnimator: CurrentAnimator;
   private errorOverlayRenderer: ErrorOverlayRenderer;
   private explainPanel: ExplainPanel;
+  private audioManager: AudioManager;
   private componentIdCounter = 0;
   private tooltipElement: HTMLElement | null = null;
   private cachedCircuit: Circuit | null = null;
@@ -70,6 +72,7 @@ export class BreadboardApp {
     this.currentAnimator = new CurrentAnimator();
     this.errorOverlayRenderer = new ErrorOverlayRenderer();
     this.explainPanel = new ExplainPanel();
+    this.audioManager = new AudioManager();
     this.handleKeyDownBound = this.handleKeyDown.bind(this);
     this.handleMouseMoveBound = this.handleMouseMove.bind(this);
     this.handleMouseUpBound = this.handleMouseUp.bind(this);
@@ -114,6 +117,20 @@ export class BreadboardApp {
             <button id="save-btn" class="toolbar-btn">💾 Save Circuit</button>
             <button id="clear-btn" class="toolbar-btn" style="background: #ff4444; border-color: #ff5555;">🗑️ Clear All</button>
           </div>
+          <div class="audio-controls">
+            <h3>Audio Output</h3>
+            <button id="toggle-audio-btn" class="toolbar-btn audio-toggle" title="Enable audio output for speaker components">
+              🔇 Enable Sound
+            </button>
+            <div class="volume-control" id="volume-control-container" style="display: none;">
+              <label for="volume-slider">Volume</label>
+              <input type="range" id="volume-slider" min="0" max="100" value="50" />
+              <span id="volume-value">50%</span>
+            </div>
+            <div id="audio-indicator" class="audio-indicator" style="display: none;">
+              🔊 <span id="audio-speaker-count">0</span> speaker(s) active
+            </div>
+          </div>
         </div>
         <div class="workspace">
           <div class="breadboard-container">
@@ -136,6 +153,7 @@ export class BreadboardApp {
     this.renderBreadboard();
     this.attachEventListeners();
     this.updateCircuitInfo();
+    this.updateAudioControls();
   }
 
   /**
@@ -249,6 +267,10 @@ export class BreadboardApp {
         svg
       );
     }
+
+    // Update speaker audio based on simulation results
+    this.updateSpeakerAudio();
+    this.updateAudioControls();
   }
 
   /**
@@ -327,6 +349,24 @@ export class BreadboardApp {
     if (examplesBtn) {
       examplesBtn.addEventListener('click', () => {
         this.showExamplesDialog();
+      });
+    }
+
+    // Audio toggle button
+    const toggleAudioBtn = document.getElementById('toggle-audio-btn');
+    if (toggleAudioBtn) {
+      toggleAudioBtn.addEventListener('click', async () => {
+        await this.toggleAudio();
+      });
+    }
+
+    // Volume slider
+    const volumeSlider = document.getElementById('volume-slider') as HTMLInputElement;
+    if (volumeSlider) {
+      volumeSlider.addEventListener('input', (e) => {
+        const value = parseInt((e.target as HTMLInputElement).value) / 100;
+        this.audioManager.setVolume(value);
+        this.updateAudioControls();
       });
     }
 
@@ -422,7 +462,7 @@ export class BreadboardApp {
   }
 
   /**
-   * Handle keyboard events (Delete key, Escape key, R key)
+   * Handle keyboard events (Delete key, Escape key, R key, M key)
    */
   private handleKeyDown = (e: KeyboardEvent): void => {
     // Cancel drag on Escape
@@ -440,6 +480,12 @@ export class BreadboardApp {
         e.preventDefault();
         this.rotateSelectedComponent();
       }
+    }
+
+    // Toggle audio on M key (mute/unmute)
+    if (e.key === 'm' || e.key === 'M') {
+      e.preventDefault();
+      this.toggleAudio();
     }
 
     if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -473,6 +519,14 @@ export class BreadboardApp {
    */
   private deleteSelectedComponent(): void {
     if (!this.state.selectedComponentId) return;
+
+    // If deleting a speaker, remove its audio
+    const component = this.state.components.find(
+      (c) => c.id === this.state.selectedComponentId
+    );
+    if (component && component.libraryId === 'speaker-8ohm') {
+      this.audioManager.removeSpeaker(component.id);
+    }
 
     // Remove component from state
     this.state.components = this.state.components.filter(
@@ -2050,6 +2104,103 @@ export class BreadboardApp {
    */
   private markAsChanged(): void {
     this.hasUnsavedChanges = true;
+  }
+
+  /**
+   * Toggle audio output on/off
+   */
+  private async toggleAudio(): Promise<void> {
+    try {
+      if (this.audioManager.isEnabled()) {
+        this.audioManager.disable();
+      } else {
+        await this.audioManager.enable();
+      }
+      this.updateAudioControls();
+      this.updateSpeakerAudio();
+    } catch (error) {
+      alert('Failed to enable audio: ' + (error as Error).message);
+    }
+  }
+
+  /**
+   * Update audio controls UI based on current state
+   */
+  private updateAudioControls(): void {
+    const toggleBtn = document.getElementById('toggle-audio-btn');
+    const volumeContainer = document.getElementById('volume-control-container');
+    const volumeSlider = document.getElementById('volume-slider') as HTMLInputElement;
+    const volumeValue = document.getElementById('volume-value');
+    const audioIndicator = document.getElementById('audio-indicator');
+    const speakerCount = document.getElementById('audio-speaker-count');
+
+    if (toggleBtn) {
+      if (this.audioManager.isEnabled()) {
+        toggleBtn.textContent = '🔊 Disable Sound';
+        toggleBtn.classList.add('active');
+      } else {
+        toggleBtn.textContent = '🔇 Enable Sound';
+        toggleBtn.classList.remove('active');
+      }
+    }
+
+    if (volumeContainer) {
+      volumeContainer.style.display = this.audioManager.isEnabled() ? 'block' : 'none';
+    }
+
+    if (volumeSlider && volumeValue) {
+      const volume = Math.round(this.audioManager.getVolume() * 100);
+      volumeSlider.value = volume.toString();
+      volumeValue.textContent = `${volume}%`;
+    }
+
+    if (audioIndicator && speakerCount) {
+      const count = this.audioManager.getActiveSpeakerCount();
+      speakerCount.textContent = count.toString();
+      audioIndicator.style.display = this.audioManager.isEnabled() && count > 0 ? 'block' : 'none';
+    }
+  }
+
+  /**
+   * Update speaker audio based on current simulation results
+   */
+  private updateSpeakerAudio(): void {
+    if (!this.audioManager.isEnabled() || !this.cachedSimulation || !this.cachedCircuit) {
+      return;
+    }
+
+    // Find all speaker components
+    const speakerComponents = this.state.components.filter(
+      (comp) => comp.libraryId === 'speaker-8ohm'
+    );
+
+    // Track which speakers are active
+    const activeSpeakerIds = new Set<string>();
+
+    // Update audio for each speaker based on voltage/current
+    for (const speaker of speakerComponents) {
+      // Find the circuit edge for this speaker
+      const edge = this.cachedCircuit.edges.find((e) => e.component.id === speaker.id);
+      
+      if (edge) {
+        // Get voltage across speaker terminals
+        const nodeA = this.cachedCircuit.nodes.get(edge.nodeA);
+        const nodeB = this.cachedCircuit.nodes.get(edge.nodeB);
+        const voltageA = nodeA?.voltage ?? 0;
+        const voltageB = nodeB?.voltage ?? 0;
+        const voltage = Math.abs(voltageA - voltageB);
+
+        // Get current through speaker
+        const current = Math.abs(edge.current ?? 0);
+
+        // Update audio manager
+        this.audioManager.updateSpeaker(speaker.id, voltage, current);
+        activeSpeakerIds.add(speaker.id);
+      }
+    }
+
+    // AudioManager will automatically stop speakers when voltage/current is too low
+    // No need to explicitly track removed speakers here
   }
 
   /**
