@@ -31,6 +31,10 @@ export interface Rail {
 
 /**
  * Complete breadboard topology
+ * Note: This interface is defined to match the target architecture specified in
+ * planning/vision/goal.md. Currently, the BreadboardLayout class provides this
+ * functionality through static methods. Future refactoring may create an instance
+ * of this interface for more flexible breadboard configurations.
  */
 export interface BreadboardTopology {
   rows: number;
