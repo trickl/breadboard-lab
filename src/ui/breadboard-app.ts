@@ -5,6 +5,7 @@ import { CircuitExtractor } from '@/core/circuit-extractor';
 import { CircuitSimulator } from '@/core/circuit-simulator';
 import { voltageToColor } from './voltage-colors';
 import { ComponentRenderer } from './component-renderer';
+import { CurrentAnimator } from './current-animator';
 
 /**
  * Main application class managing the breadboard UI and simulation
@@ -16,6 +17,7 @@ export class BreadboardApp {
   private extractor: CircuitExtractor;
   private simulator: CircuitSimulator;
   private componentRenderer: ComponentRenderer;
+  private currentAnimator: CurrentAnimator;
   private componentIdCounter = 0;
   private tooltipElement: HTMLElement | null = null;
   private cachedCircuit: Circuit | null = null;
@@ -26,6 +28,7 @@ export class BreadboardApp {
     this.extractor = new CircuitExtractor();
     this.simulator = new CircuitSimulator();
     this.componentRenderer = new ComponentRenderer();
+    this.currentAnimator = new CurrentAnimator();
     this.render();
   }
 
@@ -141,6 +144,15 @@ export class BreadboardApp {
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
     breadboard.appendChild(svg);
+
+    // Start current animation if simulation succeeded
+    if (this.cachedSimulation && this.cachedSimulation.success) {
+      this.currentAnimator.start(
+        this.cachedSimulation,
+        this.state.components,
+        svg
+      );
+    }
   }
 
   /**
