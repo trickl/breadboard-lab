@@ -1,0 +1,83 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "name": "LED and Resistor",
+    "description": "The simplest circuit: an LED with a current-limiting resistor connected to a 5V power supply. This demonstrates basic circuit construction, voltage drop, and proper LED usage.",
+    "author": "Breadboard Lab",
+    "created": "2026-01-03T14:00:00.000Z"
+  },
+  "components": [
+    {
+      "id": "ps1",
+      "type": "POWER_SUPPLY",
+      "positions": [
+        { "row": 5, "col": 2 },
+        { "row": 5, "col": 7 }
+      ],
+      "rotation": 0,
+      "metadata": { "voltage": 5 }
+    },
+    {
+      "id": "r1",
+      "type": "RESISTOR",
+      "positions": [
+        { "row": 10, "col": 2 },
+        { "row": 15, "col": 2 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 220 }
+    },
+    {
+      "id": "led1",
+      "type": "LED",
+      "positions": [
+        { "row": 17, "col": 2 },
+        { "row": 20, "col": 2 }
+      ],
+      "rotation": 0,
+      "metadata": { "forwardVoltage": 2.0, "maxCurrent": 0.02 }
+    },
+    {
+      "id": "w1",
+      "type": "WIRE",
+      "positions": [
+        { "row": 5, "col": 2 },
+        { "row": 10, "col": 2 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w2",
+      "type": "WIRE",
+      "positions": [
+        { "row": 20, "col": 2 },
+        { "row": 25, "col": 2 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "gnd1",
+      "type": "GROUND",
+      "positions": [{ "row": 25, "col": 2 }],
+      "rotation": 0
+    },
+    {
+      "id": "w3",
+      "type": "WIRE",
+      "positions": [
+        { "row": 5, "col": 7 },
+        { "row": 25, "col": 7 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "gnd2",
+      "type": "GROUND",
+      "positions": [{ "row": 25, "col": 7 }],
+      "rotation": 0
+    }
+  ]
+}

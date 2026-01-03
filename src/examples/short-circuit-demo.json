@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "name": "Short Circuit Demo",
+    "description": "A demonstration circuit with an intentional short circuit error. The power supply is directly connected to ground without any resistance, which will be detected by the error system. This teaches what short circuits look like and why they're dangerous.",
+    "author": "Breadboard Lab",
+    "created": "2026-01-03T14:00:00.000Z"
+  },
+  "components": [
+    {
+      "id": "ps1",
+      "type": "POWER_SUPPLY",
+      "positions": [
+        { "row": 10, "col": 5 },
+        { "row": 10, "col": 10 }
+      ],
+      "rotation": 0,
+      "metadata": { "voltage": 5 }
+    },
+    {
+      "id": "w1",
+      "type": "WIRE",
+      "positions": [
+        { "row": 10, "col": 5 },
+        { "row": 20, "col": 5 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "gnd1",
+      "type": "GROUND",
+      "positions": [{ "row": 20, "col": 5 }],
+      "rotation": 0
+    },
+    {
+      "id": "w2",
+      "type": "WIRE",
+      "positions": [
+        { "row": 10, "col": 10 },
+        { "row": 20, "col": 10 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "gnd2",
+      "type": "GROUND",
+      "positions": [{ "row": 20, "col": 10 }],
+      "rotation": 0
+    }
+  ]
+}

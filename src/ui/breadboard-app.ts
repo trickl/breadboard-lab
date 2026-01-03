@@ -8,6 +8,19 @@ import { ComponentRenderer } from './component-renderer';
 import { CurrentAnimator } from './current-animator';
 import { ErrorOverlayRenderer } from './error-overlay-renderer';
 import { ExplainPanel } from './explain-panel';
+import {
+  serializeCircuit,
+  deserializeCircuit,
+  type CircuitMetadata,
+} from '@/core/circuit-serializer';
+import {
+  saveToLocalStorage,
+  loadFromLocalStorage,
+  listSavedCircuits,
+  downloadCircuitFile,
+  uploadCircuitFile,
+} from '@/core/circuit-storage';
+import { EXAMPLE_CIRCUITS } from '@/examples';
 
 /**
  * Drag state for component repositioning
@@ -43,6 +56,8 @@ export class BreadboardApp {
   private dragState: DragState | null = null;
   private handleMouseMoveBound: (e: MouseEvent) => void;
   private handleMouseUpBound: (e: MouseEvent) => void;
+  private currentCircuitMetadata: CircuitMetadata | null = null;
+  private hasUnsavedChanges = false;
 
   constructor(private container: HTMLElement) {
     this.state = { components: [], selectedComponentId: null };
@@ -77,10 +92,11 @@ export class BreadboardApp {
             <button class="component-button" data-component="POWER_SUPPLY">⚡ Power (5V)</button>
             <button class="component-button" data-component="GROUND">⏚ Ground</button>
           </div>
-          <div style="margin-top: 2rem;">
-            <button id="clear-btn" style="width: 100%; padding: 0.75rem; background: #ff4444; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">
-              Clear All
-            </button>
+          <div class="toolbar-actions">
+            <button id="examples-btn" class="toolbar-btn primary">📚 Examples</button>
+            <button id="load-btn" class="toolbar-btn">📂 Load Circuit</button>
+            <button id="save-btn" class="toolbar-btn">💾 Save Circuit</button>
+            <button id="clear-btn" class="toolbar-btn" style="background: #ff4444; border-color: #ff5555;">🗑️ Clear All</button>
           </div>
         </div>
         <div class="workspace">
@@ -251,10 +267,41 @@ export class BreadboardApp {
     const clearBtn = document.getElementById('clear-btn');
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
+        if (this.hasUnsavedChanges && this.state.components.length > 0) {
+          if (!confirm('You have unsaved changes. Clear the circuit anyway?')) {
+            return;
+          }
+        }
         this.state.components = [];
         this.state.selectedComponentId = null;
         this.placementStart = null;
+        this.hasUnsavedChanges = false;
+        this.currentCircuitMetadata = null;
         this.render();
+      });
+    }
+
+    // Save button
+    const saveBtn = document.getElementById('save-btn');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => {
+        this.showSaveDialog();
+      });
+    }
+
+    // Load button
+    const loadBtn = document.getElementById('load-btn');
+    if (loadBtn) {
+      loadBtn.addEventListener('click', () => {
+        this.showLoadDialog();
+      });
+    }
+
+    // Examples button
+    const examplesBtn = document.getElementById('examples-btn');
+    if (examplesBtn) {
+      examplesBtn.addEventListener('click', () => {
+        this.showExamplesDialog();
       });
     }
 
@@ -410,6 +457,9 @@ export class BreadboardApp {
     // Clear selection
     this.state.selectedComponentId = null;
 
+    // Mark as changed
+    this.markAsChanged();
+
     // Re-render to update circuit
     this.render();
   }
@@ -442,6 +492,9 @@ export class BreadboardApp {
     // Update component rotation and positions
     component.rotation = nextRotation;
     component.positions = newPositions;
+
+    // Mark as changed
+    this.markAsChanged();
 
     // Re-render to update circuit
     this.render();
@@ -610,6 +663,7 @@ export class BreadboardApp {
     }
 
     this.state.components.push(component);
+    this.markAsChanged();
   }
 
   /**
@@ -940,6 +994,8 @@ export class BreadboardApp {
       clearTimeout(this.updateDebounceTimer);
     }
     
+    this.markAsChanged();
+    
     this.updateDebounceTimer = window.setTimeout(() => {
       this.render();
       this.updateDebounceTimer = null;
@@ -1146,6 +1202,7 @@ export class BreadboardApp {
       const component = this.state.components.find((c) => c.id === this.dragState!.componentId);
       if (component) {
         component.positions = this.dragState.previewPositions;
+        this.markAsChanged();
       }
     }
 
@@ -1229,5 +1286,436 @@ export class BreadboardApp {
     }
 
     return true;
+  }
+
+  /**
+   * Show save dialog
+   */
+  private showSaveDialog(): void {
+    const defaultName = this.currentCircuitMetadata?.name || 'My Circuit';
+    const defaultDescription = this.currentCircuitMetadata?.description || '';
+
+    const modalHTML = `
+      <div class="modal-overlay visible" id="save-modal">
+        <div class="modal">
+          <div class="modal-header">
+            <h2>💾 Save Circuit</h2>
+            <button class="modal-close" id="save-modal-close">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="circuit-name">Circuit Name</label>
+              <input type="text" id="circuit-name" value="${this.escapeHtml(defaultName)}" placeholder="Enter circuit name">
+            </div>
+            <div class="form-group">
+              <label for="circuit-description">Description (optional)</label>
+              <textarea id="circuit-description" placeholder="Describe what this circuit does">${this.escapeHtml(defaultDescription)}</textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="save-cancel">Cancel</button>
+            <button class="btn btn-secondary" id="save-download">Download JSON</button>
+            <button class="btn btn-primary" id="save-local">Save Locally</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Attach event listeners
+    document.getElementById('save-modal-close')?.addEventListener('click', () => {
+      this.closeModal('save-modal');
+    });
+
+    document.getElementById('save-cancel')?.addEventListener('click', () => {
+      this.closeModal('save-modal');
+    });
+
+    document.getElementById('save-download')?.addEventListener('click', () => {
+      const name = (document.getElementById('circuit-name') as HTMLInputElement).value;
+      const description = (document.getElementById('circuit-description') as HTMLTextAreaElement)
+        .value;
+      this.downloadCircuit(name, description);
+      this.closeModal('save-modal');
+    });
+
+    document.getElementById('save-local')?.addEventListener('click', () => {
+      const name = (document.getElementById('circuit-name') as HTMLInputElement).value;
+      const description = (document.getElementById('circuit-description') as HTMLTextAreaElement)
+        .value;
+      this.saveCircuitLocally(name, description);
+      this.closeModal('save-modal');
+    });
+
+    // Close on overlay click
+    document.getElementById('save-modal')?.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        this.closeModal('save-modal');
+      }
+    });
+  }
+
+  /**
+   * Show load dialog
+   */
+  private showLoadDialog(): void {
+    const savedCircuits = listSavedCircuits();
+
+    let listHTML = '';
+    if (savedCircuits.length === 0) {
+      listHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📂</div>
+          <div class="empty-state-text">No saved circuits yet</div>
+        </div>
+      `;
+    } else {
+      listHTML = `
+        <div class="list-container">
+          ${savedCircuits
+            .map(
+              (circuit) => `
+            <div class="list-item" data-circuit-name="${this.escapeHtml(circuit.name)}">
+              <div class="list-item-title">${this.escapeHtml(circuit.name)}</div>
+              ${circuit.description ? `<div class="list-item-description">${this.escapeHtml(circuit.description)}</div>` : ''}
+              <div class="list-item-meta">
+                <span>Last modified: ${this.formatDate(circuit.modified || circuit.created)}</span>
+              </div>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      `;
+    }
+
+    const modalHTML = `
+      <div class="modal-overlay visible" id="load-modal">
+        <div class="modal">
+          <div class="modal-header">
+            <h2>📂 Load Circuit</h2>
+            <button class="modal-close" id="load-modal-close">×</button>
+          </div>
+          <div class="modal-body">
+            <h3 style="margin-bottom: 1rem;">Saved Circuits</h3>
+            ${listHTML}
+            <hr class="divider">
+            <button class="file-upload-btn" id="upload-file-btn">
+              📄 Upload from File
+            </button>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="load-cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Attach event listeners
+    document.getElementById('load-modal-close')?.addEventListener('click', () => {
+      this.closeModal('load-modal');
+    });
+
+    document.getElementById('load-cancel')?.addEventListener('click', () => {
+      this.closeModal('load-modal');
+    });
+
+    // Load circuit on click
+    document.querySelectorAll('#load-modal .list-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const circuitName = (item as HTMLElement).dataset.circuitName;
+        if (circuitName) {
+          this.loadCircuitFromStorage(circuitName);
+          this.closeModal('load-modal');
+        }
+      });
+    });
+
+    // File upload
+    document.getElementById('upload-file-btn')?.addEventListener('click', async () => {
+      try {
+        const json = await uploadCircuitFile();
+        this.loadCircuitFromJSON(json);
+        this.closeModal('load-modal');
+      } catch (error) {
+        if (error instanceof Error && error.message !== 'File selection cancelled') {
+          alert('Failed to load circuit: ' + error.message);
+        }
+      }
+    });
+
+    // Close on overlay click
+    document.getElementById('load-modal')?.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        this.closeModal('load-modal');
+      }
+    });
+  }
+
+  /**
+   * Show examples dialog
+   */
+  private showExamplesDialog(): void {
+    const listHTML = `
+      <div class="list-container">
+        ${EXAMPLE_CIRCUITS.map(
+          (example) => `
+          <div class="list-item" data-example-id="${example.id}">
+            <div class="list-item-title">
+              ${this.escapeHtml(example.name)}
+              <span class="list-item-badge ${example.category}">${example.category}</span>
+            </div>
+            <div class="list-item-description">${this.escapeHtml(example.description)}</div>
+            <div class="learning-objectives">
+              <h4>What you'll learn:</h4>
+              <ul>
+                ${example.learningObjectives.map((obj) => `<li>${this.escapeHtml(obj)}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+        `
+        ).join('')}
+      </div>
+    `;
+
+    const modalHTML = `
+      <div class="modal-overlay visible" id="examples-modal">
+        <div class="modal">
+          <div class="modal-header">
+            <h2>📚 Example Circuits</h2>
+            <button class="modal-close" id="examples-modal-close">×</button>
+          </div>
+          <div class="modal-body">
+            <p style="margin-bottom: 1rem; color: #999;">Click an example to load it into the breadboard</p>
+            ${listHTML}
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="examples-cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Attach event listeners
+    document.getElementById('examples-modal-close')?.addEventListener('click', () => {
+      this.closeModal('examples-modal');
+    });
+
+    document.getElementById('examples-cancel')?.addEventListener('click', () => {
+      this.closeModal('examples-modal');
+    });
+
+    // Load example on click
+    document.querySelectorAll('#examples-modal .list-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const exampleId = (item as HTMLElement).dataset.exampleId;
+        if (exampleId) {
+          this.loadExample(exampleId);
+          this.closeModal('examples-modal');
+        }
+      });
+    });
+
+    // Close on overlay click
+    document.getElementById('examples-modal')?.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        this.closeModal('examples-modal');
+      }
+    });
+  }
+
+  /**
+   * Close modal dialog
+   */
+  private closeModal(modalId: string): void {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.remove();
+    }
+  }
+
+  /**
+   * Save circuit to localStorage
+   */
+  private saveCircuitLocally(name: string, description: string): void {
+    if (!name.trim()) {
+      alert('Please enter a circuit name');
+      return;
+    }
+
+    try {
+      const metadata: Partial<CircuitMetadata> = {
+        name: name.trim(),
+        description: description.trim() || undefined,
+        author: 'User',
+        created: this.currentCircuitMetadata?.created,
+      };
+
+      const json = serializeCircuit(this.state, metadata);
+      saveToLocalStorage(name.trim(), json);
+
+      this.currentCircuitMetadata = JSON.parse(json).metadata;
+      this.hasUnsavedChanges = false;
+
+      alert(`Circuit "${name}" saved successfully!`);
+    } catch (error) {
+      alert('Failed to save circuit: ' + (error as Error).message);
+    }
+  }
+
+  /**
+   * Download circuit as JSON file
+   */
+  private downloadCircuit(name: string, description: string): void {
+    if (!name.trim()) {
+      alert('Please enter a circuit name');
+      return;
+    }
+
+    try {
+      const metadata: Partial<CircuitMetadata> = {
+        name: name.trim(),
+        description: description.trim() || undefined,
+        author: 'User',
+        created: this.currentCircuitMetadata?.created,
+      };
+
+      const json = serializeCircuit(this.state, metadata);
+      const filename = name.trim().toLowerCase().replace(/\s+/g, '-');
+      downloadCircuitFile(json, filename);
+
+      this.currentCircuitMetadata = JSON.parse(json).metadata;
+      this.hasUnsavedChanges = false;
+    } catch (error) {
+      alert('Failed to download circuit: ' + (error as Error).message);
+    }
+  }
+
+  /**
+   * Load circuit from localStorage
+   */
+  private loadCircuitFromStorage(name: string): void {
+    if (this.hasUnsavedChanges && this.state.components.length > 0) {
+      if (!confirm('You have unsaved changes. Load anyway?')) {
+        return;
+      }
+    }
+
+    try {
+      const json = loadFromLocalStorage(name);
+      if (!json) {
+        alert('Circuit not found');
+        return;
+      }
+
+      this.loadCircuitFromJSON(json);
+    } catch (error) {
+      alert('Failed to load circuit: ' + (error as Error).message);
+    }
+  }
+
+  /**
+   * Load circuit from JSON string
+   */
+  private loadCircuitFromJSON(json: string): void {
+    try {
+      const { state, metadata } = deserializeCircuit(json);
+
+      this.state = state;
+      this.currentCircuitMetadata = metadata;
+      this.hasUnsavedChanges = false;
+      this.selectedComponentType = null;
+      this.placementStart = null;
+
+      // Update component ID counter to avoid conflicts
+      let maxId = 0;
+      for (const component of this.state.components) {
+        // Extract numeric ID from any component ID format (component-N, comp_N, etc.)
+        const idMatch = component.id.match(/\d+$/);
+        if (idMatch) {
+          const id = parseInt(idMatch[0]);
+          if (id > maxId) {
+            maxId = id;
+          }
+        }
+      }
+      this.componentIdCounter = maxId + 1;
+
+      this.render();
+    } catch (error) {
+      alert('Failed to load circuit: ' + (error as Error).message);
+    }
+  }
+
+  /**
+   * Load an example circuit
+   */
+  private loadExample(exampleId: string): void {
+    if (this.hasUnsavedChanges && this.state.components.length > 0) {
+      if (
+        !confirm(
+          'Loading an example will replace your current circuit. You have unsaved changes. Continue anyway?'
+        )
+      ) {
+        return;
+      }
+    }
+
+    const example = EXAMPLE_CIRCUITS.find((e) => e.id === exampleId);
+    if (!example) {
+      alert('Example not found');
+      return;
+    }
+
+    try {
+      this.loadCircuitFromJSON(example.json);
+    } catch (error) {
+      alert('Failed to load example: ' + (error as Error).message);
+    }
+  }
+
+  /**
+   * Escape HTML for safe rendering
+   */
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  /**
+   * Format date for display
+   */
+  private formatDate(isoString: string): string {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) {
+      return 'just now';
+    } else if (diffMins < 60) {
+      return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    } else if (diffDays < 7) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  }
+
+  /**
+   * Mark state as changed
+   */
+  private markAsChanged(): void {
+    this.hasUnsavedChanges = true;
   }
 }
