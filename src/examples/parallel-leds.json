@@ -1,0 +1,203 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "name": "Parallel LEDs",
+    "description": "Three LEDs connected in parallel, each with its own current-limiting resistor. This demonstrates parallel circuits, current division, and the importance of individual current limiting for parallel LEDs.",
+    "author": "Breadboard Lab",
+    "created": "2026-01-03T14:00:00.000Z"
+  },
+  "components": [
+    {
+      "id": "ps1",
+      "type": "POWER_SUPPLY",
+      "positions": [
+        { "row": 3, "col": 2 },
+        { "row": 3, "col": 12 }
+      ],
+      "rotation": 0,
+      "metadata": { "voltage": 5 }
+    },
+    {
+      "id": "r1",
+      "type": "RESISTOR",
+      "positions": [
+        { "row": 8, "col": 2 },
+        { "row": 13, "col": 2 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 220 }
+    },
+    {
+      "id": "led1",
+      "type": "LED",
+      "positions": [
+        { "row": 15, "col": 2 },
+        { "row": 18, "col": 2 }
+      ],
+      "rotation": 0,
+      "metadata": { "forwardVoltage": 2.0, "maxCurrent": 0.02 }
+    },
+    {
+      "id": "r2",
+      "type": "RESISTOR",
+      "positions": [
+        { "row": 8, "col": 6 },
+        { "row": 13, "col": 6 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 220 }
+    },
+    {
+      "id": "led2",
+      "type": "LED",
+      "positions": [
+        { "row": 15, "col": 6 },
+        { "row": 18, "col": 6 }
+      ],
+      "rotation": 0,
+      "metadata": { "forwardVoltage": 2.0, "maxCurrent": 0.02 }
+    },
+    {
+      "id": "r3",
+      "type": "RESISTOR",
+      "positions": [
+        { "row": 8, "col": 10 },
+        { "row": 13, "col": 10 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 220 }
+    },
+    {
+      "id": "led3",
+      "type": "LED",
+      "positions": [
+        { "row": 15, "col": 10 },
+        { "row": 18, "col": 10 }
+      ],
+      "rotation": 0,
+      "metadata": { "forwardVoltage": 2.0, "maxCurrent": 0.02 }
+    },
+    {
+      "id": "w1",
+      "type": "WIRE",
+      "positions": [
+        { "row": 3, "col": 2 },
+        { "row": 8, "col": 2 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w2",
+      "type": "WIRE",
+      "positions": [
+        { "row": 3, "col": 2 },
+        { "row": 3, "col": 6 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w3",
+      "type": "WIRE",
+      "positions": [
+        { "row": 3, "col": 6 },
+        { "row": 8, "col": 6 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w4",
+      "type": "WIRE",
+      "positions": [
+        { "row": 3, "col": 6 },
+        { "row": 3, "col": 10 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w5",
+      "type": "WIRE",
+      "positions": [
+        { "row": 3, "col": 10 },
+        { "row": 8, "col": 10 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w6",
+      "type": "WIRE",
+      "positions": [
+        { "row": 18, "col": 2 },
+        { "row": 22, "col": 2 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w7",
+      "type": "WIRE",
+      "positions": [
+        { "row": 18, "col": 6 },
+        { "row": 22, "col": 6 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w8",
+      "type": "WIRE",
+      "positions": [
+        { "row": 18, "col": 10 },
+        { "row": 22, "col": 10 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w9",
+      "type": "WIRE",
+      "positions": [
+        { "row": 22, "col": 2 },
+        { "row": 22, "col": 6 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w10",
+      "type": "WIRE",
+      "positions": [
+        { "row": 22, "col": 6 },
+        { "row": 22, "col": 10 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "gnd1",
+      "type": "GROUND",
+      "positions": [{ "row": 22, "col": 10 }],
+      "rotation": 0
+    },
+    {
+      "id": "w11",
+      "type": "WIRE",
+      "positions": [
+        { "row": 3, "col": 12 },
+        { "row": 22, "col": 12 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "gnd2",
+      "type": "GROUND",
+      "positions": [{ "row": 22, "col": 12 }],
+      "rotation": 0
+    }
+  ]
+}
