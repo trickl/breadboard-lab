@@ -6,6 +6,8 @@ import { CircuitSimulator } from '@/core/circuit-simulator';
 import { voltageToColor } from './voltage-colors';
 import { ComponentRenderer } from './component-renderer';
 import { CurrentAnimator } from './current-animator';
+import { ErrorOverlayRenderer } from './error-overlay-renderer';
+import { ExplainPanel } from './explain-panel';
 
 /**
  * Drag state for component repositioning
@@ -30,6 +32,8 @@ export class BreadboardApp {
   private simulator: CircuitSimulator;
   private componentRenderer: ComponentRenderer;
   private currentAnimator: CurrentAnimator;
+  private errorOverlayRenderer: ErrorOverlayRenderer;
+  private explainPanel: ExplainPanel;
   private componentIdCounter = 0;
   private tooltipElement: HTMLElement | null = null;
   private cachedCircuit: Circuit | null = null;
@@ -46,6 +50,8 @@ export class BreadboardApp {
     this.simulator = new CircuitSimulator();
     this.componentRenderer = new ComponentRenderer();
     this.currentAnimator = new CurrentAnimator();
+    this.errorOverlayRenderer = new ErrorOverlayRenderer();
+    this.explainPanel = new ExplainPanel();
     this.handleKeyDownBound = this.handleKeyDown.bind(this);
     this.handleMouseMoveBound = this.handleMouseMove.bind(this);
     this.handleMouseUpBound = this.handleMouseUp.bind(this);
@@ -91,6 +97,10 @@ export class BreadboardApp {
     `;
 
     this.tooltipElement = document.getElementById('voltage-tooltip');
+    
+    // Initialize explain panel
+    this.explainPanel.initialize(this.container);
+    
     this.renderBreadboard();
     this.attachEventListeners();
     this.updateCircuitInfo();
@@ -171,6 +181,21 @@ export class BreadboardApp {
 
     // Attach component click handlers
     this.attachComponentEventHandlers(svg);
+
+    // Update explain panel with current circuit data
+    if (this.cachedCircuit && this.cachedSimulation) {
+      this.explainPanel.updateCircuitData(
+        this.cachedCircuit,
+        this.cachedSimulation,
+        this.state.components
+      );
+    }
+
+    // Render error overlays if there are errors
+    if (this.cachedSimulation && this.cachedSimulation.errors.length > 0) {
+      this.errorOverlayRenderer.renderErrors(this.cachedSimulation.errors, svg);
+      this.attachErrorIconHandlers(svg);
+    }
 
     // Start current animation if simulation succeeded
     if (this.cachedSimulation && this.cachedSimulation.success) {
@@ -274,6 +299,8 @@ export class BreadboardApp {
         const componentId = (componentEl as HTMLElement).dataset.componentId;
         if (componentId && !this.dragState) {
           this.selectComponentById(componentId);
+          // Show explain panel for component
+          this.explainPanel.show({ type: 'component', componentId });
         }
       });
 
@@ -294,7 +321,31 @@ export class BreadboardApp {
     svg.addEventListener('click', (e) => {
       if (e.target === svg && !this.dragState) {
         this.deselectComponent();
+        this.explainPanel.hide();
       }
+    });
+  }
+
+  /**
+   * Attach event handlers to error icon SVG elements
+   */
+  private attachErrorIconHandlers(svg: SVGElement): void {
+    const errorIcons = svg.querySelectorAll('.error-icon');
+    errorIcons.forEach((iconEl) => {
+      iconEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        const message = iconEl.getAttribute('data-error-message') || '';
+        const explanation = iconEl.getAttribute('data-error-explanation') || '';
+        const suggestionsStr = iconEl.getAttribute('data-error-suggestions') || '[]';
+        const suggestions = JSON.parse(suggestionsStr);
+        
+        // Show explain panel with error information
+        this.explainPanel.show({
+          type: 'error',
+          errorData: { message, explanation, suggestions },
+        });
+      });
     });
   }
 
@@ -470,6 +521,16 @@ export class BreadboardApp {
    */
   private handleHoleClick(position: Position): void {
     if (!this.selectedComponentType) {
+      // No component type selected - show node information in explain panel
+      if (this.cachedCircuit && this.cachedSimulation && this.cachedSimulation.success) {
+        const positionToNode = this.buildPositionToNodeMap(this.cachedCircuit);
+        const posKey = this.positionToKey(position);
+        const nodeId = positionToNode.get(posKey);
+        
+        if (nodeId) {
+          this.explainPanel.show({ type: 'node', nodeId });
+        }
+      }
       return;
     }
 

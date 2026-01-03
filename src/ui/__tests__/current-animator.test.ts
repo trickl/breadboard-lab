@@ -60,6 +60,7 @@ describe('CurrentAnimator', () => {
         edgeCurrents: new Map([
           ['wire1', 1e-7], // 0.1µA - below 1µA threshold
         ]),
+        errors: [],
       };
 
       const components: AnyComponent[] = [
@@ -92,6 +93,7 @@ describe('CurrentAnimator', () => {
         edgeCurrents: new Map([
           ['wire1', 0.005], // 5mA - well above threshold
         ]),
+        errors: [],
       };
 
       const components: AnyComponent[] = [
