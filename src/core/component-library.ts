@@ -70,9 +70,12 @@ export const componentLibrary = new ComponentLibrary();
 
 /**
  * Initialize the component library with default components
- * This will be populated with real-world parts in the next phase
  */
 export function initializeComponentLibrary(): void {
-  // Library will be populated with real-world parts
-  // Phase 2 will add resistors, LEDs, speakers, wires, power supplies
+  // Dynamically import library entries to avoid circular dependencies
+  import('../library').then(({ ALL_LIBRARY_ENTRIES }) => {
+    ALL_LIBRARY_ENTRIES.forEach((entry) => {
+      componentLibrary.register(entry);
+    });
+  });
 }
