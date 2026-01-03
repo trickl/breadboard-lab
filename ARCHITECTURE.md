@@ -39,8 +39,15 @@ The core layer contains all domain logic and is completely independent of the UI
 
 **breadboard-layout.ts**
 - Models the physical breadboard structure
-- 30 rows × 10 columns (5 per side)
-- Terminal strips: horizontal connections within each row
+- 30 rows × 14 columns (4 power rail columns + 10 terminal strip columns)
+- **Power rails**: 4 vertical rails (left negative, left positive, right positive, right negative)
+  - All holes within a rail are vertically connected
+  - Rails run the full 30 rows
+  - Color-coded: red for positive (+), blue for negative (-)
+- **Terminal strips**: horizontal connections within each row
+  - Left strip: columns 2-6
+  - Right strip: columns 7-11
+  - Center gap between left and right strips
 - Pure functions for checking connections and validity
 - No state, fully deterministic
 
