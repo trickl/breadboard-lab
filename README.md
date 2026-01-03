@@ -20,9 +20,14 @@ An open-source, browser-based breadboard simulator designed to teach electronics
 - **Component Rendering**: Visual representation of components with proper symbols and labels
 - **Error Detection**: Identifies short circuits, floating nodes, reversed LEDs, and other common mistakes
 - **Educational Explanations**: Click on components or errors to see detailed explanations and suggestions
+- **Audio Output**: Speaker components produce real browser audio via Web Audio API:
+  - Enable/disable sound with toggle button or M key
+  - Adjustable volume control
+  - Audio waveform derived from circuit voltage and current
+  - Multiple speakers supported simultaneously
 - **Clean Architecture**: Separation of concerns between UI, circuit extraction, and simulation layers
 - **Strong Typing**: Fully typed with TypeScript for reliability and maintainability
-- **Test Coverage**: Unit tests for core logic (breadboard layout, circuit extraction, simulation, animation)
+- **Test Coverage**: Unit tests for core logic (breadboard layout, circuit extraction, simulation, animation, audio)
 
 ## Getting Started
 
@@ -76,14 +81,33 @@ npm run lint
 
 ## Usage
 
-1. **Select a Component**: Click on a component button in the left toolbar (Wire, Resistor, LED, Power Supply, or Ground)
+1. **Select a Component**: Click on a component button in the left toolbar (Wire, Resistor, LED, Power Supply, Ground, or Speaker)
 2. **Place Component**: Click on a breadboard hole for the first pin, then click on another hole for the second pin
 3. **View Circuit Info**: The right panel shows component count, circuit nodes, connections, and simulation status
 4. **Observe Visualization**: 
    - Voltage levels shown as color-coded overlays on breadboard holes (hover for exact values)
    - Current flow shown as animated blue particles moving along wires and components
    - Particle speed and density indicate current magnitude
-5. **Clear All**: Click the "Clear All" button to remove all components and start over
+5. **Enable Audio** (for speaker components):
+   - Click the "🔇 Enable Sound" button in the Audio Output section
+   - Or press the **M** key to toggle audio on/off
+   - Adjust volume with the slider
+   - Speaker components will produce sound based on circuit voltage and current
+   - Audio is disabled by default and requires user interaction to start
+6. **Clear All**: Click the "Clear All" button to remove all components and start over
+
+### Audio Output
+
+When audio is enabled and a speaker component is connected to a circuit:
+- **Frequency**: Derived from voltage across speaker terminals (0-5V maps to 200-2000Hz logarithmically)
+- **Amplitude**: Derived from current through speaker (0-20mA range)
+- **Real-time Updates**: Audio adjusts automatically when circuit values change
+- **Multiple Speakers**: Each speaker in the circuit produces independent sound
+- **Smooth Transitions**: Parameter changes use 50ms ramp to avoid clicks and pops
+
+**Example circuits to try:**
+- Simple buzzer: Connect power supply → speaker → ground (constant tone)
+- Variable tone: Power supply → resistor → speaker → ground (change resistor value to change pitch)
 
 ### Current Flow Animation
 
@@ -123,6 +147,14 @@ See [COMPONENT_LIBRARY.md](COMPONENT_LIBRARY.md) for detailed library documentat
 - **component-renderer.ts**: Renders visual representations of components as SVG elements
 - **current-animator.ts**: Animates current flow using particles along circuit paths
 - **voltage-colors.ts**: Maps voltage values to color-blind friendly color gradients
+
+### Audio Layer (`src/audio/`)
+
+- **audio-manager.ts**: Manages Web Audio API integration for speaker audio output
+  - Creates and manages oscillator nodes per speaker
+  - Maps voltage to frequency and current to amplitude
+  - Handles smooth parameter transitions
+  - Manages master volume and enable/disable state
 
 ### Tests
 
