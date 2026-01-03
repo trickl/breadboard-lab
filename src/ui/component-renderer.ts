@@ -2,6 +2,14 @@ import type { AnyComponent, Position } from '@/core/types';
 import { ComponentType } from '@/core/types';
 
 /**
+ * Drag state for rendering ghost preview
+ */
+interface DragState {
+  componentId: string;
+  previewPositions: Position[] | null;
+}
+
+/**
  * Visual component renderer that creates SVG representations of components on the breadboard
  */
 export class ComponentRenderer {
@@ -53,7 +61,11 @@ export class ComponentRenderer {
   /**
    * Render all components to an SVG element
    */
-  renderComponents(components: AnyComponent[], selectedComponentId: string | null = null): SVGElement {
+  renderComponents(
+    components: AnyComponent[],
+    selectedComponentId: string | null = null,
+    dragState: DragState | null = null
+  ): SVGElement {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('class', 'component-overlay');
 
@@ -64,7 +76,11 @@ export class ComponentRenderer {
     components
       .filter((c) => c.type === ComponentType.WIRE)
       .forEach((component) => {
-        const group = this.renderComponent(component, selectedComponentId);
+        const group = this.renderComponent(
+          component,
+          selectedComponentId,
+          dragState && dragState.componentId === component.id ? dragState : null
+        );
         svg.appendChild(group);
       });
 
@@ -72,7 +88,11 @@ export class ComponentRenderer {
     components
       .filter((c) => c.type !== ComponentType.WIRE)
       .forEach((component) => {
-        const group = this.renderComponent(component, selectedComponentId);
+        const group = this.renderComponent(
+          component,
+          selectedComponentId,
+          dragState && dragState.componentId === component.id ? dragState : null
+        );
         svg.appendChild(group);
       });
 
@@ -82,7 +102,11 @@ export class ComponentRenderer {
   /**
    * Render a single component
    */
-  private renderComponent(component: AnyComponent, selectedComponentId: string | null = null): SVGGElement {
+  private renderComponent(
+    component: AnyComponent,
+    selectedComponentId: string | null = null,
+    componentDragState: DragState | null = null
+  ): SVGGElement {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     group.setAttribute('class', `component component-${component.type.toLowerCase()}`);
     group.setAttribute('data-component-id', component.id);
@@ -96,35 +120,93 @@ export class ComponentRenderer {
       group.classList.add('component-selected');
     }
 
-    switch (component.type) {
-      case ComponentType.WIRE:
-        this.renderWire(group, component);
-        break;
-      case ComponentType.RESISTOR:
-        this.renderResistor(group, component);
-        break;
-      case ComponentType.LED:
-        this.renderLED(group, component);
-        break;
-      case ComponentType.POWER_SUPPLY:
-        this.renderPowerSupply(group, component);
-        break;
-      case ComponentType.GROUND:
-        this.renderGround(group, component);
-        break;
+    // If this component is being dragged, render both original (faded) and preview
+    if (componentDragState) {
+      // Render original component with reduced opacity
+      group.style.opacity = '0.3';
+      this.renderComponentByType(group, component, component.positions);
+
+      // If we have valid preview positions, render ghost preview
+      if (componentDragState.previewPositions) {
+        const previewGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        previewGroup.setAttribute('class', 'component-preview component-preview-valid');
+        previewGroup.style.opacity = '0.7';
+        previewGroup.style.pointerEvents = 'none';
+        
+        // Create a temporary component with preview positions for rendering
+        const previewComponent = { ...component, positions: componentDragState.previewPositions };
+        this.renderComponentByType(previewGroup, previewComponent, componentDragState.previewPositions);
+        
+        // Return a wrapper group containing both original and preview
+        const wrapperGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        wrapperGroup.appendChild(group);
+        wrapperGroup.appendChild(previewGroup);
+        return wrapperGroup;
+      } else {
+        // Invalid preview - render red overlay
+        const invalidGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        invalidGroup.setAttribute('class', 'component-preview component-preview-invalid');
+        invalidGroup.style.opacity = '0.5';
+        invalidGroup.style.pointerEvents = 'none';
+        
+        // Add a red circle or marker to indicate invalid position
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        const firstPinPixels = this.positionToPixels(component.positions[0]);
+        marker.setAttribute('cx', firstPinPixels.x.toString());
+        marker.setAttribute('cy', firstPinPixels.y.toString());
+        marker.setAttribute('r', '20');
+        marker.setAttribute('fill', 'rgba(255, 0, 0, 0.3)');
+        marker.setAttribute('stroke', '#ff0000');
+        marker.setAttribute('stroke-width', '2');
+        invalidGroup.appendChild(marker);
+        
+        const wrapperGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        wrapperGroup.appendChild(group);
+        wrapperGroup.appendChild(invalidGroup);
+        return wrapperGroup;
+      }
     }
 
+    // Normal rendering (not dragging)
+    this.renderComponentByType(group, component, component.positions);
     return group;
   }
 
   /**
-   * Render a wire component
+   * Render component based on its type
    */
-  private renderWire(group: SVGGElement, component: AnyComponent): void {
-    if (component.positions.length < 2) return;
+  private renderComponentByType(
+    group: SVGGElement,
+    component: AnyComponent,
+    positions: Position[]
+  ): void {
+    switch (component.type) {
+      case ComponentType.WIRE:
+        this.renderWireAtPositions(group, component, positions);
+        break;
+      case ComponentType.RESISTOR:
+        this.renderResistorAtPositions(group, component, positions);
+        break;
+      case ComponentType.LED:
+        this.renderLEDAtPositions(group, component, positions);
+        break;
+      case ComponentType.POWER_SUPPLY:
+        this.renderPowerSupplyAtPositions(group, component, positions);
+        break;
+      case ComponentType.GROUND:
+        this.renderGroundAtPositions(group, component, positions);
+        break;
+    }
+  }
 
-    const start = this.positionToPixels(component.positions[0]);
-    const end = this.positionToPixels(component.positions[1]);
+  /**
+   * Render a wire component at specified positions
+   */
+  private renderWireAtPositions(group: SVGGElement, _component: AnyComponent, positions: Position[]): void {
+    if (positions.length < 2) return;
+
+    const start = this.positionToPixels(positions[0]);
+    const end = this.positionToPixels(positions[1]);
 
     // Use Manhattan routing (orthogonal lines)
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -155,14 +237,14 @@ export class ComponentRenderer {
   }
 
   /**
-   * Render a resistor component
+   * Render a resistor component at specified positions
    */
-  private renderResistor(group: SVGGElement, component: AnyComponent): void {
-    if (component.positions.length < 2) return;
+  private renderResistorAtPositions(group: SVGGElement, component: AnyComponent, positions: Position[]): void {
+    if (positions.length < 2) return;
     if (component.type !== ComponentType.RESISTOR) return;
 
-    const start = this.positionToPixels(component.positions[0]);
-    const end = this.positionToPixels(component.positions[1]);
+    const start = this.positionToPixels(positions[0]);
+    const end = this.positionToPixels(positions[1]);
 
     // Calculate center and angle
     const centerX = (start.x + end.x) / 2;
@@ -212,14 +294,14 @@ export class ComponentRenderer {
   }
 
   /**
-   * Render an LED component
+   * Render an LED component at specified positions
    */
-  private renderLED(group: SVGGElement, component: AnyComponent): void {
-    if (component.positions.length < 2) return;
+  private renderLEDAtPositions(group: SVGGElement, component: AnyComponent, positions: Position[]): void {
+    if (positions.length < 2) return;
     if (component.type !== ComponentType.LED) return;
 
-    const start = this.positionToPixels(component.positions[0]); // Anode (+)
-    const end = this.positionToPixels(component.positions[1]); // Cathode (-)
+    const start = this.positionToPixels(positions[0]); // Anode (+)
+    const end = this.positionToPixels(positions[1]); // Cathode (-)
 
     const centerX = (start.x + end.x) / 2;
     const centerY = (start.y + end.y) / 2;
@@ -263,14 +345,14 @@ export class ComponentRenderer {
   }
 
   /**
-   * Render a power supply component
+   * Render a power supply component at specified positions
    */
-  private renderPowerSupply(group: SVGGElement, component: AnyComponent): void {
-    if (component.positions.length < 2) return;
+  private renderPowerSupplyAtPositions(group: SVGGElement, component: AnyComponent, positions: Position[]): void {
+    if (positions.length < 2) return;
     if (component.type !== ComponentType.POWER_SUPPLY) return;
 
-    const start = this.positionToPixels(component.positions[0]); // Positive
-    const end = this.positionToPixels(component.positions[1]); // Negative
+    const start = this.positionToPixels(positions[0]); // Positive
+    const end = this.positionToPixels(positions[1]); // Negative
 
     const centerX = (start.x + end.x) / 2;
     const centerY = (start.y + end.y) / 2;
@@ -337,12 +419,12 @@ export class ComponentRenderer {
   }
 
   /**
-   * Render a ground component
+   * Render a ground component at specified positions
    */
-  private renderGround(group: SVGGElement, component: AnyComponent): void {
-    if (component.positions.length < 1) return;
+  private renderGroundAtPositions(group: SVGGElement, _component: AnyComponent, positions: Position[]): void {
+    if (positions.length < 1) return;
 
-    const pos = this.positionToPixels(component.positions[0]);
+    const pos = this.positionToPixels(positions[0]);
 
     // Draw ground symbol (three decreasing horizontal lines)
     const lines = [

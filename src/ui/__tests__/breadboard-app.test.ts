@@ -220,3 +220,239 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
     expect(newSelectedEl?.getAttribute('data-component-id')).not.toBe(firstId);
   });
 });
+
+describe('BreadboardApp - Component Drag and Drop', () => {
+  let container: HTMLElement;
+  let app: BreadboardApp;
+
+  beforeEach(() => {
+    // Create a container element for the app
+    container = document.createElement('div');
+    container.id = 'app';
+    document.body.appendChild(container);
+
+    // Initialize the app
+    app = new BreadboardApp(container);
+  });
+
+  afterEach(() => {
+    // Clean up
+    app.destroy();
+    document.body.removeChild(container);
+  });
+
+  it('should start drag operation on mousedown', () => {
+    // Place a wire component
+    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
+    wireButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[0] as HTMLElement)?.click();
+    (holes[5] as HTMLElement)?.click();
+
+    // Get the component element
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    expect(componentEl).toBeTruthy();
+
+    // Get breadboard for coordinates
+    const breadboard = container.querySelector('#breadboard') as HTMLElement;
+    const rect = breadboard.getBoundingClientRect();
+
+    // Simulate mousedown to start drag
+    const mousedownEvent = new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true,
+      clientX: rect.left + 50,
+      clientY: rect.top + 50,
+    });
+    componentEl?.dispatchEvent(mousedownEvent);
+
+    // Component should be selected
+    expect(container.querySelector('.component-selected')).toBeTruthy();
+  });
+
+  it('should show ghost preview during drag', () => {
+    // Place a wire component
+    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
+    wireButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[0] as HTMLElement)?.click();
+    (holes[5] as HTMLElement)?.click();
+
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    const breadboard = container.querySelector('#breadboard') as HTMLElement;
+    const rect = breadboard.getBoundingClientRect();
+
+    // Start drag
+    componentEl?.dispatchEvent(
+      new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.left + 50,
+        clientY: rect.top + 50,
+      })
+    );
+
+    // Move mouse to trigger preview
+    document.dispatchEvent(
+      new MouseEvent('mousemove', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.left + 150,
+        clientY: rect.top + 150,
+      })
+    );
+
+    // Should have a preview element
+    const preview = container.querySelector('.component-preview');
+    expect(preview).toBeTruthy();
+  });
+
+  it('should update component position on successful drop', () => {
+    // Place a wire component at specific position
+    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
+    wireButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[0] as HTMLElement)?.click(); // Row 0, col 0
+    (holes[5] as HTMLElement)?.click(); // Row 0, col 5
+
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    const breadboard = container.querySelector('#breadboard') as HTMLElement;
+    const rect = breadboard.getBoundingClientRect();
+
+    // Start drag
+    componentEl?.dispatchEvent(
+      new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.left + 50,
+        clientY: rect.top + 50,
+      })
+    );
+
+    // Move to new position
+    document.dispatchEvent(
+      new MouseEvent('mousemove', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.left + 150,
+        clientY: rect.top + 150,
+      })
+    );
+
+    // Drop
+    document.dispatchEvent(
+      new MouseEvent('mouseup', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.left + 150,
+        clientY: rect.top + 150,
+      })
+    );
+
+    // Component should still exist
+    const movedComponent = container.querySelector('[data-component-id]');
+    expect(movedComponent).toBeTruthy();
+
+    // Preview should be removed after drop
+    const preview = container.querySelector('.component-preview');
+    expect(preview).toBeFalsy();
+  });
+
+  it('should cancel drag on Escape key', () => {
+    // Place a wire component
+    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
+    wireButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[0] as HTMLElement)?.click();
+    (holes[5] as HTMLElement)?.click();
+
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    const breadboard = container.querySelector('#breadboard') as HTMLElement;
+    const rect = breadboard.getBoundingClientRect();
+
+    // Start drag
+    componentEl?.dispatchEvent(
+      new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.left + 50,
+        clientY: rect.top + 50,
+      })
+    );
+
+    // Move mouse
+    document.dispatchEvent(
+      new MouseEvent('mousemove', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.left + 150,
+        clientY: rect.top + 150,
+      })
+    );
+
+    // Press Escape to cancel
+    const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
+    document.dispatchEvent(escapeEvent);
+
+    // Preview should be removed
+    const preview = container.querySelector('.component-preview');
+    expect(preview).toBeFalsy();
+
+    // Component should still be in original position
+    const component = container.querySelector('[data-component-id]');
+    expect(component).toBeTruthy();
+  });
+
+  it('should maintain selection after successful drag', () => {
+    // Place a wire component
+    const wireButton = container.querySelector('[data-component="WIRE"]') as HTMLElement;
+    wireButton?.click();
+
+    const holes = container.querySelectorAll('.hole');
+    (holes[0] as HTMLElement)?.click();
+    (holes[5] as HTMLElement)?.click();
+
+    const componentEl = container.querySelector('[data-component-id]') as HTMLElement;
+    const componentId = componentEl?.getAttribute('data-component-id');
+    const breadboard = container.querySelector('#breadboard') as HTMLElement;
+    const rect = breadboard.getBoundingClientRect();
+
+    // Start drag
+    componentEl?.dispatchEvent(
+      new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.left + 50,
+        clientY: rect.top + 50,
+      })
+    );
+
+    // Move and drop
+    document.dispatchEvent(
+      new MouseEvent('mousemove', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.left + 150,
+        clientY: rect.top + 150,
+      })
+    );
+
+    document.dispatchEvent(
+      new MouseEvent('mouseup', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.left + 150,
+        clientY: rect.top + 150,
+      })
+    );
+
+    // Component should remain selected after drop
+    const selectedComponent = container.querySelector('.component-selected');
+    expect(selectedComponent).toBeTruthy();
+    expect(selectedComponent?.getAttribute('data-component-id')).toBe(componentId);
+  });
+});

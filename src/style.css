@@ -140,6 +140,19 @@ body {
   filter: drop-shadow(0 0 8px rgba(68, 136, 255, 0.8)) drop-shadow(0 0 4px rgba(68, 136, 255, 1));
 }
 
+/* Component drag preview styles */
+.component-preview {
+  pointer-events: none;
+}
+
+.component-preview-valid {
+  filter: drop-shadow(0 0 4px rgba(68, 255, 136, 0.6));
+}
+
+.component-preview-invalid {
+  filter: drop-shadow(0 0 4px rgba(255, 68, 68, 0.6));
+}
+
 .breadboard-row {
   display: flex;
   gap: 0;
