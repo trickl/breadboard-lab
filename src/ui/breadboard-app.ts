@@ -23,6 +23,7 @@ export class BreadboardApp {
   private cachedCircuit: Circuit | null = null;
   private cachedSimulation: SimulationResult | null = null;
   private handleKeyDownBound: (e: KeyboardEvent) => void;
+  private updateDebounceTimer: number | null = null;
 
   constructor(private container: HTMLElement) {
     this.state = { components: [], selectedComponentId: null };
@@ -235,6 +236,12 @@ export class BreadboardApp {
   destroy(): void {
     document.removeEventListener('keydown', this.handleKeyDownBound);
     this.currentAnimator.stop();
+    
+    // Clear any pending debounce timers
+    if (this.updateDebounceTimer !== null) {
+      clearTimeout(this.updateDebounceTimer);
+      this.updateDebounceTimer = null;
+    }
   }
 
   /**
@@ -452,7 +459,11 @@ export class BreadboardApp {
       `
           : ''
       }
+      ${this.renderPropertyEditor()}
     `;
+
+    // Attach property editor event listeners after rendering
+    this.attachPropertyEditorListeners();
   }
 
   /**
@@ -461,7 +472,7 @@ export class BreadboardApp {
   private getComponentDetails(component: AnyComponent): string {
     switch (component.type) {
       case ComponentType.RESISTOR:
-        return `${component.resistance}Ω`;
+        return `${component.resistance >= 1000 ? component.resistance / 1000 + 'kΩ' : component.resistance + 'Ω'}`;
       case ComponentType.LED:
         return `Vf: ${component.forwardVoltage}V`;
       case ComponentType.POWER_SUPPLY:
@@ -473,6 +484,258 @@ export class BreadboardApp {
       default:
         return '';
     }
+  }
+
+  /**
+   * Render property editor for selected component
+   */
+  private renderPropertyEditor(): string {
+    if (!this.state.selectedComponentId) {
+      return '';
+    }
+
+    const component = this.state.components.find(c => c.id === this.state.selectedComponentId);
+    if (!component) {
+      return '';
+    }
+
+    let fields = '';
+
+    switch (component.type) {
+      case ComponentType.RESISTOR:
+        fields = `
+          <div class="property-field">
+            <label>Resistance (Ω)</label>
+            <input type="number" id="prop-resistance" value="${component.resistance}" min="0.1" step="any">
+            <div class="property-presets">
+              <button class="preset-button" data-preset="100">100Ω</button>
+              <button class="preset-button" data-preset="1000">1kΩ</button>
+              <button class="preset-button" data-preset="10000">10kΩ</button>
+              <button class="preset-button" data-preset="100000">100kΩ</button>
+            </div>
+            <div class="error-message property-error" style="display: none;"></div>
+          </div>
+        `;
+        break;
+
+      case ComponentType.LED:
+        fields = `
+          <div class="property-field">
+            <label>Forward Voltage (V)</label>
+            <input type="number" id="prop-forwardVoltage" value="${component.forwardVoltage}" min="0.1" max="5" step="0.1">
+            <div class="property-presets">
+              <button class="preset-button" data-preset="1.8">1.8V (IR)</button>
+              <button class="preset-button" data-preset="2.0">2.0V (Red)</button>
+              <button class="preset-button" data-preset="2.2">2.2V (Yellow)</button>
+              <button class="preset-button" data-preset="3.0">3.0V (Blue)</button>
+            </div>
+            <div class="error-message property-error" style="display: none;"></div>
+          </div>
+        `;
+        break;
+
+      case ComponentType.POWER_SUPPLY:
+        fields = `
+          <div class="property-field">
+            <label>Voltage (V)</label>
+            <input type="number" id="prop-voltage" value="${component.voltage}" min="1" max="20" step="0.1">
+            <div class="property-presets">
+              <button class="preset-button" data-preset="3.3">3.3V</button>
+              <button class="preset-button" data-preset="5">5V</button>
+              <button class="preset-button" data-preset="9">9V</button>
+              <button class="preset-button" data-preset="12">12V</button>
+            </div>
+            <div class="error-message property-error" style="display: none;"></div>
+          </div>
+        `;
+        break;
+
+      case ComponentType.WIRE:
+      case ComponentType.GROUND:
+        // No editable properties for these components
+        return '';
+    }
+
+    return `
+      <div class="property-editor">
+        <h3>Component Properties</h3>
+        ${fields}
+      </div>
+    `;
+  }
+
+  /**
+   * Attach event listeners to property editor inputs and buttons
+   */
+  private attachPropertyEditorListeners(): void {
+    if (!this.state.selectedComponentId) {
+      return;
+    }
+
+    const component = this.state.components.find(c => c.id === this.state.selectedComponentId);
+    if (!component) {
+      return;
+    }
+
+    // Handle input changes
+    const inputs = document.querySelectorAll('.property-field input[type="number"]');
+    inputs.forEach(input => {
+      input.addEventListener('input', (e) => {
+        const target = e.target as HTMLInputElement;
+        const value = parseFloat(target.value);
+        const fieldId = target.id;
+
+        if (this.validatePropertyValue(component.type, fieldId, value)) {
+          this.updateComponentProperty(component.id, fieldId, value);
+          this.hidePropertyError();
+        } else {
+          this.showPropertyError(this.getValidationErrorMessage(component.type, fieldId, value));
+        }
+      });
+    });
+
+    // Handle preset buttons
+    const presetButtons = document.querySelectorAll('.property-editor .preset-button');
+    presetButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        const target = e.target as HTMLButtonElement;
+        const presetValue = parseFloat(target.dataset.preset || '0');
+        // Find the input field within the same property editor
+        const propertyEditor = document.querySelector('.property-editor');
+        const input = propertyEditor?.querySelector('.property-field input[type="number"]') as HTMLInputElement;
+        
+        if (input) {
+          input.value = presetValue.toString();
+          const fieldId = input.id;
+          this.updateComponentProperty(component.id, fieldId, presetValue);
+          this.hidePropertyError();
+        }
+      });
+    });
+  }
+
+  /**
+   * Validate property value based on component type
+   */
+  private validatePropertyValue(componentType: ComponentType, fieldId: string, value: number): boolean {
+    if (isNaN(value)) {
+      return false;
+    }
+
+    switch (componentType) {
+      case ComponentType.RESISTOR:
+        if (fieldId === 'prop-resistance') {
+          return value > 0;
+        }
+        break;
+
+      case ComponentType.LED:
+        if (fieldId === 'prop-forwardVoltage') {
+          return value >= 0.1 && value <= 5;
+        }
+        break;
+
+      case ComponentType.POWER_SUPPLY:
+        if (fieldId === 'prop-voltage') {
+          return value >= 1 && value <= 20;
+        }
+        break;
+    }
+
+    return true;
+  }
+
+  /**
+   * Get validation error message
+   */
+  private getValidationErrorMessage(componentType: ComponentType, fieldId: string, value: number): string {
+    if (isNaN(value)) {
+      return 'Please enter a valid number';
+    }
+
+    switch (componentType) {
+      case ComponentType.RESISTOR:
+        if (fieldId === 'prop-resistance') {
+          return 'Resistance must be greater than 0Ω';
+        }
+        break;
+
+      case ComponentType.LED:
+        if (fieldId === 'prop-forwardVoltage') {
+          return 'Forward voltage must be between 0.1V and 5V';
+        }
+        break;
+
+      case ComponentType.POWER_SUPPLY:
+        if (fieldId === 'prop-voltage') {
+          return 'Voltage must be between 1V and 20V';
+        }
+        break;
+    }
+
+    return 'Invalid value';
+  }
+
+  /**
+   * Show property validation error
+   */
+  private showPropertyError(message: string): void {
+    const errorElement = document.querySelector('.property-editor .property-error') as HTMLElement;
+    if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.style.display = 'block';
+    }
+  }
+
+  /**
+   * Hide property validation error
+   */
+  private hidePropertyError(): void {
+    const errorElement = document.querySelector('.property-editor .property-error') as HTMLElement;
+    if (errorElement) {
+      errorElement.style.display = 'none';
+    }
+  }
+
+  /**
+   * Update component property value
+   */
+  private updateComponentProperty(componentId: string, fieldId: string, value: number): void {
+    const component = this.state.components.find(c => c.id === componentId);
+    if (!component) {
+      return;
+    }
+
+    // Update the component property based on field ID
+    switch (fieldId) {
+      case 'prop-resistance':
+        if (component.type === ComponentType.RESISTOR) {
+          component.resistance = value;
+        }
+        break;
+
+      case 'prop-forwardVoltage':
+        if (component.type === ComponentType.LED) {
+          component.forwardVoltage = value;
+        }
+        break;
+
+      case 'prop-voltage':
+        if (component.type === ComponentType.POWER_SUPPLY) {
+          component.voltage = value;
+        }
+        break;
+    }
+
+    // Debounce re-render to avoid performance issues with rapid input changes
+    if (this.updateDebounceTimer !== null) {
+      clearTimeout(this.updateDebounceTimer);
+    }
+    
+    this.updateDebounceTimer = window.setTimeout(() => {
+      this.render();
+      this.updateDebounceTimer = null;
+    }, 300);
   }
 
   /**
