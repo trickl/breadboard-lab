@@ -22,6 +22,7 @@ export class BreadboardApp {
   private tooltipElement: HTMLElement | null = null;
   private cachedCircuit: Circuit | null = null;
   private cachedSimulation: SimulationResult | null = null;
+  private handleKeyDownBound: (e: KeyboardEvent) => void;
 
   constructor(private container: HTMLElement) {
     this.state = { components: [], selectedComponentId: null };
@@ -29,6 +30,7 @@ export class BreadboardApp {
     this.simulator = new CircuitSimulator();
     this.componentRenderer = new ComponentRenderer();
     this.currentAnimator = new CurrentAnimator();
+    this.handleKeyDownBound = this.handleKeyDown.bind(this);
     this.render();
   }
 
@@ -224,7 +226,15 @@ export class BreadboardApp {
     }
 
     // Delete key handler
-    document.addEventListener('keydown', this.handleKeyDown);
+    document.addEventListener('keydown', this.handleKeyDownBound);
+  }
+
+  /**
+   * Remove event listeners (cleanup)
+   */
+  destroy(): void {
+    document.removeEventListener('keydown', this.handleKeyDownBound);
+    this.currentAnimator.stop();
   }
 
   /**
@@ -255,8 +265,10 @@ export class BreadboardApp {
    */
   private handleKeyDown = (e: KeyboardEvent): void => {
     if (e.key === 'Delete' || e.key === 'Backspace') {
+      // Prevent browser back navigation on Backspace
+      e.preventDefault();
+      
       if (this.state.selectedComponentId) {
-        e.preventDefault(); // Prevent browser back navigation on Backspace
         this.deleteSelectedComponent();
       }
     }

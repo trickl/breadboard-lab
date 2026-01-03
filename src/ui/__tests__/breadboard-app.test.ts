@@ -1,10 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { BreadboardApp } from '../breadboard-app';
-import { ComponentType } from '@/core/types';
 
 describe('BreadboardApp - Component Selection and Deletion', () => {
   let container: HTMLElement;
-  let app: BreadboardApp;
 
   beforeEach(() => {
     // Create a container element for the app
@@ -13,7 +11,7 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
     document.body.appendChild(container);
 
     // Initialize the app
-    app = new BreadboardApp(container);
+    new BreadboardApp(container);
   });
 
   afterEach(() => {
