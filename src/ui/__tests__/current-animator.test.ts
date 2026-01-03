@@ -27,6 +27,7 @@ describe('CurrentAnimator', () => {
         error: 'Test error',
         nodeVoltages: new Map(),
         edgeCurrents: new Map(),
+        errors: [],
       };
 
       const components: AnyComponent[] = [
@@ -59,6 +60,7 @@ describe('CurrentAnimator', () => {
         edgeCurrents: new Map([
           ['wire1', 1e-7], // 0.1µA - below 1µA threshold
         ]),
+        errors: [],
       };
 
       const components: AnyComponent[] = [
@@ -91,6 +93,7 @@ describe('CurrentAnimator', () => {
         edgeCurrents: new Map([
           ['wire1', 0.005], // 5mA - well above threshold
         ]),
+        errors: [],
       };
 
       const components: AnyComponent[] = [
@@ -124,6 +127,7 @@ describe('CurrentAnimator', () => {
         success: true,
         nodeVoltages: new Map([['node1', 5]]),
         edgeCurrents: new Map([['wire1', 0.005]]),
+        errors: [],
       };
 
       const components: AnyComponent[] = [
@@ -159,7 +163,8 @@ describe('CurrentAnimator', () => {
       const lowCurrentResult: SimulationResult = {
         success: true,
         nodeVoltages: new Map([['node1', 5]]),
-        edgeCurrents: new Map([['wire1', 0.0005]]), // 0.5mA
+        edgeCurrents: new Map([['wire1', 0.0005]]), // 0.5mA,
+        errors: [],
       };
 
       const components: AnyComponent[] = [
@@ -192,7 +197,8 @@ describe('CurrentAnimator', () => {
       const highCurrentResult: SimulationResult = {
         success: true,
         nodeVoltages: new Map([['node1', 5]]),
-        edgeCurrents: new Map([['wire1', 0.015]]), // 15mA
+        edgeCurrents: new Map([['wire1', 0.015]]), // 15mA,
+        errors: [],
       };
 
       animator.start(highCurrentResult, components, mockSvg);
@@ -215,6 +221,7 @@ describe('CurrentAnimator', () => {
           ['node2', 0],
         ]),
         edgeCurrents: new Map([['wire1', 0.005]]),
+        errors: [],
       };
 
       const components: AnyComponent[] = [
@@ -250,6 +257,7 @@ describe('CurrentAnimator', () => {
           ['node2', 0],
         ]),
         edgeCurrents: new Map([['resistor1', 0.005]]),
+        errors: [],
       };
 
       const components: AnyComponent[] = [
@@ -284,6 +292,7 @@ describe('CurrentAnimator', () => {
           ['node2', 3],
         ]),
         edgeCurrents: new Map([['led1', 0.010]]),
+        errors: [],
       };
 
       const components: AnyComponent[] = [
@@ -318,6 +327,7 @@ describe('CurrentAnimator', () => {
         success: true,
         nodeVoltages: new Map(),
         edgeCurrents: new Map(),
+        errors: [],
       };
 
       animator.start(result, [], mockSvg);
@@ -334,6 +344,7 @@ describe('CurrentAnimator', () => {
           ['node2', 0],
         ]),
         edgeCurrents: new Map([['wire1', 0]]),
+        errors: [],
       };
 
       const components: AnyComponent[] = [
@@ -362,7 +373,8 @@ describe('CurrentAnimator', () => {
           ['node1', 0],
           ['node2', 5],
         ]),
-        edgeCurrents: new Map([['wire1', -0.005]]), // Negative current
+        edgeCurrents: new Map([['wire1', -0.005]]), // Negative current,
+        errors: [],
       };
 
       const components: AnyComponent[] = [
