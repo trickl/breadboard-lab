@@ -8,6 +8,18 @@ import { ComponentRenderer } from './component-renderer';
 import { CurrentAnimator } from './current-animator';
 
 /**
+ * Drag state for component repositioning
+ */
+interface DragState {
+  componentId: string;
+  startMousePos: { x: number; y: number };
+  currentMousePos: { x: number; y: number };
+  originalPositions: Position[];
+  previewPositions: Position[] | null; // null if invalid
+  offsetFromFirstPin: { x: number; y: number }; // Offset from mouse to first pin
+}
+
+/**
  * Main application class managing the breadboard UI and simulation
  */
 export class BreadboardApp {
@@ -24,6 +36,9 @@ export class BreadboardApp {
   private cachedSimulation: SimulationResult | null = null;
   private handleKeyDownBound: (e: KeyboardEvent) => void;
   private updateDebounceTimer: number | null = null;
+  private dragState: DragState | null = null;
+  private handleMouseMoveBound: (e: MouseEvent) => void;
+  private handleMouseUpBound: (e: MouseEvent) => void;
 
   constructor(private container: HTMLElement) {
     this.state = { components: [], selectedComponentId: null };
@@ -32,6 +47,8 @@ export class BreadboardApp {
     this.componentRenderer = new ComponentRenderer();
     this.currentAnimator = new CurrentAnimator();
     this.handleKeyDownBound = this.handleKeyDown.bind(this);
+    this.handleMouseMoveBound = this.handleMouseMove.bind(this);
+    this.handleMouseUpBound = this.handleMouseUp.bind(this);
     this.render();
   }
 
@@ -139,7 +156,8 @@ export class BreadboardApp {
     // Create and add new component overlay with selection state
     const svg = this.componentRenderer.renderComponents(
       this.state.components,
-      this.state.selectedComponentId
+      this.state.selectedComponentId,
+      this.dragState
     );
     
     // Calculate SVG dimensions based on breadboard size
@@ -250,32 +268,54 @@ export class BreadboardApp {
   private attachComponentEventHandlers(svg: SVGElement): void {
     const components = svg.querySelectorAll('.component');
     components.forEach((componentEl) => {
+      // Click handler for selection
       componentEl.addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent hole click from firing
         const componentId = (componentEl as HTMLElement).dataset.componentId;
-        if (componentId) {
+        if (componentId && !this.dragState) {
           this.selectComponentById(componentId);
+        }
+      });
+
+      // Mousedown handler for drag initiation
+      componentEl.addEventListener('mousedown', (e: Event) => {
+        const mouseEvent = e as MouseEvent;
+        mouseEvent.stopPropagation();
+        mouseEvent.preventDefault();
+        
+        const componentId = (componentEl as HTMLElement).dataset.componentId;
+        if (componentId) {
+          this.startDrag(componentId, mouseEvent);
         }
       });
     });
 
     // Click on SVG background to deselect
     svg.addEventListener('click', (e) => {
-      if (e.target === svg) {
+      if (e.target === svg && !this.dragState) {
         this.deselectComponent();
       }
     });
   }
 
   /**
-   * Handle keyboard events (Delete key)
+   * Handle keyboard events (Delete key, Escape key)
    */
   private handleKeyDown = (e: KeyboardEvent): void => {
+    // Cancel drag on Escape
+    if (e.key === 'Escape') {
+      if (this.dragState) {
+        e.preventDefault();
+        this.cancelDrag();
+        return;
+      }
+    }
+
     if (e.key === 'Delete' || e.key === 'Backspace') {
       // Prevent browser back navigation on Backspace
       e.preventDefault();
       
-      if (this.state.selectedComponentId) {
+      if (this.state.selectedComponentId && !this.dragState) {
         this.deleteSelectedComponent();
       }
     }
@@ -828,5 +868,198 @@ export class BreadboardApp {
    */
   private positionToKey(pos: Position): string {
     return `${pos.row},${pos.col}`;
+  }
+
+  /**
+   * Start dragging a component
+   */
+  private startDrag(componentId: string, event: MouseEvent): void {
+    const component = this.state.components.find((c) => c.id === componentId);
+    if (!component) return;
+
+    // Get breadboard element to calculate relative positions
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    // Calculate position of first pin in pixels
+    const firstPinPixels = this.positionToPixels(component.positions[0]);
+
+    this.dragState = {
+      componentId,
+      startMousePos: { x: mouseX, y: mouseY },
+      currentMousePos: { x: mouseX, y: mouseY },
+      originalPositions: [...component.positions],
+      previewPositions: null,
+      offsetFromFirstPin: {
+        x: mouseX - firstPinPixels.x,
+        y: mouseY - firstPinPixels.y,
+      },
+    };
+
+    // Select the component being dragged
+    this.state.selectedComponentId = componentId;
+
+    // Attach global mouse handlers
+    document.addEventListener('mousemove', this.handleMouseMoveBound);
+    document.addEventListener('mouseup', this.handleMouseUpBound);
+
+    // Initial preview calculation
+    this.updateDragPreview(event);
+  }
+
+  /**
+   * Handle mouse move during drag
+   */
+  private handleMouseMove(event: MouseEvent): void {
+    if (!this.dragState) return;
+
+    this.updateDragPreview(event);
+  }
+
+  /**
+   * Update drag preview position
+   */
+  private updateDragPreview(event: MouseEvent): void {
+    if (!this.dragState) return;
+
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    this.dragState.currentMousePos = { x: mouseX, y: mouseY };
+
+    // Calculate target position for first pin
+    const targetX = mouseX - this.dragState.offsetFromFirstPin.x;
+    const targetY = mouseY - this.dragState.offsetFromFirstPin.y;
+
+    // Convert to grid position with snapping
+    const snappedFirstPin = this.snapToGrid({ x: targetX, y: targetY });
+
+    // Calculate new positions for all pins based on offset from first pin
+    const component = this.state.components.find((c) => c.id === this.dragState!.componentId);
+    if (!component) return;
+
+    const offset = {
+      row: snappedFirstPin.row - this.dragState.originalPositions[0].row,
+      col: snappedFirstPin.col - this.dragState.originalPositions[0].col,
+    };
+
+    const newPositions = this.dragState.originalPositions.map((pos) => ({
+      row: pos.row + offset.row,
+      col: pos.col + offset.col,
+    }));
+
+    // Validate the new positions
+    if (this.isValidComponentPosition(component.id, newPositions)) {
+      this.dragState.previewPositions = newPositions;
+    } else {
+      this.dragState.previewPositions = null;
+    }
+
+    // Re-render to show preview
+    this.renderBreadboard();
+  }
+
+  /**
+   * Handle mouse up to complete or cancel drag
+   */
+  private handleMouseUp(_event: MouseEvent): void {
+    if (!this.dragState) return;
+
+    // If we have valid preview positions, update component
+    if (this.dragState.previewPositions) {
+      const component = this.state.components.find((c) => c.id === this.dragState!.componentId);
+      if (component) {
+        component.positions = this.dragState.previewPositions;
+      }
+    }
+
+    // Clean up drag state
+    this.cleanupDrag();
+
+    // Re-render without preview
+    this.render();
+  }
+
+  /**
+   * Cancel the current drag operation
+   */
+  private cancelDrag(): void {
+    if (!this.dragState) return;
+
+    this.cleanupDrag();
+    this.render();
+  }
+
+  /**
+   * Clean up drag state and event listeners
+   */
+  private cleanupDrag(): void {
+    document.removeEventListener('mousemove', this.handleMouseMoveBound);
+    document.removeEventListener('mouseup', this.handleMouseUpBound);
+    this.dragState = null;
+  }
+
+  /**
+   * Convert pixel coordinates to grid position with snapping
+   */
+  private snapToGrid(pixels: { x: number; y: number }): Position {
+    const col = Math.round(pixels.x / ComponentRenderer.HOLE_SPACING);
+    const row = Math.round(pixels.y / ComponentRenderer.HOLE_SPACING);
+
+    // Clamp to valid grid range
+    return {
+      row: Math.max(0, Math.min(BreadboardLayout.ROWS - 1, row)),
+      col: Math.max(0, Math.min(BreadboardLayout.COLS_PER_SIDE * 2 - 1, col)),
+    };
+  }
+
+  /**
+   * Convert position to pixel coordinates
+   */
+  private positionToPixels(pos: Position): { x: number; y: number } {
+    return {
+      x: pos.col * ComponentRenderer.HOLE_SPACING + ComponentRenderer.HOLE_SPACING / 2,
+      y: pos.row * ComponentRenderer.HOLE_SPACING + ComponentRenderer.HOLE_SPACING / 2,
+    };
+  }
+
+  /**
+   * Validate if a component can be placed at the given positions
+   */
+  private isValidComponentPosition(componentId: string, positions: Position[]): boolean {
+    // Check all positions are within bounds
+    for (const pos of positions) {
+      if (
+        pos.row < 0 ||
+        pos.row >= BreadboardLayout.ROWS ||
+        pos.col < 0 ||
+        pos.col >= BreadboardLayout.COLS_PER_SIDE * 2
+      ) {
+        return false;
+      }
+    }
+
+    // Check for collisions with other components (excluding the component being moved)
+    for (const component of this.state.components) {
+      if (component.id === componentId) continue;
+
+      for (const componentPos of component.positions) {
+        for (const newPos of positions) {
+          if (componentPos.row === newPos.row && componentPos.col === newPos.col) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
   }
 }
