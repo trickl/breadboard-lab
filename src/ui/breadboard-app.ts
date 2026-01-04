@@ -196,6 +196,9 @@ export class BreadboardApp {
         onErrorIconClick: (error, _event) => {
           this.showErrorDialog(error);
         },
+        onComponentDragStart: (componentId, globalX, globalY) => {
+          this.handleComponentDragStart(componentId, globalX, globalY);
+        },
       };
       try {
         await this.pixiRenderer.init(breadboard, handlers);
@@ -1079,7 +1082,46 @@ export class BreadboardApp {
   /**
    * Start dragging a component
    */
-  
+  private handleComponentDragStart(componentId: string, globalX: number, globalY: number): void {
+    const component = this.state.components.find((c) => c.id === componentId);
+    if (!component) return;
+
+    // Select component if not already selected
+    if (this.state.selectedComponentId !== componentId) {
+      this.state.selectedComponentId = componentId;
+    }
+
+    // Get the breadboard element to calculate relative coordinates
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    // Convert PixiJS global coordinates to breadboard-relative coordinates
+    const mouseX = globalX - rect.left;
+    const mouseY = globalY - rect.top;
+
+    // Calculate offset from mouse to first pin (for smooth dragging)
+    const firstPinPixels = this.pixiRenderer.positionToPixels(component.positions[0]);
+    const offsetX = firstPinPixels.x - mouseX;
+    const offsetY = firstPinPixels.y - mouseY;
+
+    // Initialize drag state
+    this.dragState = {
+      componentId: componentId,
+      startMousePos: { x: mouseX, y: mouseY },
+      currentMousePos: { x: mouseX, y: mouseY },
+      originalPositions: [...component.positions],
+      previewPositions: null,
+      offsetFromFirstPin: { x: offsetX, y: offsetY },
+    };
+
+    // Attach global mouse handlers for move and up
+    document.addEventListener('mousemove', this.handleMouseMoveBound);
+    document.addEventListener('mouseup', this.handleMouseUpBound);
+
+    // Re-render to show initial drag state
+    this.renderBreadboard();
+  }
 
   /**
    * Handle mouse move during drag

@@ -47,6 +47,7 @@ export interface PixiEventHandlers {
   onHoleClick?: (position: Position, event: FederatedPointerEvent) => void;
   onComponentClick?: (componentId: string, event: FederatedPointerEvent) => void;
   onErrorIconClick?: (error: CircuitError, event: FederatedPointerEvent) => void;
+  onComponentDragStart?: (componentId: string, globalX: number, globalY: number) => void;
 }
 
 /**
@@ -136,9 +137,9 @@ export class PixiRenderer {
   }
 
   /**
-   * Convert position to pixels
+   * Convert position to pixels (public for external use)
    */
-  private positionToPixels(pos: Position): { x: number; y: number } {
+  positionToPixels(pos: Position): { x: number; y: number } {
     return {
       x: pos.col * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2,
       y: pos.row * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2,
@@ -306,11 +307,19 @@ export class PixiRenderer {
     container.eventMode = 'static';
     container.cursor = 'pointer';
     
-    if (this.eventHandlers.onComponentClick) {
-      container.on('pointerdown', (event: FederatedPointerEvent) => {
-        this.eventHandlers.onComponentClick?.(component.id, event);
-      });
-    }
+    container.on('pointerdown', (event: FederatedPointerEvent) => {
+      event.stopPropagation(); // Prevent hole click
+      
+      // For component drag start, we need global coordinates
+      if (this.eventHandlers.onComponentDragStart) {
+        this.eventHandlers.onComponentDragStart(component.id, event.global.x, event.global.y);
+      }
+      
+      // Also trigger component click for selection
+      if (this.eventHandlers.onComponentClick) {
+        this.eventHandlers.onComponentClick(component.id, event);
+      }
+    });
 
     return container;
   }
