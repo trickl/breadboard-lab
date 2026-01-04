@@ -72,6 +72,10 @@ export class PixiRenderer {
   // Padding for labels
   private static readonly LABEL_PADDING_X = 20;
   private static readonly LABEL_PADDING_Y = 25;
+  
+  // LED glow effect constants
+  private static readonly LED_TURN_ON_THRESHOLD = 0.8; // LED turns on at 80% of forward voltage
+  private static readonly ASSUMED_SERIES_RESISTANCE_OHMS = 100; // Estimated series resistance for current calculation
 
   // Wire colors
   private static readonly WIRE_COLORS = [
@@ -202,6 +206,8 @@ export class PixiRenderer {
     this.breadboardContainer.addChild(background);
     
     // Breadboard plastic surface with subtle variations
+    // Note: Each area uses a different fill color to create visual texture
+    // PixiJS batches these operations efficiently internally
     const plasticSurface = new Graphics();
     
     // Left rail area (negative)
@@ -757,11 +763,16 @@ export class PixiRenderer {
         const v1 = simulation.nodeVoltages.get(node1) ?? 0;
         const voltageDrop = Math.abs(v0 - v1);
         
-        // LED is on if voltage drop is above forward voltage
-        if (voltageDrop > component.forwardVoltage * 0.8) {
+        // LED is on if voltage drop exceeds threshold percentage of forward voltage
+        if (voltageDrop > component.forwardVoltage * PixiRenderer.LED_TURN_ON_THRESHOLD) {
           isOn = true;
-          // Estimate current (simplified)
-          ledCurrent = Math.min((voltageDrop - component.forwardVoltage) / 100, component.maxCurrent);
+          // Estimate current using simplified Ohm's law: I = (V - Vf) / R
+          // This is a simplified model assuming series resistance
+          const excessVoltage = voltageDrop - component.forwardVoltage;
+          ledCurrent = Math.min(
+            excessVoltage / PixiRenderer.ASSUMED_SERIES_RESISTANCE_OHMS,
+            component.maxCurrent
+          );
         }
       }
     }
