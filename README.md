@@ -12,6 +12,7 @@ An open-source, browser-based breadboard simulator designed to teach electronics
   - 4 LED types (3mm yellow, 5mm red/green/blue with accurate forward voltages)
   - Speaker module (8Ω breadboard-compatible)
   - Multiple power supplies (3.3V, 5V, 9V, 12V)
+  - **EDU-8 Microprocessor** (educational virtual IC for teaching computational electronics)
   - See [COMPONENT_LIBRARY.md](COMPONENT_LIBRARY.md) for complete catalog
 - **Circuit Extraction**: Automatically extracts electrical circuit topology from component placement
 - **Real-time Simulation**: Calculates voltages and currents using Modified Nodal Analysis (MNA)
@@ -25,9 +26,17 @@ An open-source, browser-based breadboard simulator designed to teach electronics
   - Adjustable volume control
   - Audio waveform derived from circuit voltage and current
   - Multiple speakers supported simultaneously
+- **EDU-8 Microprocessor**: Educational virtual microprocessor for teaching computational electronics:
+  - 8-bit accumulator with 4-bit I/O ports
+  - 7-instruction set (LDA, ADD, IN, OUT, JZ, JMP, HALT)
+  - Clock-driven execution (one instruction per rising edge)
+  - 16-byte programmable ROM
+  - Explain panel shows internal CPU state (PC, instruction, accumulator, flags)
+  - Preset programs: Blink, Counter, Echo, Pattern
+  - Bridges software and hardware concepts
 - **Clean Architecture**: Separation of concerns between UI, circuit extraction, and simulation layers
 - **Strong Typing**: Fully typed with TypeScript for reliability and maintainability
-- **Test Coverage**: Unit tests for core logic (breadboard layout, circuit extraction, simulation, animation, audio)
+- **Test Coverage**: Unit tests for core logic (breadboard layout, circuit extraction, simulation, animation, audio, microprocessor)
 
 ## Getting Started
 
