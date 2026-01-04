@@ -28,7 +28,7 @@ import type { SchematicDiagram } from '@/core/schematic-types';
 /**
  * Drag state for component repositioning
  */
-interface DragState {
+export interface DragState {
   componentId: string;
   startMousePos: { x: number; y: number };
   currentMousePos: { x: number; y: number };
@@ -2154,6 +2154,67 @@ export class BreadboardApp {
    */
   clickComponent(componentId: string): void {
     this.handleComponentClick(componentId);
+  }
+
+  /**
+   * Start dragging a component (for testing)
+   */
+  startDragComponent(componentId: string): void {
+    const component = this.state.components.find((c) => c.id === componentId);
+    if (!component) return;
+
+    // Simulate a drag start at the component's first pin position
+    const firstPinPixels = this.pixiRenderer.positionToPixels(component.positions[0]);
+    this.handleComponentDragStart(componentId, firstPinPixels.x, firstPinPixels.y);
+  }
+
+  /**
+   * Move the drag preview to a new position (for testing)
+   */
+  moveDragTo(position: Position): void {
+    if (!this.dragState) return;
+
+    // Convert position to pixel coordinates
+    // Note: We use position * HOLE_SPACING to get top-left corner coordinates
+    // which matches how mouse coordinates work in real drag operations
+    const pixelX = position.col * PixiRenderer.HOLE_SPACING;
+    const pixelY = position.row * PixiRenderer.HOLE_SPACING;
+    
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    // Create a fake MouseEvent with the target coordinates
+    const fakeEvent = new MouseEvent('mousemove', {
+      clientX: rect.left + pixelX,
+      clientY: rect.top + pixelY,
+    });
+    this.handleMouseMove(fakeEvent);
+  }
+
+  /**
+   * Complete the drag operation (for testing)
+   */
+  completeDrag(): void {
+    if (!this.dragState) return;
+
+    const fakeEvent = new MouseEvent('mouseup');
+    this.handleMouseUp(fakeEvent);
+  }
+
+  /**
+   * Get the current drag state (for testing)
+   */
+  getDragState(): DragState | null {
+    return this.dragState;
+  }
+
+  /**
+   * Simulate Escape key press (for testing)
+   */
+  pressEscape(): void {
+    const fakeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
+    this.handleKeyDown(fakeEvent);
   }
 
   /**

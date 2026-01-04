@@ -122,7 +122,12 @@ export class PixiRenderer {
    * Get canvas element
    */
   getCanvas(): HTMLCanvasElement | null {
-    return this.app?.canvas ?? null;
+    try {
+      return this.app?.canvas ?? null;
+    } catch {
+      // App might be in a broken state (e.g., in test environment)
+      return null;
+    }
   }
 
   /**
