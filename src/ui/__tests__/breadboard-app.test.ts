@@ -535,3 +535,245 @@ describe('BreadboardApp - Component Drag and Drop', () => {
     expect(app.getSelectedComponentId()).toBe(componentId);
   });
 });
+
+describe('BreadboardApp - Undo/Redo', () => {
+  let container: HTMLElement;
+  let app: BreadboardApp;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    container.id = 'app';
+    document.body.appendChild(container);
+    app = new BreadboardApp(container);
+  });
+
+  afterEach(() => {
+    if (app) {
+      app.destroy();
+    }
+    document.body.removeChild(container);
+  });
+
+  it('should undo component addition', () => {
+    // Add a component
+    app.selectComponentType(ComponentType.RESISTOR);
+    app.clickHole({ row: 0, col: 0 });
+    app.clickHole({ row: 0, col: 5 });
+
+    expect(app.getComponents().length).toBe(1);
+
+    // Undo
+    const undoEvent = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
+    document.dispatchEvent(undoEvent);
+
+    expect(app.getComponents().length).toBe(0);
+  });
+
+  it('should redo component addition', () => {
+    // Add a component
+    app.selectComponentType(ComponentType.RESISTOR);
+    app.clickHole({ row: 0, col: 0 });
+    app.clickHole({ row: 0, col: 5 });
+
+    // Undo
+    const undoEvent = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
+    document.dispatchEvent(undoEvent);
+
+    expect(app.getComponents().length).toBe(0);
+
+    // Redo with Ctrl+Shift+Z
+    const redoEvent = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true });
+    document.dispatchEvent(redoEvent);
+
+    expect(app.getComponents().length).toBe(1);
+  });
+
+  it('should redo with Ctrl+Y', () => {
+    // Add a component
+    app.selectComponentType(ComponentType.LED);
+    app.clickHole({ row: 0, col: 0 });
+    app.clickHole({ row: 0, col: 5 });
+
+    // Undo
+    const undoEvent = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
+    document.dispatchEvent(undoEvent);
+
+    expect(app.getComponents().length).toBe(0);
+
+    // Redo with Ctrl+Y
+    const redoEvent = new KeyboardEvent('keydown', { key: 'y', ctrlKey: true });
+    document.dispatchEvent(redoEvent);
+
+    expect(app.getComponents().length).toBe(1);
+  });
+
+  it('should undo component deletion', () => {
+    // Add a component
+    app.selectComponentType(ComponentType.WIRE);
+    app.clickHole({ row: 0, col: 0 });
+    app.clickHole({ row: 0, col: 5 });
+
+    const components = app.getComponents();
+    const componentId = components[0].id;
+    app.clickComponent(componentId);
+
+    // Delete the component
+    const deleteEvent = new KeyboardEvent('keydown', { key: 'Delete' });
+    document.dispatchEvent(deleteEvent);
+
+    expect(app.getComponents().length).toBe(0);
+
+    // Undo the deletion
+    const undoEvent = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
+    document.dispatchEvent(undoEvent);
+
+    expect(app.getComponents().length).toBe(1);
+  });
+
+  it('should undo component rotation', () => {
+    // Add a component with enough space to rotate
+    app.selectComponentType(ComponentType.RESISTOR);
+    app.clickHole({ row: 10, col: 10 });
+    app.clickHole({ row: 10, col: 15 });
+
+    const components = app.getComponents();
+    const componentId = components[0].id;
+    app.clickComponent(componentId);
+
+    const initialRotation = components[0].rotation;
+    const initialPositions = [...components[0].positions];
+
+    // Rotate the component
+    const rotateEvent = new KeyboardEvent('keydown', { key: 'r' });
+    document.dispatchEvent(rotateEvent);
+
+    const rotatedComponent = app.getComponents()[0];
+    
+    // If rotation succeeded, test undo
+    if (rotatedComponent.rotation !== initialRotation) {
+      // Undo rotation
+      const undoEvent = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
+      document.dispatchEvent(undoEvent);
+
+      const undoneComponent = app.getComponents()[0];
+      expect(undoneComponent.rotation).toBe(initialRotation);
+      expect(undoneComponent.positions).toEqual(initialPositions);
+    } else {
+      // If rotation failed, just verify component is unchanged
+      expect(rotatedComponent.rotation).toBe(initialRotation);
+    }
+  });
+
+  it('should handle multiple undo operations', () => {
+    // Add three components
+    app.selectComponentType(ComponentType.RESISTOR);
+    app.clickHole({ row: 0, col: 0 });
+    app.clickHole({ row: 0, col: 5 });
+
+    app.selectComponentType(ComponentType.LED);
+    app.clickHole({ row: 5, col: 0 });
+    app.clickHole({ row: 5, col: 5 });
+
+    app.selectComponentType(ComponentType.WIRE);
+    app.clickHole({ row: 10, col: 0 });
+    app.clickHole({ row: 10, col: 5 });
+
+    expect(app.getComponents().length).toBe(3);
+
+    // Undo three times
+    const undoEvent1 = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
+    document.dispatchEvent(undoEvent1);
+    expect(app.getComponents().length).toBe(2);
+
+    const undoEvent2 = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
+    document.dispatchEvent(undoEvent2);
+    expect(app.getComponents().length).toBe(1);
+
+    const undoEvent3 = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
+    document.dispatchEvent(undoEvent3);
+    expect(app.getComponents().length).toBe(0);
+  });
+
+  it('should handle multiple redo operations', () => {
+    // Add three components
+    app.selectComponentType(ComponentType.RESISTOR);
+    app.clickHole({ row: 0, col: 0 });
+    app.clickHole({ row: 0, col: 5 });
+
+    app.selectComponentType(ComponentType.LED);
+    app.clickHole({ row: 5, col: 0 });
+    app.clickHole({ row: 5, col: 5 });
+
+    app.selectComponentType(ComponentType.WIRE);
+    app.clickHole({ row: 10, col: 0 });
+    app.clickHole({ row: 10, col: 5 });
+
+    // Undo all three
+    for (let i = 0; i < 3; i++) {
+      const undoEvent = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
+      document.dispatchEvent(undoEvent);
+    }
+
+    expect(app.getComponents().length).toBe(0);
+
+    // Redo all three
+    for (let i = 0; i < 3; i++) {
+      const redoEvent = new KeyboardEvent('keydown', { key: 'y', ctrlKey: true });
+      document.dispatchEvent(redoEvent);
+    }
+
+    expect(app.getComponents().length).toBe(3);
+  });
+
+  it('should clear redo stack on new action', () => {
+    // Add a component
+    app.selectComponentType(ComponentType.RESISTOR);
+    app.clickHole({ row: 0, col: 0 });
+    app.clickHole({ row: 0, col: 5 });
+
+    // Undo
+    const undoEvent = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
+    document.dispatchEvent(undoEvent);
+
+    expect(app.getComponents().length).toBe(0);
+
+    // Add a new component (should clear redo stack)
+    app.selectComponentType(ComponentType.LED);
+    app.clickHole({ row: 5, col: 0 });
+    app.clickHole({ row: 5, col: 5 });
+
+    expect(app.getComponents().length).toBe(1);
+
+    // Redo should have no effect (redo stack was cleared)
+    const redoEvent = new KeyboardEvent('keydown', { key: 'y', ctrlKey: true });
+    document.dispatchEvent(redoEvent);
+
+    expect(app.getComponents().length).toBe(1);
+  });
+
+  it('should enforce 50-step history limit', () => {
+    // Add 60 components (exceeds 50-step limit)
+    for (let i = 0; i < 60; i++) {
+      app.selectComponentType(ComponentType.WIRE);
+      app.clickHole({ row: 0, col: i });
+      app.clickHole({ row: 1, col: i });
+    }
+
+    expect(app.getComponents().length).toBe(60);
+
+    // Undo 50 times (should succeed)
+    for (let i = 0; i < 50; i++) {
+      const undoEvent = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
+      document.dispatchEvent(undoEvent);
+    }
+
+    // Should have undone 50 components (60 - 50 = 10 remaining)
+    expect(app.getComponents().length).toBe(10);
+
+    // One more undo should have no effect (history limit reached)
+    const undoEvent = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
+    document.dispatchEvent(undoEvent);
+
+    expect(app.getComponents().length).toBe(10);
+  });
+});

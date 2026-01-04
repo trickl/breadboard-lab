@@ -26,6 +26,14 @@ import { SchematicRenderer } from './schematic-renderer';
 import type { SchematicDiagram } from '@/core/schematic-types';
 import { ClockController } from '@/core/clock-controller';
 import { resetEDU8, handleClockEdge as edu8HandleClockEdge } from '@/core/edu8-simulator';
+import { HistoryManager } from '@/core/history-manager';
+import {
+  AddComponentCommand,
+  DeleteComponentCommand,
+  MoveComponentCommand,
+  RotateComponentCommand,
+  EditPropertyCommand,
+} from '@/core/command';
 
 /**
  * Drag state for component repositioning
@@ -55,6 +63,7 @@ export class BreadboardApp {
   private clockController: ClockController;
   private schematicGenerator: SchematicLayoutGenerator;
   private schematicRenderer: SchematicRenderer;
+  private historyManager: HistoryManager;
   private componentIdCounter = 0;
   private cachedCircuit: Circuit | null = null;
   private cachedSimulation: SimulationResult | null = null;
@@ -77,6 +86,7 @@ export class BreadboardApp {
     this.clockController = new ClockController();
     this.schematicGenerator = new SchematicLayoutGenerator();
     this.schematicRenderer = new SchematicRenderer();
+    this.historyManager = new HistoryManager(50); // 50-step history as per goal.md
     this.handleKeyDownBound = this.handleKeyDown.bind(this);
     this.handleMouseMoveBound = this.handleMouseMove.bind(this);
     this.handleMouseUpBound = this.handleMouseUp.bind(this);
@@ -452,6 +462,20 @@ export class BreadboardApp {
    * Handle keyboard events (Delete key, Escape key, R key, M key)
    */
   private handleKeyDown = (e: KeyboardEvent): void => {
+    // Undo: Ctrl+Z (Cmd+Z on Mac)
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+      e.preventDefault();
+      this.undo();
+      return;
+    }
+
+    // Redo: Ctrl+Shift+Z (Cmd+Shift+Z on Mac) or Ctrl+Y
+    if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') || ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
+      e.preventDefault();
+      this.redo();
+      return;
+    }
+
     // Cancel drag on Escape
     if (e.key === 'Escape') {
       if (this.dragState) {
@@ -540,21 +564,20 @@ export class BreadboardApp {
   private deleteSelectedComponent(): void {
     if (!this.state.selectedComponentId) return;
 
-    // If deleting a speaker, remove its audio
+    // Find the component to delete
     const component = this.state.components.find(
       (c) => c.id === this.state.selectedComponentId
     );
-    if (component && component.libraryId === 'speaker-8ohm') {
+    if (!component) return;
+
+    // If deleting a speaker, remove its audio
+    if (component.libraryId === 'speaker-8ohm') {
       this.audioManager.removeSpeaker(component.id);
     }
 
-    // Remove component from state
-    this.state.components = this.state.components.filter(
-      (c) => c.id !== this.state.selectedComponentId
-    );
-
-    // Clear selection
-    this.state.selectedComponentId = null;
+    // Execute delete command through history manager
+    const command = new DeleteComponentCommand(this.state.selectedComponentId, component);
+    this.state = this.historyManager.execute(command, this.state);
 
     // Mark as changed
     this.markAsChanged();
@@ -588,9 +611,15 @@ export class BreadboardApp {
       return;
     }
 
-    // Update component rotation and positions
-    component.rotation = nextRotation;
-    component.positions = newPositions;
+    // Execute rotate command through history manager
+    const command = new RotateComponentCommand(
+      component.id,
+      currentRotation,
+      nextRotation,
+      component.positions,
+      newPositions
+    );
+    this.state = this.historyManager.execute(command, this.state);
 
     // Mark as changed
     this.markAsChanged();
@@ -658,6 +687,30 @@ export class BreadboardApp {
         col: Math.round(centerCol + newRelCol),
       };
     });
+  }
+
+  /**
+   * Undo the last action
+   */
+  private undo(): void {
+    const newState = this.historyManager.undo(this.state);
+    if (newState) {
+      this.state = newState;
+      this.markAsChanged();
+      this.render();
+    }
+  }
+
+  /**
+   * Redo the last undone action
+   */
+  private redo(): void {
+    const newState = this.historyManager.redo(this.state);
+    if (newState) {
+      this.state = newState;
+      this.markAsChanged();
+      this.render();
+    }
   }
 
   /**
@@ -783,7 +836,9 @@ export class BreadboardApp {
         return;
     }
 
-    this.state.components.push(component);
+    // Execute add command through history manager
+    const command = new AddComponentCommand(component);
+    this.state = this.historyManager.execute(command, this.state);
     this.markAsChanged();
     
     // Clear library selection after placement
@@ -1088,26 +1143,40 @@ export class BreadboardApp {
       return;
     }
 
-    // Update the component property based on field ID
+    // Determine property name and get old value based on field ID
+    let propertyName: string | null = null;
+    let oldValue: unknown = null;
+
     switch (fieldId) {
       case 'prop-resistance':
         if (component.type === ComponentType.RESISTOR) {
-          component.resistance = value;
+          propertyName = 'resistance';
+          oldValue = component.resistance;
         }
         break;
 
       case 'prop-forwardVoltage':
         if (component.type === ComponentType.LED) {
-          component.forwardVoltage = value;
+          propertyName = 'forwardVoltage';
+          oldValue = component.forwardVoltage;
         }
         break;
 
       case 'prop-voltage':
         if (component.type === ComponentType.POWER_SUPPLY) {
-          component.voltage = value;
+          propertyName = 'voltage';
+          oldValue = component.voltage;
         }
         break;
     }
+
+    if (!propertyName || oldValue === null) {
+      return;
+    }
+
+    // Execute edit property command through history manager
+    const command = new EditPropertyCommand(componentId, propertyName, oldValue, value);
+    this.state = this.historyManager.execute(command, this.state);
 
     // Debounce re-render to avoid performance issues with rapid input changes
     if (this.updateDebounceTimer !== null) {
@@ -1275,7 +1344,13 @@ export class BreadboardApp {
     if (this.dragState.previewPositions) {
       const component = this.state.components.find((c) => c.id === this.dragState!.componentId);
       if (component) {
-        component.positions = this.dragState.previewPositions;
+        // Execute move command through history manager
+        const command = new MoveComponentCommand(
+          component.id,
+          this.dragState.originalPositions,
+          this.dragState.previewPositions
+        );
+        this.state = this.historyManager.execute(command, this.state);
         this.markAsChanged();
       }
     }
@@ -2005,6 +2080,9 @@ export class BreadboardApp {
       this.hasUnsavedChanges = false;
       this.selectedComponentType = null;
       this.placementStart = null;
+
+      // Clear history when loading a new circuit
+      this.historyManager.clear();
 
       // Update component ID counter to avoid conflicts
       let maxId = 0;
