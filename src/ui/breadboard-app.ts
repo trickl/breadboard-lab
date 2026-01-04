@@ -3,10 +3,7 @@ import { ComponentType } from '@/core/types';
 import { BreadboardLayout } from '@/core/breadboard-layout';
 import { CircuitExtractor } from '@/core/circuit-extractor';
 import { CircuitSimulator } from '@/core/circuit-simulator';
-import { voltageToColor } from './voltage-colors';
-import { ComponentRenderer } from './component-renderer';
-import { CurrentAnimator } from './current-animator';
-import { ErrorOverlayRenderer } from './error-overlay-renderer';
+import { PixiRenderer, type PixiEventHandlers } from './pixi-renderer';
 import { ExplainPanel } from './explain-panel';
 import {
   serializeCircuit,
@@ -50,15 +47,12 @@ export class BreadboardApp {
   private placementStart: Position | null = null;
   private extractor: CircuitExtractor;
   private simulator: CircuitSimulator;
-  private componentRenderer: ComponentRenderer;
-  private currentAnimator: CurrentAnimator;
-  private errorOverlayRenderer: ErrorOverlayRenderer;
+  private pixiRenderer: PixiRenderer;
   private explainPanel: ExplainPanel;
   private audioManager: AudioManager;
   private schematicGenerator: SchematicLayoutGenerator;
   private schematicRenderer: SchematicRenderer;
   private componentIdCounter = 0;
-  private tooltipElement: HTMLElement | null = null;
   private cachedCircuit: Circuit | null = null;
   private cachedSimulation: SimulationResult | null = null;
   private cachedSchematic: SchematicDiagram | null = null;
@@ -74,9 +68,7 @@ export class BreadboardApp {
     this.state = { components: [], selectedComponentId: null };
     this.extractor = new CircuitExtractor();
     this.simulator = new CircuitSimulator();
-    this.componentRenderer = new ComponentRenderer();
-    this.currentAnimator = new CurrentAnimator();
-    this.errorOverlayRenderer = new ErrorOverlayRenderer();
+    this.pixiRenderer = new PixiRenderer();
     this.explainPanel = new ExplainPanel();
     this.audioManager = new AudioManager();
     this.schematicGenerator = new SchematicLayoutGenerator();
@@ -163,7 +155,6 @@ export class BreadboardApp {
       </div>
     `;
 
-    this.tooltipElement = document.getElementById('voltage-tooltip');
     
     // Initialize explain panel
     this.explainPanel.initialize(this.container);
@@ -175,9 +166,9 @@ export class BreadboardApp {
   }
 
   /**
-   * Render the breadboard grid
+   * Render the breadboard grid using PixiJS
    */
-  private renderBreadboard(): void {
+  private async renderBreadboard(): Promise<void> {
     const breadboard = document.getElementById('breadboard');
     if (!breadboard) return;
 
@@ -193,77 +184,43 @@ export class BreadboardApp {
     // Build position-to-node mapping for voltage lookup
     const positionToNode = this.buildPositionToNodeMap(this.cachedCircuit);
 
-    for (let row = 0; row < BreadboardLayout.ROWS; row++) {
-      const rowEl = document.createElement('div');
-      rowEl.className = 'breadboard-row';
-
-      for (let col = 0; col < BreadboardLayout.TOTAL_COLS; col++) {
-        const hole = document.createElement('div');
-        hole.className = 'hole';
-        hole.dataset.row = row.toString();
-        hole.dataset.col = col.toString();
-
-        // Apply rail styling
-        if (BreadboardLayout.isPositionInRail({ row, col })) {
-          const rail = BreadboardLayout.getRailForPosition({ row, col });
-          if (rail) {
-            if (rail.type === 'positive') {
-              hole.classList.add('rail-positive');
-            } else {
-              hole.classList.add('rail-negative');
-            }
-          }
-        }
-
-        // Check if position is occupied
-        const position = { row, col };
-        if (this.isPositionOccupied(position)) {
-          hole.classList.add('occupied');
-        }
-
-        // Apply voltage overlay if simulation succeeded
-        if (this.cachedSimulation.success) {
-          this.applyVoltageOverlay(hole, position, positionToNode, this.cachedSimulation);
-        }
-
-        rowEl.appendChild(hole);
-      }
-
-      breadboard.appendChild(rowEl);
+    // Initialize PixiJS renderer if not already initialized
+    if (!this.pixiRenderer.getCanvas()) {
+      const handlers: PixiEventHandlers = {
+        onHoleClick: (position, _event) => {
+          this.handleHoleClick(position);
+        },
+        onComponentClick: (componentId, _event) => {
+          this.handleComponentClick(componentId);
+        },
+        onErrorIconClick: (error, _event) => {
+          this.showErrorDialog(error);
+        },
+      };
+      await this.pixiRenderer.init(breadboard, handlers);
     }
 
-    // Render components on top of the breadboard
-    this.renderComponents(breadboard);
-  }
+    // Render breadboard grid with voltage overlay
+    this.pixiRenderer.renderBreadboard(positionToNode, this.cachedSimulation);
 
-  /**
-   * Render all components as SVG overlay
-   */
-  private renderComponents(breadboard: HTMLElement): void {
-    // Remove existing component overlay if present
-    const existingOverlay = breadboard.querySelector('.component-overlay');
-    if (existingOverlay) {
-      existingOverlay.remove();
-    }
-
-    // Create and add new component overlay with selection state
-    const svg = this.componentRenderer.renderComponents(
+    // Render components
+    this.pixiRenderer.renderComponents(
       this.state.components,
       this.state.selectedComponentId,
       this.dragState
     );
-    
-    // Calculate SVG dimensions based on breadboard size
-    const width = BreadboardLayout.TOTAL_COLS * 26; // 26px per hole (20px + 6px margin)
-    const height = BreadboardLayout.ROWS * 26;
-    svg.setAttribute('width', width.toString());
-    svg.setAttribute('height', height.toString());
-    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
-    breadboard.appendChild(svg);
+    // Render error overlays
+    if (this.cachedSimulation && this.cachedSimulation.errors.length > 0) {
+      this.pixiRenderer.renderErrors(this.cachedSimulation.errors);
+    }
 
-    // Attach component click handlers
-    this.attachComponentEventHandlers(svg);
+    // Start current animation if simulation succeeded
+    if (this.cachedSimulation && this.cachedSimulation.success) {
+      this.pixiRenderer.startAnimation(this.cachedSimulation, this.state.components);
+    } else {
+      this.pixiRenderer.stopAnimation();
+    }
 
     // Update explain panel with current circuit data
     if (this.cachedCircuit && this.cachedSimulation) {
@@ -271,21 +228,6 @@ export class BreadboardApp {
         this.cachedCircuit,
         this.cachedSimulation,
         this.state.components
-      );
-    }
-
-    // Render error overlays if there are errors
-    if (this.cachedSimulation && this.cachedSimulation.errors.length > 0) {
-      this.errorOverlayRenderer.renderErrors(this.cachedSimulation.errors, svg);
-      this.attachErrorIconHandlers(svg);
-    }
-
-    // Start current animation if simulation succeeded
-    if (this.cachedSimulation && this.cachedSimulation.success) {
-      this.currentAnimator.start(
-        this.cachedSimulation,
-        this.state.components,
-        svg
       );
     }
 
@@ -306,30 +248,7 @@ export class BreadboardApp {
       });
     }
 
-    // Breadboard hole clicks
-    const holes = document.querySelectorAll('.hole');
-    holes.forEach((hole) => {
-      hole.addEventListener('click', (e) => {
-        const row = parseInt((e.target as HTMLElement).dataset.row || '0');
-        const col = parseInt((e.target as HTMLElement).dataset.col || '0');
-        this.handleHoleClick({ row, col });
-      });
-
-      // Add hover listeners for voltage tooltip
-      hole.addEventListener('mouseenter', (e) => {
-        const row = parseInt((e.target as HTMLElement).dataset.row || '0');
-        const col = parseInt((e.target as HTMLElement).dataset.col || '0');
-        this.showVoltageTooltip(e as MouseEvent, { row, col });
-      });
-
-      hole.addEventListener('mousemove', (e) => {
-        this.updateTooltipPosition(e as MouseEvent);
-      });
-
-      hole.addEventListener('mouseleave', () => {
-        this.hideVoltageTooltip();
-      });
-    });
+    // Note: Breadboard hole clicks and component clicks are now handled by PixiJS event handlers
 
     // Clear button
     const clearBtn = document.getElementById('clear-btn');
@@ -426,7 +345,7 @@ export class BreadboardApp {
    */
   destroy(): void {
     document.removeEventListener('keydown', this.handleKeyDownBound);
-    this.currentAnimator.stop();
+    this.pixiRenderer.stopAnimation();
     
     // Clear any pending debounce timers
     if (this.updateDebounceTimer !== null) {
@@ -438,64 +357,12 @@ export class BreadboardApp {
   /**
    * Attach event handlers to component SVG elements
    */
-  private attachComponentEventHandlers(svg: SVGElement): void {
-    const components = svg.querySelectorAll('.component');
-    components.forEach((componentEl) => {
-      // Click handler for selection
-      componentEl.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent hole click from firing
-        const componentId = (componentEl as HTMLElement).dataset.componentId;
-        if (componentId && !this.dragState) {
-          this.selectComponentById(componentId);
-          // Show explain panel for component
-          this.explainPanel.show({ type: 'component', componentId });
-        }
-      });
-
-      // Mousedown handler for drag initiation
-      componentEl.addEventListener('mousedown', (e: Event) => {
-        const mouseEvent = e as MouseEvent;
-        mouseEvent.stopPropagation();
-        mouseEvent.preventDefault();
-        
-        const componentId = (componentEl as HTMLElement).dataset.componentId;
-        if (componentId) {
-          this.startDrag(componentId, mouseEvent);
-        }
-      });
-    });
-
-    // Click on SVG background to deselect
-    svg.addEventListener('click', (e) => {
-      if (e.target === svg && !this.dragState) {
-        this.deselectComponent();
-        this.explainPanel.hide();
-      }
-    });
-  }
+  
 
   /**
    * Attach event handlers to error icon SVG elements
    */
-  private attachErrorIconHandlers(svg: SVGElement): void {
-    const errorIcons = svg.querySelectorAll('.error-icon');
-    errorIcons.forEach((iconEl) => {
-      iconEl.addEventListener('click', (e) => {
-        e.stopPropagation();
-        
-        const message = iconEl.getAttribute('data-error-message') || '';
-        const explanation = iconEl.getAttribute('data-error-explanation') || '';
-        const suggestionsStr = iconEl.getAttribute('data-error-suggestions') || '[]';
-        const suggestions = JSON.parse(suggestionsStr);
-        
-        // Show explain panel with error information
-        this.explainPanel.show({
-          type: 'error',
-          errorData: { message, explanation, suggestions },
-        });
-      });
-    });
-  }
+  
 
   /**
    * Handle keyboard events (Delete key, Escape key, R key, M key)
@@ -533,6 +400,27 @@ export class BreadboardApp {
       }
     }
   };
+
+  /**
+   * Handle component click from PixiJS
+   */
+  private handleComponentClick(componentId: string): void {
+    if (!this.dragState) {
+      this.selectComponentById(componentId);
+      // Show explain panel for component
+      this.explainPanel.show({ type: 'component', componentId });
+    }
+  }
+
+  /**
+   * Show error dialog from PixiJS error icon click
+   */
+  private showErrorDialog(error: { message: string; explanation: string; suggestions: string[] }): void {
+    this.explainPanel.show({
+      type: 'error',
+      errorData: error,
+    });
+  }
 
   /**
    * Select a component by ID
@@ -787,11 +675,7 @@ export class BreadboardApp {
   /**
    * Check if a position is occupied by a component
    */
-  private isPositionOccupied(position: Position): boolean {
-    return this.state.components.some((c) =>
-      c.positions.some((p) => p.row === position.row && p.col === position.col)
-    );
-  }
+  
 
   /**
    * Update the circuit information display
@@ -1139,71 +1023,22 @@ export class BreadboardApp {
   /**
    * Apply voltage overlay styling to a hole element
    */
-  private applyVoltageOverlay(
-    hole: HTMLElement,
-    position: Position,
-    positionToNode: Map<string, string>,
-    simulation: SimulationResult
-  ): void {
-    const posKey = this.positionToKey(position);
-    const nodeId = positionToNode.get(posKey);
-    
-    if (nodeId) {
-      const voltage = simulation.nodeVoltages.get(nodeId);
-      
-      if (voltage !== undefined) {
-        const color = voltageToColor(voltage);
-        hole.classList.add('voltage-overlay');
-        hole.style.background = color.rgb;
-        hole.dataset.voltage = voltage.toFixed(3);
-      }
-    }
-  }
+  
 
   /**
    * Show voltage tooltip on hole hover
    */
-  private showVoltageTooltip(event: MouseEvent, position: Position): void {
-    if (!this.tooltipElement) return;
-
-    // Use cached circuit and simulation results for performance
-    if (!this.cachedCircuit || !this.cachedSimulation || !this.cachedSimulation.success) {
-      return;
-    }
-
-    const positionToNode = this.buildPositionToNodeMap(this.cachedCircuit);
-    const posKey = this.positionToKey(position);
-    const nodeId = positionToNode.get(posKey);
-    
-    if (nodeId) {
-      const voltage = this.cachedSimulation.nodeVoltages.get(nodeId);
-      
-      if (voltage !== undefined) {
-        const color = voltageToColor(voltage);
-        this.tooltipElement.textContent = color.description;
-        this.tooltipElement.classList.add('visible');
-        this.updateTooltipPosition(event);
-      }
-    }
-  }
+  
 
   /**
    * Update tooltip position
    */
-  private updateTooltipPosition(event: MouseEvent): void {
-    if (!this.tooltipElement) return;
-    
-    this.tooltipElement.style.left = `${event.clientX + 10}px`;
-    this.tooltipElement.style.top = `${event.clientY + 10}px`;
-  }
+  
 
   /**
    * Hide voltage tooltip
    */
-  private hideVoltageTooltip(): void {
-    if (!this.tooltipElement) return;
-    this.tooltipElement.classList.remove('visible');
-  }
+  
 
   /**
    * Convert position to string key
@@ -1215,43 +1050,7 @@ export class BreadboardApp {
   /**
    * Start dragging a component
    */
-  private startDrag(componentId: string, event: MouseEvent): void {
-    const component = this.state.components.find((c) => c.id === componentId);
-    if (!component) return;
-
-    // Get breadboard element to calculate relative positions
-    const breadboard = document.getElementById('breadboard');
-    if (!breadboard) return;
-
-    const rect = breadboard.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-
-    // Calculate position of first pin in pixels
-    const firstPinPixels = this.positionToPixels(component.positions[0]);
-
-    this.dragState = {
-      componentId,
-      startMousePos: { x: mouseX, y: mouseY },
-      currentMousePos: { x: mouseX, y: mouseY },
-      originalPositions: [...component.positions],
-      previewPositions: null,
-      offsetFromFirstPin: {
-        x: mouseX - firstPinPixels.x,
-        y: mouseY - firstPinPixels.y,
-      },
-    };
-
-    // Select the component being dragged
-    this.state.selectedComponentId = componentId;
-
-    // Attach global mouse handlers
-    document.addEventListener('mousemove', this.handleMouseMoveBound);
-    document.addEventListener('mouseup', this.handleMouseUpBound);
-
-    // Initial preview calculation
-    this.updateDragPreview(event);
-  }
+  
 
   /**
    * Handle mouse move during drag
@@ -1354,8 +1153,8 @@ export class BreadboardApp {
    * Convert pixel coordinates to grid position with snapping
    */
   private snapToGrid(pixels: { x: number; y: number }): Position {
-    const col = Math.round(pixels.x / ComponentRenderer.HOLE_SPACING);
-    const row = Math.round(pixels.y / ComponentRenderer.HOLE_SPACING);
+    const col = Math.round(pixels.x / PixiRenderer.HOLE_SPACING);
+    const row = Math.round(pixels.y / PixiRenderer.HOLE_SPACING);
 
     // Clamp to valid grid range
     return {
@@ -1367,12 +1166,7 @@ export class BreadboardApp {
   /**
    * Convert position to pixel coordinates
    */
-  private positionToPixels(pos: Position): { x: number; y: number } {
-    return {
-      x: pos.col * ComponentRenderer.HOLE_SPACING + ComponentRenderer.HOLE_SPACING / 2,
-      y: pos.row * ComponentRenderer.HOLE_SPACING + ComponentRenderer.HOLE_SPACING / 2,
-    };
-  }
+  
 
   /**
    * Validate if a component can be placed at the given positions
