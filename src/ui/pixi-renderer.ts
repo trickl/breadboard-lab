@@ -68,6 +68,10 @@ export class PixiRenderer {
   public static readonly HOLE_SIZE = 20;
   public static readonly HOLE_MARGIN = 3;
   public static readonly HOLE_SPACING = PixiRenderer.HOLE_SIZE + PixiRenderer.HOLE_MARGIN * 2;
+  
+  // Padding for labels
+  private static readonly LABEL_PADDING_X = 20;
+  private static readonly LABEL_PADDING_Y = 25;
 
   // Wire colors
   private static readonly WIRE_COLORS = [
@@ -92,8 +96,10 @@ export class PixiRenderer {
   async init(container: HTMLElement, handlers: PixiEventHandlers = {}): Promise<void> {
     this.eventHandlers = handlers;
     
-    const width = BreadboardLayout.TOTAL_COLS * PixiRenderer.HOLE_SPACING;
-    const height = BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING;
+    const gridWidth = BreadboardLayout.TOTAL_COLS * PixiRenderer.HOLE_SPACING;
+    const gridHeight = BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING;
+    const width = gridWidth + PixiRenderer.LABEL_PADDING_X * 2;
+    const height = gridHeight + PixiRenderer.LABEL_PADDING_Y * 2;
     
     this.app = new Application();
     await this.app.init({
@@ -106,6 +112,13 @@ export class PixiRenderer {
     });
 
     container.appendChild(this.app.canvas);
+    
+    // Offset all containers to account for padding
+    this.breadboardContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
+    this.componentsContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
+    this.voltageOverlayContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
+    this.particlesContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
+    this.errorOverlayContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
     
     // Add layers in z-order
     this.app.stage.addChild(this.breadboardContainer);
@@ -251,8 +264,8 @@ export class PixiRenderer {
     // Add row labels (numbers 1-30)
     const labelStyle = new TextStyle({
       fontFamily: 'Arial, sans-serif',
-      fontSize: 10,
-      fill: 0x666666,
+      fontSize: 11,
+      fill: 0x888888,
       fontWeight: 'bold',
     });
     
@@ -261,17 +274,17 @@ export class PixiRenderer {
       if (row % 5 === 0 || row === BreadboardLayout.ROWS - 1) {
         const y = row * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
         
-        // Left side label
+        // Left side label (outside the grid)
         const leftLabel = new Text({ text: String(row + 1), style: labelStyle });
         leftLabel.anchor.set(1, 0.5);
-        leftLabel.x = BreadboardLayout.RAIL_LEFT_NEGATIVE * PixiRenderer.HOLE_SPACING - 5;
+        leftLabel.x = -8;
         leftLabel.y = y;
         this.breadboardContainer.addChild(leftLabel);
         
-        // Right side label
+        // Right side label (outside the grid)
         const rightLabel = new Text({ text: String(row + 1), style: labelStyle });
         rightLabel.anchor.set(0, 0.5);
-        rightLabel.x = (BreadboardLayout.RAIL_RIGHT_NEGATIVE + 1) * PixiRenderer.HOLE_SPACING + 5;
+        rightLabel.x = width + 8;
         rightLabel.y = y;
         this.breadboardContainer.addChild(rightLabel);
       }
@@ -287,50 +300,50 @@ export class PixiRenderer {
       const topLabel = new Text({ text: columnLabels[i], style: labelStyle });
       topLabel.anchor.set(0.5, 1);
       topLabel.x = x;
-      topLabel.y = -5;
+      topLabel.y = -8;
       this.breadboardContainer.addChild(topLabel);
       
       // Bottom label
       const bottomLabel = new Text({ text: columnLabels[i], style: labelStyle });
       bottomLabel.anchor.set(0.5, 0);
       bottomLabel.x = x;
-      bottomLabel.y = height + 5;
+      bottomLabel.y = height + 8;
       this.breadboardContainer.addChild(bottomLabel);
     }
     
-    // Add rail labels
+    // Add rail labels (with better positioning)
     const railLabelStyle = new TextStyle({
       fontFamily: 'Arial, sans-serif',
       fontSize: 12,
       fontWeight: 'bold',
     });
     
-    // Left positive rail (red)
-    const leftPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xcc3333 } });
+    // Left positive rail (red) - position above the grid
+    const leftPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xdd4444 } });
     leftPosLabel.anchor.set(0.5, 1);
     leftPosLabel.x = BreadboardLayout.RAIL_LEFT_POSITIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
-    leftPosLabel.y = -5;
+    leftPosLabel.y = -8;
     this.breadboardContainer.addChild(leftPosLabel);
     
-    // Left negative rail (blue)
-    const leftNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0x3333cc } });
+    // Left negative rail (blue) - position above the grid
+    const leftNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0x4444dd } });
     leftNegLabel.anchor.set(0.5, 1);
     leftNegLabel.x = BreadboardLayout.RAIL_LEFT_NEGATIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
-    leftNegLabel.y = -5;
+    leftNegLabel.y = -8;
     this.breadboardContainer.addChild(leftNegLabel);
     
-    // Right positive rail (red)
-    const rightPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xcc3333 } });
+    // Right positive rail (red) - position above the grid
+    const rightPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xdd4444 } });
     rightPosLabel.anchor.set(0.5, 1);
     rightPosLabel.x = BreadboardLayout.RAIL_RIGHT_POSITIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
-    rightPosLabel.y = -5;
+    rightPosLabel.y = -8;
     this.breadboardContainer.addChild(rightPosLabel);
     
-    // Right negative rail (blue)
-    const rightNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0x3333cc } });
+    // Right negative rail (blue) - position above the grid
+    const rightNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0x4444dd } });
     rightNegLabel.anchor.set(0.5, 1);
     rightNegLabel.x = BreadboardLayout.RAIL_RIGHT_NEGATIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
-    rightNegLabel.y = -5;
+    rightNegLabel.y = -8;
     this.breadboardContainer.addChild(rightNegLabel);
   }
 
