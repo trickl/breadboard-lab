@@ -415,8 +415,16 @@ describe('BreadboardApp - Component Drag and Drop', () => {
     const components = app.getComponents();
     expect(components.length).toBe(1);
 
-    // TODO: Implement drag via PixiJS - for now verify component exists
-    expect(components[0]).toBeTruthy();
+    const componentId = components[0].id;
+    
+    // Start dragging the component
+    app.startDragComponent(componentId);
+    
+    // Verify drag state is initialized
+    const dragState = app.getDragState();
+    expect(dragState).toBeTruthy();
+    expect(dragState?.componentId).toBe(componentId);
+    expect(dragState?.originalPositions).toEqual(components[0].positions);
   });
 
   it('should show ghost preview during drag', () => {
@@ -427,8 +435,22 @@ describe('BreadboardApp - Component Drag and Drop', () => {
     const components = app.getComponents();
     expect(components.length).toBe(1);
 
-    // TODO: Implement drag preview - for now verify component exists
-    expect(components[0]).toBeTruthy();
+    const componentId = components[0].id;
+    const originalPositions = [...components[0].positions];
+    
+    // Start dragging
+    app.startDragComponent(componentId);
+    
+    // Move to a new valid position
+    app.moveDragTo({ row: 2, col: 0 });
+    
+    // Verify preview positions are calculated
+    const dragState = app.getDragState();
+    expect(dragState?.previewPositions).toBeTruthy();
+    
+    // Component actual positions should not have changed yet
+    const currentComponent = app.getComponents()[0];
+    expect(currentComponent.positions).toEqual(originalPositions);
   });
 
   it('should update component position on successful drop', () => {
@@ -439,8 +461,26 @@ describe('BreadboardApp - Component Drag and Drop', () => {
     const components = app.getComponents();
     expect(components.length).toBe(1);
 
-    // TODO: Implement drag and drop - for now verify component exists
-    expect(components[0]).toBeTruthy();
+    const componentId = components[0].id;
+    const originalPositions = [...components[0].positions];
+    
+    // Start dragging
+    app.startDragComponent(componentId);
+    
+    // Move to a new valid position
+    const newPosition = { row: 3, col: 0 };
+    app.moveDragTo(newPosition);
+    
+    // Complete the drag
+    app.completeDrag();
+    
+    // Verify component position has changed
+    const updatedComponent = app.getComponents()[0];
+    expect(updatedComponent.positions).not.toEqual(originalPositions);
+    expect(updatedComponent.positions[0].row).toBe(newPosition.row);
+    
+    // Verify drag state is cleared
+    expect(app.getDragState()).toBeNull();
   });
 
   it('should cancel drag on Escape key', () => {
@@ -451,8 +491,24 @@ describe('BreadboardApp - Component Drag and Drop', () => {
     const components = app.getComponents();
     expect(components.length).toBe(1);
 
-    // TODO: Implement drag cancellation - for now verify component exists
-    expect(components[0]).toBeTruthy();
+    const componentId = components[0].id;
+    const originalPositions = [...components[0].positions];
+    
+    // Start dragging
+    app.startDragComponent(componentId);
+    
+    // Move to a new position
+    app.moveDragTo({ row: 4, col: 0 });
+    
+    // Press Escape to cancel
+    app.pressEscape();
+    
+    // Verify component position has not changed
+    const currentComponent = app.getComponents()[0];
+    expect(currentComponent.positions).toEqual(originalPositions);
+    
+    // Verify drag state is cleared
+    expect(app.getDragState()).toBeNull();
   });
 
   it('should maintain selection after successful drag', () => {
@@ -466,6 +522,16 @@ describe('BreadboardApp - Component Drag and Drop', () => {
 
     expect(app.getSelectedComponentId()).toBe(componentId);
 
-    // TODO: Verify selection maintained after drag
+    // Start dragging
+    app.startDragComponent(componentId);
+    
+    // Move to a new position
+    app.moveDragTo({ row: 5, col: 5 });
+    
+    // Complete the drag
+    app.completeDrag();
+    
+    // Verify selection is maintained
+    expect(app.getSelectedComponentId()).toBe(componentId);
   });
 });
