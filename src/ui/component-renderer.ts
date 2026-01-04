@@ -212,6 +212,9 @@ export class ComponentRenderer {
       case ComponentType.GROUND:
         this.renderGroundAtPositions(contentGroup, component, positions);
         break;
+      case ComponentType.MICROPROCESSOR:
+        this.renderMicroprocessorAtPositions(contentGroup, component, positions);
+        break;
     }
 
     group.appendChild(contentGroup);
@@ -613,5 +616,96 @@ export class ComponentRenderer {
     dot.setAttribute('r', '3');
     dot.setAttribute('fill', color);
     group.appendChild(dot);
+  }
+
+  /**
+   * Render a microprocessor (EDU-8) at specified positions
+   * DIP-16 package with 8 pins per side
+   */
+  private renderMicroprocessorAtPositions(
+    group: SVGGElement,
+    _component: AnyComponent,
+    positions: Position[]
+  ): void {
+    if (positions.length < 16) return;
+
+    // Get pixel positions for all 16 pins
+    const pinPixels = positions.map(pos => this.positionToPixels(pos));
+    
+    // Calculate chip body bounds
+    const leftPins = pinPixels.slice(0, 8);   // Pins 1-8 (left side, top to bottom)
+    const rightPins = pinPixels.slice(8, 16); // Pins 9-16 (right side, bottom to top)
+    
+    // Body bounds
+    const bodyLeft = Math.min(...leftPins.map(p => p.x)) + 15;
+    const bodyRight = Math.max(...rightPins.map(p => p.x)) - 15;
+    const bodyTop = leftPins[0].y - 10;
+    const bodyBottom = leftPins[7].y + 10;
+    const bodyWidth = bodyRight - bodyLeft;
+    const bodyHeight = bodyBottom - bodyTop;
+    
+    // Draw chip body
+    const body = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    body.setAttribute('x', bodyLeft.toString());
+    body.setAttribute('y', bodyTop.toString());
+    body.setAttribute('width', bodyWidth.toString());
+    body.setAttribute('height', bodyHeight.toString());
+    body.setAttribute('fill', '#2c3e50');
+    body.setAttribute('stroke', '#000');
+    body.setAttribute('stroke-width', '2');
+    body.setAttribute('rx', '4');
+    group.appendChild(body);
+    
+    // Draw notch at top (pin 1 indicator)
+    const notchRadius = 8;
+    const notchCenterX = bodyLeft + bodyWidth / 2;
+    const notch = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    notch.setAttribute('cx', notchCenterX.toString());
+    notch.setAttribute('cy', bodyTop.toString());
+    notch.setAttribute('r', notchRadius.toString());
+    notch.setAttribute('fill', '#34495e');
+    group.appendChild(notch);
+    
+    // Draw chip label
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', (bodyLeft + bodyWidth / 2).toString());
+    label.setAttribute('y', (bodyTop + bodyHeight / 2).toString());
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('dominant-baseline', 'middle');
+    label.setAttribute('fill', '#ecf0f1');
+    label.setAttribute('font-size', '12');
+    label.setAttribute('font-weight', 'bold');
+    label.setAttribute('font-family', 'monospace');
+    label.textContent = 'EDU-8';
+    group.appendChild(label);
+    
+    // Draw pins
+    leftPins.forEach((pin) => {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', pin.x.toString());
+      line.setAttribute('y1', pin.y.toString());
+      line.setAttribute('x2', bodyLeft.toString());
+      line.setAttribute('y2', pin.y.toString());
+      line.setAttribute('stroke', '#666');
+      line.setAttribute('stroke-width', '2');
+      group.appendChild(line);
+      
+      // Connection dot at pin
+      this.addConnectionDot(group, pin, '#666');
+    });
+    
+    rightPins.forEach((pin) => {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', pin.x.toString());
+      line.setAttribute('y1', pin.y.toString());
+      line.setAttribute('x2', bodyRight.toString());
+      line.setAttribute('y2', pin.y.toString());
+      line.setAttribute('stroke', '#666');
+      line.setAttribute('stroke-width', '2');
+      group.appendChild(line);
+      
+      // Connection dot at pin
+      this.addConnectionDot(group, pin, '#666');
+    });
   }
 }

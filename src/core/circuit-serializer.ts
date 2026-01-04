@@ -5,6 +5,7 @@
 
 import type { BreadboardState, AnyComponent, Position } from './types';
 import { ComponentType } from './types';
+import { createInitialEDU8State } from './edu8-simulator';
 
 /**
  * Default component values
@@ -35,7 +36,7 @@ export interface SerializedComponent {
   positions: Position[];
   rotation: 0 | 90 | 180 | 270;
   // Component-specific properties stored in metadata
-  metadata?: Record<string, number>;
+  metadata?: Record<string, number | number[]>;
 }
 
 /**
@@ -155,6 +156,11 @@ function serializeComponent(component: AnyComponent): SerializedComponent {
     case ComponentType.GROUND:
       // No additional metadata
       break;
+    case ComponentType.MICROPROCESSOR:
+      serialized.metadata = {
+        rom: Array.from(component.state.rom),
+      };
+      break;
   }
 
   return serialized;
@@ -191,7 +197,7 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         type: ComponentType.RESISTOR,
         positions,
         rotation,
-        resistance: metadata.resistance || DEFAULT_RESISTANCE,
+        resistance: typeof metadata.resistance === 'number' ? metadata.resistance : DEFAULT_RESISTANCE,
       };
 
     case ComponentType.LED:
@@ -200,8 +206,8 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         type: ComponentType.LED,
         positions,
         rotation,
-        forwardVoltage: metadata.forwardVoltage || DEFAULT_LED_FORWARD_VOLTAGE,
-        maxCurrent: metadata.maxCurrent || DEFAULT_LED_MAX_CURRENT,
+        forwardVoltage: typeof metadata.forwardVoltage === 'number' ? metadata.forwardVoltage : DEFAULT_LED_FORWARD_VOLTAGE,
+        maxCurrent: typeof metadata.maxCurrent === 'number' ? metadata.maxCurrent : DEFAULT_LED_MAX_CURRENT,
       };
 
     case ComponentType.WIRE:
@@ -210,7 +216,7 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         type: ComponentType.WIRE,
         positions,
         rotation,
-        resistance: metadata.resistance || DEFAULT_WIRE_RESISTANCE,
+        resistance: typeof metadata.resistance === 'number' ? metadata.resistance : DEFAULT_WIRE_RESISTANCE,
       };
 
     case ComponentType.POWER_SUPPLY:
@@ -219,7 +225,7 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         type: ComponentType.POWER_SUPPLY,
         positions,
         rotation,
-        voltage: metadata.voltage || DEFAULT_POWER_SUPPLY_VOLTAGE,
+        voltage: typeof metadata.voltage === 'number' ? metadata.voltage : DEFAULT_POWER_SUPPLY_VOLTAGE,
       };
 
     case ComponentType.GROUND:
@@ -229,6 +235,22 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         positions,
         rotation,
       };
+
+    case ComponentType.MICROPROCESSOR:
+      {
+        const state = createInitialEDU8State();
+        // Load ROM if provided
+        if (metadata.rom && Array.isArray(metadata.rom)) {
+          state.rom = new Uint8Array(metadata.rom.slice(0, 16));
+        }
+        return {
+          id,
+          type: ComponentType.MICROPROCESSOR,
+          positions,
+          rotation,
+          state,
+        };
+      }
 
     default:
       throw new Error(`Unknown component type: ${type}`);
