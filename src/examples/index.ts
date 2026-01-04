@@ -6,6 +6,7 @@ import ledResistorJson from './led-resistor.json';
 import voltageDividerJson from './voltage-divider.json';
 import parallelLedsJson from './parallel-leds.json';
 import shortCircuitDemoJson from './short-circuit-demo.json';
+import edu8BlinkJson from './edu8-blink.json';
 
 /**
  * Example circuit with metadata
@@ -14,7 +15,7 @@ export interface ExampleCircuit {
   id: string;
   name: string;
   description: string;
-  category: 'basic' | 'intermediate' | 'demo';
+  category: 'basic' | 'intermediate' | 'demo' | 'microprocessor';
   learningObjectives: string[];
   json: string;
 }
@@ -77,6 +78,21 @@ export const EXAMPLE_CIRCUITS: ExampleCircuit[] = [
     ],
     json: JSON.stringify(shortCircuitDemoJson),
   },
+  {
+    id: 'edu8-blink',
+    name: 'EDU-8 Blink Program',
+    description:
+      'Educational microprocessor running a Blink program. Use clock controls (Space to step, or Run for automatic execution) to toggle an LED.',
+    category: 'microprocessor',
+    learningObjectives: [
+      'Clock-driven computation',
+      'Program counter and instruction execution',
+      'Digital output to LED',
+      'Fetch-decode-execute cycle',
+      'Sequential program flow',
+    ],
+    json: JSON.stringify(edu8BlinkJson),
+  },
 ];
 
 /**
@@ -90,7 +106,7 @@ export function getExampleById(id: string): ExampleCircuit | undefined {
  * Get examples by category
  */
 export function getExamplesByCategory(
-  category: 'basic' | 'intermediate' | 'demo'
+  category: 'basic' | 'intermediate' | 'demo' | 'microprocessor'
 ): ExampleCircuit[] {
   return EXAMPLE_CIRCUITS.filter((example) => example.category === category);
 }
