@@ -118,6 +118,24 @@ When audio is enabled and a speaker component is connected to a circuit:
 - Simple buzzer: Connect power supply → speaker → ground (constant tone)
 - Variable tone: Power supply → resistor → speaker → ground (change resistor value to change pitch)
 
+### Clock Control (EDU-8 Microprocessor)
+
+When an EDU-8 microprocessor is on the breadboard, the Clock Control panel appears allowing you to:
+- **Step**: Execute one instruction at a time (Space key) to observe the fetch-decode-execute cycle
+- **Run**: Automatically execute instructions at adjustable frequencies (0.5-10 Hz)
+- **Pause**: Stop automatic execution while preserving CPU state
+- **Reset**: Reinitialize the microprocessor (PC=0, A=0, outputs=0)
+- **Frequency Control**: Adjust clock speed with slider (lower for instruction-by-instruction learning, higher for observing program flow)
+
+The Clock Control UI makes computational electronics tangible by showing:
+- Real-time CPU state updates in the Explain panel (program counter, accumulator, flags)
+- Output changes reflected immediately on connected LEDs
+- The connection between software (instructions) and hardware (voltages)
+
+**Try the EDU-8 Blink example** from the Examples menu to see clock control in action!
+
+See [docs/CLOCK_CONTROL_GUIDE.md](docs/CLOCK_CONTROL_GUIDE.md) for detailed documentation.
+
 ### Current Flow Animation
 
 When a circuit simulation succeeds, animated particles automatically appear showing:
