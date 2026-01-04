@@ -1,0 +1,99 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "name": "EDU-8 Blink Program",
+    "description": "Educational microprocessor running a Blink program that toggles an LED output. Use the Clock Control panel to step through instructions one at a time (Space key) or run automatically at adjustable frequencies (1-10 Hz). Watch the Explain panel to see the program counter, accumulator, and output state update in real-time.",
+    "author": "Breadboard Lab",
+    "created": "2026-01-04T13:00:00.000Z"
+  },
+  "components": [
+    {
+      "id": "ps1",
+      "type": "POWER_SUPPLY",
+      "positions": [
+        { "row": 5, "col": 0 },
+        { "row": 5, "col": 1 }
+      ],
+      "rotation": 0,
+      "metadata": { "voltage": 5 }
+    },
+    {
+      "id": "gnd1",
+      "type": "GROUND",
+      "positions": [{ "row": 25, "col": 0 }],
+      "rotation": 0
+    },
+    {
+      "id": "cpu1",
+      "type": "MICROPROCESSOR",
+      "positions": [
+        { "row": 10, "col": 5 },
+        { "row": 10, "col": 8 }
+      ],
+      "rotation": 0,
+      "metadata": {
+        "rom": [1, 48, 0, 48, 80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "id": "r1",
+      "type": "RESISTOR",
+      "positions": [
+        { "row": 10, "col": 10 },
+        { "row": 15, "col": 10 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 220 }
+    },
+    {
+      "id": "led1",
+      "type": "LED",
+      "positions": [
+        { "row": 17, "col": 10 },
+        { "row": 20, "col": 10 }
+      ],
+      "rotation": 0,
+      "metadata": { "forwardVoltage": 2.0, "maxCurrent": 0.02 }
+    },
+    {
+      "id": "w1",
+      "type": "WIRE",
+      "positions": [
+        { "row": 5, "col": 1 },
+        { "row": 5, "col": 5 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w2",
+      "type": "WIRE",
+      "positions": [
+        { "row": 25, "col": 0 },
+        { "row": 25, "col": 8 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w3",
+      "type": "WIRE",
+      "positions": [
+        { "row": 10, "col": 8 },
+        { "row": 10, "col": 10 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    },
+    {
+      "id": "w4",
+      "type": "WIRE",
+      "positions": [
+        { "row": 20, "col": 10 },
+        { "row": 25, "col": 10 }
+      ],
+      "rotation": 0,
+      "metadata": { "resistance": 0.01 }
+    }
+  ]
+}
