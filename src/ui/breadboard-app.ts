@@ -661,6 +661,28 @@ export class BreadboardApp {
         };
         break;
 
+      case ComponentType.MICROPROCESSOR:
+        // Microprocessor requires 16 positions for DIP-16 package
+        // For now, use simplified 2-position placement (will be expanded)
+        component = {
+          id,
+          type: ComponentType.MICROPROCESSOR,
+          positions,
+          rotation: 0,
+          libraryId: this.selectedLibraryId ?? undefined,
+          state: {
+            accumulator: 0,
+            programCounter: 0,
+            zeroFlag: false,
+            halted: false,
+            rom: new Uint8Array(16),
+            inputs: 0,
+            outputs: 0,
+            clockState: false,
+          },
+        };
+        break;
+
       default:
         return;
     }
