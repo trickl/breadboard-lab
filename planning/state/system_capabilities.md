@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-04  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After implementing derived schematic view with force-directed layout (PR #161)
+**Last Updated**: After migrating breadboard rendering from SVG to WebGL using PixiJS (PR #167)
 
 ---
 
@@ -1330,9 +1330,9 @@ The system provides modal dialogs for saving, loading, and browsing example circ
 
 ## Component Visual Rendering
 
-### SVG-Based Component Rendering
+### WebGL-Based Component Rendering with PixiJS
 
-The system displays all placed components with distinctive visual representations on the breadboard using SVG overlays.
+The system displays all placed components with distinctive visual representations on the breadboard using WebGL-accelerated rendering via PixiJS (PR #167).
 
 **Visual representations**:
 - **Power supply**: Blue battery rectangle with +/- symbols and voltage label (e.g., "5V")
@@ -1347,54 +1347,74 @@ The system displays all placed components with distinctive visual representation
 - Each wire gets the next color in the sequence
 
 **Rendering characteristics**:
-- Components render automatically after placement
-- SVG overlay positioned absolutely over breadboard grid
-- Components render in layered order: wires first (behind), then other components
-- Visual representations use geometric shapes with text labels (no proprietary graphics)
-- Components have pointer events enabled (`pointer-events: auto`) for selection interaction
+- Components render automatically after placement using PixiJS WebGL canvas
+- Canvas-based rendering replaces previous SVG overlay approach
+- Components render in layered containers with z-ordering: breadboard grid → components → voltage overlay → particles → error overlays
+- Visual representations use procedurally drawn Graphics API shapes (no bitmap sprites)
+- Components have interactive event handling via PixiJS FederatedPointerEvents
 - Components display cursor: pointer styling when hovered
-- Selected component displays blue drop-shadow filter for visual feedback
-- Components display above breadboard grid but below voltage overlay
+- Selected component displays green stroke highlight for visual feedback
+- Hardware-accelerated rendering via WebGL for improved performance
 
 **Coordinate mapping**:
-- Grid positions (row, col) map to pixel coordinates for SVG rendering
+- Grid positions (row, col) map to pixel coordinates for PixiJS rendering
 - Hole spacing: 26px per hole (20px hole size + 6px total margin)
-- Breadboard dimensions: 520px width (10 columns) × 780px height (30 rows)
+- Breadboard dimensions: 364px width (14 columns) × 780px height (30 rows)
 
 ### Implementation Details
 
-**Component renderer** (`src/ui/component-renderer.ts`):
-- `ComponentRenderer` class handles all visual rendering logic
-- `renderComponents()`: Creates SVG element with all component visuals, accepts optional `selectedComponentId` parameter
-- Individual render methods for each component type (wire, resistor, LED, power supply, ground)
-- Resistor rendering: `renderResistorAtPositions()` generates color bands using `resistanceToColorBands()` from color code module
-- Resistor color bands: Procedurally drawn with correct IEC 60062 colors, positioned along body, with stroke added to light colors for visibility
-- Position-to-pixel coordinate conversion
-- Smart resistance value formatting
-- Selection rendering: adds `.component-selected` CSS class to selected component
+**PixiJS renderer** (`src/ui/pixi-renderer.ts`, 768 lines):
+- `PixiRenderer` class handles all WebGL-based rendering logic
+- `init()`: Initializes PixiJS Application with WebGL backend, creates canvas element, sets up layer containers
+- `renderBreadboard()`: Renders breadboard holes with voltage overlay colors using Graphics API
+- `renderComponents()`: Creates and positions component graphics with z-ordering
+- `renderErrors()`: Renders error overlay icons as interactive containers
+- `startAnimation()` / `stopAnimation()`: Manages current flow particle animation loop
+- Component-specific render methods: `renderWire()`, `renderResistor()`, `renderLED()`, `renderPowerSupply()`, `renderGround()`
+- Manhattan routing for wires (orthogonal paths with 3 segments)
+- Resistor color bands procedurally drawn using `resistanceToColorBands()` from color code module
+- Position-to-pixel coordinate conversion with `positionToPixels()`
+- Event handling via PixiJS `FederatedPointerEvent` system
+
+**Layer containers**:
+- `breadboardContainer`: Breadboard grid holes with voltage colors (z-index 0)
+- `componentsContainer`: Component graphics with sortable children (z-index 1)
+- `voltageOverlayContainer`: Voltage-specific overlays (z-index 2)
+- `particlesContainer`: Current animation particles (z-index 3)
+- `errorOverlayContainer`: Error icons (z-index 4)
 
 **Integration** (`src/ui/breadboard-app.ts`):
-- Component overlay renders after breadboard grid creation
-- Re-renders automatically on state changes (component placement, deletion, selection, clear all)
-- SVG dimensions calculated based on breadboard size
-- Existing component overlay removed before re-rendering
-- Component click event handlers attached after render for selection
-- Keyboard event listener for Delete/Backspace keys
-- `destroy()` method for event cleanup
+- PixiJS renderer initialized once with event handlers on first breadboard render
+- Event handlers: `onHoleClick`, `onComponentClick`, `onErrorIconClick`
+- Re-renders breadboard, components, errors, and animation on state changes
+- Removed 273 lines of SVG DOM manipulation code
+- Hole spacing constants updated to `PixiRenderer.HOLE_SPACING`
+- Canvas element appended to breadboard container on init
 
-**Styling** (`src/style.css`):
-- `.component-overlay`: Absolute positioning with z-index 10
-- `.component`: Base component styling with opacity transition
-- `.component-selected`: Blue drop-shadow filter for selection feedback
-- Breadboard container has `position: relative` for overlay positioning
+**Rendering pipeline**:
+```typescript
+// Initialize (one-time)
+await pixiRenderer.init(breadboard, {
+  onHoleClick: (pos) => this.handleHoleClick(pos),
+  onComponentClick: (id) => this.handleComponentClick(id),
+  onErrorIconClick: (err) => this.showErrorDialog(err)
+});
+
+// Render (on each state change)
+pixiRenderer.renderBreadboard(positionToNode, simulation);
+pixiRenderer.renderComponents(components, selectedId, dragState);
+pixiRenderer.renderErrors(errors);
+pixiRenderer.startAnimation(simulation, components);
+```
 
 ### Constraints
 
-- No drag-and-drop of rendered components (placement uses two-click interaction)
-- No animation of component placement (instant rendering)
+- No freeform drawing or custom component shapes
 - Visual representations are simplified geometric shapes, not photorealistic
 - Wire routing is orthogonal (Manhattan style), not customizable by user
 - Single component selection only (no multi-select)
+- Component drag-and-drop initiation currently removed due to event model incompatibility with PixiJS (known limitation from PR #167)
+- Voltage tooltips on hover currently removed (Canvas event mapping needed, known limitation from PR #167)
 
 ---
 
@@ -1536,12 +1556,13 @@ src/
 │       └── audio-manager.test.ts  # AudioManager unit tests
 ├── ui/                            # Presentation layer
 │   ├── breadboard-app.ts          # Main UI application class
-│   ├── component-renderer.ts      # SVG component rendering
+│   ├── pixi-renderer.ts           # PixiJS WebGL renderer (unified rendering, 768 lines) (PR #167)
+│   ├── component-renderer.ts      # Legacy SVG component rendering (deprecated, retained for reference)
 │   ├── schematic-renderer.ts      # SVG schematic diagram rendering (PR #161)
-│   ├── error-overlay-renderer.ts  # Error icon rendering
+│   ├── error-overlay-renderer.ts  # Legacy SVG error rendering (deprecated, retained for reference)
 │   ├── explain-panel.ts           # Interactive explanation panel
 │   ├── voltage-colors.ts          # Voltage-to-color mapping
-│   ├── current-animator.ts        # Current animation
+│   ├── current-animator.ts        # Legacy SVG current animation (deprecated, retained for reference)
 │   └── __tests__/                 # UI tests
 ├── examples/                      # Example circuits
 │   └── *.json                     # Example circuit definitions
@@ -1573,10 +1594,13 @@ src/
 
 ### Rendering Strategy
 
-- Full re-render on every state change
-- Breadboard grid recreated from scratch
+- WebGL-based rendering via PixiJS for breadboard view (PR #167)
+- SVG rendering still used for schematic view (separate renderer)
+- Full re-render on every state change for breadboard
+- PixiJS Application and canvas initialized once, then layers re-populated on updates
 - No virtual DOM or differential updates
 - Circuit extraction and simulation run on every render
+- Hardware acceleration via WebGL improves rendering performance for complex circuits
 
 ---
 
@@ -1652,9 +1676,11 @@ Both jobs must pass for PR approval. Visual regression failures block merge.
 
 ### Test Coverage
 
-Fourteen test suites with 231 passing tests (224 unit/integration + 7 visual regression):
+Fourteen test suites with **200 passing tests and 31 failing tests** (total: 231 tests = 224 unit/integration + 7 visual regression):
 
-1. **breadboard-layout.test.ts** (12 tests)
+**Note**: 31 tests currently fail after PR #167 (PixiJS migration) because they query DOM for SVG elements that no longer exist with Canvas-based rendering. Test infrastructure needs updates to interact with PixiJS Canvas or test via app state instead of DOM queries. All circuit logic tests (simulation, extraction, serialization) continue to pass.
+
+1. **breadboard-layout.test.ts** (15 tests) ✅
    - Position validity checking (updated for 14 columns)
    - Terminal strip connectivity (updated column indices)
    - Connected position enumeration (strips and rails)
@@ -1662,7 +1688,7 @@ Fourteen test suites with 231 passing tests (224 unit/integration + 7 visual reg
    - Rail information retrieval (2 new tests)
    - Rail vertical connectivity (3 new tests)
 
-2. **circuit-extractor.test.ts** (6 tests)
+2. **circuit-extractor.test.ts** (6 tests) ✅
    - Empty circuit extraction
    - Wire edge creation across nodes (updated column indices)
    - Same-node component handling (updated column indices)
@@ -1670,7 +1696,7 @@ Fourteen test suites with 231 passing tests (224 unit/integration + 7 visual reg
    - Rail-to-strip connectivity (new test)
    - Same-rail component handling (new test)
 
-3. **circuit-simulator.test.ts** (12 tests)
+3. **circuit-simulator.test.ts** (12 tests) ✅
    - Basic circuits (ground only, simple series, voltage divider)
    - Parallel circuits (two parallel resistors, voltage divider with parallel load, complex networks)
    - Wire handling (low resistance validation)
@@ -1680,70 +1706,74 @@ Fourteen test suites with 231 passing tests (224 unit/integration + 7 visual reg
    - Current calculations through parallel branches
    - Note: Error detection logic validated through integration but not yet unit tested
 
-4. **circuit-serializer.test.ts** (14 tests) — **New in PR #119**
+4. **circuit-serializer.test.ts** (14 tests) ✅
    - Serialization of empty circuits and all component types
    - Deserialization with validation (JSON format, component types, rotation values)
    - Default value application for missing properties
    - Roundtrip fidelity (serialize → deserialize preserves all data)
    - Edge cases (invalid JSON, missing fields, unknown component types)
 
-5. **voltage-colors.test.ts** (13 tests)
+5. **voltage-colors.test.ts** (13 tests) ✅
    - Color gradient mapping at key voltage stops (0V, 1.25V, 2.5V, 3.75V, 5V)
    - Linear interpolation between color stops
    - Voltage clamping (negative and above 5V)
    - CSS class mapping for pattern-based alternatives
 
-6. **component-renderer.test.ts** (9 tests)
+6. **component-renderer.test.ts** (9 tests) ✅
    - SVG element creation
    - Individual component rendering (wire, resistor, LED, power supply, ground)
    - Multiple component rendering
    - Component layering (wires render before other components)
    - Wire color cycling and reset behavior
+   - Note: Tests still pass as they test the legacy SVG renderer which is retained for reference
 
-7. **current-animator.test.ts** (11 tests)
+7. **current-animator.test.ts** (11 tests) ✅
    - Start/stop lifecycle management
    - Current threshold filtering (1µA minimum)
    - Particle creation for currents above threshold
    - Current magnitude scaling (particle count and speed)
    - Component type support (wire, resistor, LED)
    - Edge cases (zero current, negative current, empty components, failed simulation)
+   - Note: Tests still pass as they test the legacy SVG animator which is retained for reference
 
-8. **breadboard-app.test.ts** (25 tests) — **Updated in PR #107**
-   - Component initialization
-   - Component selection (click to select)
-   - Component deselection (background click)
-   - Deletion via Delete key
-   - Deletion via Backspace key
-   - Circuit simulation updates after deletion
-   - No deletion when nothing selected
-   - Multiple component selection handling
-   - **Drag-and-drop repositioning** (5 tests):
-     - Drag operation initiation on mousedown
-     - Ghost preview display during drag
-     - Component position update on successful drop
-     - Drag cancellation via Escape key
-     - Component selection persistence after drag
-   - **Component rotation** (12 new tests in PR #107):
-     - Rotation via R key press
-     - Cycling through all four rotation angles (0°, 90°, 180°, 270°)
-     - SVG rotation transform application
-     - No rotation when no component selected
-     - No rotation during drag operation
-     - Lowercase r key support
-     - Out-of-bounds rotation prevention
-     - Circuit simulation updates after rotation
-     - Rotation for all component types (LED, power supply, wire, resistor, ground)
+8. **breadboard-app.test.ts** (25 tests) ❌ **16 failing**
+   - Component initialization ✅
+   - Component selection (click to select) ❌
+   - Component deselection (background click) ❌
+   - Deletion via Delete key ❌
+   - Deletion via Backspace key ❌
+   - Circuit simulation updates after deletion ❌
+   - No deletion when nothing selected ✅
+   - Multiple component selection handling ❌
+   - **Drag-and-drop repositioning** (5 tests) ❌:
+     - Drag operation initiation on mousedown ❌
+     - Ghost preview display during drag ❌
+     - Component position update on successful drop ❌
+     - Drag cancellation via Escape key ❌
+     - Component selection persistence after drag ❌
+   - **Component rotation** (12 tests) ❌:
+     - Rotation via R key press ❌
+     - Cycling through all four rotation angles (0°, 90°, 180°, 270°) ❌
+     - SVG rotation transform application ❌
+     - No rotation when no component selected ✅
+     - No rotation during drag operation ❌
+     - Lowercase r key support ❌
+     - Out-of-bounds rotation prevention ❌
+     - Circuit simulation updates after rotation ✅
+     - Rotation for all component types (LED, power supply, wire, resistor, ground) ❌
+   - **Failure reason**: Tests query DOM for SVG elements using `.querySelector('[data-component-id]')` which no longer exist with Canvas rendering
 
-9. **property-editor.test.ts** (12 tests) — **New in PR #95**
-   - Property editor visibility toggle (shown when component selected, hidden otherwise)
-   - Type-specific field rendering (resistor, LED, power supply)
-   - Input value updates with debounce wait (resistance, voltage, forward voltage)
-   - Preset button behavior (applies preset values)
-   - Validation error handling (invalid values)
-   - Component type filtering (wire and ground have no property editor)
-   - Preset button counts for different component types
+9. **property-editor.test.ts** (12 tests) ❌ **9 failing**
+   - Property editor visibility toggle (shown when component selected, hidden otherwise) ❌
+   - Type-specific field rendering (resistor, LED, power supply) ❌
+   - Input value updates with debounce wait (resistance, voltage, forward voltage) ❌
+   - Preset button behavior (applies preset values) ❌
+   - Validation error handling (invalid values) ✅
+   - Component type filtering (wire and ground have no property editor) ✅ ✅
+   - Preset button counts for different component types ❌
+   - **Failure reason**: Tests query DOM for property editor elements that depend on component selection via SVG
 
-10. **resistor-color-code.test.ts** (50 tests)
+10. **resistor-color-code.test.ts** (50 tests) ✅
     - E12 series resistance encoding (100Ω to 10kΩ)
     - E24 series resistance encoding
     - 4-band resistor color code generation (5% and 10% tolerance)
@@ -1753,7 +1783,7 @@ Fourteen test suites with 231 passing tests (224 unit/integration + 7 visual reg
     - Edge cases (1Ω, 1GΩ, non-standard values)
     - Invalid inputs and error handling
 
-11. **component-library.test.ts** (13 tests) — **New in PR #143**
+11. **component-library.test.ts** (13 tests) ✅
     - Component registration with duplicate detection
     - Lookup by ID (existing and non-existing)
     - Get all components
@@ -1762,7 +1792,7 @@ Fourteen test suites with 231 passing tests (224 unit/integration + 7 visual reg
     - Case-insensitive search
     - Empty registry handling
 
-12. **library-catalog.test.ts** (18 tests) — **New in PR #143**
+12. **library-catalog.test.ts** (18 tests) ✅
     - Resistor catalog validation:
       - E12 series coverage (16 values with 5% tolerance)
       - 1% tolerance variants (7 values)
@@ -1779,7 +1809,7 @@ Fourteen test suites with 231 passing tests (224 unit/integration + 7 visual reg
     - Unique IDs across all entries
     - Valid component types and categories
 
-13. **component-library-utils.test.ts** (19 tests) — **New in PR #143**
+13. **component-library-utils.test.ts** (19 tests) ✅
     - `findClosestResistor()`:
       - Exact matches for E12 series values
       - Rounding to nearest available value
@@ -1801,26 +1831,26 @@ Fourteen test suites with 231 passing tests (224 unit/integration + 7 visual reg
       - Extracts electrical properties from library
       - Falls back to component properties when no library entry
 
-14. **audio-manager.test.ts** (14 tests) — **New in PR #155**
-    - Initialization (disabled by default, default volume of 0.5)
-    - Enable/disable lifecycle (AudioContext creation/closure)
-    - Volume control (set, get, clamping to 0.0-1.0 range)
-    - Speaker creation when audio enabled and voltage/current provided
-    - Threshold filtering (no speaker creation when voltage < 0.1V or current < 0.1mA)
-    - Multi-speaker support (multiple independent oscillators)
-    - Speaker removal (stop oscillator and cleanup)
-    - Automatic speaker stop when voltage or current drops below threshold
-    - localStorage persistence (save and load volume preferences)
-    - Active speaker count tracking
+14. **audio-manager.test.ts** (14 tests) ✅
+    - Initialization (disabled by default, default volume)
+    - Enable/disable lifecycle
+    - Volume control (set, get, clamping)
+    - Speaker creation (enabled/disabled states)
+    - Threshold filtering (voltage/current too low)
+    - Multi-speaker support
+    - Speaker removal
+    - Automatic speaker stop when voltage/current drops
+    - localStorage persistence (save/load volume)
 
-15. **examples.spec.ts** (7 visual regression tests) — **New in PR #125**
-    - Screenshot comparison for all 4 example circuits (LED+resistor, voltage divider, parallel LEDs, short circuit demo)
-    - Visual verification that voltage overlays render with colors
-    - Visual verification that current animation elements are present
-    - Visual verification that error overlays render when present
-    - Automated visual regression detection using Playwright screenshot comparison
-    - 100px max diff tolerance, 0.2 color threshold for consistency
-    - Baseline screenshots: ~68KB total (4 PNG files in `tests/visual/examples.spec.ts-snapshots/`)
+15. **examples.spec.ts** (7 visual regression tests) ❌ **6 failing**
+    - Screenshot comparison for all 4 example circuits (LED+resistor, voltage divider, parallel LEDs, short circuit demo) ❌
+    - Visual verification that voltage overlays render with colors ✅
+    - Visual verification that current animation elements are present ❌
+    - Visual verification that error overlays render when present ❌
+    - Automated visual regression detection using Playwright screenshot comparison ❌
+    - 100px max diff tolerance, 0.2 color threshold for consistency ❌
+    - Baseline screenshots: ~68KB total (4 PNG files in `tests/visual/examples.spec.ts-snapshots/`) ❌
+    - **Failure reason**: Visual appearance changed significantly due to PixiJS Canvas rendering vs SVG; baselines need to be regenerated
 
 ### Testing Approach
 
@@ -1829,6 +1859,12 @@ Fourteen test suites with 231 passing tests (224 unit/integration + 7 visual reg
 - Visual regression tests using Playwright screenshot comparison
 - Tests use Vitest for unit/integration testing and Playwright for visual regression
 - Visual tests run in headless Chromium browser for consistency
+
+**Post-PR#167 status**: 31 tests currently fail due to PixiJS Canvas rendering replacing SVG DOM elements. Tests need updates to:
+- Use PixiJS Canvas interaction APIs instead of DOM queries
+- Test via application state rather than querying rendered elements
+- Regenerate visual regression baselines for Canvas-based rendering
+- All circuit logic tests continue to pass (simulation, extraction, serialization)
 
 ### Coverage Gaps
 
@@ -1842,13 +1878,20 @@ Fourteen test suites with 231 passing tests (224 unit/integration + 7 visual reg
 - No unit tests for error detection heuristics (detection logic validated through integration only)
 - No unit tests for error overlay rendering
 - No unit tests for explain panel content generation
+- **No tests for PixiJS renderer** (`pixi-renderer.ts`): 768-line renderer has zero test coverage (added in PR #167)
+- **Existing UI tests broken by PixiJS migration**: 31 tests fail due to SVG-to-Canvas transition, require updates to test via app state or PixiJS Canvas APIs
 
 ### Test Execution
 
-- All 231 tests pass (224 unit/integration + 7 visual regression)
-- Unit test duration: Fast execution (typically < 8 seconds for all unit tests)
-- Visual test duration: ~18 seconds for all 7 tests
-- No flaky tests observed
+- **200 out of 231 tests pass** (87% pass rate) after PR #167
+- **31 tests fail** due to SVG-to-Canvas migration:
+  - 16 breadboard-app.test.ts failures (component selection, drag-and-drop, rotation tests)
+  - 9 property-editor.test.ts failures (editor visibility and interaction tests)
+  - 6 visual regression test failures (screenshot baselines need regeneration)
+- Unit test duration: Fast execution (typically < 8 seconds for all passing unit tests)
+- Visual test duration: ~18 seconds for all 7 tests (when baselines match)
+- No flaky tests observed in passing tests
+- Circuit logic tests (simulation, extraction, serialization) unaffected by rendering changes
 
 ### Visual Regression Testing
 
@@ -1978,6 +2021,8 @@ The system includes automated visual regression testing to protect critical visu
 2. **No validation feedback for invalid rotations**: Silent failure when rotation would be invalid (no error message)
 3. **Limited keyboard shortcuts**: Delete/Backspace for deletion, R for rotation, Escape for canceling drag
 4. **No keyboard navigation for error icons**: Error icons require mouse/touch interaction (not keyboard accessible)
+5. **Component drag-and-drop initiation removed** (PR #167): Event model incompatibility between PixiJS FederatedPointerEvents and previous SVG mousedown handlers; drag functionality temporarily unavailable
+6. **Voltage tooltips on hover removed** (PR #167): Canvas event mapping needed to restore tooltip positioning from mouse coordinates; feature temporarily unavailable
 
 ---
 
@@ -1985,7 +2030,13 @@ The system includes automated visual regression testing to protect critical visu
 
 ### Runtime Dependencies
 
-**None** - The production bundle has zero runtime dependencies.
+The production bundle includes **one runtime dependency**:
+
+- `pixi.js` (^8.6.6): WebGL-based rendering library for 2D graphics
+  - Dependencies: @pixi/colord, @types/css-font-loading-module, @types/earcut, @webgpu/types, @xmldom/xmldom, earcut, eventemitter3, ismobilejs, parse-svg-path
+  - License: MIT
+  - Used for: Breadboard grid rendering, component visualization, voltage overlays, current animation, error icons
+  - Added in PR #167 for WebGL-based rendering migration
 
 ### Development Dependencies
 
@@ -2032,12 +2083,13 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/examples/voltage-divider.json` | 97 | Voltage Divider example circuit (uses power rails) |
 | `src/examples/parallel-leds.json` | 187 | Parallel LEDs example circuit (uses power rails) |
 | `src/examples/short-circuit-demo.json` | 57 | Short Circuit Demo example circuit (uses power rails) |
-| `src/ui/breadboard-app.ts` | 2215 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, drag-and-drop, rail rendering, audio integration, and view switcher (PR #149, PR #155, PR #161) |
+| `src/ui/breadboard-app.ts` | 2215 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, rail rendering, audio integration, and view switcher; PixiJS renderer integration (PR #149, PR #155, PR #161, PR #167); drag-and-drop initiation temporarily removed in PR #167 |
+| `src/ui/pixi-renderer.ts` | 768 | **NEW (PR #167)**: PixiJS WebGL renderer for unified breadboard rendering (grid, components, voltage overlays, current animation, error icons); replaces SVG-based ComponentRenderer, CurrentAnimator, and ErrorOverlayRenderer |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
-| `src/ui/component-renderer.ts` | 568 | SVG-based visual component rendering with rotation transform support |
+| `src/ui/component-renderer.ts` | 568 | **DEPRECATED (PR #167)**: Legacy SVG-based visual component rendering; retained for reference, replaced by PixiRenderer |
 | `src/ui/schematic-renderer.ts` | 459 | SVG-based schematic diagram rendering with standard symbols and voltage colors (PR #161) |
-| `src/ui/current-animator.ts` | 426 | Animated current flow visualization using particles |
-| `src/ui/error-overlay-renderer.ts` | 140 | Error icon SVG rendering with hover effects |
+| `src/ui/current-animator.ts` | 426 | **DEPRECATED (PR #167)**: Legacy SVG animated current flow visualization; retained for reference, replaced by PixiRenderer animation |
+| `src/ui/error-overlay-renderer.ts` | 140 | **DEPRECATED (PR #167)**: Legacy SVG error icon rendering; retained for reference, replaced by PixiRenderer error rendering |
 | `src/ui/explain-panel.ts` | 370 | Contextual explanation panel with educational content |
 | `src/main.ts` | 11 | Application entry point |
 | `src/style.css` | 1149 | Application styles (includes modal dialogs, component library browser, error icons, explain panel styling, rail styling, audio controls, view tabs, schematic container) (PR #149, PR #155, PR #161) |
@@ -2106,14 +2158,25 @@ For clarity, these capabilities are explicitly **not present**:
 - ❌ Schematic export to industry-standard formats (Eagle, KiCad, etc.)
 - ❌ Auto-fix for detected errors (user must manually fix)
 
+**WebGL/PixiJS Capabilities (Added but Not Yet Utilized)**:
+
+While PR #167 migrated rendering to PixiJS WebGL, the following advanced visual features are now *technically possible* but **not yet implemented**:
+
+- ❌ LED glow effects (PixiJS BlurFilter/GlowFilter available but not applied)
+- ❌ Wire crossing depth visualization via z-index and opacity (layering infrastructure exists but not used for depth cues)
+- ❌ Photorealistic component rendering with shading/lighting
+- ❌ Advanced visual effects (shadows, reflections, gradients beyond voltage colors)
+
+These features are listed in the PR #167 description as "Enables Future Work" but are not currently part of the system's capabilities.
+
 ---
 
 ## Verification
 
-This document describes the system as observed on 2026-01-04 after merging PR #161:
+This document describes the system as observed on 2026-01-04 after merging PR #167:
 
 - ✅ All source files examined
-- ✅ Tests executed successfully (231/231 passing: 224 unit/integration + 7 visual regression)
+- ✅ Tests executed (200/231 passing; 31 failing due to SVG-to-Canvas migration in PR #167)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
@@ -2182,5 +2245,13 @@ This document describes the system as observed on 2026-01-04 after merging PR #1
 - ✅ Explain panel integration with schematic symbols and connections verified from PR #161 changes
 - ✅ Synchronized simulation state across views verified from PR #161 changes
 - ✅ CSS styling for view tabs, schematic container, and symbols verified from PR #161 changes
+- ✅ **PixiJS WebGL rendering migration verified from PR #167 changes**
+- ✅ **New PixiRenderer class (768 lines) with unified rendering pipeline verified from PR #167 changes**
+- ✅ **PixiJS dependency (pixi.js ^8.6.6) added to package.json verified from PR #167 changes**
+- ✅ **BreadboardApp integration with PixiJS event handlers verified from PR #167 changes**
+- ✅ **Removal of 273 lines of SVG DOM manipulation from BreadboardApp verified from PR #167 changes**
+- ✅ **Component renderer, current animator, and error overlay renderer deprecated (retained for reference) verified from PR #167 changes**
+- ✅ **Test status: 200/231 passing (31 failures due to SVG-to-Canvas migration) verified from PR #167 test results**
+- ✅ **Known limitations (drag-and-drop initiation removed, voltage tooltips removed) verified from PR #167 description**
 
 This is a snapshot of reality, not aspirations or plans.
