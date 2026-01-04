@@ -125,7 +125,7 @@ export function executeInstruction(state: EDU8State, inputs: number): EDU8State 
   const { opcode, operand } = decodeInstruction(instruction);
 
   // Create new state
-  let newState = { ...state, inputs: inputs & 0x0f };
+  const newState = { ...state, inputs: inputs & 0x0f };
   let accumulator = state.accumulator;
   let pc = state.programCounter;
   let outputs = state.outputs;
