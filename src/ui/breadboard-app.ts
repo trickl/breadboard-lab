@@ -24,6 +24,8 @@ import { AudioManager } from '@/audio/audio-manager';
 import { SchematicLayoutGenerator } from '@/core/schematic-layout';
 import { SchematicRenderer } from './schematic-renderer';
 import type { SchematicDiagram } from '@/core/schematic-types';
+import { ClockController } from '@/core/clock-controller';
+import { resetEDU8, handleClockEdge as edu8HandleClockEdge } from '@/core/edu8-simulator';
 
 /**
  * Drag state for component repositioning
@@ -50,6 +52,7 @@ export class BreadboardApp {
   private pixiRenderer: PixiRenderer;
   private explainPanel: ExplainPanel;
   private audioManager: AudioManager;
+  private clockController: ClockController;
   private schematicGenerator: SchematicLayoutGenerator;
   private schematicRenderer: SchematicRenderer;
   private componentIdCounter = 0;
@@ -71,11 +74,20 @@ export class BreadboardApp {
     this.pixiRenderer = new PixiRenderer();
     this.explainPanel = new ExplainPanel();
     this.audioManager = new AudioManager();
+    this.clockController = new ClockController();
     this.schematicGenerator = new SchematicLayoutGenerator();
     this.schematicRenderer = new SchematicRenderer();
     this.handleKeyDownBound = this.handleKeyDown.bind(this);
     this.handleMouseMoveBound = this.handleMouseMove.bind(this);
     this.handleMouseUpBound = this.handleMouseUp.bind(this);
+    
+    // Set up clock controller callbacks
+    this.clockController.setOnClockChange((clockHigh) => {
+      this.handleClockChange(clockHigh);
+    });
+    this.clockController.setOnReset(() => {
+      this.handleClockReset();
+    });
     
     // Initialize component library
     this.initializeLibrary();
@@ -138,6 +150,25 @@ export class BreadboardApp {
               🔊 <span id="audio-speaker-count">0</span> speaker(s) active
             </div>
           </div>
+          <div class="clock-controls" id="clock-controls" style="display: none;">
+            <h3>Clock Control</h3>
+            <div class="clock-buttons">
+              <button id="step-btn" class="clock-btn step" title="Execute one instruction (Space)">⏯ Step</button>
+              <button id="run-btn" class="clock-btn" title="Run continuously">▶️ Run</button>
+              <button id="reset-btn" class="clock-btn" title="Reset microprocessor">🔄 Reset</button>
+            </div>
+            <div class="clock-frequency">
+              <label>
+                <span>Frequency:</span>
+                <span class="freq-value" id="freq-value">1.0 Hz</span>
+              </label>
+              <input type="range" id="freq-slider" min="0.5" max="10" step="0.5" value="1" />
+            </div>
+            <div class="clock-state">
+              <span class="clock-indicator" id="clock-indicator"></span>
+              <span class="clock-status" id="clock-status">Paused</span>
+            </div>
+          </div>
         </div>
         <div class="workspace">
           <div class="breadboard-container" id="breadboard-view-container">
@@ -163,6 +194,7 @@ export class BreadboardApp {
     this.attachEventListeners();
     this.updateCircuitInfo();
     this.updateAudioControls();
+    this.updateClockControls();
   }
 
   /**
@@ -320,6 +352,46 @@ export class BreadboardApp {
       });
     }
 
+    // Clock control buttons
+    const stepBtn = document.getElementById('step-btn');
+    if (stepBtn) {
+      stepBtn.addEventListener('click', () => {
+        this.clockController.step();
+        this.updateClockControls();
+      });
+    }
+
+    const runBtn = document.getElementById('run-btn');
+    if (runBtn) {
+      runBtn.addEventListener('click', () => {
+        const state = this.clockController.getState();
+        if (state.isRunning) {
+          this.clockController.pause();
+        } else {
+          this.clockController.run();
+        }
+        this.updateClockControls();
+      });
+    }
+
+    const resetBtn = document.getElementById('reset-btn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        this.clockController.reset();
+        this.updateClockControls();
+      });
+    }
+
+    // Clock frequency slider
+    const freqSlider = document.getElementById('freq-slider') as HTMLInputElement;
+    if (freqSlider) {
+      freqSlider.addEventListener('input', (e) => {
+        const value = parseFloat((e.target as HTMLInputElement).value);
+        this.clockController.setFrequency(value);
+        this.updateClockControls();
+      });
+    }
+
     // View switching buttons
     const breadboardViewBtn = document.getElementById('breadboard-view-btn');
     if (breadboardViewBtn) {
@@ -399,6 +471,18 @@ export class BreadboardApp {
     if (e.key === 'm' || e.key === 'M') {
       e.preventDefault();
       this.toggleAudio();
+    }
+
+    // Step clock on Space key (only if microprocessor present)
+    if (e.key === ' ' || e.key === 'Spacebar') {
+      const hasMicroprocessor = this.state.components.some(
+        (c) => c.type === ComponentType.MICROPROCESSOR
+      );
+      if (hasMicroprocessor && !this.clockController.getState().isRunning) {
+        e.preventDefault();
+        this.clockController.step();
+        this.updateClockControls();
+      }
     }
 
     if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -2060,6 +2144,141 @@ export class BreadboardApp {
       speakerCount.textContent = count.toString();
       audioIndicator.style.display = this.audioManager.isEnabled() && count > 0 ? 'block' : 'none';
     }
+  }
+
+  /**
+   * Update clock controls based on current state
+   */
+  private updateClockControls(): void {
+    const clockControls = document.getElementById('clock-controls');
+    const stepBtn = document.getElementById('step-btn');
+    const runBtn = document.getElementById('run-btn');
+    const freqSlider = document.getElementById('freq-slider') as HTMLInputElement;
+    const freqValue = document.getElementById('freq-value');
+    const clockIndicator = document.getElementById('clock-indicator');
+    const clockStatus = document.getElementById('clock-status');
+
+    // Check if microprocessor is present
+    const hasMicroprocessor = this.state.components.some(
+      (c) => c.type === ComponentType.MICROPROCESSOR
+    );
+
+    if (clockControls) {
+      clockControls.style.display = hasMicroprocessor ? 'block' : 'none';
+    }
+
+    if (!hasMicroprocessor) {
+      return; // Don't update if no microprocessor
+    }
+
+    const state = this.clockController.getState();
+    
+    // Update step button (disable when running)
+    if (stepBtn) {
+      (stepBtn as HTMLButtonElement).disabled = state.isRunning;
+    }
+
+    // Update run/pause button
+    if (runBtn) {
+      if (state.isRunning) {
+        runBtn.textContent = '⏸ Pause';
+        runBtn.classList.add('run-active');
+      } else {
+        runBtn.textContent = '▶️ Run';
+        runBtn.classList.remove('run-active');
+      }
+    }
+
+    // Update frequency slider and display
+    if (freqSlider && freqValue) {
+      freqSlider.value = state.frequency.toString();
+      freqValue.textContent = `${state.frequency.toFixed(1)} Hz`;
+    }
+
+    // Update clock indicator (high/low)
+    if (clockIndicator) {
+      if (state.clockState) {
+        clockIndicator.classList.add('high');
+      } else {
+        clockIndicator.classList.remove('high');
+      }
+    }
+
+    // Update status text
+    if (clockStatus) {
+      const microprocessor = this.state.components.find(
+        (c) => c.type === ComponentType.MICROPROCESSOR
+      );
+      
+      if (microprocessor && microprocessor.type === ComponentType.MICROPROCESSOR) {
+        if (microprocessor.state.halted) {
+          clockStatus.textContent = `Halted (${state.instructionCount} instructions)`;
+          clockStatus.className = 'clock-status halted';
+        } else if (state.isRunning) {
+          clockStatus.textContent = `Running at ${state.frequency.toFixed(1)} Hz`;
+          clockStatus.className = 'clock-status running';
+        } else {
+          clockStatus.textContent = `Paused (${state.instructionCount} instructions)`;
+          clockStatus.className = 'clock-status';
+        }
+      }
+    }
+  }
+
+  /**
+   * Handle clock change from ClockController
+   */
+  private handleClockChange(clockHigh: boolean): void {
+    // Find microprocessor - if none exists, nothing to do
+    const microprocessorIndex = this.state.components.findIndex(
+      (c) => c.type === ComponentType.MICROPROCESSOR
+    );
+
+    if (microprocessorIndex === -1) {
+      return;
+    }
+
+    const microprocessor = this.state.components[microprocessorIndex];
+    if (microprocessor.type !== ComponentType.MICROPROCESSOR) {
+      return;
+    }
+
+    // Execute clock edge on microprocessor
+    // This will handle rising edge detection and instruction execution internally
+    const newState = edu8HandleClockEdge(microprocessor.state, clockHigh, 0);
+    
+    // Update component with new state
+    this.state.components[microprocessorIndex] = {
+      ...microprocessor,
+      state: newState,
+    };
+    
+    // Re-render breadboard to show updated state
+    // This will update the explain panel and voltage overlays
+    this.renderBreadboard();
+    
+    // Update clock controls to reflect new state
+    this.updateClockControls();
+  }
+
+  /**
+   * Handle clock reset from ClockController
+   */
+  private handleClockReset(): void {
+    // Reset all microprocessor components
+    this.state.components = this.state.components.map((component) => {
+      if (component.type === ComponentType.MICROPROCESSOR) {
+        return {
+          ...component,
+          state: resetEDU8(component.state),
+        };
+      }
+      return component;
+    });
+
+    // Re-render to show reset state
+    this.renderBreadboard();
+    this.updateClockControls();
   }
 
   /**
