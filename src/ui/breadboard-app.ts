@@ -24,6 +24,9 @@ import { EXAMPLE_CIRCUITS } from '@/examples';
 import { componentLibrary } from '@/core/component-library';
 import { ALL_LIBRARY_ENTRIES } from '@/library';
 import { AudioManager } from '@/audio/audio-manager';
+import { SchematicLayoutGenerator } from '@/core/schematic-layout';
+import { SchematicRenderer } from './schematic-renderer';
+import type { SchematicDiagram } from '@/core/schematic-types';
 
 /**
  * Drag state for component repositioning
@@ -52,10 +55,13 @@ export class BreadboardApp {
   private errorOverlayRenderer: ErrorOverlayRenderer;
   private explainPanel: ExplainPanel;
   private audioManager: AudioManager;
+  private schematicGenerator: SchematicLayoutGenerator;
+  private schematicRenderer: SchematicRenderer;
   private componentIdCounter = 0;
   private tooltipElement: HTMLElement | null = null;
   private cachedCircuit: Circuit | null = null;
   private cachedSimulation: SimulationResult | null = null;
+  private cachedSchematic: SchematicDiagram | null = null;
   private handleKeyDownBound: (e: KeyboardEvent) => void;
   private updateDebounceTimer: number | null = null;
   private dragState: DragState | null = null;
@@ -73,6 +79,8 @@ export class BreadboardApp {
     this.errorOverlayRenderer = new ErrorOverlayRenderer();
     this.explainPanel = new ExplainPanel();
     this.audioManager = new AudioManager();
+    this.schematicGenerator = new SchematicLayoutGenerator();
+    this.schematicRenderer = new SchematicRenderer();
     this.handleKeyDownBound = this.handleKeyDown.bind(this);
     this.handleMouseMoveBound = this.handleMouseMove.bind(this);
     this.handleMouseUpBound = this.handleMouseUp.bind(this);
@@ -117,6 +125,13 @@ export class BreadboardApp {
             <button id="save-btn" class="toolbar-btn">💾 Save Circuit</button>
             <button id="clear-btn" class="toolbar-btn" style="background: #ff4444; border-color: #ff5555;">🗑️ Clear All</button>
           </div>
+          <div class="view-controls">
+            <h3>View</h3>
+            <div class="view-tabs">
+              <button id="breadboard-view-btn" class="view-tab active">🔌 Breadboard</button>
+              <button id="schematic-view-btn" class="view-tab">📐 Schematic</button>
+            </div>
+          </div>
           <div class="audio-controls">
             <h3>Audio Output</h3>
             <button id="toggle-audio-btn" class="toolbar-btn audio-toggle" title="Enable audio output for speaker components">
@@ -133,9 +148,12 @@ export class BreadboardApp {
           </div>
         </div>
         <div class="workspace">
-          <div class="breadboard-container">
+          <div class="breadboard-container" id="breadboard-view-container">
             <div id="breadboard" class="breadboard"></div>
             <div class="voltage-tooltip" id="voltage-tooltip"></div>
+          </div>
+          <div class="schematic-container" id="schematic-view-container" style="display: none;">
+            <div id="schematic" class="schematic"></div>
           </div>
         </div>
         <div class="info-panel">
@@ -168,6 +186,9 @@ export class BreadboardApp {
     // Extract circuit and run simulation (cache for performance)
     this.cachedCircuit = this.extractor.extract(this.state);
     this.cachedSimulation = this.simulator.simulate(this.cachedCircuit);
+    
+    // Invalidate schematic cache when circuit changes
+    this.cachedSchematic = null;
 
     // Build position-to-node mapping for voltage lookup
     const positionToNode = this.buildPositionToNodeMap(this.cachedCircuit);
@@ -367,6 +388,21 @@ export class BreadboardApp {
         const value = parseInt((e.target as HTMLInputElement).value) / 100;
         this.audioManager.setVolume(value);
         this.updateAudioControls();
+      });
+    }
+
+    // View switching buttons
+    const breadboardViewBtn = document.getElementById('breadboard-view-btn');
+    if (breadboardViewBtn) {
+      breadboardViewBtn.addEventListener('click', () => {
+        this.switchView('breadboard');
+      });
+    }
+
+    const schematicViewBtn = document.getElementById('schematic-view-btn');
+    if (schematicViewBtn) {
+      schematicViewBtn.addEventListener('click', () => {
+        this.switchView('schematic');
       });
     }
 
@@ -2211,5 +2247,112 @@ export class BreadboardApp {
     this.selectedComponentType = type;
     this.placementStart = null;
     this.selectedLibraryId = null;
+  }
+
+  /**
+   * Switch between breadboard and schematic views
+   */
+  private switchView(view: 'breadboard' | 'schematic'): void {
+    
+    // Update view containers visibility
+    const breadboardContainer = document.getElementById('breadboard-view-container');
+    const schematicContainer = document.getElementById('schematic-view-container');
+    const breadboardBtn = document.getElementById('breadboard-view-btn');
+    const schematicBtn = document.getElementById('schematic-view-btn');
+    
+    if (view === 'breadboard') {
+      if (breadboardContainer) breadboardContainer.style.display = 'flex';
+      if (schematicContainer) schematicContainer.style.display = 'none';
+      breadboardBtn?.classList.add('active');
+      schematicBtn?.classList.remove('active');
+    } else {
+      if (breadboardContainer) breadboardContainer.style.display = 'none';
+      if (schematicContainer) schematicContainer.style.display = 'flex';
+      breadboardBtn?.classList.remove('active');
+      schematicBtn?.classList.add('active');
+      
+      // Render schematic view
+      this.renderSchematic();
+    }
+  }
+
+  /**
+   * Render schematic view
+   */
+  private renderSchematic(): void {
+    const schematicDiv = document.getElementById('schematic');
+    if (!schematicDiv) return;
+
+    // Clear previous schematic
+    schematicDiv.innerHTML = '';
+
+    // Check if we have a circuit to render
+    if (!this.cachedCircuit || this.cachedCircuit.edges.length === 0) {
+      schematicDiv.innerHTML = `
+        <div class="schematic-empty-state">
+          <div class="empty-state-icon">📐</div>
+          <div class="empty-state-text">No circuit to display</div>
+          <div class="empty-state-hint">Add components in breadboard view to see the schematic</div>
+        </div>
+      `;
+      return;
+    }
+
+    // Generate schematic layout if not cached or circuit changed
+    if (!this.cachedSchematic) {
+      this.cachedSchematic = this.schematicGenerator.generate(this.cachedCircuit);
+    }
+
+    // Render schematic diagram
+    const svg = this.schematicRenderer.renderSchematic(
+      this.cachedSchematic,
+      this.cachedSimulation,
+      this.state.selectedComponentId
+    );
+
+    schematicDiv.appendChild(svg);
+
+    // Attach click handlers to schematic symbols
+    this.attachSchematicEventHandlers(svg);
+  }
+
+  /**
+   * Attach event handlers to schematic symbols
+   */
+  private attachSchematicEventHandlers(svg: SVGElement): void {
+    const symbols = svg.querySelectorAll('.schematic-symbol');
+    
+    symbols.forEach((symbolEl) => {
+      // Click handler for selection and explain panel
+      symbolEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const componentId = (symbolEl as HTMLElement).dataset.componentId;
+        if (componentId) {
+          this.selectComponentById(componentId);
+          // Show explain panel for component
+          this.explainPanel.show({ type: 'component', componentId });
+        }
+      });
+    });
+
+    // Click on connections to show net info
+    const connections = svg.querySelectorAll('.schematic-connection');
+    connections.forEach((connEl) => {
+      connEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const netId = (connEl as HTMLElement).dataset.netId;
+        if (netId && this.cachedCircuit) {
+          this.explainPanel.show({ type: 'node', nodeId: netId });
+        }
+      });
+    });
+
+    // Click on SVG background to deselect
+    svg.addEventListener('click', (e) => {
+      if (e.target === svg) {
+        this.deselectComponent();
+        this.explainPanel.hide();
+      }
+    });
   }
 }
