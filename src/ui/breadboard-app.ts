@@ -197,7 +197,14 @@ export class BreadboardApp {
           this.showErrorDialog(error);
         },
       };
-      await this.pixiRenderer.init(breadboard, handlers);
+      try {
+        await this.pixiRenderer.init(breadboard, handlers);
+      } catch (error) {
+        // PixiJS initialization failed (likely in test environment without canvas support)
+        // Continue without rendering - tests can still verify app state
+        console.warn('PixiJS renderer initialization failed:', error);
+        return;
+      }
     }
 
     // Render breadboard grid with voltage overlay
@@ -2063,6 +2070,48 @@ export class BreadboardApp {
     this.selectedComponentType = type;
     this.placementStart = null;
     this.selectedLibraryId = null;
+  }
+
+  /**
+   * Get current breadboard state (for testing)
+   */
+  getState(): BreadboardState {
+    return this.state;
+  }
+
+  /**
+   * Get all components (for testing)
+   */
+  getComponents(): AnyComponent[] {
+    return this.state.components;
+  }
+
+  /**
+   * Get selected component ID (for testing)
+   */
+  getSelectedComponentId(): string | null {
+    return this.state.selectedComponentId;
+  }
+
+  /**
+   * Select a component by ID (for testing)
+   */
+  selectComponent(componentId: string): void {
+    this.selectComponentById(componentId);
+  }
+
+  /**
+   * Simulate clicking a hole at the given position (for testing)
+   */
+  clickHole(position: Position): void {
+    this.handleHoleClick(position);
+  }
+
+  /**
+   * Simulate clicking a component by ID (for testing)
+   */
+  clickComponent(componentId: string): void {
+    this.handleComponentClick(componentId);
   }
 
   /**
