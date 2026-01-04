@@ -176,6 +176,206 @@ export class PixiRenderer {
   }
 
   /**
+   * Render breadboard substrate (background, labels, ridges)
+   */
+  private renderBreadboardSubstrate(): void {
+    const width = BreadboardLayout.TOTAL_COLS * PixiRenderer.HOLE_SPACING;
+    const height = BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING;
+    
+    // Breadboard plastic background with subtle texture
+    const background = new Graphics();
+    background.rect(0, 0, width, height);
+    background.fill(0x1a1a1a); // Dark background
+    this.breadboardContainer.addChild(background);
+    
+    // Breadboard plastic surface with subtle variations
+    const plasticSurface = new Graphics();
+    
+    // Left rail area (negative)
+    plasticSurface.rect(
+      0, 0,
+      BreadboardLayout.RAIL_LEFT_POSITIVE * PixiRenderer.HOLE_SPACING,
+      height
+    );
+    plasticSurface.fill({ color: 0x2a2a2a, alpha: 1 });
+    
+    // Left rail area (positive)
+    plasticSurface.rect(
+      BreadboardLayout.RAIL_LEFT_POSITIVE * PixiRenderer.HOLE_SPACING, 0,
+      PixiRenderer.HOLE_SPACING,
+      height
+    );
+    plasticSurface.fill({ color: 0x2d2a2a, alpha: 1 });
+    
+    // Center terminal strips area
+    plasticSurface.rect(
+      BreadboardLayout.STRIP_LEFT_START * PixiRenderer.HOLE_SPACING, 0,
+      (BreadboardLayout.STRIP_RIGHT_END - BreadboardLayout.STRIP_LEFT_START + 1) * PixiRenderer.HOLE_SPACING,
+      height
+    );
+    plasticSurface.fill({ color: 0x2c2c2c, alpha: 1 });
+    
+    // Right rail area
+    plasticSurface.rect(
+      BreadboardLayout.RAIL_RIGHT_POSITIVE * PixiRenderer.HOLE_SPACING, 0,
+      2 * PixiRenderer.HOLE_SPACING,
+      height
+    );
+    plasticSurface.fill({ color: 0x2a2a2a, alpha: 1 });
+    
+    this.breadboardContainer.addChild(plasticSurface);
+    
+    // Add plastic ridges between strip groups
+    const ridges = new Graphics();
+    
+    // Center gap ridge (visual separator between left and right strips)
+    const centerCol = (BreadboardLayout.STRIP_LEFT_END + BreadboardLayout.STRIP_RIGHT_START + 1) / 2;
+    const centerX = centerCol * PixiRenderer.HOLE_SPACING;
+    ridges.rect(centerX - 3, 0, 6, height);
+    ridges.fill({ color: 0x1a1a1a, alpha: 0.8 });
+    
+    // Add subtle horizontal ridges every 5 rows
+    for (let row = 5; row < BreadboardLayout.ROWS; row += 5) {
+      const y = row * PixiRenderer.HOLE_SPACING - PixiRenderer.HOLE_SPACING / 2;
+      ridges.rect(
+        BreadboardLayout.STRIP_LEFT_START * PixiRenderer.HOLE_SPACING,
+        y - 1,
+        (BreadboardLayout.STRIP_RIGHT_END - BreadboardLayout.STRIP_LEFT_START + 1) * PixiRenderer.HOLE_SPACING,
+        2
+      );
+      ridges.fill({ color: 0x1a1a1a, alpha: 0.3 });
+    }
+    
+    this.breadboardContainer.addChild(ridges);
+    
+    // Add row labels (numbers 1-30)
+    const labelStyle = new TextStyle({
+      fontFamily: 'Arial, sans-serif',
+      fontSize: 10,
+      fill: 0x666666,
+      fontWeight: 'bold',
+    });
+    
+    for (let row = 0; row < BreadboardLayout.ROWS; row++) {
+      // Label every 5 rows
+      if (row % 5 === 0 || row === BreadboardLayout.ROWS - 1) {
+        const y = row * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
+        
+        // Left side label
+        const leftLabel = new Text({ text: String(row + 1), style: labelStyle });
+        leftLabel.anchor.set(1, 0.5);
+        leftLabel.x = BreadboardLayout.RAIL_LEFT_NEGATIVE * PixiRenderer.HOLE_SPACING - 5;
+        leftLabel.y = y;
+        this.breadboardContainer.addChild(leftLabel);
+        
+        // Right side label
+        const rightLabel = new Text({ text: String(row + 1), style: labelStyle });
+        rightLabel.anchor.set(0, 0.5);
+        rightLabel.x = (BreadboardLayout.RAIL_RIGHT_NEGATIVE + 1) * PixiRenderer.HOLE_SPACING + 5;
+        rightLabel.y = y;
+        this.breadboardContainer.addChild(rightLabel);
+      }
+    }
+    
+    // Add column labels (letters A-J for terminal strips)
+    const columnLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+    for (let i = 0; i < columnLabels.length; i++) {
+      const col = BreadboardLayout.STRIP_LEFT_START + i;
+      const x = col * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
+      
+      // Top label
+      const topLabel = new Text({ text: columnLabels[i], style: labelStyle });
+      topLabel.anchor.set(0.5, 1);
+      topLabel.x = x;
+      topLabel.y = -5;
+      this.breadboardContainer.addChild(topLabel);
+      
+      // Bottom label
+      const bottomLabel = new Text({ text: columnLabels[i], style: labelStyle });
+      bottomLabel.anchor.set(0.5, 0);
+      bottomLabel.x = x;
+      bottomLabel.y = height + 5;
+      this.breadboardContainer.addChild(bottomLabel);
+    }
+    
+    // Add rail labels
+    const railLabelStyle = new TextStyle({
+      fontFamily: 'Arial, sans-serif',
+      fontSize: 12,
+      fontWeight: 'bold',
+    });
+    
+    // Left positive rail (red)
+    const leftPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xcc3333 } });
+    leftPosLabel.anchor.set(0.5, 1);
+    leftPosLabel.x = BreadboardLayout.RAIL_LEFT_POSITIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
+    leftPosLabel.y = -5;
+    this.breadboardContainer.addChild(leftPosLabel);
+    
+    // Left negative rail (blue)
+    const leftNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0x3333cc } });
+    leftNegLabel.anchor.set(0.5, 1);
+    leftNegLabel.x = BreadboardLayout.RAIL_LEFT_NEGATIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
+    leftNegLabel.y = -5;
+    this.breadboardContainer.addChild(leftNegLabel);
+    
+    // Right positive rail (red)
+    const rightPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xcc3333 } });
+    rightPosLabel.anchor.set(0.5, 1);
+    rightPosLabel.x = BreadboardLayout.RAIL_RIGHT_POSITIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
+    rightPosLabel.y = -5;
+    this.breadboardContainer.addChild(rightPosLabel);
+    
+    // Right negative rail (blue)
+    const rightNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0x3333cc } });
+    rightNegLabel.anchor.set(0.5, 1);
+    rightNegLabel.x = BreadboardLayout.RAIL_RIGHT_NEGATIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
+    rightNegLabel.y = -5;
+    this.breadboardContainer.addChild(rightNegLabel);
+  }
+
+  /**
+   * Render a single hole with metal contact appearance and depth
+   */
+  private renderHole(
+    pos: Position,
+    holeColor: number
+  ): Graphics {
+    const pixels = this.positionToPixels(pos);
+    const hole = new Graphics();
+    
+    // Outer ring (plastic recess shadow)
+    hole.circle(pixels.x, pixels.y, PixiRenderer.HOLE_SIZE / 2 + 2);
+    hole.fill({ color: 0x0a0a0a, alpha: 0.6 });
+    
+    // Inner hole with metal contact
+    hole.circle(pixels.x, pixels.y, PixiRenderer.HOLE_SIZE / 2);
+    hole.fill(holeColor);
+    
+    // Metal contact shine (subtle highlight)
+    const highlightOffset = 2;
+    hole.circle(pixels.x - highlightOffset, pixels.y - highlightOffset, PixiRenderer.HOLE_SIZE / 4);
+    hole.fill({ color: 0xffffff, alpha: 0.15 });
+    
+    // Outer stroke for definition
+    hole.circle(pixels.x, pixels.y, PixiRenderer.HOLE_SIZE / 2);
+    hole.stroke({ width: 0.5, color: 0x1a1a1a, alpha: 0.8 });
+    
+    // Interactive
+    hole.eventMode = 'static';
+    hole.cursor = 'pointer';
+    (hole as any).breadboardPosition = pos;
+    
+    if (this.eventHandlers.onHoleClick) {
+      hole.on('pointerdown', (event: FederatedPointerEvent) => {
+        this.eventHandlers.onHoleClick?.(pos, event);
+      });
+    }
+    
+    return hole;
+  }
+
+  /**
    * Render breadboard grid with voltage overlay
    */
   renderBreadboard(
@@ -183,23 +383,26 @@ export class PixiRenderer {
     simulation: SimulationResult | null
   ): void {
     this.breadboardContainer.removeChildren();
+    
+    // Render substrate first (background, labels, ridges)
+    this.renderBreadboardSubstrate();
 
+    // Render holes
     for (let row = 0; row < BreadboardLayout.ROWS; row++) {
       for (let col = 0; col < BreadboardLayout.TOTAL_COLS; col++) {
         const pos = { row, col };
         const posKey = `${row},${col}`;
-        const pixels = this.positionToPixels(pos);
         
-        let holeColor = 0x3a3a3a;
+        let holeColor = 0x505050; // Default metal color
         
-        // Rail coloring
+        // Rail coloring with more realistic colors
         if (BreadboardLayout.isPositionInRail(pos)) {
           const rail = BreadboardLayout.getRailForPosition(pos);
-          if (rail?.type === 'positive') holeColor = 0x4a2020;
-          else if (rail?.type === 'negative') holeColor = 0x202040;
+          if (rail?.type === 'positive') holeColor = 0x883333; // Reddish tint
+          else if (rail?.type === 'negative') holeColor = 0x333388; // Bluish tint
         }
         
-        // Voltage overlay
+        // Voltage overlay (overrides base color when simulation is active)
         if (simulation?.success) {
           const nodeId = positionToNode.get(posKey);
           if (nodeId && simulation.nodeVoltages.has(nodeId)) {
@@ -209,23 +412,7 @@ export class PixiRenderer {
           }
         }
         
-        const hole = new Graphics();
-        hole.circle(pixels.x, pixels.y, PixiRenderer.HOLE_SIZE / 2);
-        hole.fill(holeColor);
-        hole.circle(pixels.x, pixels.y, PixiRenderer.HOLE_SIZE / 2);
-        hole.stroke({ width: 1, color: 0x1a1a1a, alpha: 0.5 });
-        
-        // Interactive
-        hole.eventMode = 'static';
-        hole.cursor = 'pointer';
-        (hole as any).breadboardPosition = pos;
-        
-        if (this.eventHandlers.onHoleClick) {
-          hole.on('pointerdown', (event: FederatedPointerEvent) => {
-            this.eventHandlers.onHoleClick?.(pos, event);
-          });
-        }
-        
+        const hole = this.renderHole(pos, holeColor);
         this.breadboardContainer.addChild(hole);
       }
     }
@@ -237,7 +424,9 @@ export class PixiRenderer {
   renderComponents(
     components: AnyComponent[],
     selectedComponentId: string | null,
-    dragState: DragState | null
+    dragState: DragState | null,
+    simulation: SimulationResult | null = null,
+    positionToNode?: Map<string, string>
   ): void {
     this.componentsContainer.removeChildren();
     this.resetWireColors();
@@ -246,14 +435,14 @@ export class PixiRenderer {
     
     // Wires first (behind)
     components.filter(c => c.type === ComponentType.WIRE).forEach(comp => {
-      const container = this.renderComponent(comp, selectedComponentId, dragState);
+      const container = this.renderComponent(comp, selectedComponentId, dragState, simulation, positionToNode);
       container.zIndex = zIndex++;
       this.componentsContainer.addChild(container);
     });
 
     // Other components
     components.filter(c => c.type !== ComponentType.WIRE).forEach(comp => {
-      const container = this.renderComponent(comp, selectedComponentId, dragState);
+      const container = this.renderComponent(comp, selectedComponentId, dragState, simulation, positionToNode);
       container.zIndex = zIndex++;
       this.componentsContainer.addChild(container);
     });
@@ -265,7 +454,9 @@ export class PixiRenderer {
   private renderComponent(
     component: AnyComponent,
     selectedComponentId: string | null,
-    dragState: DragState | null
+    dragState: DragState | null,
+    simulation: SimulationResult | null = null,
+    positionToNode?: Map<string, string>
   ): Container {
     const container = new Container();
     (container as any).componentId = component.id;
@@ -274,13 +465,13 @@ export class PixiRenderer {
 
     if (isDragging) {
       // Original (faded)
-      const original = this.renderComponentGraphics(component, component.positions);
+      const original = this.renderComponentGraphics(component, component.positions, simulation, positionToNode);
       original.alpha = 0.3;
       container.addChild(original);
 
       // Preview
       if (dragState.previewPositions) {
-        const preview = this.renderComponentGraphics(component, dragState.previewPositions);
+        const preview = this.renderComponentGraphics(component, dragState.previewPositions, simulation, positionToNode);
         preview.alpha = 0.7;
         container.addChild(preview);
       } else {
@@ -294,7 +485,7 @@ export class PixiRenderer {
         container.addChild(marker);
       }
     } else {
-      const graphics = this.renderComponentGraphics(component, component.positions);
+      const graphics = this.renderComponentGraphics(component, component.positions, simulation, positionToNode);
       container.addChild(graphics);
 
       // Selection highlight
@@ -332,7 +523,12 @@ export class PixiRenderer {
   /**
    * Render component graphics
    */
-  private renderComponentGraphics(component: AnyComponent, positions: Position[]): Container {
+  private renderComponentGraphics(
+    component: AnyComponent,
+    positions: Position[],
+    simulation: SimulationResult | null = null,
+    positionToNode?: Map<string, string>
+  ): Container {
     const container = new Container();
     const graphics = new Graphics();
 
@@ -344,7 +540,7 @@ export class PixiRenderer {
         this.renderResistor(graphics, component, positions);
         break;
       case ComponentType.LED:
-        this.renderLED(graphics, component, positions);
+        this.renderLED(graphics, component, positions, simulation, positionToNode);
         break;
       case ComponentType.POWER_SUPPLY:
         this.renderPowerSupply(graphics, component, positions);
@@ -380,7 +576,7 @@ export class PixiRenderer {
   }
 
   /**
-   * Render wire
+   * Render wire with depth cues (shadow, thickness variation)
    */
   private renderWire(graphics: Graphics, positions: Position[]): void {
     if (positions.length < 2) return;
@@ -388,23 +584,51 @@ export class PixiRenderer {
     const start = this.positionToPixels(positions[0]);
     const end = this.positionToPixels(positions[1]);
     const wireColor = this.parseColor(this.getNextWireColor());
+    
+    // Wire shadow (drop shadow for depth)
+    const shadowOffset = 2;
+    graphics.moveTo(start.x + shadowOffset, start.y + shadowOffset);
+    graphics.lineTo(start.x + shadowOffset, (start.y + end.y) / 2 + shadowOffset);
+    graphics.lineTo(end.x + shadowOffset, (start.y + end.y) / 2 + shadowOffset);
+    graphics.lineTo(end.x + shadowOffset, end.y + shadowOffset);
+    graphics.stroke({ width: 4, color: 0x000000, alpha: 0.3, cap: 'round', join: 'round' });
 
-    // Manhattan routing
+    // Main wire path (Manhattan routing)
     graphics.moveTo(start.x, start.y);
     graphics.lineTo(start.x, (start.y + end.y) / 2);
     graphics.lineTo(end.x, (start.y + end.y) / 2);
     graphics.lineTo(end.x, end.y);
-    graphics.stroke({ width: 3, color: wireColor, cap: 'round', join: 'round' });
+    graphics.stroke({ width: 4, color: wireColor, cap: 'round', join: 'round' });
+    
+    // Wire highlight for 3D effect
+    graphics.moveTo(start.x - 0.5, start.y - 0.5);
+    graphics.lineTo(start.x - 0.5, (start.y + end.y) / 2 - 0.5);
+    graphics.lineTo(end.x - 0.5, (start.y + end.y) / 2 - 0.5);
+    graphics.lineTo(end.x - 0.5, end.y - 0.5);
+    graphics.stroke({ width: 1.5, color: 0xffffff, alpha: 0.4, cap: 'round', join: 'round' });
 
-    // Endpoint dots
+    // Endpoint dots with shadow
+    // Shadow
+    graphics.circle(start.x + shadowOffset, start.y + shadowOffset, 4);
+    graphics.fill({ color: 0x000000, alpha: 0.3 });
+    graphics.circle(end.x + shadowOffset, end.y + shadowOffset, 4);
+    graphics.fill({ color: 0x000000, alpha: 0.3 });
+    
+    // Main endpoint
     graphics.circle(start.x, start.y, 4);
     graphics.fill(wireColor);
     graphics.circle(end.x, end.y, 4);
     graphics.fill(wireColor);
+    
+    // Endpoint highlight
+    graphics.circle(start.x - 1, start.y - 1, 1.5);
+    graphics.fill({ color: 0xffffff, alpha: 0.5 });
+    graphics.circle(end.x - 1, end.y - 1, 1.5);
+    graphics.fill({ color: 0xffffff, alpha: 0.5 });
   }
 
   /**
-   * Render resistor
+   * Render resistor with enhanced 3D appearance
    */
   private renderResistor(graphics: Graphics, component: AnyComponent, positions: Position[]): void {
     if (positions.length < 2 || component.type !== ComponentType.RESISTOR) return;
@@ -416,20 +640,53 @@ export class PixiRenderer {
 
     const bodyWidth = 60;
     const bodyHeight = 20;
+    const shadowOffset = 2;
 
-    // Body
+    // Shadow
+    graphics.rect(
+      centerX - bodyWidth / 2 + shadowOffset,
+      centerY - bodyHeight / 2 + shadowOffset,
+      bodyWidth,
+      bodyHeight
+    );
+    graphics.fill({ color: 0x000000, alpha: 0.3 });
+
+    // Body with gradient-like appearance
     graphics.rect(centerX - bodyWidth / 2, centerY - bodyHeight / 2, bodyWidth, bodyHeight);
     graphics.fill(0xd4a574);
+    
+    // Top highlight for 3D effect
+    graphics.rect(centerX - bodyWidth / 2, centerY - bodyHeight / 2, bodyWidth, bodyHeight / 3);
+    graphics.fill({ color: 0xf0c080, alpha: 0.3 });
+    
+    // Outline
     graphics.rect(centerX - bodyWidth / 2, centerY - bodyHeight / 2, bodyWidth, bodyHeight);
     graphics.stroke({ width: 2, color: 0x8b6f47 });
 
-    // Leads
+    // Leads with shadow
+    // Lead shadows
+    graphics.moveTo(start.x + shadowOffset, start.y + shadowOffset);
+    graphics.lineTo(centerX - bodyWidth / 2 + shadowOffset, centerY + shadowOffset);
+    graphics.stroke({ width: 2, color: 0x000000, alpha: 0.3 });
+    graphics.moveTo(centerX + bodyWidth / 2 + shadowOffset, centerY + shadowOffset);
+    graphics.lineTo(end.x + shadowOffset, end.y + shadowOffset);
+    graphics.stroke({ width: 2, color: 0x000000, alpha: 0.3 });
+    
+    // Main leads
     graphics.moveTo(start.x, start.y);
     graphics.lineTo(centerX - bodyWidth / 2, centerY);
     graphics.stroke({ width: 2, color: 0x888888 });
     graphics.moveTo(centerX + bodyWidth / 2, centerY);
     graphics.lineTo(end.x, end.y);
     graphics.stroke({ width: 2, color: 0x888888 });
+    
+    // Lead highlights
+    graphics.moveTo(start.x - 0.5, start.y - 0.5);
+    graphics.lineTo(centerX - bodyWidth / 2 - 0.5, centerY - 0.5);
+    graphics.stroke({ width: 1, color: 0xcccccc });
+    graphics.moveTo(centerX + bodyWidth / 2 - 0.5, centerY - 0.5);
+    graphics.lineTo(end.x - 0.5, end.y - 0.5);
+    graphics.stroke({ width: 1, color: 0xcccccc });
 
     // Color bands
     const bands = resistanceToColorBands(component.resistance);
@@ -445,9 +702,15 @@ export class PixiRenderer {
   }
 
   /**
-   * Render LED
+   * Render LED with enhanced appearance, translucency, and glow effect
    */
-  private renderLED(graphics: Graphics, component: AnyComponent, positions: Position[]): void {
+  private renderLED(
+    graphics: Graphics,
+    component: AnyComponent,
+    positions: Position[],
+    simulation: SimulationResult | null = null,
+    positionToNode?: Map<string, string>
+  ): void {
     if (positions.length < 2 || component.type !== ComponentType.LED) return;
 
     const start = this.positionToPixels(positions[0]);
@@ -455,9 +718,9 @@ export class PixiRenderer {
     const centerX = (start.x + end.x) / 2;
     const centerY = (start.y + end.y) / 2;
     const radius = 15;
+    const shadowOffset = 2;
 
     // LED body color (default to red/yellow based on forward voltage)
-    // LEDs don't have a 'color' property - color is implied by forward voltage
     // Red: ~1.8-2.0V, Yellow: ~2.0-2.2V, Green: ~2.0-2.2V, Blue: ~3.0-3.4V
     let ledColor = 0xff4444; // Default red
     if (component.forwardVoltage >= 3.0) {
@@ -466,13 +729,80 @@ export class PixiRenderer {
       ledColor = 0xffff44; // Yellow/Green
     }
 
-    // Body
+    // Calculate LED current for glow effect
+    let ledCurrent = 0;
+    let isOn = false;
+    if (simulation?.success && positionToNode) {
+      // Get node voltages at LED pins
+      const pos0Key = `${positions[0].row},${positions[0].col}`;
+      const pos1Key = `${positions[1].row},${positions[1].col}`;
+      const node0 = positionToNode.get(pos0Key);
+      const node1 = positionToNode.get(pos1Key);
+      
+      if (node0 && node1) {
+        const v0 = simulation.nodeVoltages.get(node0) ?? 0;
+        const v1 = simulation.nodeVoltages.get(node1) ?? 0;
+        const voltageDrop = Math.abs(v0 - v1);
+        
+        // LED is on if voltage drop is above forward voltage
+        if (voltageDrop > component.forwardVoltage * 0.8) {
+          isOn = true;
+          // Estimate current (simplified)
+          ledCurrent = Math.min((voltageDrop - component.forwardVoltage) / 100, component.maxCurrent);
+        }
+      }
+    }
+
+    // Shadow
+    graphics.circle(centerX + shadowOffset, centerY + shadowOffset, radius);
+    graphics.fill({ color: 0x000000, alpha: 0.3 });
+
+    // Glow effect when LED is on
+    if (isOn && ledCurrent > 0) {
+      // Outer glow (strongest)
+      const glowIntensity = Math.min(ledCurrent / component.maxCurrent, 1.0);
+      const glowRadius = radius + 15 * glowIntensity;
+      
+      graphics.circle(centerX, centerY, glowRadius);
+      graphics.fill({ color: ledColor, alpha: 0.15 * glowIntensity });
+      
+      // Middle glow
+      graphics.circle(centerX, centerY, radius + 8 * glowIntensity);
+      graphics.fill({ color: ledColor, alpha: 0.3 * glowIntensity });
+      
+      // Inner glow
+      graphics.circle(centerX, centerY, radius + 3);
+      graphics.fill({ color: ledColor, alpha: 0.5 * glowIntensity });
+    }
+
+    // Body (translucent) - brighter when on
+    const bodyAlpha = isOn ? 0.7 : 0.4;
     graphics.circle(centerX, centerY, radius);
-    graphics.fill({ color: ledColor, alpha: 0.3 });
+    graphics.fill({ color: ledColor, alpha: bodyAlpha });
+    
+    // Inner core (brighter) - much brighter when on
+    const coreAlpha = isOn ? 0.95 : 0.6;
+    graphics.circle(centerX, centerY, radius * 0.6);
+    graphics.fill({ color: ledColor, alpha: coreAlpha });
+    
+    // Highlight for translucent appearance
+    graphics.circle(centerX - radius / 3, centerY - radius / 3, radius / 3);
+    graphics.fill({ color: 0xffffff, alpha: isOn ? 0.7 : 0.5 });
+    
+    // Outline
     graphics.circle(centerX, centerY, radius);
     graphics.stroke({ width: 2, color: 0x888888 });
 
-    // Leads
+    // Leads with shadow
+    // Lead shadows
+    graphics.moveTo(start.x + shadowOffset, start.y + shadowOffset);
+    graphics.lineTo(centerX + shadowOffset, centerY - radius + shadowOffset);
+    graphics.stroke({ width: 2, color: 0x000000, alpha: 0.3 });
+    graphics.moveTo(centerX + shadowOffset, centerY + radius + shadowOffset);
+    graphics.lineTo(end.x + shadowOffset, end.y + shadowOffset);
+    graphics.stroke({ width: 2, color: 0x000000, alpha: 0.3 });
+    
+    // Main leads
     graphics.moveTo(start.x, start.y);
     graphics.lineTo(centerX, centerY - radius);
     graphics.stroke({ width: 2, color: 0x888888 });
