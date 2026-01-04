@@ -1,8 +1,8 @@
 # Current System Capabilities of Breadboard Lab
 
-**Date**: 2026-01-03  
+**Date**: 2026-01-04  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After implementing audio output for speaker component with Web Audio API integration (PR #155)
+**Last Updated**: After implementing derived schematic view with force-directed layout (PR #161)
 
 ---
 
@@ -377,6 +377,163 @@ The UI consists of three panels:
 - No visual rotation handle (keyboard R key only)
 - No circuit versioning or history
 - No audio waveform visualization (oscilloscope/spectrum analyzer)
+
+---
+
+## Views
+
+The system provides two complementary views of the circuit: breadboard view (physical placement) and schematic view (electrical abstraction). Users can switch between views using tab controls.
+
+### View Switching Controls
+
+**UI elements**:
+- Two-tab view switcher in the left toolbar (below audio controls)
+- **🔌 Breadboard** tab: Shows physical breadboard layout (default/active on load)
+- **📐 Schematic** tab: Shows derived schematic diagram
+- Active tab highlighted with blue background and bottom border
+- Inactive tab shows gray background with hover effect
+
+**Switching behavior**:
+- Click any tab to switch views instantly
+- View switching preserves simulation state (voltages, currents remain calculated)
+- Component selection persists across view switches
+- Schematic layout is cached and regenerates only when circuit topology changes
+- Switching to schematic with empty circuit shows empty state message
+
+### Breadboard View
+
+**Description**: Primary view showing physical component placement on a 30×14 breadboard grid with rails, terminal strips, holes, and wiring.
+
+**Features**:
+- Component placement via two-click interaction
+- Drag-and-drop repositioning with ghost preview
+- Component rotation (R key)
+- Voltage color overlays on holes and connections
+- Animated current flow on wires and components
+- Interactive error icons for circuit problems
+- Click components/holes to open explain panel
+- Audio output controls (for speaker components)
+
+**Visual characteristics**:
+- 520px × 780px SVG canvas
+- 26px hole spacing (20px hole + 6px margin)
+- Power rails (blue negative, red positive) on left and right sides
+- Terminal strips in center with gap between left and right sides
+- Component overlays render with standard symbols
+- Voltage heatmap colors: blue (0V) → cyan → yellow → orange → red (5V)
+
+### Schematic View
+
+**Description**: Secondary view showing electrical circuit abstraction derived from the netlist, with automatic force-directed layout positioning components based on connectivity.
+
+**Status**: Fully implemented (PR #161).
+
+**Schematic generation pipeline**:
+1. Circuit extraction produces `ElectricalNetlist` from breadboard placement
+2. `SchematicLayoutGenerator` converts circuit edges to layout nodes
+3. Force-directed algorithm positions components (100 iterations, configurable parameters)
+4. Star topology generated for multi-terminal nets (all terminals connect to net center)
+5. `SchematicRenderer` renders symbols and connections as SVG
+6. Voltage colors and selection state applied from simulation results
+7. Layout cached until circuit topology changes
+
+**Force-directed layout algorithm**:
+- **Node initialization**: Components placed at random initial positions (400×400 space)
+- **Attraction forces**: Components on same electrical net attract (strength: 0.1)
+- **Repulsion forces**: All components repel to prevent overlap (strength: 1000, min spacing: 100px)
+- **Velocity damping**: 0.8 damping factor prevents oscillation
+- **Cooling schedule**: Temperature decreases linearly over 100 iterations
+- **Terminal configuration**: Component-specific terminal offsets (horizontal for resistors/LEDs, vertical for power supplies)
+
+**Layout configuration** (`DEFAULT_LAYOUT_CONFIG`):
+- `symbolSpacing`: 100px minimum spacing between symbols
+- `terminalLength`: 20px length of terminal connections
+- `attractionStrength`: 0.1 (attraction force multiplier)
+- `repulsionStrength`: 1000 (repulsion force multiplier)
+- `iterations`: 100 (number of layout iterations)
+
+**Schematic symbols** (SVG-based, procedurally drawn):
+- **Resistor**: Zigzag pattern (6 segments, ±8px height) with leads
+- **LED**: Red triangle with cathode bar and light emission arrows (yellow/orange)
+- **Power Supply**: Battery symbol (positive/negative terminals) with red and black lines
+- **Ground**: Three decreasing horizontal lines with connection lead
+- **Wire**: Simple line with terminal dots
+- **Generic**: Box fallback for unknown component types
+
+**Connection rendering**:
+- Straight lines from symbol terminals to net center point (star topology)
+- Connection paths drawn with voltage-based colors (matches breadboard voltage overlay)
+- Default gray color when simulation fails or net has no voltage data
+- 2px stroke width for connections
+- 4px terminal dots at connection points
+
+**Component labels**:
+- **Resistors**: Resistance value displayed below symbol (e.g., "220Ω", "1.0kΩ", "1.0MΩ")
+- **Power Supplies**: Voltage value displayed below symbol (e.g., "5V")
+- **LEDs**: No label (type indicated by symbol)
+- Label positioning: centered at y+25 from symbol center
+- 12px font size, black text
+
+**Voltage visualization in schematic**:
+- Connection lines colored by net voltage (same color mapping as breadboard)
+- Voltage color gradient: 0V (dark blue) → 1.25V (cyan) → 2.5V (yellow) → 3.75V (orange) → 5V (red)
+- Color updates automatically when simulation re-runs
+- Gray default color when simulation unavailable
+
+**Interactive features**:
+- Click schematic symbols to select component (blue highlight applies)
+- Click symbols to open explain panel with component details
+- Click connections to open explain panel with net voltage information
+- Click SVG background to deselect component
+- Selection state synchronized between breadboard and schematic views
+- Explain panel content identical to breadboard view
+
+**Empty state handling**:
+- When no components placed: "No circuit to display" message with hint
+- Empty state icon (📐), text, and hint rendered in centered container
+- Schematic container hidden when breadboard view active
+
+**Bounds calculation**:
+- Automatic bounding box calculated from all symbol positions
+- 50px padding added around outermost symbols
+- Default bounds (0, 0, 400, 400) when no symbols present
+- ViewBox dynamically set to calculated bounds for optimal zoom
+
+**Layout caching**:
+- Schematic layout cached in `cachedSchematic` property
+- Cache invalidated when circuit topology changes (component added/removed/moved)
+- Cache preserved when only simulation results change (voltage/current updates)
+- Re-layout triggered only when cache is null (avoids redundant computation)
+
+**Implementation details**:
+- `src/core/schematic-types.ts` (83 lines): Type definitions for symbols, connections, diagrams, layout config
+- `src/core/schematic-layout.ts` (369 lines): Force-directed graph layout algorithm
+- `src/ui/schematic-renderer.ts` (459 lines): SVG-based rendering with voltage colors
+- Integration in `src/ui/breadboard-app.ts`: View switcher, cached layout, explain panel
+- CSS styling in `src/style.css`: View tabs, schematic container, symbol hover/selection effects
+
+**Performance characteristics**:
+- Layout generation: O(n² × iterations) where n = number of components (100 iterations)
+- Rendering: O(n + c) where n = symbols, c = connections
+- Cached layout avoids re-computation on view switches
+- No performance impact when schematic view not active
+
+### Constraints
+
+**Breadboard view constraints**:
+- Fixed grid dimensions (30×14)
+- Component placement requires two valid hole positions
+- No freeform drawing or custom component shapes
+
+**Schematic view constraints**:
+- Layout is fully automatic (no manual positioning or dragging)
+- Force-directed layout may not be optimal for all circuit topologies
+- No schematic-first design (cannot place components in schematic view)
+- No hand-editing of symbol positions or connection routing
+- No export to industry-standard formats (SPICE, KiCad, Eagle)
+- Star topology for multi-terminal nets (not optimized routing)
+- No beautification algorithms (orthogonal routing, alignment, etc.)
+- Schematic symbols are simplified (not photorealistic or vendor-specific)
 
 ---
 
@@ -1354,6 +1511,8 @@ src/
 │   ├── circuit-serializer.ts      # Circuit save/load JSON serialization
 │   ├── circuit-storage.ts         # LocalStorage persistence
 │   ├── resistor-color-code.ts     # IEC 60062 color band calculations
+│   ├── schematic-types.ts         # Schematic diagram type definitions (PR #161)
+│   ├── schematic-layout.ts        # Force-directed layout algorithm (PR #161)
 │   ├── component-library.ts       # Component library registry (PR #143)
 │   ├── component-library-utils.ts # Library utilities and backward compatibility (PR #143)
 │   └── __tests__/                 # Unit tests
@@ -1378,6 +1537,7 @@ src/
 ├── ui/                            # Presentation layer
 │   ├── breadboard-app.ts          # Main UI application class
 │   ├── component-renderer.ts      # SVG component rendering
+│   ├── schematic-renderer.ts      # SVG schematic diagram rendering (PR #161)
 │   ├── error-overlay-renderer.ts  # Error icon rendering
 │   ├── explain-panel.ts           # Interactive explanation panel
 │   ├── voltage-colors.ts          # Voltage-to-color mapping
@@ -1860,6 +2020,8 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/core/component-library.ts` | 82 | Component library registry with lookup, search, and filtering (PR #143) |
 | `src/core/component-library-utils.ts` | 165 | Library utilities for mapping abstract components to library entries (PR #143) |
 | `src/core/resistor-color-code.ts` | 310 | IEC 60062 color code calculations (encoding and decoding) |
+| `src/core/schematic-types.ts` | 83 | Type definitions for schematic symbols, connections, diagrams, and layout configuration (PR #161) |
+| `src/core/schematic-layout.ts` | 369 | Force-directed graph layout algorithm for schematic generation (PR #161) |
 | `src/library/index.ts` | 32 | Library catalog aggregation and exports (PR #143) |
 | `src/library/resistors.ts` | 83 | Resistor library entries (23 components, E12 series, 5% and 1% tolerance) (PR #143) |
 | `src/library/leds.ts` | 108 | LED library entries (4 components: 3mm yellow, 5mm red/green/blue) (PR #143) |
@@ -1870,14 +2032,15 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/examples/voltage-divider.json` | 97 | Voltage Divider example circuit (uses power rails) |
 | `src/examples/parallel-leds.json` | 187 | Parallel LEDs example circuit (uses power rails) |
 | `src/examples/short-circuit-demo.json` | 57 | Short Circuit Demo example circuit (uses power rails) |
-| `src/ui/breadboard-app.ts` | 2215 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, drag-and-drop, rail rendering, and audio integration (PR #149, PR #155) |
+| `src/ui/breadboard-app.ts` | 2215 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, drag-and-drop, rail rendering, audio integration, and view switcher (PR #149, PR #155, PR #161) |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
 | `src/ui/component-renderer.ts` | 568 | SVG-based visual component rendering with rotation transform support |
+| `src/ui/schematic-renderer.ts` | 459 | SVG-based schematic diagram rendering with standard symbols and voltage colors (PR #161) |
 | `src/ui/current-animator.ts` | 426 | Animated current flow visualization using particles |
 | `src/ui/error-overlay-renderer.ts` | 140 | Error icon SVG rendering with hover effects |
 | `src/ui/explain-panel.ts` | 370 | Contextual explanation panel with educational content |
 | `src/main.ts` | 11 | Application entry point |
-| `src/style.css` | 1149 | Application styles (includes modal dialogs, component library browser, error icons, explain panel styling, rail styling, audio controls) (PR #149, PR #155) |
+| `src/style.css` | 1149 | Application styles (includes modal dialogs, component library browser, error icons, explain panel styling, rail styling, audio controls, view tabs, schematic container) (PR #149, PR #155, PR #161) |
 
 ### Test Files
 
@@ -1930,24 +2093,24 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 For clarity, these capabilities are explicitly **not present**:
 
 - ❌ PCB layout or design
-- ❌ Schematic editor (separate from breadboard view)
+- ❌ Schematic editor with manual positioning (schematic view is auto-generated and read-only)
 - ❌ Component library customization
 - ❌ Microcontroller simulation
 - ❌ Advanced circuit analysis (AC, transient, frequency response)
 - ❌ Touch/mobile gestures
 - ❌ Collaboration or multi-user features
 - ❌ Cloud storage or cross-device sync
-- ❌ Component libraries or part databases
 - ❌ 3D visualization
 - ❌ Embedded firmware simulation
 - ❌ SPICE netlist export (JSON format only)
+- ❌ Schematic export to industry-standard formats (Eagle, KiCad, etc.)
 - ❌ Auto-fix for detected errors (user must manually fix)
 
 ---
 
 ## Verification
 
-This document describes the system as observed on 2026-01-03 after merging PR #155:
+This document describes the system as observed on 2026-01-04 after merging PR #161:
 
 - ✅ All source files examined
 - ✅ Tests executed successfully (231/231 passing: 224 unit/integration + 7 visual regression)
@@ -2005,5 +2168,19 @@ This document describes the system as observed on 2026-01-03 after merging PR #1
 - ✅ Keyboard shortcut (M key) for audio toggle verified from PR #155 changes
 - ✅ localStorage persistence for volume settings verified from PR #155 changes
 - ✅ 14 AudioManager unit tests verified from PR #155 changes
+- ✅ Schematic view implementation verified from PR #161 changes
+- ✅ Schematic types (SchematicDiagram, SchematicSymbol, SchematicConnection, LayoutConfig) verified from PR #161 changes
+- ✅ Force-directed layout algorithm with 100 iterations verified from PR #161 changes
+- ✅ SchematicLayoutGenerator with attraction/repulsion forces verified from PR #161 changes
+- ✅ Star topology for multi-terminal net connections verified from PR #161 changes
+- ✅ SchematicRenderer with SVG-based symbol rendering verified from PR #161 changes
+- ✅ Standard schematic symbols (resistor zigzag, LED diode, battery, ground) verified from PR #161 changes
+- ✅ Voltage color overlays on schematic connections verified from PR #161 changes
+- ✅ Component value labels (resistance, voltage) auto-generated verified from PR #161 changes
+- ✅ View switcher UI (🔌 Breadboard / 📐 Schematic tabs) verified from PR #161 changes
+- ✅ Cached layout regeneration only on topology changes verified from PR #161 changes
+- ✅ Explain panel integration with schematic symbols and connections verified from PR #161 changes
+- ✅ Synchronized simulation state across views verified from PR #161 changes
+- ✅ CSS styling for view tabs, schematic container, and symbols verified from PR #161 changes
 
 This is a snapshot of reality, not aspirations or plans.
