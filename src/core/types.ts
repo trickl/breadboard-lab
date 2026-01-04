@@ -52,6 +52,7 @@ export enum ComponentType {
   WIRE = 'WIRE',
   POWER_SUPPLY = 'POWER_SUPPLY',
   GROUND = 'GROUND',
+  MICROPROCESSOR = 'MICROPROCESSOR',
 }
 
 /**
@@ -106,9 +107,31 @@ export interface Ground extends Component {
 }
 
 /**
+ * EDU-8 Microprocessor State
+ */
+export interface EDU8State {
+  accumulator: number; // 8-bit register (0-255)
+  programCounter: number; // 4-bit (0-15)
+  zeroFlag: boolean; // Zero flag
+  halted: boolean; // Halted state
+  rom: Uint8Array; // 16 bytes program memory
+  inputs: number; // 4-bit input snapshot (0-15)
+  outputs: number; // 4-bit output register (0-15)
+  clockState: boolean; // Previous clock state (for edge detection)
+}
+
+/**
+ * Microprocessor component (EDU-8)
+ */
+export interface Microprocessor extends Component {
+  type: ComponentType.MICROPROCESSOR;
+  state: EDU8State;
+}
+
+/**
  * Union type for all component types
  */
-export type AnyComponent = Resistor | LED | Wire | PowerSupply | Ground;
+export type AnyComponent = Resistor | LED | Wire | PowerSupply | Ground | Microprocessor;
 
 /**
  * Breadboard state containing all placed components

@@ -28,7 +28,8 @@ The Component Library system provides a structured catalog of real-world electro
      - **Power Supplies** (4 entries): 3.3V, 5V, 9V, 12V
      - **Wires** (2 entries): 22 AWG red/black
      - **Ground** (1 entry): Reference point
-   - Total: 35 component entries
+     - **Microprocessors** (1 entry): EDU-8 educational processor
+   - Total: 36 component entries
 
 4. **Library Utilities** (`src/core/component-library-utils.ts`)
    - Helper functions for mapping between abstract components and library entries
@@ -418,3 +419,92 @@ Example:
   typicalUses: ['Pull-up resistor', 'Voltage divider', 'Timing circuits'],
 }
 ```
+
+### Microprocessors (1 entry)
+
+Educational virtual microprocessor for teaching computational electronics.
+
+#### EDU-8 Microprocessor (Educational)
+
+```typescript
+{
+  id: 'edu8-microprocessor',
+  name: 'EDU-8 Microprocessor (Educational)',
+  category: 'virtual-educational',
+  package: {
+    kind: 'dip',
+    pinCount: 16,
+    body: { lengthMm: 19.05, widthMm: 6.35, heightMm: 3.5 },
+  },
+  footprint: {
+    pins: [
+      { pinId: 'VCC', role: 'power' },
+      { pinId: 'IN0', role: 'digital-input' },
+      { pinId: 'IN1', role: 'digital-input' },
+      { pinId: 'IN2', role: 'digital-input' },
+      { pinId: 'IN3', role: 'digital-input' },
+      { pinId: 'CLK', role: 'clock-input' },
+      { pinId: 'RST', role: 'reset-input' },
+      { pinId: 'GND', role: 'ground' },
+      { pinId: 'HALT', role: 'digital-output' },
+      { pinId: 'OUT0', role: 'digital-output' },
+      { pinId: 'OUT1', role: 'digital-output' },
+      { pinId: 'OUT2', role: 'digital-output' },
+      { pinId: 'OUT3', role: 'digital-output' },
+      { pinId: 'NC1', role: 'no-connect' },
+      { pinId: 'NC2', role: 'no-connect' },
+      { pinId: 'NC3', role: 'no-connect' },
+    ],
+  },
+  electrical: {
+    supplyVoltageMin: 3.0,
+    supplyVoltageMax: 5.5,
+    supplyVoltageTypical: 5.0,
+    inputHighThreshold: 2.0,
+    inputLowThreshold: 0.8,
+    outputHighVoltage: 4.5,
+    outputLowVoltage: 0.2,
+    maxOutputCurrent: 0.020,
+  },
+  visuals: { renderer: 'procedural' },
+  description: 'Educational 8-bit microprocessor with 4-bit I/O ports, clock-driven execution, and programmable ROM',
+  typicalUses: [
+    'Clock-driven LED patterns',
+    'Binary counter displays',
+    'Input-controlled logic',
+    'Sequential state machines',
+    'Introduction to embedded systems',
+  ],
+}
+```
+
+**EDU-8 Architecture:**
+- **Accumulator:** 8-bit register for arithmetic and logic operations
+- **Program Counter:** 4-bit counter (0-15) pointing to current instruction
+- **ROM:** 16-byte program memory (programmable via property editor)
+- **I/O Ports:** 4-bit input and 4-bit output (IN0-3, OUT0-3)
+- **Flags:** Zero flag (Z) set when accumulator is zero
+- **Execution:** One instruction per rising clock edge
+
+**Instruction Set:**
+1. `LDA imm4` - Load accumulator with 4-bit immediate value
+2. `ADD imm4` - Add 4-bit immediate value to accumulator
+3. `IN` - Load accumulator from input port (IN0-3)
+4. `OUT` - Output accumulator to output port (OUT0-3, lower 4 bits)
+5. `JZ addr4` - Jump to 4-bit address if zero flag is set
+6. `JMP addr4` - Unconditional jump to 4-bit address
+7. `HALT` - Stop execution until reset
+
+**Example Programs:**
+- **Blink:** Toggle OUT0 on each clock cycle
+- **Counter:** Count up from 0-15 on outputs
+- **Echo:** Copy input port to output port
+- **Pattern:** Output alternating pattern (0xA, 0x5)
+
+**Educational Value:**
+The EDU-8 is intentionally simplified to be understandable by inspection. Students can:
+- See exact internal state in Explain panel (PC, instruction, accumulator, flags)
+- Step through programs one instruction at a time
+- Understand connection between software (program) and hardware (I/O pins)
+- Learn sequential logic and state machines
+- Bridge between digital logic and embedded systems

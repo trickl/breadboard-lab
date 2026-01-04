@@ -11,6 +11,7 @@ import {
   GROUND_LIBRARY,
   SPEAKER_LIBRARY,
 } from './other-components';
+import { MICROPROCESSOR_LIBRARY } from './microprocessors';
 import type { ComponentLibraryEntry } from '../core/types';
 
 /**
@@ -23,9 +24,18 @@ export const ALL_LIBRARY_ENTRIES: ComponentLibraryEntry[] = [
   ...WIRE_LIBRARY,
   ...GROUND_LIBRARY,
   ...SPEAKER_LIBRARY,
+  ...MICROPROCESSOR_LIBRARY,
 ];
 
 /**
  * Export individual categories for easy access
  */
-export { RESISTOR_LIBRARY, LED_LIBRARY, POWER_SUPPLY_LIBRARY, WIRE_LIBRARY, GROUND_LIBRARY, SPEAKER_LIBRARY };
+export {
+  RESISTOR_LIBRARY,
+  LED_LIBRARY,
+  POWER_SUPPLY_LIBRARY,
+  WIRE_LIBRARY,
+  GROUND_LIBRARY,
+  SPEAKER_LIBRARY,
+  MICROPROCESSOR_LIBRARY,
+};

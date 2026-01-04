@@ -1,6 +1,7 @@
 import type { Circuit, SimulationResult, AnyComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
 import { resistanceToColorBands, COLOR_TO_RGB, ResistorColor } from '@/core/resistor-color-code';
+import { formatInstruction } from '@/core/edu8-simulator';
 
 /**
  * Panel content type - what kind of information to display
@@ -512,6 +513,35 @@ export class ExplainPanel {
           `;
         }
         break;
+
+      case ComponentType.MICROPROCESSOR:
+        if (component.type === ComponentType.MICROPROCESSOR) {
+          const state = component.state;
+          const currentInstruction = state.rom[state.programCounter];
+          const instrName = formatInstruction(currentInstruction);
+          
+          explanation = `
+            <div class="explain-section">
+              <h5>EDU-8 Microprocessor State:</h5>
+              <div style="font-family: monospace; margin: 10px 0;">
+                <p><strong>Program Counter:</strong> ${state.programCounter} (0x${state.programCounter.toString(16).toUpperCase()})</p>
+                <p><strong>Current Instruction:</strong> ${instrName} (0x${currentInstruction.toString(16).padStart(2, '0').toUpperCase()})</p>
+                <p><strong>Accumulator:</strong> ${state.accumulator} (0x${state.accumulator.toString(16).padStart(2, '0').toUpperCase()})</p>
+                <p><strong>Zero Flag:</strong> ${state.zeroFlag ? '✓ Set' : '✗ Clear'}</p>
+                <p><strong>Status:</strong> ${state.halted ? '⏸ Halted' : '▶ Running'}</p>
+              </div>
+              <h5>I/O Status:</h5>
+              <div style="font-family: monospace; margin: 10px 0;">
+                <p><strong>Inputs (IN0-3):</strong> ${state.inputs.toString(2).padStart(4, '0')} (${state.inputs})</p>
+                <p><strong>Outputs (OUT0-3):</strong> ${state.outputs.toString(2).padStart(4, '0')} (${state.outputs})</p>
+              </div>
+              <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                The EDU-8 executes one instruction per rising clock edge. Connect a clock signal to the CLK pin to step through the program.
+              </p>
+            </div>
+          `;
+        }
+        break;
     }
 
     return explanation;
@@ -532,6 +562,8 @@ export class ExplainPanel {
         return `Power Supply (${component.voltage}V)`;
       case ComponentType.GROUND:
         return 'Ground';
+      case ComponentType.MICROPROCESSOR:
+        return 'EDU-8 Microprocessor';
       default:
         return 'Component';
     }
