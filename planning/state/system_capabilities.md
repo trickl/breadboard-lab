@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-03  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After integrating component library browser UI with searchable modal (PR #149)
+**Last Updated**: After implementing audio output for speaker component with Web Audio API integration (PR #155)
 
 ---
 
@@ -205,6 +205,9 @@ The UI consists of three panels:
 - **Edit component values**: Select component to open property editor, modify values through text input or preset buttons
 - **Delete component**: Press Delete or Backspace key to remove selected component
 - **Deselect component**: Click breadboard background or another component
+- **Enable audio output**: Click "🔇 Enable Sound" button or press M key to activate speaker audio
+- **Disable audio output**: Click "🔊 Disable Sound" button or press M key to mute speaker audio
+- **Adjust volume**: Use volume slider (0-100%) when audio enabled
 - **Clear all**: Removes all components and resets the breadboard
 - **View circuit info**: Automatically updated after each placement, deletion, rotation, value change, or repositioning
 
@@ -373,6 +376,7 @@ The UI consists of three panels:
 - No error highlighting for invalid placements (only for property values)
 - No visual rotation handle (keyboard R key only)
 - No circuit versioning or history
+- No audio waveform visualization (oscilloscope/spectrum analyzer)
 
 ---
 
@@ -603,6 +607,193 @@ The system visualizes current flow through circuit components using animated par
 - No customization of particle appearance (size, color scheme fixed)
 - Animation performance not tested with very large circuits (>100 components)
 - Particles do not show exact current values (magnitude indicated through speed/density only)
+
+---
+
+## Audio Output
+
+### Speaker Component Audio
+
+Speaker components (8Ω breadboard module) produce real audio output via the browser's Web Audio API, deriving waveform characteristics from circuit simulation results.
+
+**Audio capabilities**:
+- Browser-based audio generation using Web Audio API
+- Audio disabled by default (requires explicit user activation)
+- Real-time audio synthesis based on voltage and current across speaker terminals
+- Automatic audio updates when circuit changes or simulation re-runs
+- Clean audio shutdown when speakers removed or circuit cleared
+
+**Audio mapping algorithm**:
+- **Voltage to frequency**: Logarithmic mapping from 0-5V to 200-2000Hz range
+  - Formula: frequency = exp(log(200) + normalized_voltage × (log(2000) - log(200)))
+  - Provides musical frequency distribution across voltage range
+- **Current to amplitude**: Linear mapping from 0-20mA to volume level
+  - Amplitude range: 0.05 to 0.3 (scaled down when multiple speakers active)
+  - Automatic gain scaling: multi-speaker circuits use lower max amplitude (0.2) to prevent distortion
+- **Signal generation**: Sine wave oscillators for smooth, pleasant audio
+- **Parameter smoothing**: 50ms ramp time for frequency and amplitude changes prevents clicks/pops
+- **Threshold filtering**: Speakers auto-stop when voltage < 0.1V or current < 0.1mA
+
+**Multi-speaker support**:
+- Independent oscillator nodes for each speaker component
+- Automatic audio mixing via master gain node
+- Per-speaker audio parameters (frequency, amplitude) track voltage/current independently
+- Dynamic amplitude scaling reduces max volume when multiple speakers active
+- Clean resource management (oscillators stopped and disconnected on speaker removal)
+
+**User interaction requirements**:
+- Audio must be enabled by user gesture (browser security requirement)
+- Web Audio API context initialized only after user clicks "Enable Sound" button
+- Audio state persists across circuit changes (once enabled, stays enabled until disabled)
+
+### Audio Controls UI
+
+Interactive audio control panel in left toolbar provides audio enable/disable, volume control, and active speaker monitoring.
+
+**UI elements**:
+- **Enable/Disable button**: 
+  - Shows "🔇 Enable Sound" when disabled (default state)
+  - Shows "🔊 Disable Sound" when enabled
+  - Button turns green (`background: #44aa44`) when audio active
+  - Hover effect: lighter green (`#55bb55`)
+- **Volume slider**:
+  - Range: 0-100% (maps to 0.0-1.0 internally)
+  - Hidden when audio disabled
+  - Real-time volume updates with smooth 50ms ramps
+  - Displays current volume percentage next to slider
+- **Active speaker indicator**:
+  - Shows "🔊 X speaker(s) active" when audio enabled and speakers present
+  - Hidden when audio disabled or no speakers active
+  - Live count updates as speakers added/removed or voltage/current changes
+
+**Keyboard shortcuts**:
+- **M key**: Toggle audio on/off (mute/unmute)
+- Works regardless of focus (document-level listener)
+
+**Persistence**:
+- Volume setting saved to localStorage (`breadboard-lab-audio-volume`)
+- Volume restored on page reload
+- Audio enabled/disabled state NOT persisted (always starts disabled for safety)
+
+### Audio Manager Implementation
+
+Core audio system implemented in `AudioManager` class (`src/audio/audio-manager.ts`, 300 lines).
+
+**Architecture**:
+- Singleton pattern: one AudioManager instance per BreadboardApp
+- Web Audio API integration: AudioContext, OscillatorNode, GainNode
+- Speaker tracking: Map of speaker IDs to audio nodes
+- State management: enabled flag, volume level, preferences persistence
+
+**Public API**:
+- `enable()`: Initialize AudioContext and master gain node (async, requires user gesture)
+- `disable()`: Stop all oscillators, close AudioContext, clear speaker map
+- `isEnabled()`: Check if audio is currently active
+- `updateSpeaker(id, voltage, current)`: Create or update speaker audio parameters
+- `removeSpeaker(id)`: Stop and remove speaker audio
+- `setVolume(level)`: Set master volume with smooth ramp (0.0-1.0)
+- `getVolume()`: Get current volume level
+- `getActiveSpeakerCount()`: Get number of speakers currently producing audio
+
+**Internal implementation**:
+- `createSpeaker()`: Create new oscillator + gain nodes, configure frequency/amplitude, start oscillator
+- `updateSpeakerParameters()`: Update existing oscillator frequency/amplitude with smooth transitions
+- `stopSpeaker()`: Stop oscillator, disconnect nodes, remove from map
+- `voltageToFrequency()`: Logarithmic voltage-to-frequency mapping
+- `currentToAmplitude()`: Linear current-to-amplitude mapping with multi-speaker scaling
+- `loadPreferences()`: Load saved volume from localStorage on initialization
+- `savePreferences()`: Save volume to localStorage on change
+
+**Audio node graph structure**:
+```
+[Oscillator 1] → [Gain 1] ┐
+[Oscillator 2] → [Gain 2] ├→ [Master Gain] → [Destination (speakers)]
+[Oscillator N] → [Gain N] ┘
+```
+
+**Error handling**:
+- Graceful fallback if Web Audio API not supported
+- Try-catch on oscillator stop (may already be stopped)
+- Try-catch on localStorage access (may be unavailable)
+- User-friendly error messages on enable failure
+
+### Circuit Integration
+
+Audio system integrated into `BreadboardApp` simulation loop with automatic updates.
+
+**Integration points**:
+1. **Speaker detection**: Filter components by `libraryId === 'speaker-8ohm'` after simulation
+2. **Voltage/current extraction**: 
+   - Find circuit edge for each speaker component
+   - Extract node voltages from simulation results
+   - Calculate voltage across speaker terminals: `|voltageA - voltageB|`
+   - Extract current through speaker from edge: `|edge.current|`
+3. **Audio update**: Call `audioManager.updateSpeaker(id, voltage, current)` for each speaker
+4. **Automatic cleanup**: Remove speaker audio when component deleted
+5. **UI synchronization**: Update audio controls after simulation (speaker count, button state)
+
+**Update triggers**:
+- Component placement/removal
+- Component repositioning
+- Component rotation
+- Component property changes (affects simulation)
+- Circuit topology changes (wire added/removed)
+- Any operation that triggers circuit re-extraction and simulation
+
+**Performance characteristics**:
+- Audio updates run after simulation completes (not blocking)
+- Speaker detection: O(n) where n = number of components
+- Edge lookup: O(e) where e = number of edges
+- Audio parameter updates: O(s) where s = number of speakers
+- No performance impact when audio disabled
+
+### Browser Compatibility
+
+Web Audio API is widely supported in modern browsers:
+- **Chrome**: 23+ (2013)
+- **Firefox**: 25+ (2013)
+- **Safari**: 6.1+ (2013)
+- **Opera**: 15+ (2013)
+- **Edge**: All versions (Chromium-based)
+
+**Limitations**:
+- No audio in browsers without Web Audio API support (graceful degradation)
+- Audio requires user gesture to start (browser security policy)
+- No mobile-specific audio optimizations (may have latency on some devices)
+
+### Testing
+
+14 unit tests for `AudioManager` (`src/audio/__tests__/audio-manager.test.ts`, 164 lines):
+- Initialization (disabled by default, default volume)
+- Enable/disable lifecycle
+- Volume control (set, get, clamping)
+- Speaker creation (enabled/disabled states)
+- Threshold filtering (voltage/current too low)
+- Multi-speaker support
+- Speaker removal
+- Automatic speaker stop when voltage/current drops
+- localStorage persistence (save/load volume)
+
+**Test coverage**:
+- All public API methods tested
+- Edge cases: invalid volume values, low voltage/current, multiple speakers
+- State transitions: disabled → enabled → disabled
+- Browser API mocking: MockAudioContext simulates Web Audio API
+
+### Constraints
+
+- **DC circuits only**: Audio derived from DC simulation (voltage across terminals)
+  - No AC waveform analysis (requires transient simulation)
+  - Audio is synthesized tone based on DC voltage level, not actual AC waveform
+- **Simplified audio model**: 
+  - Voltage maps to frequency (not physically accurate for real speakers)
+  - Current maps to amplitude (simplified model of speaker behavior)
+  - Single sine wave per speaker (no harmonics or complex waveforms)
+- **No waveform customization**: Sine wave only (no square, sawtooth, triangle options)
+- **No spatial audio**: No panning or 3D audio positioning (all speakers centered)
+- **No audio recording**: Cannot export audio to file
+- **No audio visualization**: No oscilloscope or spectrum analyzer view
+- **Browser-dependent latency**: Audio timing may vary across browsers/devices
 
 ---
 
@@ -1180,6 +1371,10 @@ src/
 │   ├── other-components.ts        # Power supplies, wires, ground, speaker
 │   └── __tests__/                 # Library validation tests
 │       └── library-catalog.test.ts
+├── audio/                         # Audio output system (PR #155)
+│   ├── audio-manager.ts           # Web Audio API integration and speaker management
+│   └── __tests__/                 # Audio tests
+│       └── audio-manager.test.ts  # AudioManager unit tests
 ├── ui/                            # Presentation layer
 │   ├── breadboard-app.ts          # Main UI application class
 │   ├── component-renderer.ts      # SVG component rendering
@@ -1297,7 +1492,7 @@ Both jobs must pass for PR approval. Visual regression failures block merge.
 
 ### Test Coverage
 
-Thirteen test suites with 217 passing tests (210 unit/integration + 7 visual regression):
+Fourteen test suites with 231 passing tests (224 unit/integration + 7 visual regression):
 
 1. **breadboard-layout.test.ts** (12 tests)
    - Position validity checking (updated for 14 columns)
@@ -1446,7 +1641,19 @@ Thirteen test suites with 217 passing tests (210 unit/integration + 7 visual reg
       - Extracts electrical properties from library
       - Falls back to component properties when no library entry
 
-14. **examples.spec.ts** (7 visual regression tests) — **New in PR #125**
+14. **audio-manager.test.ts** (14 tests) — **New in PR #155**
+    - Initialization (disabled by default, default volume of 0.5)
+    - Enable/disable lifecycle (AudioContext creation/closure)
+    - Volume control (set, get, clamping to 0.0-1.0 range)
+    - Speaker creation when audio enabled and voltage/current provided
+    - Threshold filtering (no speaker creation when voltage < 0.1V or current < 0.1mA)
+    - Multi-speaker support (multiple independent oscillators)
+    - Speaker removal (stop oscillator and cleanup)
+    - Automatic speaker stop when voltage or current drops below threshold
+    - localStorage persistence (save and load volume preferences)
+    - Active speaker count tracking
+
+15. **examples.spec.ts** (7 visual regression tests) — **New in PR #125**
     - Screenshot comparison for all 4 example circuits (LED+resistor, voltage divider, parallel LEDs, short circuit demo)
     - Visual verification that voltage overlays render with colors
     - Visual verification that current animation elements are present
@@ -1478,7 +1685,7 @@ Thirteen test suites with 217 passing tests (210 unit/integration + 7 visual reg
 
 ### Test Execution
 
-- All 217 tests pass (210 unit/integration + 7 visual regression)
+- All 231 tests pass (224 unit/integration + 7 visual regression)
 - Unit test duration: Fast execution (typically < 8 seconds for all unit tests)
 - Visual test duration: ~18 seconds for all 7 tests
 - No flaky tests observed
@@ -1657,19 +1864,20 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/library/resistors.ts` | 83 | Resistor library entries (23 components, E12 series, 5% and 1% tolerance) (PR #143) |
 | `src/library/leds.ts` | 108 | LED library entries (4 components: 3mm yellow, 5mm red/green/blue) (PR #143) |
 | `src/library/other-components.ts` | 202 | Power supplies, wires, ground, and speaker library entries (PR #143) |
+| `src/audio/audio-manager.ts` | 300 | Web Audio API integration and speaker audio management (PR #155) |
 | `src/examples/index.ts` | 96 | Example circuit registry and lookup functions |
 | `src/examples/led-resistor.json` | 87 | LED and Resistor example circuit (uses power rails) |
 | `src/examples/voltage-divider.json` | 97 | Voltage Divider example circuit (uses power rails) |
 | `src/examples/parallel-leds.json` | 187 | Parallel LEDs example circuit (uses power rails) |
 | `src/examples/short-circuit-demo.json` | 57 | Short Circuit Demo example circuit (uses power rails) |
-| `src/ui/breadboard-app.ts` | 2064 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, drag-and-drop, and rail rendering (PR #149) |
+| `src/ui/breadboard-app.ts` | 2215 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, drag-and-drop, rail rendering, and audio integration (PR #149, PR #155) |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
 | `src/ui/component-renderer.ts` | 568 | SVG-based visual component rendering with rotation transform support |
 | `src/ui/current-animator.ts` | 426 | Animated current flow visualization using particles |
 | `src/ui/error-overlay-renderer.ts` | 140 | Error icon SVG rendering with hover effects |
 | `src/ui/explain-panel.ts` | 370 | Contextual explanation panel with educational content |
 | `src/main.ts` | 11 | Application entry point |
-| `src/style.css` | 1093 | Application styles (includes modal dialogs, component library browser, error icons, explain panel styling, rail styling) (PR #149) |
+| `src/style.css` | 1149 | Application styles (includes modal dialogs, component library browser, error icons, explain panel styling, rail styling, audio controls) (PR #149, PR #155) |
 
 ### Test Files
 
@@ -1688,6 +1896,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/ui/__tests__/current-animator.test.ts` | 11 | Current animation tests (particle system, magnitude scaling) |
 | `src/ui/__tests__/breadboard-app.test.ts` | 25 | Component selection, deletion, rotation, and drag-and-drop interaction tests |
 | `src/ui/__tests__/property-editor.test.ts` | 12 | Property editor tests (visibility, editing, presets, validation) |
+| `src/audio/__tests__/audio-manager.test.ts` | 14 | AudioManager unit tests (initialization, enable/disable, speakers, volume, persistence) (PR #155) |
 | `tests/visual/examples.spec.ts` | 7 | Visual regression tests using Playwright screenshot comparison |
 | `tests/visual/helpers.ts` | - | Helper functions for visual tests (example loading, render stabilization) |
 | `tests/visual/examples.spec.ts-snapshots/` | - | Baseline screenshots for visual regression (4 PNG files, ~68KB total) |
@@ -1738,10 +1947,10 @@ For clarity, these capabilities are explicitly **not present**:
 
 ## Verification
 
-This document describes the system as observed on 2026-01-03 after merging PR #149:
+This document describes the system as observed on 2026-01-03 after merging PR #155:
 
 - ✅ All source files examined
-- ✅ Tests executed successfully (217/217 passing: 210 unit/integration + 7 visual regression)
+- ✅ Tests executed successfully (231/231 passing: 224 unit/integration + 7 visual regression)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
@@ -1787,5 +1996,14 @@ This document describes the system as observed on 2026-01-03 after merging PR #1
 - ✅ Test compatibility via selectComponentType() API verified from PR #149 changes
 - ✅ ~370 lines of CSS for modal and component cards verified from PR #149 changes
 - ✅ Toolbar button replacement (5 buttons → 1 library button) verified from PR #149 changes
+- ✅ Audio output implementation verified from PR #155 changes
+- ✅ AudioManager class with Web Audio API integration verified from PR #155 changes
+- ✅ Speaker component audio synthesis (voltage-to-frequency, current-to-amplitude mapping) verified from PR #155 changes
+- ✅ Audio controls UI (enable/disable button, volume slider, active speaker indicator) verified from PR #155 changes
+- ✅ Circuit-to-audio integration in BreadboardApp verified from PR #155 changes
+- ✅ Multi-speaker support and audio mixing verified from PR #155 changes
+- ✅ Keyboard shortcut (M key) for audio toggle verified from PR #155 changes
+- ✅ localStorage persistence for volume settings verified from PR #155 changes
+- ✅ 14 AudioManager unit tests verified from PR #155 changes
 
 This is a snapshot of reality, not aspirations or plans.
