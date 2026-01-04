@@ -1676,7 +1676,7 @@ Both jobs must pass for PR approval. Visual regression failures block merge.
 
 ### Test Coverage
 
-Fourteen test suites with **200 passing tests and 31 failing tests** (224 unit/integration + 7 visual regression):
+Fourteen test suites with **200 passing tests and 31 failing tests** (total: 231 tests = 224 unit/integration + 7 visual regression):
 
 **Note**: 31 tests currently fail after PR #167 (PixiJS migration) because they query DOM for SVG elements that no longer exist with Canvas-based rendering. Test infrastructure needs updates to interact with PixiJS Canvas or test via app state instead of DOM queries. All circuit logic tests (simulation, extraction, serialization) continue to pass.
 
@@ -1851,174 +1851,6 @@ Fourteen test suites with **200 passing tests and 31 failing tests** (224 unit/i
     - 100px max diff tolerance, 0.2 color threshold for consistency ❌
     - Baseline screenshots: ~68KB total (4 PNG files in `tests/visual/examples.spec.ts-snapshots/`) ❌
     - **Failure reason**: Visual appearance changed significantly due to PixiJS Canvas rendering vs SVG; baselines need to be regenerated
-
-1. **breadboard-layout.test.ts** (12 tests)
-   - Position validity checking (updated for 14 columns)
-   - Terminal strip connectivity (updated column indices)
-   - Connected position enumeration (strips and rails)
-   - Rail position identification (3 new tests)
-   - Rail information retrieval (2 new tests)
-   - Rail vertical connectivity (3 new tests)
-
-2. **circuit-extractor.test.ts** (6 tests)
-   - Empty circuit extraction
-   - Wire edge creation across nodes (updated column indices)
-   - Same-node component handling (updated column indices)
-   - Multiple component extraction (updated column indices)
-   - Rail-to-strip connectivity (new test)
-   - Same-rail component handling (new test)
-
-3. **circuit-simulator.test.ts** (12 tests)
-   - Basic circuits (ground only, simple series, voltage divider)
-   - Parallel circuits (two parallel resistors, voltage divider with parallel load, complex networks)
-   - Wire handling (low resistance validation)
-   - LED handling (series resistor model)
-   - Error cases (missing ground, short circuit detection)
-   - Multiple voltage sources
-   - Current calculations through parallel branches
-   - Note: Error detection logic validated through integration but not yet unit tested
-
-4. **circuit-serializer.test.ts** (14 tests) — **New in PR #119**
-   - Serialization of empty circuits and all component types
-   - Deserialization with validation (JSON format, component types, rotation values)
-   - Default value application for missing properties
-   - Roundtrip fidelity (serialize → deserialize preserves all data)
-   - Edge cases (invalid JSON, missing fields, unknown component types)
-
-5. **voltage-colors.test.ts** (13 tests)
-   - Color gradient mapping at key voltage stops (0V, 1.25V, 2.5V, 3.75V, 5V)
-   - Linear interpolation between color stops
-   - Voltage clamping (negative and above 5V)
-   - CSS class mapping for pattern-based alternatives
-
-6. **component-renderer.test.ts** (9 tests)
-   - SVG element creation
-   - Individual component rendering (wire, resistor, LED, power supply, ground)
-   - Multiple component rendering
-   - Component layering (wires render before other components)
-   - Wire color cycling and reset behavior
-
-7. **current-animator.test.ts** (11 tests)
-   - Start/stop lifecycle management
-   - Current threshold filtering (1µA minimum)
-   - Particle creation for currents above threshold
-   - Current magnitude scaling (particle count and speed)
-   - Component type support (wire, resistor, LED)
-   - Edge cases (zero current, negative current, empty components, failed simulation)
-
-8. **breadboard-app.test.ts** (25 tests) — **Updated in PR #107**
-   - Component initialization
-   - Component selection (click to select)
-   - Component deselection (background click)
-   - Deletion via Delete key
-   - Deletion via Backspace key
-   - Circuit simulation updates after deletion
-   - No deletion when nothing selected
-   - Multiple component selection handling
-   - **Drag-and-drop repositioning** (5 tests):
-     - Drag operation initiation on mousedown
-     - Ghost preview display during drag
-     - Component position update on successful drop
-     - Drag cancellation via Escape key
-     - Component selection persistence after drag
-   - **Component rotation** (12 new tests in PR #107):
-     - Rotation via R key press
-     - Cycling through all four rotation angles (0°, 90°, 180°, 270°)
-     - SVG rotation transform application
-     - No rotation when no component selected
-     - No rotation during drag operation
-     - Lowercase r key support
-     - Out-of-bounds rotation prevention
-     - Circuit simulation updates after rotation
-     - Rotation for all component types (LED, power supply, wire, resistor, ground)
-
-9. **property-editor.test.ts** (12 tests) — **New in PR #95**
-   - Property editor visibility toggle (shown when component selected, hidden otherwise)
-   - Type-specific field rendering (resistor, LED, power supply)
-   - Input value updates with debounce wait (resistance, voltage, forward voltage)
-   - Preset button behavior (applies preset values)
-   - Validation error handling (invalid values)
-   - Component type filtering (wire and ground have no property editor)
-   - Preset button counts for different component types
-
-10. **resistor-color-code.test.ts** (50 tests)
-    - E12 series resistance encoding (100Ω to 10kΩ)
-    - E24 series resistance encoding
-    - 4-band resistor color code generation (5% and 10% tolerance)
-    - 5-band resistor color code generation (1% and 2% tolerance)
-    - Color band decoding back to resistance values
-    - Roundtrip verification (encode → decode preserves values)
-    - Edge cases (1Ω, 1GΩ, non-standard values)
-    - Invalid inputs and error handling
-
-11. **component-library.test.ts** (13 tests) — **New in PR #143**
-    - Component registration with duplicate detection
-    - Lookup by ID (existing and non-existing)
-    - Get all components
-    - Filter by category (passive, diode, power, etc.)
-    - Text search across name, description, part numbers
-    - Case-insensitive search
-    - Empty registry handling
-
-12. **library-catalog.test.ts** (18 tests) — **New in PR #143**
-    - Resistor catalog validation:
-      - E12 series coverage (16 values with 5% tolerance)
-      - 1% tolerance variants (7 values)
-      - Physical specifications (package, dimensions)
-      - Electrical specifications (resistance, tolerance, power rating)
-    - LED catalog validation:
-      - All 4 required LEDs present (3mm yellow, 5mm red/green/blue)
-      - Forward voltage values
-      - Package types (T1, T1-3/4)
-      - Wavelength and luminous intensity
-    - Speaker validation (8Ω module specifications)
-    - Power supply validation (4 voltage levels with current ratings)
-    - Wire and ground validation
-    - Unique IDs across all entries
-    - Valid component types and categories
-
-13. **component-library-utils.test.ts** (19 tests) — **New in PR #143**
-    - `findClosestResistor()`:
-      - Exact matches for E12 series values
-      - Rounding to nearest available value
-      - Tolerance filtering (5% vs 1%)
-      - Edge cases (very low and very high resistance)
-    - `findClosestLED()`:
-      - Exact matches for standard forward voltages
-      - Rounding to nearest available LED
-      - Edge cases (very low and very high voltages)
-    - `findPowerSupply()`:
-      - Exact matches for available voltages (3.3V, 5V, 9V, 12V)
-      - Non-matching voltages return undefined
-    - `getDefaultLibraryId()`:
-      - Maps abstract resistors to library entries
-      - Maps abstract LEDs to library entries
-      - Maps abstract power supplies to library entries
-      - Handles components without close matches
-    - `getComponentPropertiesFromLibrary()`:
-      - Extracts electrical properties from library
-      - Falls back to component properties when no library entry
-
-14. **audio-manager.test.ts** (14 tests) — **New in PR #155**
-    - Initialization (disabled by default, default volume of 0.5)
-    - Enable/disable lifecycle (AudioContext creation/closure)
-    - Volume control (set, get, clamping to 0.0-1.0 range)
-    - Speaker creation when audio enabled and voltage/current provided
-    - Threshold filtering (no speaker creation when voltage < 0.1V or current < 0.1mA)
-    - Multi-speaker support (multiple independent oscillators)
-    - Speaker removal (stop oscillator and cleanup)
-    - Automatic speaker stop when voltage or current drops below threshold
-    - localStorage persistence (save and load volume preferences)
-    - Active speaker count tracking
-
-15. **examples.spec.ts** (7 visual regression tests) — **New in PR #125**
-    - Screenshot comparison for all 4 example circuits (LED+resistor, voltage divider, parallel LEDs, short circuit demo)
-    - Visual verification that voltage overlays render with colors
-    - Visual verification that current animation elements are present
-    - Visual verification that error overlays render when present
-    - Automated visual regression detection using Playwright screenshot comparison
-    - 100px max diff tolerance, 0.2 color threshold for consistency
-    - Baseline screenshots: ~68KB total (4 PNG files in `tests/visual/examples.spec.ts-snapshots/`)
 
 ### Testing Approach
 
@@ -2251,7 +2083,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/examples/voltage-divider.json` | 97 | Voltage Divider example circuit (uses power rails) |
 | `src/examples/parallel-leds.json` | 187 | Parallel LEDs example circuit (uses power rails) |
 | `src/examples/short-circuit-demo.json` | 57 | Short Circuit Demo example circuit (uses power rails) |
-| `src/ui/breadboard-app.ts` | 2215 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, drag-and-drop, rail rendering, audio integration, and view switcher; PixiJS renderer integration (PR #149, PR #155, PR #161, PR #167) |
+| `src/ui/breadboard-app.ts` | 2215 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, rail rendering, audio integration, and view switcher; PixiJS renderer integration (PR #149, PR #155, PR #161, PR #167); drag-and-drop initiation temporarily removed in PR #167 |
 | `src/ui/pixi-renderer.ts` | 768 | **NEW (PR #167)**: PixiJS WebGL renderer for unified breadboard rendering (grid, components, voltage overlays, current animation, error icons); replaces SVG-based ComponentRenderer, CurrentAnimator, and ErrorOverlayRenderer |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
 | `src/ui/component-renderer.ts` | 568 | **DEPRECATED (PR #167)**: Legacy SVG-based visual component rendering; retained for reference, replaced by PixiRenderer |
