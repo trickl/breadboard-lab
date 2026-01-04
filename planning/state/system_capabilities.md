@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-04  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After fixing test infrastructure post-PixiJS migration (PR #179)
+**Last Updated**: After restoring drag-and-drop component repositioning with PixiJS pointer events (PR #185)
 
 ---
 
@@ -312,11 +312,13 @@ The UI consists of three panels:
 
 ### Component Drag-and-Drop Repositioning
 
+**Status**: Fully functional with PixiJS pointer events (restored in PR #185 after temporary removal in PR #167).
+
 **Repositioning system**: After placing a component, users can drag it to a new position with real-time visual feedback.
 
 **Drag interaction flow**:
 1. Click component to select it
-2. Click and hold (mousedown) on selected component to initiate drag
+2. Click and hold (pointerdown) on selected component to initiate drag
 3. Move mouse to desired location (mousemove updates ghost preview)
 4. Release mouse (mouseup) to drop component at new position
 5. Press Escape at any time to cancel drag and keep original position
@@ -344,22 +346,24 @@ The UI consists of three panels:
 
 **Implementation details**:
 - Drag state tracked in `BreadboardApp` class (`DragState` interface)
-- Mouse event handlers (mousedown, mousemove, mouseup) manage drag lifecycle
+- Mouse event handlers (mousemove, mouseup) manage drag lifecycle after initiation
+- PixiJS pointer events (`pointerdown`) on component containers initiate drag
+- `onComponentDragStart` callback in `PixiEventHandlers` interface bridges PixiJS events to drag infrastructure
 - Position calculation with snap-to-grid (converts pixels to grid coordinates)
 - Collision detection checks all pins against existing components
-- Component renderer supports optional drag state to render ghost preview
-- CSS classes for preview styling (`.component-preview`, `.component-preview-valid`, `.component-preview-invalid`)
+- PixiJS renderer supports optional drag state to render ghost preview
+- Ghost preview rendered via PixiJS Graphics API
 
 **Event handling**:
-- Component SVG groups have pointer events enabled (`pointer-events: auto`)
+- PixiJS component containers have interactive mode enabled (`eventMode: 'static'`)
 - Components have cursor: pointer styling for interactivity
-- Mousedown on component initiates drag operation
+- `pointerdown` on component calls `onComponentDragStart` with component ID and global coordinates
+- `handleComponentDragStart` in BreadboardApp converts PixiJS global coordinates to breadboard-relative coordinates
 - Mousemove during drag updates ghost preview position with snap-to-grid
 - Mouseup completes drag and updates component position (or cancels if invalid)
 - Keyboard event listener bound to document for Delete/Backspace and Escape keys
 - Escape key cancels active drag operation
-- Property editor input listeners attached dynamically when component selected
-- Event cleanup via `destroy()` method prevents memory leaks (includes debounce timer cleanup)
+- Event cleanup via `destroy()` method prevents memory leaks
 
 ### Component Rotation
 
@@ -1493,7 +1497,6 @@ pixiRenderer.startAnimation(simulation, components);
 - Visual representations are simplified geometric shapes, not photorealistic
 - Wire routing is orthogonal (Manhattan style), not customizable by user
 - Single component selection only (no multi-select)
-- Component drag-and-drop initiation currently removed due to event model incompatibility with PixiJS (known limitation from PR #167)
 - Voltage tooltips on hover currently removed (Canvas event mapping needed, known limitation from PR #167)
 - Microprocessor component has no visual rendering yet (can be placed but not displayed; requires PixiJS renderer implementation)
 
@@ -1826,7 +1829,12 @@ Fifteen test suites with **260 passing tests** (100% pass rate; 253 unit/integra
    - Circuit simulation updates after deletion ✅
    - No deletion when nothing selected ✅
    - Multiple component selection handling ✅
-   - **Drag-and-drop repositioning** (5 tests) - Tests use TODO markers as drag functionality not yet restored after PixiJS migration
+   - **Drag-and-drop repositioning** (5 tests) ✅ **All passing** (restored in PR #185):
+     - Drag initiation from component pointerdown ✅
+     - Ghost preview rendering during drag ✅
+     - Valid position drop updates component location ✅
+     - Escape key cancels drag ✅
+     - Component selection persists after successful drag ✅
    - **Component rotation** (12 tests) ✅:
      - Rotation via R key press ✅
      - Cycling through all four rotation angles (0°, 90°, 180°, 270°) ✅
@@ -1964,17 +1972,20 @@ Fifteen test suites with **260 passing tests** (100% pass rate; 253 unit/integra
 - No unit tests for error overlay rendering
 - No unit tests for explain panel content generation
 - **No tests for PixiJS renderer** (`pixi-renderer.ts`): 768-line renderer has zero test coverage (added in PR #167)
-- **Drag-and-drop tests marked as TODO**: 5 tests have TODO markers as drag functionality not yet restored after PixiJS migration
 
 ### Test Execution
 
-- **260 out of 260 tests pass** (100% pass rate) after PR #179
+- **260 out of 260 tests pass** (100% pass rate) after PR #185
 - **Test infrastructure fix** (PR #179):
   - Added public testing API to BreadboardApp: `getState()`, `getComponents()`, `getSelectedComponentId()`, `clickHole()`, `clickComponent()`
   - Wrapped PixiJS initialization in try-catch to handle jsdom test environment (lacks Canvas/WebGL)
   - Rewrote `breadboard-app.test.ts` and `property-editor.test.ts` to use public API instead of DOM queries
   - Tests now verify application state rather than querying SVG DOM elements
   - Test approach is renderer-agnostic and works with Canvas-based rendering
+- **Drag-and-drop restoration** (PR #185):
+  - Re-enabled 5 previously disabled drag-and-drop tests
+  - All drag tests now passing with PixiJS pointer event integration
+  - Test helpers added: `startDragComponent()`, `moveDragTo()`, `completeDrag()`, `getDragState()`, `pressEscape()`
 - Unit test duration: Fast execution (typically < 8 seconds for all unit tests)
 - Visual test duration: ~18 seconds for all 7 tests (when baselines match)
 - No flaky tests observed
@@ -2108,8 +2119,7 @@ The system includes automated visual regression testing to protect critical visu
 2. **No validation feedback for invalid rotations**: Silent failure when rotation would be invalid (no error message)
 3. **Limited keyboard shortcuts**: Delete/Backspace for deletion, R for rotation, Escape for canceling drag
 4. **No keyboard navigation for error icons**: Error icons require mouse/touch interaction (not keyboard accessible)
-5. **Component drag-and-drop initiation removed** (PR #167): Event model incompatibility between PixiJS FederatedPointerEvents and previous SVG mousedown handlers; drag functionality temporarily unavailable
-6. **Voltage tooltips on hover removed** (PR #167): Canvas event mapping needed to restore tooltip positioning from mouse coordinates; feature temporarily unavailable
+5. **Voltage tooltips on hover removed** (PR #167): Canvas event mapping needed to restore tooltip positioning from mouse coordinates; feature temporarily unavailable
 
 ---
 
@@ -2172,7 +2182,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/examples/voltage-divider.json` | 97 | Voltage Divider example circuit (uses power rails) |
 | `src/examples/parallel-leds.json` | 187 | Parallel LEDs example circuit (uses power rails) |
 | `src/examples/short-circuit-demo.json` | 57 | Short Circuit Demo example circuit (uses power rails) |
-| `src/ui/breadboard-app.ts` | 2223 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, rail rendering, audio integration, and view switcher; PixiJS renderer integration (PR #149, PR #155, PR #161, PR #167); public testing API added (PR #179); drag-and-drop initiation temporarily removed in PR #167 |
+| `src/ui/breadboard-app.ts` | 2223 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, rail rendering, audio integration, and view switcher; PixiJS renderer integration (PR #149, PR #155, PR #161, PR #167); public testing API added (PR #179); drag-and-drop restored with PixiJS pointer events (PR #185) |
 | `src/ui/pixi-renderer.ts` | 768 | **NEW (PR #167)**: PixiJS WebGL renderer for unified breadboard rendering (grid, components, voltage overlays, current animation, error icons); replaces SVG-based ComponentRenderer, CurrentAnimator, and ErrorOverlayRenderer |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
 | `src/ui/component-renderer.ts` | 568 | **DEPRECATED (PR #167)**: Legacy SVG-based visual component rendering; retained for reference, replaced by PixiRenderer |
@@ -2276,10 +2286,10 @@ These features are listed in the PR #167 description as "Enables Future Work" bu
 
 ## Verification
 
-This document describes the system as observed on 2026-01-04 after merging PR #167:
+This document describes the system as observed on 2026-01-04 after merging PR #185:
 
 - ✅ All source files examined
-- ✅ Tests executed (260/260 passing; 100% pass rate after PR #179 test infrastructure fixes)
+- ✅ Tests executed (260/260 passing; 100% pass rate after PR #185 drag-and-drop restoration)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
@@ -2354,7 +2364,7 @@ This document describes the system as observed on 2026-01-04 after merging PR #1
 - ✅ **BreadboardApp integration with PixiJS event handlers verified from PR #167 changes**
 - ✅ **Removal of 273 lines of SVG DOM manipulation from BreadboardApp verified from PR #167 changes**
 - ✅ **Component renderer, current animator, and error overlay renderer deprecated (retained for reference) verified from PR #167 changes**
-- ✅ **Known limitations (drag-and-drop initiation removed, voltage tooltips removed) verified from PR #167 description**
+- ✅ **Known limitations (voltage tooltips removed) verified from PR #167 description; drag-and-drop limitation resolved in PR #185**
 - ✅ **EDU-8 microprocessor implementation verified from PR #173 changes**
 - ✅ **EDU-8 simulator engine (src/core/edu8-simulator.ts) with 7-instruction set verified from PR #173 changes**
 - ✅ **Microprocessor component type and EDU8State interface added to types.ts verified from PR #173 changes**
@@ -2371,5 +2381,12 @@ This document describes the system as observed on 2026-01-04 after merging PR #1
 - ✅ **PixiJS initialization wrapped in try-catch for test environment verified from PR #179 changes**
 - ✅ **Test status: 260/260 passing (100% pass rate achieved) verified from PR #179 test results**
 - ✅ **Renderer-agnostic testing approach verified from PR #179 implementation**
+- ✅ **Drag-and-drop component repositioning restored verified from PR #185 changes**
+- ✅ **PixiJS event integration with onComponentDragStart callback verified from PR #185 changes**
+- ✅ **Pointerdown event listeners on component containers verified from PR #185 changes**
+- ✅ **handleComponentDragStart bridging PixiJS events to drag infrastructure verified from PR #185 changes**
+- ✅ **5 drag-and-drop tests re-enabled and passing verified from PR #185 test results**
+- ✅ **Test helpers added (startDragComponent, moveDragTo, completeDrag, getDragState, pressEscape) verified from PR #185 changes**
+- ✅ **DragState interface exported for test access verified from PR #185 changes**
 
 This is a snapshot of reality, not aspirations or plans.
