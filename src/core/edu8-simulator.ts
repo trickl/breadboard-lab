@@ -112,6 +112,36 @@ export function formatInstruction(instruction: number): string {
 }
 
 /**
+ * Handle clock edge (for event-driven simulation)
+ * 
+ * Executes one instruction on rising clock edge.
+ * Updates clockState to track edge detection.
+ * 
+ * @param state Current EDU-8 state
+ * @param clockValue Current clock signal value (true = high, false = low)
+ * @param inputs Input pin values (4-bit)
+ * @returns Updated state
+ */
+export function handleClockEdge(
+  state: EDU8State,
+  clockValue: boolean,
+  inputs: number
+): EDU8State {
+  const previousClock = state.clockState;
+  const risingEdge = !previousClock && clockValue;
+  
+  // Update clock state
+  const newState = { ...state, clockState: clockValue };
+  
+  // Execute instruction on rising edge only
+  if (risingEdge) {
+    return executeInstruction(newState, inputs);
+  }
+  
+  return newState;
+}
+
+/**
  * Execute one instruction (called on clock rising edge)
  */
 export function executeInstruction(state: EDU8State, inputs: number): EDU8State {
