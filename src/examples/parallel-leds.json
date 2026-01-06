@@ -52,7 +52,7 @@
       "type": "RESISTOR",
       "positions": [
         { "row": 8, "col": 4 },
-        { "row": 13, "col": 4 }
+        { "row": 15, "col": 4 }
       ],
       "rotation": 0,
       "metadata": { "resistance": 220 }
@@ -82,7 +82,7 @@
       "type": "RESISTOR",
       "positions": [
         { "row": 8, "col": 6 },
-        { "row": 13, "col": 6 }
+        { "row": 15, "col": 6 }
       ],
       "rotation": 0,
       "metadata": { "resistance": 220 }
@@ -112,7 +112,7 @@
       "type": "RESISTOR",
       "positions": [
         { "row": 8, "col": 9 },
-        { "row": 13, "col": 9 }
+        { "row": 15, "col": 9 }
       ],
       "rotation": 0,
       "metadata": { "resistance": 220 }
