@@ -21,8 +21,8 @@ test.describe('Example Circuit Visual Regression', () => {
     
     const breadboard = getBreadboardContainer(page);
     
-    // Verify that key visual elements are present
-    await expect(page.locator('.component-overlay')).toBeVisible();
+    // Verify Pixi canvas is present
+    await expect(page.locator('#breadboard canvas')).toBeVisible();
     
     // Capture screenshot for comparison
     await expect(breadboard).toHaveScreenshot('led-resistor.png', {
@@ -40,8 +40,8 @@ test.describe('Example Circuit Visual Regression', () => {
     
     const breadboard = getBreadboardContainer(page);
     
-    // Verify components are rendered
-    await expect(page.locator('.component-overlay')).toBeVisible();
+    // Verify Pixi canvas is present
+    await expect(page.locator('#breadboard canvas')).toBeVisible();
     
     // Capture screenshot for comparison
     await expect(breadboard).toHaveScreenshot('voltage-divider.png', {
@@ -59,8 +59,8 @@ test.describe('Example Circuit Visual Regression', () => {
     
     const breadboard = getBreadboardContainer(page);
     
-    // Verify components are rendered
-    await expect(page.locator('.component-overlay')).toBeVisible();
+    // Verify Pixi canvas is present
+    await expect(page.locator('#breadboard canvas')).toBeVisible();
     
     // Capture screenshot for comparison
     await expect(breadboard).toHaveScreenshot('parallel-leds.png', {
@@ -78,8 +78,8 @@ test.describe('Example Circuit Visual Regression', () => {
     
     const breadboard = getBreadboardContainer(page);
     
-    // Verify components are rendered
-    await expect(page.locator('.component-overlay')).toBeVisible();
+    // Verify Pixi canvas is present
+    await expect(page.locator('#breadboard canvas')).toBeVisible();
     
     // Note: Error overlay might not be rendered depending on circuit state
     // The important thing is that the circuit loads and renders consistently
@@ -106,19 +106,11 @@ test.describe('Visual Features Present', () => {
     // Check simulation status
     const simulationStatus = await page.locator('.info-panel').textContent();
     
-    // If simulation succeeded, voltage overlays should be present
+    // If simulation succeeded, the Pixi canvas should still be present.
+    // (Voltage overlays are rendered into the canvas; pixel-level assertions are covered
+    // by the screenshot comparisons in the example tests.)
     if (simulationStatus && simulationStatus.includes('✓ Success')) {
-      const overlayCount = await page.locator('.hole.voltage-overlay').count();
-      expect(overlayCount).toBeGreaterThan(0);
-      
-      // Check that holes have background colors applied (voltage visualization)
-      const holeWithColor = await page.locator('.hole.voltage-overlay').first();
-      const backgroundColor = await holeWithColor.evaluate((el) => 
-        window.getComputedStyle(el).backgroundColor
-      );
-      
-      // Background color should not be the default hole color
-      expect(backgroundColor).not.toBe('rgb(44, 44, 44)');
+      await expect(page.locator('#breadboard canvas')).toBeVisible();
     }
   });
 
@@ -129,14 +121,8 @@ test.describe('Visual Features Present', () => {
   test('Current animation elements are present', async ({ page }) => {
     await loadExample(page, 'led-resistor');
     
-    // The current animator creates SVG elements for particles
-    // Check that SVG overlay exists and contains elements
-    const svgOverlay = page.locator('.component-overlay');
-    await expect(svgOverlay).toBeVisible();
-    
-    // The overlay should contain SVG elements (components and animation particles)
-    const svgContent = await svgOverlay.innerHTML();
-    expect(svgContent.length).toBeGreaterThan(0);
+    // Current animation is rendered on the Pixi canvas.
+    await expect(page.locator('#breadboard canvas')).toBeVisible();
   });
 
   /**
@@ -149,18 +135,7 @@ test.describe('Visual Features Present', () => {
     // Wait a bit more for error detection
     await page.waitForTimeout(500);
     
-    // Check if error overlay exists (it may or may not be present depending on implementation)
-    const errorOverlay = page.locator('.error-overlay');
-    const errorCount = await errorOverlay.count();
-    
-    if (errorCount > 0) {
-      // If error overlay exists, verify it has content
-      await expect(errorOverlay.first()).toBeVisible();
-      const errorContent = await errorOverlay.first().innerHTML();
-      expect(errorContent.length).toBeGreaterThan(0);
-    } else {
-      // Error overlay not implemented yet - test passes but logs warning
-      console.log('Warning: Error overlay not found - feature may not be fully implemented');
-    }
+    // Error overlays are rendered into the canvas; we at least ensure the app didn't blank.
+    await expect(page.locator('#breadboard canvas')).toBeVisible();
   });
 });

@@ -214,7 +214,20 @@ export class BreadboardApp {
     const breadboard = document.getElementById('breadboard');
     if (!breadboard) return;
 
-    breadboard.innerHTML = '';
+    // IMPORTANT: `render()` rebuilds the entire DOM (including a fresh #breadboard element).
+    // If we blindly clear `breadboard.innerHTML` and skip Pixi init because the renderer
+    // already exists, we permanently detach the canvas and the breadboard appears blank.
+    //
+    // So: if a Pixi canvas already exists, ensure it is attached to the *current* #breadboard.
+    const existingCanvas = this.pixiRenderer.getCanvas();
+    if (existingCanvas) {
+      if (existingCanvas.parentElement !== breadboard) {
+        breadboard.replaceChildren(existingCanvas);
+      }
+    } else {
+      // No canvas yet (first render). Clear any previous contents before init.
+      breadboard.innerHTML = '';
+    }
 
     // Extract circuit and run simulation (cache for performance)
     this.cachedCircuit = this.extractor.extract(this.state);
@@ -227,7 +240,7 @@ export class BreadboardApp {
     const positionToNode = this.buildPositionToNodeMap(this.cachedCircuit);
 
     // Initialize PixiJS renderer if not already initialized
-    if (!this.pixiRenderer.getCanvas()) {
+    if (!existingCanvas) {
       const handlers: PixiEventHandlers = {
         onHoleClick: (position, _event) => {
           this.handleHoleClick(position);

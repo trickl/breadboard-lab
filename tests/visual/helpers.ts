@@ -29,18 +29,16 @@ export async function loadExample(page: Page, exampleId: string): Promise<void> 
   
   // Wait for the modal to close
   await page.waitForSelector('#examples-modal', { state: 'detached', timeout: 5000 });
-  
-  // Wait for SVG overlay to be present (contains components and animations)
-  await page.waitForSelector('.component-overlay', { timeout: 10000 });
-  
-  // Wait for components to be rendered in the SVG
-  // The component overlay should have SVG elements for the components
+
+  // Wait for PixiJS canvas to be attached and visible
+  await page.waitForSelector('#breadboard canvas', { timeout: 10000 });
   await page.waitForFunction(
     () => {
-      const svg = document.querySelector('.component-overlay');
-      if (!svg) return false;
-      // Check if there are any rendered elements (components, wires, etc.)
-      return svg.children.length > 0;
+      const canvas = document.querySelector('#breadboard canvas') as HTMLCanvasElement | null;
+      if (!canvas) return false;
+      // Ensure the canvas has a rendered size
+      const rect = canvas.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
     },
     { timeout: 10000 }
   );
@@ -57,9 +55,9 @@ export async function loadExample(page: Page, exampleId: string): Promise<void> 
 export async function waitForBreadboardReady(page: Page): Promise<void> {
   // Wait for the main container
   await page.waitForSelector('.breadboard-container', { timeout: 10000 });
-  
-  // Wait for the SVG overlay
-  await page.waitForSelector('.component-overlay', { timeout: 5000 });
+
+  // Wait for PixiJS canvas
+  await page.waitForSelector('#breadboard canvas', { timeout: 10000 });
   
   // Give animations time to stabilize
   await page.waitForTimeout(500);

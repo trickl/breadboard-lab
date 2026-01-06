@@ -20,7 +20,12 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   
   /* Reporter to use */
-  reporter: 'html',
+  // Use a console reporter for readable logs, and generate an HTML report without auto-opening.
+  // This keeps `playwright test` (and `npm run test:visual`) from hanging by serving the report.
+  reporter: [
+    ['list'],
+    ['html', { open: 'never', outputFolder: 'playwright-report' }],
+  ],
   
   /* Shared settings for all the projects below */
   use: {
