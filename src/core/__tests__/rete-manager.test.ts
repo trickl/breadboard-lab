@@ -100,12 +100,21 @@ describe('ReteManager', () => {
 
       const editor = manager.getEditor();
       const nodes = editor.getNodes();
-      expect(nodes.length).toBe(1);
-      expect(nodes[0]).toBeInstanceOf(ComponentNode);
       
-      const componentNode = nodes[0] as ComponentNode;
+      // Should create 1 ComponentNode + 2 BreadboardHoleNodes (for 2 positions)
+      expect(nodes.length).toBe(3);
+      
+      // Find the component node
+      const componentNodes = nodes.filter((n) => n instanceof ComponentNode);
+      expect(componentNodes.length).toBe(1);
+      
+      const componentNode = componentNodes[0] as ComponentNode;
       expect(componentNode.componentId).toBe('r1');
       expect(componentNode.componentType).toBe(ComponentType.RESISTOR);
+      
+      // Find the hole nodes
+      const holeNodes = nodes.filter((n) => n instanceof BreadboardHoleNode);
+      expect(holeNodes.length).toBe(2);
     });
 
     it('should handle multiple components', async () => {
@@ -135,7 +144,41 @@ describe('ReteManager', () => {
 
       const editor = manager.getEditor();
       const nodes = editor.getNodes();
-      expect(nodes.length).toBe(2);
+      
+      // Should create 2 ComponentNodes + 4 BreadboardHoleNodes (for 4 unique positions)
+      expect(nodes.length).toBe(6);
+      
+      // Verify component nodes
+      const componentNodes = nodes.filter((n) => n instanceof ComponentNode);
+      expect(componentNodes.length).toBe(2);
+      
+      // Verify hole nodes
+      const holeNodes = nodes.filter((n) => n instanceof BreadboardHoleNode);
+      expect(holeNodes.length).toBe(4);
+    });
+
+    it('should create connections between components and holes', async () => {
+      const resistor: Resistor = {
+        id: 'r1',
+        type: ComponentType.RESISTOR,
+        positions: [{ row: 5, col: 10 }, { row: 5, col: 15 }],
+        rotation: 0,
+        resistance: 220,
+      };
+
+      const state: BreadboardState = {
+        components: [resistor],
+        selectedComponentId: null,
+      };
+
+      await manager.initialize();
+      await manager.syncFromBreadboardState(state);
+
+      const editor = manager.getEditor();
+      const connections = editor.getConnections();
+      
+      // Should create 2 connections (one for each leg)
+      expect(connections.length).toBe(2);
     });
   });
 

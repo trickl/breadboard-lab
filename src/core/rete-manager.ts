@@ -135,21 +135,19 @@ export class ReteManager {
   /**
    * Sync BreadboardState to Rete graph
    * Creates/updates Rete nodes and connections based on component array
+   * 
+   * Phase 2 Implementation:
+   * - Creates ComponentNodes for each component
+   * - Creates BreadboardHoleNodes for each occupied breadboard position
+   * - Creates connections (edges) between component legs and holes
+   * - Handles component rotation and position updates
    */
   async syncFromBreadboardState(state: BreadboardState): Promise<void> {
     if (this.syncInProgress) return;
     this.syncInProgress = true;
 
     try {
-      // TODO: Implement full sync logic
-      // For Phase 1, this is a placeholder that preserves existing behavior
-      // Full implementation will:
-      // 1. Create ComponentNodes for each component
-      // 2. Create BreadboardHoleNodes for occupied positions
-      // 3. Create connections between legs and holes
-      // 4. Handle component removal/updates
-
-      // Clear existing Rete nodes
+      // Clear existing Rete nodes and connections
       for (const node of this.editor.getNodes()) {
         await this.editor.removeNode(node.id);
       }
@@ -157,27 +155,81 @@ export class ReteManager {
       this.componentNodeMap.clear();
       this.holeNodeMap.clear();
 
-      // Create nodes for each component
+      // Step 1: Create BreadboardHoleNodes for all occupied positions
+      // We need to collect all unique positions first
+      const occupiedPositions = new Map<string, Position>();
+      
+      for (const component of state.components) {
+        for (const pos of component.positions) {
+          const key = this.positionToKey(pos);
+          if (!occupiedPositions.has(key)) {
+            occupiedPositions.set(key, pos);
+          }
+        }
+      }
+
+      // Create hole nodes
+      for (const [key, pos] of occupiedPositions) {
+        const holeNode = new BreadboardHoleNode(pos);
+        await this.editor.addNode(holeNode);
+        this.holeNodeMap.set(key, holeNode.id);
+
+        // Position hole node if area available
+        if (this.area) {
+          await this.area.translate(holeNode.id, {
+            x: pos.col * 50,
+            y: pos.row * 50,
+          });
+        }
+      }
+
+      // Step 2: Create ComponentNodes for each component
       for (const component of state.components) {
         // Determine leg count based on component type
         const legCount = this.getComponentLegCount(component.type);
         
-        const node = new ComponentNode(
+        const componentNode = new ComponentNode(
           component.id,
           component.type,
           legCount
         );
 
-        await this.editor.addNode(node);
-        this.componentNodeMap.set(component.id, node.id);
+        await this.editor.addNode(componentNode);
+        this.componentNodeMap.set(component.id, componentNode.id);
 
         // Position node based on first component position (only if area available)
         if (this.area && component.positions.length > 0) {
           const pos = component.positions[0];
-          await this.area.translate(node.id, {
-            x: pos.col * 50,
+          await this.area.translate(componentNode.id, {
+            x: pos.col * 50 + 100, // Offset to not overlap with hole nodes
             y: pos.row * 50,
           });
+        }
+
+        // Step 3: Create connections between component legs and holes
+        // Each position corresponds to a component leg in order
+        for (let i = 0; i < component.positions.length && i < legCount; i++) {
+          const pos = component.positions[i];
+          const posKey = this.positionToKey(pos);
+          const holeNodeId = this.holeNodeMap.get(posKey);
+
+          if (holeNodeId) {
+            // Get the hole node
+            const holeNode = this.editor.getNode(holeNodeId);
+            
+            if (holeNode && holeNode instanceof BreadboardHoleNode) {
+              // Create connection from hole to component leg
+              // Connection direction: hole (output) -> component leg (input)
+              const connection = new ClassicPreset.Connection(
+                holeNode,
+                'hole', // output socket
+                componentNode,
+                `leg${i}` // input socket
+              );
+
+              await this.editor.addConnection(connection);
+            }
+          }
         }
       }
 
@@ -197,12 +249,19 @@ export class ReteManager {
    * Sync Rete graph to BreadboardState
    * Extracts component data from Rete nodes and connections
    * Returns null if no changes detected
+   * 
+   * Phase 2 Implementation:
+   * Currently returns null as BreadboardState remains the source of truth
+   * for component properties (resistance, voltage, etc.)
+   * Rete graph is used for connectivity validation and constraint enforcement
+   * Future phases may extract full state from Rete graph if needed
    */
   syncToBreadboardState(_currentState: BreadboardState): BreadboardState | null {
     if (this.syncInProgress) return null;
 
-    // For Phase 1, return null (no changes)
-    // Full implementation will extract components from Rete graph
+    // Phase 2: Return null as we're using hybrid approach
+    // BreadboardState is source of truth for component properties
+    // Rete graph is source of truth for connectivity
     return null;
   }
 
@@ -226,6 +285,69 @@ export class ReteManager {
       default:
         return 2;
     }
+  }
+
+  /**
+   * Convert position to string key for mapping
+   */
+  private positionToKey(pos: Position): string {
+    return `${pos.row},${pos.col}`;
+  }
+
+  /**
+   * Get all connections from the Rete graph
+   */
+  getConnections(): Connection[] {
+    return this.editor.getConnections();
+  }
+
+  /**
+   * Get component node by component ID
+   */
+  getComponentNode(componentId: string): ComponentNode | null {
+    const nodeId = this.componentNodeMap.get(componentId);
+    if (!nodeId) return null;
+    
+    const node = this.editor.getNode(nodeId);
+    return node instanceof ComponentNode ? node : null;
+  }
+
+  /**
+   * Get hole node by position
+   */
+  getHoleNode(pos: Position): BreadboardHoleNode | null {
+    const key = this.positionToKey(pos);
+    const nodeId = this.holeNodeMap.get(key);
+    if (!nodeId) return null;
+    
+    const node = this.editor.getNode(nodeId);
+    return node instanceof BreadboardHoleNode ? node : null;
+  }
+
+  /**
+   * Get all hole nodes
+   */
+  getAllHoleNodes(): BreadboardHoleNode[] {
+    const nodes: BreadboardHoleNode[] = [];
+    for (const node of this.editor.getNodes()) {
+      if (node instanceof BreadboardHoleNode) {
+        nodes.push(node);
+      }
+    }
+    return nodes;
+  }
+
+  /**
+   * Get all component nodes
+   */
+  getAllComponentNodes(): ComponentNode[] {
+    const nodes: ComponentNode[] = [];
+    for (const node of this.editor.getNodes()) {
+      if (node instanceof ComponentNode) {
+        nodes.push(node);
+      }
+    }
+    return nodes;
   }
 
   /**
