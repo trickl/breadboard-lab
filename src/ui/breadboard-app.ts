@@ -1,4 +1,4 @@
-import type { AnyComponent, BreadboardState, Position, Circuit, SimulationResult, ComponentLibraryEntry } from '@/core/types';
+import type { AnyComponent, BreadboardState, Position, Circuit, SimulationResult, ComponentLibraryEntry, FloatingComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
 import { BreadboardLayout } from '@/core/breadboard-layout';
 import { CircuitExtractor } from '@/core/circuit-extractor';
@@ -51,6 +51,14 @@ const USE_RETE = true;
  * When false, uses traditional two-click placement workflow
  * 
  * Phase 3: IN DEVELOPMENT - Interactive connection UI with visual feedback
+ * 
+ * Current Status: Phase 3b complete, Phase 3c partial (infrastructure ready)
+ * - Hole hover effects implemented
+ * - Connection line rendering infrastructure added
+ * - Floating component model implemented
+ * - Remaining: Drag handling, connection creation, tests need updating
+ * 
+ * NOTE: Keeping disabled until test suite is updated for new workflow
  */
 const USE_RETE_INTERACTIVE = false;
 
@@ -74,6 +82,7 @@ export class BreadboardApp {
   private selectedComponentType: ComponentType | null = null;
   private selectedLibraryId: string | null = null;
   private placementStart: Position | null = null;
+  private floatingComponent: FloatingComponent | null = null; // Phase 3c: Floating component for new placement workflow
   private extractor: CircuitExtractor;
   private simulator: CircuitSimulator;
   private pixiRenderer: PixiRenderer;
@@ -388,7 +397,12 @@ export class BreadboardApp {
     }
 
     // Render breadboard grid with voltage overlay
-    this.pixiRenderer.renderBreadboard(positionToNode, this.cachedSimulation);
+    this.pixiRenderer.renderBreadboard(positionToNode, this.cachedSimulation, this.reteManager);
+
+    // Render Rete connection lines (Phase 3b)
+    if (USE_RETE_INTERACTIVE && this.reteManager) {
+      this.pixiRenderer.renderConnections(this.reteManager, this.state.components, this.cachedSimulation);
+    }
 
     // Render components with simulation results for LED glow
     this.pixiRenderer.renderComponents(
@@ -398,6 +412,11 @@ export class BreadboardApp {
       this.cachedSimulation,
       positionToNode
     );
+
+    // Render floating component (Phase 3c)
+    if (USE_RETE_INTERACTIVE && this.floatingComponent) {
+      this.pixiRenderer.renderFloatingComponent(this.floatingComponent);
+    }
 
     // Render error overlays
     if (this.cachedSimulation && this.cachedSimulation.errors.length > 0) {
@@ -2542,13 +2561,69 @@ export class BreadboardApp {
   }
 
   /**
+   * Create a floating component (Phase 3c)
+   * Component appears at canvas edge, ready for drag-and-drop placement
+   */
+  private createFloatingComponent(type: ComponentType, libraryId?: string): void {
+    const id = `floating-${this.componentIdCounter++}`;
+    
+    // Position at right edge of breadboard
+    const gridWidth = BreadboardLayout.TOTAL_COLS * PixiRenderer.HOLE_SPACING;
+    const xOffset = 50; // 50px to the right of breadboard
+    const yOffset = 100; // 100px from top
+    
+    // Get properties from library if available
+    const libraryEntry = libraryId ? componentLibrary.get(libraryId) : undefined;
+    
+    // Create floating component with default properties
+    const properties: FloatingComponent['properties'] = {};
+    
+    switch (type) {
+      case ComponentType.RESISTOR:
+        properties.resistance = (libraryEntry?.electrical.resistance as number) ?? 1000;
+        break;
+      case ComponentType.LED:
+        properties.forwardVoltage = (libraryEntry?.electrical.forwardVoltage as number) ?? 2.0;
+        properties.maxCurrent = (libraryEntry?.electrical.maxCurrent as number) ?? 0.02;
+        break;
+      case ComponentType.POWER_SUPPLY:
+        properties.voltage = (libraryEntry?.electrical.voltage as number) ?? 5.0;
+        break;
+      case ComponentType.WIRE:
+        properties.resistance = (libraryEntry?.electrical.resistance as number) ?? 0.01;
+        break;
+    }
+    
+    this.floatingComponent = {
+      id,
+      type,
+      libraryId,
+      position: { x: gridWidth + xOffset, y: yOffset },
+      rotation: 0, // Start at 0 degrees
+      properties,
+    };
+    
+    // Clear old placement state
+    this.placementStart = null;
+    this.render();
+  }
+
+  /**
    * Select a component type for placement (test/programmatic API)
    * This method is primarily for testing purposes and backward compatibility
    */
   selectComponentType(type: ComponentType): void {
-    this.selectedComponentType = type;
-    this.placementStart = null;
-    this.selectedLibraryId = null;
+    if (USE_RETE_INTERACTIVE) {
+      // Phase 3c: Create floating component instead of two-click placement
+      this.createFloatingComponent(type, this.selectedLibraryId ?? undefined);
+      this.selectedComponentType = null; // Clear after creating floating component
+      this.selectedLibraryId = null;
+    } else {
+      // Original two-click placement workflow
+      this.selectedComponentType = type;
+      this.placementStart = null;
+      this.selectedLibraryId = null;
+    }
   }
 
   /**

@@ -45,6 +45,8 @@ interface AnimationPath {
  */
 export interface PixiEventHandlers {
   onHoleClick?: (position: Position, event: FederatedPointerEvent) => void;
+  onHoleHover?: (position: Position, event: FederatedPointerEvent) => void;
+  onHoleHoverOut?: (position: Position, event: FederatedPointerEvent) => void;
   onComponentClick?: (componentId: string, event: FederatedPointerEvent) => void;
   onErrorIconClick?: (error: CircuitError, event: FederatedPointerEvent) => void;
   onComponentDragStart?: (componentId: string, globalX: number, globalY: number) => void;
@@ -59,6 +61,7 @@ export class PixiRenderer {
   
   // Layer containers for proper z-ordering
   private breadboardContainer = new Container();
+  private connectionsContainer = new Container(); // For Rete connection lines
   private componentsContainer = new Container();
   private voltageOverlayContainer = new Container();
   private particlesContainer = new Container();
@@ -119,13 +122,15 @@ export class PixiRenderer {
     
     // Offset all containers to account for padding
     this.breadboardContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
+    this.connectionsContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
     this.componentsContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
     this.voltageOverlayContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
     this.particlesContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
     this.errorOverlayContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
     
-    // Add layers in z-order
+    // Add layers in z-order (connections below components, above holes)
     this.app.stage.addChild(this.breadboardContainer);
+    this.app.stage.addChild(this.connectionsContainer);
     this.app.stage.addChild(this.componentsContainer);
     this.app.stage.addChild(this.voltageOverlayContainer);
     this.app.stage.addChild(this.particlesContainer);
@@ -358,7 +363,8 @@ export class PixiRenderer {
    */
   private renderHole(
     pos: Position,
-    holeColor: number
+    holeColor: number,
+    isOccupied: boolean = false
   ): Graphics {
     const pixels = this.positionToPixels(pos);
     const hole = new Graphics();
@@ -384,6 +390,33 @@ export class PixiRenderer {
     hole.eventMode = 'static';
     hole.cursor = 'pointer';
     (hole as any).breadboardPosition = pos;
+    (hole as any).holeBaseColor = holeColor;
+    (hole as any).isOccupied = isOccupied;
+    
+    // Hover effect - add highlight glow
+    hole.on('pointerover', (event: FederatedPointerEvent) => {
+      // Add hover glow effect
+      const hoverGlow = new Graphics();
+      hoverGlow.circle(pixels.x, pixels.y, PixiRenderer.HOLE_SIZE / 2 + 3);
+      hoverGlow.stroke({ width: 2, color: 0x44aaff, alpha: 0.6 });
+      (hole as any).hoverGlow = hoverGlow;
+      hole.addChild(hoverGlow);
+      
+      // Call hover handler if registered
+      this.eventHandlers.onHoleHover?.(pos, event);
+    });
+    
+    hole.on('pointerout', (event: FederatedPointerEvent) => {
+      // Remove hover glow
+      const hoverGlow = (hole as any).hoverGlow as Graphics | undefined;
+      if (hoverGlow) {
+        hole.removeChild(hoverGlow);
+        (hole as any).hoverGlow = null;
+      }
+      
+      // Call hover out handler if registered
+      this.eventHandlers.onHoleHoverOut?.(pos, event);
+    });
     
     if (this.eventHandlers.onHoleClick) {
       hole.on('pointerdown', (event: FederatedPointerEvent) => {
@@ -399,7 +432,8 @@ export class PixiRenderer {
    */
   renderBreadboard(
     positionToNode: Map<string, string>,
-    simulation: SimulationResult | null
+    simulation: SimulationResult | null,
+    reteManager?: { isHoleOccupied(pos: Position): boolean } | null
   ): void {
     this.breadboardContainer.removeChildren();
     
@@ -431,8 +465,100 @@ export class PixiRenderer {
           }
         }
         
-        const hole = this.renderHole(pos, holeColor);
+        // Check if hole is occupied (for visual feedback)
+        const isOccupied = reteManager?.isHoleOccupied(pos) ?? false;
+        
+        const hole = this.renderHole(pos, holeColor, isOccupied);
         this.breadboardContainer.addChild(hole);
+      }
+    }
+  }
+
+  /**
+   * Render Rete connection lines between component legs and holes
+   * Phase 3b: Visual feedback for interactive connections
+   */
+  renderConnections(
+    reteManager: {
+      getConnections(): Array<{
+        id: string;
+        source: string;
+        sourceOutput: string;
+        target: string;
+        targetInput: string;
+      }>;
+      getComponentNode(componentId: string): { componentId: string; componentType: ComponentType } | null;
+      getHoleNode(pos: Position): { position: Position } | null;
+      getAllComponentNodes(): Array<{ componentId: string; componentType: ComponentType }>;
+      getAllHoleNodes(): Array<{ position: Position }>;
+    } | null,
+    components: AnyComponent[],
+    simulation: SimulationResult | null = null
+  ): void {
+    this.connectionsContainer.removeChildren();
+    
+    if (!reteManager) return;
+    
+    const connections = reteManager.getConnections();
+    
+    for (const connection of connections) {
+      // Parse connection to find source and target positions
+      // Connection structure: hole (output) -> component leg (input)
+      // We need to find the positions of both ends
+      
+      // Get source node (should be a hole)
+      const sourceHoleNodes = reteManager.getAllHoleNodes();
+      const sourceHole = sourceHoleNodes.find(h => {
+        // The connection.source is a node ID string
+        // We need to match it with the hole's position
+        return true; // Simplified for now - would need proper node ID lookup
+      });
+      
+      // Get target node (should be a component)
+      const targetComponentNodes = reteManager.getAllComponentNodes();
+      
+      // For now, render connections between all components and holes
+      // This is a simplified implementation - full implementation would parse
+      // the actual connection graph from Rete
+      
+      // Draw simple connection lines between each component and its holes
+      for (const component of components) {
+        for (let i = 0; i < component.positions.length - 1; i++) {
+          const pos1 = component.positions[i];
+          const pos2 = component.positions[i + 1];
+          
+          const p1 = this.positionToPixels(pos1);
+          const p2 = this.positionToPixels(pos2);
+          
+          const line = new Graphics();
+          
+          // Determine line color based on simulation results
+          let lineColor = 0x999999; // Default gray
+          
+          if (simulation?.success) {
+            // Could color by voltage or current in future
+            lineColor = 0xaaaaaa;
+          }
+          
+          // Draw bezier curve connection
+          line.moveTo(p1.x, p1.y);
+          
+          // Control points for bezier curve (gentle arc)
+          const midX = (p1.x + p2.x) / 2;
+          const midY = (p1.y + p2.y) / 2;
+          const offset = 15; // Arc height
+          const ctrlX = midX;
+          const ctrlY = midY - offset;
+          
+          line.bezierCurveTo(
+            p1.x, p1.y - offset / 2,
+            p2.x, p2.y - offset / 2,
+            p2.x, p2.y
+          );
+          line.stroke({ width: 2, color: lineColor, alpha: 0.7 });
+          
+          this.connectionsContainer.addChild(line);
+        }
       }
     }
   }
@@ -1132,5 +1258,142 @@ export class PixiRenderer {
     this.particles = [];
     this.animationPaths.clear();
     this.particlesContainer.removeChildren();
+  }
+
+  /**
+   * Render floating component (Phase 3c)
+   * Renders component at arbitrary canvas position with reduced opacity
+   */
+  renderFloatingComponent(
+    floating: {
+      id: string;
+      type: ComponentType;
+      position: { x: number; y: number };
+      rotation: number;
+      properties: {
+        resistance?: number;
+        forwardVoltage?: number;
+        maxCurrent?: number;
+        voltage?: number;
+      };
+    } | null
+  ): void {
+    // Remove any existing floating component rendering
+    // For now, we'll render it in the components container with special styling
+    
+    if (!floating) return;
+    
+    // Create a simple visual representation
+    // For Phase 3c, we'll use a basic circle/rectangle to represent the component
+    // This can be enhanced later with actual component rendering
+    
+    const floatingContainer = new Container();
+    floatingContainer.position.set(floating.position.x, floating.position.y);
+    floatingContainer.alpha = 0.7; // Semi-transparent to indicate floating state
+    
+    // Draw a simple representation based on component type
+    const visual = new Graphics();
+    
+    switch (floating.type) {
+      case ComponentType.RESISTOR:
+        // Simple rectangle for resistor
+        visual.rect(-20, -10, 40, 20);
+        visual.fill({ color: 0xccaa66, alpha: 1 });
+        visual.stroke({ width: 2, color: 0x000000 });
+        
+        // Add text label
+        const resistorLabel = new Text({ 
+          text: 'Resistor\n(drag to place)', 
+          style: { fontSize: 10, fill: 0xffffff } 
+        });
+        resistorLabel.anchor.set(0.5, 0);
+        resistorLabel.y = 15;
+        floatingContainer.addChild(resistorLabel);
+        break;
+        
+      case ComponentType.LED:
+        // Simple circle for LED
+        visual.circle(0, 0, 15);
+        visual.fill({ color: 0xff4444, alpha: 1 });
+        visual.stroke({ width: 2, color: 0x000000 });
+        
+        const ledLabel = new Text({ 
+          text: 'LED\n(drag to place)', 
+          style: { fontSize: 10, fill: 0xffffff } 
+        });
+        ledLabel.anchor.set(0.5, 0);
+        ledLabel.y = 20;
+        floatingContainer.addChild(ledLabel);
+        break;
+        
+      case ComponentType.WIRE:
+        // Simple line for wire
+        visual.moveTo(-25, 0);
+        visual.lineTo(25, 0);
+        visual.stroke({ width: 3, color: 0x333333 });
+        
+        const wireLabel = new Text({ 
+          text: 'Wire\n(drag to place)', 
+          style: { fontSize: 10, fill: 0xffffff } 
+        });
+        wireLabel.anchor.set(0.5, 0);
+        wireLabel.y = 10;
+        floatingContainer.addChild(wireLabel);
+        break;
+        
+      case ComponentType.POWER_SUPPLY:
+        // Rectangle with + symbol
+        visual.rect(-20, -15, 40, 30);
+        visual.fill({ color: 0x4444ff, alpha: 1 });
+        visual.stroke({ width: 2, color: 0x000000 });
+        
+        const plusLabel = new Text({ 
+          text: '+', 
+          style: { fontSize: 20, fill: 0xffffff, fontWeight: 'bold' } 
+        });
+        plusLabel.anchor.set(0.5, 0.5);
+        floatingContainer.addChild(plusLabel);
+        
+        const powerLabel = new Text({ 
+          text: 'Power\n(drag to place)', 
+          style: { fontSize: 10, fill: 0xffffff } 
+        });
+        powerLabel.anchor.set(0.5, 0);
+        powerLabel.y = 20;
+        floatingContainer.addChild(powerLabel);
+        break;
+        
+      case ComponentType.GROUND:
+        // Ground symbol
+        visual.moveTo(0, -15);
+        visual.lineTo(0, 0);
+        visual.moveTo(-15, 0);
+        visual.lineTo(15, 0);
+        visual.moveTo(-10, 5);
+        visual.lineTo(10, 5);
+        visual.moveTo(-5, 10);
+        visual.lineTo(5, 10);
+        visual.stroke({ width: 2, color: 0x333333 });
+        
+        const groundLabel = new Text({ 
+          text: 'Ground\n(drag to place)', 
+          style: { fontSize: 10, fill: 0xffffff } 
+        });
+        groundLabel.anchor.set(0.5, 0);
+        groundLabel.y = 15;
+        floatingContainer.addChild(groundLabel);
+        break;
+        
+      default:
+        // Generic representation
+        visual.rect(-15, -15, 30, 30);
+        visual.fill({ color: 0x888888, alpha: 1 });
+        visual.stroke({ width: 2, color: 0x000000 });
+    }
+    
+    floatingContainer.addChild(visual);
+    
+    // Add to components container (will be rendered on top)
+    this.componentsContainer.addChild(floatingContainer);
   }
 }
