@@ -622,14 +622,15 @@ export class ReteManager {
       // Create a new connection with the updated endpoint
       const sourceNodeId = endpointType === 'source' ? newHoleNode.id : connection.source;
       const targetNodeId = endpointType === 'target' ? newHoleNode.id : connection.target;
-      const sourceSocket = endpointType === 'source' ? 'hole' : connection.sourceOutput;
-      const targetSocket = endpointType === 'target' ? 'hole' : connection.targetInput;
+      // Convert socket identifiers to strings (Rete connections can have string or number socket IDs)
+      const sourceSocket = endpointType === 'source' ? 'hole' : String(connection.sourceOutput);
+      const targetSocket = endpointType === 'target' ? 'hole' : String(connection.targetInput);
       
       return await this.createConnection(
         sourceNodeId,
-        sourceSocket as string,
+        sourceSocket,
         targetNodeId,
-        targetSocket as string
+        targetSocket
       );
     } catch (error) {
       console.error('Error re-routing connection:', error);
