@@ -494,6 +494,85 @@ export class PixiRenderer {
   }
 
   /**
+   * Render X-Ray Mode overlay showing internal breadboard connectivity
+   * Shows power rails (vertical connections) and terminal strips (horizontal connections)
+   */
+  private renderInternalConnectivity(): void {
+    const overlay = new Graphics();
+    
+    // Set transparency for subtle visibility
+    overlay.alpha = 0.25;
+    
+    // Render power rails (vertical connectivity)
+    // Left negative rail (column 0) - Blue
+    overlay.fill({ color: 0x4444ff, alpha: 1 });
+    overlay.rect(
+      0,
+      0,
+      PixiRenderer.HOLE_SPACING,
+      BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING
+    );
+    overlay.fill();
+    
+    // Left positive rail (column 1) - Red
+    overlay.fill({ color: 0xff4444, alpha: 1 });
+    overlay.rect(
+      PixiRenderer.HOLE_SPACING,
+      0,
+      PixiRenderer.HOLE_SPACING,
+      BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING
+    );
+    overlay.fill();
+    
+    // Right positive rail (column 12) - Red
+    overlay.fill({ color: 0xff4444, alpha: 1 });
+    overlay.rect(
+      12 * PixiRenderer.HOLE_SPACING,
+      0,
+      PixiRenderer.HOLE_SPACING,
+      BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING
+    );
+    overlay.fill();
+    
+    // Right negative rail (column 13) - Blue
+    overlay.fill({ color: 0x4444ff, alpha: 1 });
+    overlay.rect(
+      13 * PixiRenderer.HOLE_SPACING,
+      0,
+      PixiRenderer.HOLE_SPACING,
+      BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING
+    );
+    overlay.fill();
+    
+    // Render terminal strips (horizontal connectivity)
+    // Use a neutral color for terminal strips
+    overlay.fill({ color: 0xcccc88, alpha: 1 });
+    
+    // Left side terminal strips (columns 2-6)
+    for (let row = 0; row < BreadboardLayout.ROWS; row++) {
+      overlay.rect(
+        BreadboardLayout.STRIP_LEFT_START * PixiRenderer.HOLE_SPACING,
+        row * PixiRenderer.HOLE_SPACING,
+        (BreadboardLayout.STRIP_LEFT_END - BreadboardLayout.STRIP_LEFT_START + 1) * PixiRenderer.HOLE_SPACING,
+        PixiRenderer.HOLE_SPACING
+      );
+    }
+    
+    // Right side terminal strips (columns 7-11)
+    for (let row = 0; row < BreadboardLayout.ROWS; row++) {
+      overlay.rect(
+        BreadboardLayout.STRIP_RIGHT_START * PixiRenderer.HOLE_SPACING,
+        row * PixiRenderer.HOLE_SPACING,
+        (BreadboardLayout.STRIP_RIGHT_END - BreadboardLayout.STRIP_RIGHT_START + 1) * PixiRenderer.HOLE_SPACING,
+        PixiRenderer.HOLE_SPACING
+      );
+    }
+    overlay.fill();
+    
+    this.breadboardContainer.addChild(overlay);
+  }
+
+  /**
    * Render a single hole with metal contact appearance and depth
    */
   private renderHole(
@@ -568,12 +647,18 @@ export class PixiRenderer {
   renderBreadboard(
     positionToNode: Map<string, string>,
     simulation: SimulationResult | null,
-    reteManager?: { isHoleOccupied(pos: Position): boolean } | null
+    reteManager?: { isHoleOccupied(pos: Position): boolean } | null,
+    xrayModeEnabled = false  // X-Ray Mode: show internal connectivity
   ): void {
     this.breadboardContainer.removeChildren();
     
     // Render substrate first (background, labels, ridges)
     this.renderBreadboardSubstrate();
+    
+    // Render X-Ray overlay if enabled (before holes, so holes appear on top)
+    if (xrayModeEnabled) {
+      this.renderInternalConnectivity();
+    }
 
     // Render holes
     for (let row = 0; row < BreadboardLayout.ROWS; row++) {

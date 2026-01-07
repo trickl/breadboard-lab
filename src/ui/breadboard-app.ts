@@ -135,6 +135,7 @@ export class BreadboardApp {
   private currentCircuitMetadata: CircuitMetadata | null = null;
   private hasUnsavedChanges = false;
   private reteManager: ReteManager | null = null; // Optional Rete.js integration
+  private xrayModeEnabled = false; // X-Ray Mode: show internal breadboard connectivity
 
   constructor(private container: HTMLElement) {
     this.state = { components: [], selectedComponentId: null };
@@ -297,6 +298,11 @@ export class BreadboardApp {
               <button id="breadboard-view-btn" class="view-tab active">🔌 Breadboard</button>
               <button id="schematic-view-btn" class="view-tab">📐 Schematic</button>
             </div>
+            <div class="view-modes">
+              <button id="toggle-xray-btn" class="toolbar-btn xray-toggle" title="Show internal breadboard connectivity (X key)">
+                🔬 X-Ray Mode
+              </button>
+            </div>
           </div>
           <div class="audio-controls">
             <h3>Audio Output</h3>
@@ -446,7 +452,7 @@ export class BreadboardApp {
     }
 
     // Render breadboard grid with voltage overlay
-    this.pixiRenderer.renderBreadboard(positionToNode, this.cachedSimulation, this.reteManager);
+    this.pixiRenderer.renderBreadboard(positionToNode, this.cachedSimulation, this.reteManager, this.xrayModeEnabled);
 
     // Render Rete connection lines (Phase 3b)
     if (USE_RETE_INTERACTIVE && this.reteManager) {
@@ -628,6 +634,14 @@ export class BreadboardApp {
       });
     }
 
+    // X-Ray Mode toggle button
+    const toggleXrayBtn = document.getElementById('toggle-xray-btn');
+    if (toggleXrayBtn) {
+      toggleXrayBtn.addEventListener('click', () => {
+        this.toggleXrayMode();
+      });
+    }
+
     // Breadboard background click to deselect
     const breadboard = document.getElementById('breadboard');
     if (breadboard) {
@@ -715,6 +729,12 @@ export class BreadboardApp {
     if (e.key === 'm' || e.key === 'M') {
       e.preventDefault();
       this.toggleAudio();
+    }
+
+    // Toggle X-Ray Mode on X key
+    if (e.key === 'x' || e.key === 'X') {
+      e.preventDefault();
+      this.toggleXrayMode();
     }
 
     // Step clock on Space key (only if microprocessor present)
@@ -2925,6 +2945,33 @@ export class BreadboardApp {
       this.updateSpeakerAudio();
     } catch (error) {
       alert('Failed to enable audio: ' + (error as Error).message);
+    }
+  }
+
+  /**
+   * Toggle X-Ray Mode on/off
+   * X-Ray Mode reveals internal breadboard connectivity (rails and terminal strips)
+   */
+  private toggleXrayMode(): void {
+    this.xrayModeEnabled = !this.xrayModeEnabled;
+    this.updateXrayControls();
+    void this.renderBreadboard();
+  }
+
+  /**
+   * Update X-Ray Mode controls UI based on current state
+   */
+  private updateXrayControls(): void {
+    const toggleBtn = document.getElementById('toggle-xray-btn');
+    
+    if (toggleBtn) {
+      if (this.xrayModeEnabled) {
+        toggleBtn.textContent = '🔬 X-Ray: ON';
+        toggleBtn.classList.add('active');
+      } else {
+        toggleBtn.textContent = '🔬 X-Ray Mode';
+        toggleBtn.classList.remove('active');
+      }
     }
   }
 
