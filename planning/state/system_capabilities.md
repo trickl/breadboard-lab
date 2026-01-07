@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-07  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After implementing wire re-routing via draggable endpoint handles (PR #255)
+**Last Updated**: After implementing X-Ray Mode to reveal internal breadboard connectivity (PR #261)
 
 ---
 
@@ -396,6 +396,7 @@ The UI consists of three panels:
 - **Pause program execution**: Click "⏸ Pause" button to stop automatic execution
 - **Reset microprocessor**: Click "🔄 Reset" button to reinitialize EDU-8 state (PC=0, A=0, outputs=0)
 - **Adjust clock frequency**: Use frequency slider (0.5-10 Hz) to control execution speed
+- **Toggle X-Ray Mode**: Click "🔬 X-Ray Mode" button or press X key to reveal/hide internal breadboard connectivity
 - **Clear all**: Removes all components and resets the breadboard
 - **View circuit info**: Automatically updated after each placement, deletion, rotation, value change, or repositioning
 
@@ -600,6 +601,7 @@ The system provides two complementary views of the circuit: breadboard view (phy
 - Component placement via two-click interaction
 - Drag-and-drop repositioning with ghost preview
 - Component rotation (R key)
+- X-Ray Mode toggle to reveal internal breadboard connectivity
 - Voltage color overlays on holes and connections
 - Animated current flow on wires and components
 - Interactive error icons for circuit problems
@@ -613,6 +615,64 @@ The system provides two complementary views of the circuit: breadboard view (phy
 - Terminal strips in center with gap between left and right sides
 - Component overlays render with standard symbols
 - Voltage heatmap colors: blue (0V) → cyan → yellow → orange → red (5V)
+
+### X-Ray Mode
+
+**Status**: Fully implemented (PR #261).
+
+**Description**: X-Ray Mode is an informational overlay that reveals the hidden internal wiring structure of the breadboard - power rails and terminal strips - helping learners understand which holes are electrically connected.
+
+**Purpose**:
+- Reveals the physical connectivity structure that underlies electrical behavior
+- Explains *why* certain holes are electrically connected
+- Helps beginners understand breadboard internal wiring without memorization
+- Essential educational feature distinguishing this tool from physical hardware
+
+**UI Controls**:
+- **Toggle button**: 🔬 icon in View section of left toolbar
+- **Button states**: 
+  - OFF: "🔬 X-Ray Mode" (default gray styling)
+  - ON: "🔬 X-Ray: ON" (bright green background #44ff88)
+- **Keyboard shortcut**: X key (case-insensitive)
+- **State persistence**: X-Ray Mode state persists across view switches and component operations
+- **Independence**: Works independently of component selection and Electrical View Mode
+
+**Visual Rendering**:
+- **Implementation**: `renderInternalConnectivity()` method in `PixiRenderer` class
+- **Rendering order**: Overlay rendered after substrate but before holes (holes appear on top)
+- **Transparency**: 0.25 alpha overlay for subtle visibility without obscuring components
+
+**Connectivity Visualization**:
+- **Power Rails** (vertical connectivity, 4 bars):
+  - Left negative rail (column 0): Blue bar (color: 0x4444ff) spanning 30 holes
+  - Left positive rail (column 1): Red bar (color: 0xff4444) spanning 30 holes
+  - Right positive rail (column 12): Red bar (color: 0xff4444) spanning 30 holes
+  - Right negative rail (column 13): Blue bar (color: 0x4444ff) spanning 30 holes
+- **Terminal Strips** (horizontal connectivity, 60 bars):
+  - Left strips (columns 2-6): 30 yellow bars (color: 0xcccc88), one per row, 5 holes each
+  - Right strips (columns 7-11): 30 yellow bars (color: 0xcccc88), one per row, 5 holes each
+  - Center gap (between columns 6 and 7): No connectivity bar shows separation
+
+**Design Characteristics**:
+- Static geometry: Only re-renders on toggle (no animation overhead)
+- Color-coded: Blue for negative, red for positive, neutral yellow for terminal strips
+- Non-intrusive: Semi-transparent overlay distinguishable from user-added wires
+- Informational only: Does not alter connectivity or affect simulation state
+
+**Educational Value**:
+- Shows which holes are internally connected in vertical power rails
+- Reveals horizontal terminal strip connections (5 holes per row)
+- Clearly indicates center gap where left and right sides are NOT connected
+- Provides visual confirmation of connectivity rules that beginners often struggle with
+- Enables experimentation and exploration of breadboard structure
+
+**Implementation Details**:
+- `xrayModeEnabled` boolean state in `BreadboardApp` class
+- Default: false (X-Ray Mode off on initial load)
+- Passed to `pixiRenderer.renderBreadboard()` as optional parameter
+- UI update method: `updateXrayControls()` syncs button text and active class
+- Toggle method: `toggleXrayMode()` flips state and triggers re-render
+- Test API: `getXrayModeEnabled()` method for testing
 
 ### Schematic View
 
@@ -2796,7 +2856,17 @@ Twenty-three test suites with **441 passing tests** (100% pass rate; 433 unit/in
    - Preset button counts for different component types ✅
    - **Test approach**: Tests updated to use public API for component interaction (`clickHole()`, `clickComponent()`, and Phase 3e methods: `placeComponentInteractive()`) instead of querying SVG DOM
 
-10. **resistor-color-code.test.ts** (50 tests) ✅
+10. **xray-mode.test.ts** (7 tests) ✅ **All passing (NEW in PR #261)**
+    - X-Ray Mode initialization (disabled by default) ✅
+    - Toggle via button click (state and UI updates) ✅
+    - Toggle via X key press (lowercase) ✅
+    - Toggle via X key press (uppercase) ✅
+    - State persistence when placing components ✅
+    - State persistence when deleting components ✅
+    - Independence from component selection state ✅
+    - **Test approach**: Uses public testing API (`getXrayModeEnabled()`, `placeComponentInteractive()`, `clickComponent()`, `getComponents()`, `getSelectedComponentId()`)
+
+11. **resistor-color-code.test.ts** (50 tests) ✅
     - E12 series resistance encoding (100Ω to 10kΩ)
     - E24 series resistance encoding
     - 4-band resistor color code generation (5% and 10% tolerance)
@@ -3011,7 +3081,17 @@ Twenty-three test suites with **441 passing tests** (100% pass rate; 433 unit/in
 
 ### Test Execution
 
-- **443 out of 443 tests pass** (100% pass rate) after wire re-routing implementation (PR #255)
+- **450 out of 450 tests pass** (100% pass rate) after X-Ray Mode implementation (PR #261)
+- **X-Ray Mode tests** (PR #261):
+  - Added 7 new tests in `xray-mode.test.ts`
+  - Test: Initialize with X-Ray Mode disabled (default state)
+  - Test: Toggle X-Ray Mode on button click (state and UI updates)
+  - Test: Toggle X-Ray Mode on X/x key press (keyboard shortcut)
+  - Test: State persistence across component placement operations
+  - Test: State persistence across component deletion operations
+  - Test: Independence from component selection state
+  - Added `getXrayModeEnabled()` test API method
+  - All X-Ray Mode tests passing
 - **Wire re-routing tests** (PR #255):
   - Added 2 new tests for `rerouteConnection()` method in ReteManager
   - Test: Re-route connection to new hole (validates method behavior)
@@ -3303,8 +3383,8 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/examples/parallel-leds.json` | 187 | Parallel LEDs example circuit (uses power rails) |
 | `src/examples/short-circuit-demo.json` | 57 | Short Circuit Demo example circuit (uses power rails) |
 | `src/examples/edu8-blink.json` | 87 | **NEW (PR #197)**: EDU-8 Blink example demonstrating clock-driven LED toggling with preset Blink program |
-| `src/ui/breadboard-app.ts` | 3548 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, rail rendering, audio integration, view switcher, clock control UI, wire re-routing UI (PR #255), and Rete.js integration (Phase 2 active: USE_RETE=true); PixiJS renderer integration (PR #149, PR #155, PR #161, PR #167, PR #197, PR #219, PR #225, PR #255); public testing API added (PR #179); drag-and-drop restored with PixiJS pointer events (PR #185) |
-| `src/ui/pixi-renderer.ts` | 1668 | **NEW (PR #167, enhanced PR #203, PR #255)**: PixiJS WebGL renderer for unified breadboard rendering with photorealistic enhancements (grid with labels/ridges, components with 3D appearance, voltage overlays, current animation, error icons, LED glow effects); wire re-routing visual feedback (endpoint handles, ghost preview); replaces SVG-based ComponentRenderer, CurrentAnimator, and ErrorOverlayRenderer |
+| `src/ui/breadboard-app.ts` | 3548 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, rail rendering, audio integration, view switcher, clock control UI, X-Ray Mode toggle (PR #261), wire re-routing UI (PR #255), and Rete.js integration (Phase 2 active: USE_RETE=true); PixiJS renderer integration (PR #149, PR #155, PR #161, PR #167, PR #197, PR #219, PR #225, PR #255, PR #261); public testing API added (PR #179); drag-and-drop restored with PixiJS pointer events (PR #185) |
+| `src/ui/pixi-renderer.ts` | 1668 | **NEW (PR #167, enhanced PR #203, PR #255, PR #261)**: PixiJS WebGL renderer for unified breadboard rendering with photorealistic enhancements (grid with labels/ridges, components with 3D appearance, voltage overlays, current animation, error icons, LED glow effects); X-Ray Mode overlay (`renderInternalConnectivity()`); wire re-routing visual feedback (endpoint handles, ghost preview); replaces SVG-based ComponentRenderer, CurrentAnimator, and ErrorOverlayRenderer |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
 | `src/ui/component-renderer.ts` | 568 | **DEPRECATED (PR #167)**: Legacy SVG-based visual component rendering; retained for reference, replaced by PixiRenderer |
 | `src/ui/schematic-renderer.ts` | 459 | SVG-based schematic diagram rendering with standard symbols and voltage colors (PR #161) |
@@ -3312,7 +3392,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/ui/error-overlay-renderer.ts` | 140 | **DEPRECATED (PR #167)**: Legacy SVG error icon rendering; retained for reference, replaced by PixiRenderer error rendering |
 | `src/ui/explain-panel.ts` | 370 | Contextual explanation panel with educational content |
 | `src/main.ts` | 11 | Application entry point |
-| `src/style.css` | 1318 | Application styles (includes modal dialogs, component library browser, error icons, explain panel styling, rail styling, audio controls, view tabs, schematic container, clock control panel) (PR #149, PR #155, PR #161, PR #197) |
+| `src/style.css` | 1318 | Application styles (includes modal dialogs, component library browser, error icons, explain panel styling, rail styling, audio controls, view tabs, schematic container, clock control panel, X-Ray Mode toggle) (PR #149, PR #155, PR #161, PR #197, PR #261) |
 
 ### Test Files
 
@@ -3339,6 +3419,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/ui/__tests__/current-animator.test.ts` | 11 | Current animation tests (particle system, magnitude scaling) |
 | `src/ui/__tests__/breadboard-app.test.ts` | 25 | Component selection, deletion, rotation, and drag-and-drop interaction tests |
 | `src/ui/__tests__/property-editor.test.ts` | 12 | Property editor tests (visibility, editing, presets, validation) |
+| `src/ui/__tests__/xray-mode.test.ts` | 7 | **NEW (PR #261)**: X-Ray Mode tests (toggle button, keyboard shortcut, state persistence, interaction independence) |
 | `src/audio/__tests__/audio-manager.test.ts` | 14 | AudioManager unit tests (initialization, enable/disable, speakers, volume, persistence) (PR #155) |
 | `tests/clock-control-ui.spec.ts` | 1 | **NEW (PR #197)**: Playwright test verifying clock control UI visibility and element rendering |
 | `tests/visual/examples.spec.ts` | 7 | Visual regression tests using Playwright screenshot comparison |
