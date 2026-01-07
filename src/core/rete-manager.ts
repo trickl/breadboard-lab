@@ -221,11 +221,11 @@ export class ReteManager {
               // Create connection from hole to component leg
               // Connection direction: hole (output) -> component leg (input)
               const connection = new ClassicPreset.Connection(
-                holeNode,
+                holeNode as ComponentNode | BreadboardHoleNode,
                 'hole', // output socket
-                componentNode,
+                componentNode as ComponentNode | BreadboardHoleNode,
                 `leg${i}` // input socket
-              );
+              ) as Connection;
 
               await this.editor.addConnection(connection);
             }

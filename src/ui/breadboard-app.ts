@@ -40,8 +40,10 @@ import { ReteManager } from '@/core/rete-manager';
  * Feature flag: Enable Rete.js integration
  * When true, ReteManager runs in parallel and syncs with component state
  * When false, existing PixiJS-only implementation is used
+ * 
+ * Phase 2: ACTIVATED - Rete.js manages connection graph and circuit extraction
  */
-const USE_RETE = false; // Will be enabled in Phase 2
+const USE_RETE = true;
 
 /**
  * Drag state for component repositioning

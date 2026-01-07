@@ -193,4 +193,171 @@ describe('ReteManager', () => {
       expect(result).toBeNull();
     });
   });
+
+  describe('accessor methods (Phase 2)', () => {
+    it('should retrieve component node by ID', async () => {
+      const resistor: Resistor = {
+        id: 'r1',
+        type: ComponentType.RESISTOR,
+        positions: [{ row: 5, col: 10 }, { row: 5, col: 15 }],
+        rotation: 0,
+        resistance: 220,
+      };
+
+      const state: BreadboardState = {
+        components: [resistor],
+        selectedComponentId: null,
+      };
+
+      await manager.initialize();
+      await manager.syncFromBreadboardState(state);
+
+      const componentNode = manager.getComponentNode('r1');
+      expect(componentNode).toBeDefined();
+      expect(componentNode!.componentId).toBe('r1');
+      expect(componentNode!.componentType).toBe(ComponentType.RESISTOR);
+    });
+
+    it('should retrieve hole node by position', async () => {
+      const resistor: Resistor = {
+        id: 'r1',
+        type: ComponentType.RESISTOR,
+        positions: [{ row: 5, col: 10 }, { row: 5, col: 15 }],
+        rotation: 0,
+        resistance: 220,
+      };
+
+      const state: BreadboardState = {
+        components: [resistor],
+        selectedComponentId: null,
+      };
+
+      await manager.initialize();
+      await manager.syncFromBreadboardState(state);
+
+      const holeNode = manager.getHoleNode({ row: 5, col: 10 });
+      expect(holeNode).toBeDefined();
+      expect(holeNode!.position.row).toBe(5);
+      expect(holeNode!.position.col).toBe(10);
+    });
+
+    it('should retrieve all hole nodes', async () => {
+      const resistor: Resistor = {
+        id: 'r1',
+        type: ComponentType.RESISTOR,
+        positions: [{ row: 5, col: 10 }, { row: 5, col: 15 }],
+        rotation: 0,
+        resistance: 220,
+      };
+
+      const state: BreadboardState = {
+        components: [resistor],
+        selectedComponentId: null,
+      };
+
+      await manager.initialize();
+      await manager.syncFromBreadboardState(state);
+
+      const holeNodes = manager.getAllHoleNodes();
+      expect(holeNodes.length).toBe(2);
+    });
+
+    it('should retrieve all component nodes', async () => {
+      const r1: Resistor = {
+        id: 'r1',
+        type: ComponentType.RESISTOR,
+        positions: [{ row: 5, col: 10 }, { row: 5, col: 15 }],
+        rotation: 0,
+        resistance: 220,
+      };
+
+      const r2: Resistor = {
+        id: 'r2',
+        type: ComponentType.RESISTOR,
+        positions: [{ row: 10, col: 10 }, { row: 10, col: 15 }],
+        rotation: 0,
+        resistance: 1000,
+      };
+
+      const state: BreadboardState = {
+        components: [r1, r2],
+        selectedComponentId: null,
+      };
+
+      await manager.initialize();
+      await manager.syncFromBreadboardState(state);
+
+      const componentNodes = manager.getAllComponentNodes();
+      expect(componentNodes.length).toBe(2);
+    });
+
+    it('should retrieve all connections', async () => {
+      const resistor: Resistor = {
+        id: 'r1',
+        type: ComponentType.RESISTOR,
+        positions: [{ row: 5, col: 10 }, { row: 5, col: 15 }],
+        rotation: 0,
+        resistance: 220,
+      };
+
+      const state: BreadboardState = {
+        components: [resistor],
+        selectedComponentId: null,
+      };
+
+      await manager.initialize();
+      await manager.syncFromBreadboardState(state);
+
+      const connections = manager.getConnections();
+      expect(connections.length).toBe(2); // One connection per leg
+    });
+  });
+
+  describe('one-connector-per-hole constraint (Phase 2)', () => {
+    it('should enforce one output socket per hole node', () => {
+      const holeNode = new BreadboardHoleNode({ row: 5, col: 10 });
+      
+      // Hole node should have exactly one output socket
+      expect(Object.keys(holeNode.outputs).length).toBe(1);
+      expect(holeNode.outputs.hole).toBeDefined();
+    });
+
+    it('should not allow multiple components to share same hole position', async () => {
+      // This test verifies the data structure constraint
+      // In Phase 2, components are still placed via BreadboardState, so this
+      // tests that the sync creates unique hole nodes for unique positions only
+      const r1: Resistor = {
+        id: 'r1',
+        type: ComponentType.RESISTOR,
+        positions: [{ row: 5, col: 10 }, { row: 5, col: 15 }],
+        rotation: 0,
+        resistance: 220,
+      };
+
+      const r2: Resistor = {
+        id: 'r2',
+        type: ComponentType.RESISTOR,
+        positions: [{ row: 5, col: 10 }, { row: 10, col: 10 }], // Shares position with r1
+        rotation: 0,
+        resistance: 1000,
+      };
+
+      const state: BreadboardState = {
+        components: [r1, r2],
+        selectedComponentId: null,
+      };
+
+      await manager.initialize();
+      await manager.syncFromBreadboardState(state);
+
+      const holeNodes = manager.getAllHoleNodes();
+      
+      // Should create unique hole nodes only (3 unique positions)
+      expect(holeNodes.length).toBe(3);
+      
+      // The shared hole (5,10) should only have one node
+      const sharedHole = manager.getHoleNode({ row: 5, col: 10 });
+      expect(sharedHole).toBeDefined();
+    });
+  });
 });
