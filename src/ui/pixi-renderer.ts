@@ -1259,4 +1259,141 @@ export class PixiRenderer {
     this.animationPaths.clear();
     this.particlesContainer.removeChildren();
   }
+
+  /**
+   * Render floating component (Phase 3c)
+   * Renders component at arbitrary canvas position with reduced opacity
+   */
+  renderFloatingComponent(
+    floating: {
+      id: string;
+      type: ComponentType;
+      position: { x: number; y: number };
+      rotation: number;
+      properties: {
+        resistance?: number;
+        forwardVoltage?: number;
+        maxCurrent?: number;
+        voltage?: number;
+      };
+    } | null
+  ): void {
+    // Remove any existing floating component rendering
+    // For now, we'll render it in the components container with special styling
+    
+    if (!floating) return;
+    
+    // Create a simple visual representation
+    // For Phase 3c, we'll use a basic circle/rectangle to represent the component
+    // This can be enhanced later with actual component rendering
+    
+    const floatingContainer = new Container();
+    floatingContainer.position.set(floating.position.x, floating.position.y);
+    floatingContainer.alpha = 0.7; // Semi-transparent to indicate floating state
+    
+    // Draw a simple representation based on component type
+    const visual = new Graphics();
+    
+    switch (floating.type) {
+      case ComponentType.RESISTOR:
+        // Simple rectangle for resistor
+        visual.rect(-20, -10, 40, 20);
+        visual.fill({ color: 0xccaa66, alpha: 1 });
+        visual.stroke({ width: 2, color: 0x000000 });
+        
+        // Add text label
+        const resistorLabel = new Text({ 
+          text: 'Resistor\n(drag to place)', 
+          style: { fontSize: 10, fill: 0xffffff } 
+        });
+        resistorLabel.anchor.set(0.5, 0);
+        resistorLabel.y = 15;
+        floatingContainer.addChild(resistorLabel);
+        break;
+        
+      case ComponentType.LED:
+        // Simple circle for LED
+        visual.circle(0, 0, 15);
+        visual.fill({ color: 0xff4444, alpha: 1 });
+        visual.stroke({ width: 2, color: 0x000000 });
+        
+        const ledLabel = new Text({ 
+          text: 'LED\n(drag to place)', 
+          style: { fontSize: 10, fill: 0xffffff } 
+        });
+        ledLabel.anchor.set(0.5, 0);
+        ledLabel.y = 20;
+        floatingContainer.addChild(ledLabel);
+        break;
+        
+      case ComponentType.WIRE:
+        // Simple line for wire
+        visual.moveTo(-25, 0);
+        visual.lineTo(25, 0);
+        visual.stroke({ width: 3, color: 0x333333 });
+        
+        const wireLabel = new Text({ 
+          text: 'Wire\n(drag to place)', 
+          style: { fontSize: 10, fill: 0xffffff } 
+        });
+        wireLabel.anchor.set(0.5, 0);
+        wireLabel.y = 10;
+        floatingContainer.addChild(wireLabel);
+        break;
+        
+      case ComponentType.POWER_SUPPLY:
+        // Rectangle with + symbol
+        visual.rect(-20, -15, 40, 30);
+        visual.fill({ color: 0x4444ff, alpha: 1 });
+        visual.stroke({ width: 2, color: 0x000000 });
+        
+        const plusLabel = new Text({ 
+          text: '+', 
+          style: { fontSize: 20, fill: 0xffffff, fontWeight: 'bold' } 
+        });
+        plusLabel.anchor.set(0.5, 0.5);
+        floatingContainer.addChild(plusLabel);
+        
+        const powerLabel = new Text({ 
+          text: 'Power\n(drag to place)', 
+          style: { fontSize: 10, fill: 0xffffff } 
+        });
+        powerLabel.anchor.set(0.5, 0);
+        powerLabel.y = 20;
+        floatingContainer.addChild(powerLabel);
+        break;
+        
+      case ComponentType.GROUND:
+        // Ground symbol
+        visual.moveTo(0, -15);
+        visual.lineTo(0, 0);
+        visual.moveTo(-15, 0);
+        visual.lineTo(15, 0);
+        visual.moveTo(-10, 5);
+        visual.lineTo(10, 5);
+        visual.moveTo(-5, 10);
+        visual.lineTo(5, 10);
+        visual.stroke({ width: 2, color: 0x333333 });
+        
+        const groundLabel = new Text({ 
+          text: 'Ground\n(drag to place)', 
+          style: { fontSize: 10, fill: 0xffffff } 
+        });
+        groundLabel.anchor.set(0.5, 0);
+        groundLabel.y = 15;
+        floatingContainer.addChild(groundLabel);
+        break;
+        
+      default:
+        // Generic representation
+        visual.rect(-15, -15, 30, 30);
+        visual.fill({ color: 0x888888, alpha: 1 });
+        visual.stroke({ width: 2, color: 0x000000 });
+    }
+    
+    floatingContainer.addChild(visual);
+    
+    // Add to components container (will be rendered on top)
+    this.componentsContainer.addChild(floatingContainer);
+  }
 }
