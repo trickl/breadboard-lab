@@ -5,6 +5,11 @@ An open-source, browser-based breadboard simulator designed to teach electronics
 ## Features
 
 - **Interactive Breadboard UI**: Place components and wires on a realistic breadboard with power rails and terminal strips
+- **X-Ray Mode**: Toggle visualization of internal breadboard connectivity (🔬 button or X key)
+  - Shows power rails with vertical connections (blue for negative, red for positive)
+  - Reveals terminal strip horizontal connections (5 holes per row)
+  - Helps beginners understand which holes are internally connected
+  - Semi-transparent overlay doesn't obscure components or wires
 - **Power Rails**: 4 vertical power distribution rails (2 per side: positive and negative) with color coding
 - **Realistic Layout**: 30 rows × 14 columns matching physical breadboard structure
 - **Component Library**: Real-world components with physically accurate specifications:
@@ -129,6 +134,8 @@ This workflow is especially helpful for:
 
 **Keyboard Shortcuts:**
 - **R** - Rotate selected component 90° clockwise
+- **X** - Toggle X-Ray Mode to reveal internal breadboard connectivity
+- **M** - Toggle audio on/off
 - **Delete/Backspace** - Delete selected component
 - **Escape** - Cancel current component placement
 - **Ctrl+Z** - Undo last action

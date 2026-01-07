@@ -883,6 +883,21 @@ body {
   background-color: #55bb55;
 }
 
+/* X-Ray Mode toggle styling */
+.xray-toggle {
+  margin-top: 0.5rem;
+}
+
+.xray-toggle.active {
+  background-color: #44ff88;
+  border-color: #55ff99;
+  color: #1a1a1a;
+}
+
+.xray-toggle.active:hover {
+  background-color: #55ff99;
+}
+
 .volume-control {
   margin-top: 0.75rem;
   padding: 0.5rem;
