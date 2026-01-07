@@ -1594,7 +1594,7 @@ export class BreadboardApp {
   }
 
   /**
-   * Phase 3d.3: Handle connection creation when user drops leg on hole
+   * Phase 3d.3/3d.4: Handle connection creation when user drops leg on hole
    */
   private async handleConnectionCreation(): Promise<void> {
     if (!this.floatingDragState || !this.floatingDragState.isDraggingConnection) {
@@ -1602,23 +1602,199 @@ export class BreadboardApp {
     }
 
     const targetHole = this.floatingDragState.connectionTargetHole;
-    if (!targetHole) {
+    if (!targetHole || !this.floatingComponent) {
       // No target hole - show brief feedback
       console.log('[Phase 3d.3] Connection canceled - no target hole');
       return;
     }
 
-    // TODO: Validate connection and create in ReteManager
-    // For now, just log the connection attempt
-    console.log('[Phase 3d.3] Connection creation:', {
-      componentId: this.floatingDragState.floatingComponentId,
-      legIndex: this.floatingDragState.connectionSourceLegIndex,
+    const legIndex = this.floatingDragState.connectionSourceLegIndex;
+    if (legIndex === undefined) {
+      console.error('[Phase 3d.3] Connection source leg index undefined');
+      return;
+    }
+
+    // Phase 3d.3: Validate hole is not occupied
+    if (this.reteManager && this.reteManager.isHoleOccupied(targetHole)) {
+      console.warn('[Phase 3d.3] Connection rejected - hole already occupied', targetHole);
+      // TODO: Show visual error feedback
+      return;
+    }
+
+    // Phase 3d.4: Record the connection in the floating component
+    if (!this.floatingComponent.connectedLegs) {
+      this.floatingComponent.connectedLegs = new Map();
+    }
+    
+    // Check if this leg is already connected
+    if (this.floatingComponent.connectedLegs.has(legIndex)) {
+      console.warn('[Phase 3d.3] Leg already connected', legIndex);
+      // TODO: Allow reconnecting to a different hole
+      return;
+    }
+    
+    this.floatingComponent.connectedLegs.set(legIndex, targetHole);
+    console.log('[Phase 3d.3] Connection created:', {
+      componentId: this.floatingComponent.id,
+      legIndex,
       targetHole,
     });
     
-    // TODO Phase 3d.4: Update BreadboardState with connection
-    // TODO Phase 3d.4: Check if component is fully placed
-    // TODO Phase 3d.4: Trigger circuit extraction and simulation
+    // Phase 3d.4: Check if component is fully placed (all legs connected)
+    const legCount = this.getComponentLegCount(this.floatingComponent.type);
+    const allLegsConnected = this.floatingComponent.connectedLegs.size === legCount;
+    
+    if (allLegsConnected) {
+      // Convert floating component to placed component
+      await this.placeFloatingComponent();
+    }
+  }
+  
+  /**
+   * Phase 3d.4: Convert floating component to placed component in BreadboardState
+   */
+  private async placeFloatingComponent(): Promise<void> {
+    if (!this.floatingComponent || !this.floatingComponent.connectedLegs) {
+      return;
+    }
+    
+    // Extract positions from connected legs (in leg order)
+    const positions: Position[] = [];
+    const legCount = this.getComponentLegCount(this.floatingComponent.type);
+    
+    for (let i = 0; i < legCount; i++) {
+      const pos = this.floatingComponent.connectedLegs.get(i);
+      if (!pos) {
+        console.error('[Phase 3d.4] Leg not connected', i);
+        return; // Should not happen if we check allLegsConnected
+      }
+      positions.push(pos);
+    }
+    
+    // Create component based on type
+    const component = this.createComponentFromFloating(
+      this.floatingComponent.id,
+      this.floatingComponent.type,
+      positions,
+      this.floatingComponent.properties,
+      this.floatingComponent.libraryId
+    );
+    
+    if (!component) {
+      console.error('[Phase 3d.4] Failed to create component');
+      return;
+    }
+    
+    // Add component to state
+    this.state.components.push(component);
+    
+    // Clear floating component
+    this.floatingComponent = null;
+    
+    // Mark as changed
+    this.markAsChanged();
+    
+    // Phase 3d.4: Sync to Rete graph if enabled
+    if (this.reteManager && USE_RETE) {
+      await this.syncStateToRete();
+    }
+    
+    // Re-render to show placed component and run simulation
+    void this.render();
+    
+    console.log('[Phase 3d.4] Component placed successfully', component.id);
+  }
+  
+  /**
+   * Get number of legs for a component type (Phase 3d.4)
+   */
+  private getComponentLegCount(type: ComponentType): number {
+    switch (type) {
+      case ComponentType.RESISTOR:
+        return 2;
+      case ComponentType.LED:
+        return 2;
+      case ComponentType.WIRE:
+        return 2;
+      case ComponentType.POWER_SUPPLY:
+        return 1;
+      case ComponentType.GROUND:
+        return 1;
+      case ComponentType.MICROPROCESSOR:
+        return 16;
+      default:
+        return 2;
+    }
+  }
+  
+  /**
+   * Create a placed component from floating component data (Phase 3d.4)
+   */
+  private createComponentFromFloating(
+    id: string,
+    type: ComponentType,
+    positions: Position[],
+    properties: FloatingComponent['properties'],
+    libraryId?: string
+  ): AnyComponent | null {
+    // Determine rotation (default to 0 for now)
+    const rotation: 0 | 90 | 180 | 270 = 0;
+    
+    switch (type) {
+      case ComponentType.RESISTOR:
+        return {
+          id,
+          type: ComponentType.RESISTOR,
+          positions,
+          rotation,
+          resistance: properties.resistance ?? 220,
+          libraryId,
+        };
+        
+      case ComponentType.LED:
+        return {
+          id,
+          type: ComponentType.LED,
+          positions,
+          rotation,
+          forwardVoltage: properties.forwardVoltage ?? 1.8,
+          maxCurrent: properties.maxCurrent ?? 0.02,
+          libraryId,
+        };
+        
+      case ComponentType.WIRE:
+        return {
+          id,
+          type: ComponentType.WIRE,
+          positions,
+          rotation,
+          resistance: properties.resistance ?? 0.01,
+          libraryId,
+        };
+        
+      case ComponentType.POWER_SUPPLY:
+        return {
+          id,
+          type: ComponentType.POWER_SUPPLY,
+          positions,
+          rotation,
+          voltage: properties.voltage ?? 5.0,
+          libraryId,
+        };
+        
+      case ComponentType.GROUND:
+        return {
+          id,
+          type: ComponentType.GROUND,
+          positions,
+          rotation,
+          libraryId,
+        };
+        
+      default:
+        console.error('[Phase 3d.4] Unknown component type', type);
+        return null;
+    }
   }
 
   /**
@@ -2800,6 +2976,7 @@ export class BreadboardApp {
       position: { x: gridWidth + xOffset, y: yOffset },
       rotation: 0, // Start at 0 degrees
       properties,
+      connectedLegs: new Map(), // Phase 3d.4: Initialize empty connections map
     };
     
     // Clear old placement state
