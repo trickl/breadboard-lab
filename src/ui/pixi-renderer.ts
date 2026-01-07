@@ -248,6 +248,45 @@ export class PixiRenderer {
   }
 
   /**
+   * Render ghost preview for connection re-routing
+   */
+  private renderConnectionRerouteGhost(
+    endpointType: 'source' | 'target',
+    startPoint: { x: number; y: number },
+    endPoint: { x: number; y: number },
+    targetHole: Position
+  ): void {
+    const targetPixels = this.positionToPixels(targetHole);
+    
+    // Determine which endpoint is being moved
+    const ghostStart = endpointType === 'source' ? targetPixels : startPoint;
+    const ghostEnd = endpointType === 'target' ? targetPixels : endPoint;
+    
+    // Draw ghost preview line
+    const ghostLine = new Graphics();
+    const offset = 15; // Arc height
+    
+    ghostLine.moveTo(ghostStart.x, ghostStart.y);
+    ghostLine.bezierCurveTo(
+      ghostStart.x, ghostStart.y - offset / 2,
+      ghostEnd.x, ghostEnd.y - offset / 2,
+      ghostEnd.x, ghostEnd.y
+    );
+    ghostLine.stroke({ width: 2, color: 0x4a9eff, alpha: 0.5, cap: 'round' }); // Semi-transparent blue
+    
+    this.connectionsContainer.addChild(ghostLine);
+    
+    // Draw target indicator at new hole position
+    const targetIndicator = new Graphics();
+    targetIndicator.circle(targetPixels.x, targetPixels.y, 12);
+    targetIndicator.fill({ color: 0x4a9eff, alpha: 0.3 });
+    targetIndicator.circle(targetPixels.x, targetPixels.y, 12);
+    targetIndicator.stroke({ width: 2, color: 0x4a9eff, alpha: 0.8 });
+    
+    this.connectionsContainer.addChild(targetIndicator);
+  }
+
+  /**
    * Destroy and clean up
    */
   destroy(): void {
@@ -683,6 +722,16 @@ export class PixiRenderer {
           // Render endpoint handles if selected (for re-routing)
           if (isSelected && !isRerouting) {
             this.renderConnectionEndpointHandles(connection.id, p1, p2);
+          }
+          
+          // Render ghost preview if re-routing (Wire re-routing)
+          if (isRerouting && connectionRerouteDragState.targetHole) {
+            this.renderConnectionRerouteGhost(
+              connectionRerouteDragState.endpointType,
+              p1,
+              p2,
+              connectionRerouteDragState.targetHole
+            );
           }
         }
       }
