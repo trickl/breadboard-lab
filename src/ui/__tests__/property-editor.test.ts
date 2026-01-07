@@ -29,11 +29,12 @@ describe('BreadboardApp - Property Editor', () => {
     expect(propertyEditor).toBeFalsy();
   });
 
-  it('should show property editor when a resistor is selected', () => {
+  it('should show property editor when a resistor is selected', async () => {
     // Place a resistor
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 30 });
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 0, col: 0 },
+      { row: 0, col: 30 }
+    ]);
 
     // Select the resistor using the API
     const components = app.getComponents();
@@ -50,11 +51,12 @@ describe('BreadboardApp - Property Editor', () => {
     expect(resistanceInput?.value).toBe('1000');
   });
 
-  it('should show property editor when a power supply is selected', () => {
+  it('should show property editor when a power supply is selected', async () => {
     // Place a power supply
-    app.selectComponentType(ComponentType.POWER_SUPPLY);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 1 });
+    await app.placeComponentInteractive(ComponentType.POWER_SUPPLY, [
+      { row: 0, col: 0 },
+      { row: 0, col: 1 }
+    ]);
 
     // Select the power supply using the API
     const components = app.getComponents();
@@ -71,11 +73,12 @@ describe('BreadboardApp - Property Editor', () => {
     expect(voltageInput?.value).toBe('5');
   });
 
-  it('should show property editor when an LED is selected', () => {
+  it('should show property editor when an LED is selected', async () => {
     // Place an LED
-    app.selectComponentType(ComponentType.LED);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 1 });
+    await app.placeComponentInteractive(ComponentType.LED, [
+      { row: 0, col: 0 },
+      { row: 0, col: 1 }
+    ]);
 
     // Select the LED using the API
     const components = app.getComponents();
@@ -94,9 +97,10 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should update resistor value when input changes', async () => {
     // Place a resistor
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 30 });
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 0, col: 0 },
+      { row: 0, col: 30 }
+    ]);
 
     // Select the resistor using the API
     const components = app.getComponents();
@@ -117,9 +121,10 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should update power supply voltage when input changes', async () => {
     // Place a power supply
-    app.selectComponentType(ComponentType.POWER_SUPPLY);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 1 });
+    await app.placeComponentInteractive(ComponentType.POWER_SUPPLY, [
+      { row: 0, col: 0 },
+      { row: 0, col: 1 }
+    ]);
 
     // Select the power supply using the API
     const components = app.getComponents();
@@ -140,9 +145,10 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should update LED forward voltage when input changes', async () => {
     // Place an LED
-    app.selectComponentType(ComponentType.LED);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 1 });
+    await app.placeComponentInteractive(ComponentType.LED, [
+      { row: 0, col: 0 },
+      { row: 0, col: 1 }
+    ]);
 
     // Select the LED using the API
     const components = app.getComponents();
@@ -163,9 +169,10 @@ describe('BreadboardApp - Property Editor', () => {
 
   it('should apply preset values when preset button is clicked', async () => {
     // Place a resistor
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 30 });
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 0, col: 0 },
+      { row: 0, col: 30 }
+    ]);
 
     // Select the resistor using the API
     const components = app.getComponents();
@@ -190,11 +197,12 @@ describe('BreadboardApp - Property Editor', () => {
     }
   });
 
-  it('should hide property editor when component is deselected', () => {
+  it('should hide property editor when component is deselected', async () => {
     // Place a resistor
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 30 });
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 0, col: 0 },
+      { row: 0, col: 30 }
+    ]);
 
     // Select the resistor using the API
     const components = app.getComponents();
@@ -213,11 +221,12 @@ describe('BreadboardApp - Property Editor', () => {
     expect(propertyEditor).toBeFalsy();
   });
 
-  it('should not show property editor for wire components', () => {
+  it('should not show property editor for wire components', async () => {
     // Place a wire
-    app.selectComponentType(ComponentType.WIRE);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+    await app.placeComponentInteractive(ComponentType.WIRE, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
     // Select the wire using the API
     const components = app.getComponents();
@@ -228,11 +237,12 @@ describe('BreadboardApp - Property Editor', () => {
     expect(propertyEditor).toBeFalsy();
   });
 
-  it('should not show property editor for ground components', () => {
+  it('should not show property editor for ground components', async () => {
     // Place a ground
-    app.selectComponentType(ComponentType.GROUND);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 1 });
+    await app.placeComponentInteractive(ComponentType.GROUND, [
+      { row: 0, col: 0 },
+      { row: 0, col: 1 }
+    ]);
 
     // Select the ground using the API
     const components = app.getComponents();
@@ -243,11 +253,12 @@ describe('BreadboardApp - Property Editor', () => {
     expect(propertyEditor).toBeFalsy();
   });
 
-  it('should show preset buttons for different component types', () => {
+  it('should show preset buttons for different component types', async () => {
     // Place a resistor
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 30 });
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 0, col: 0 },
+      { row: 0, col: 30 }
+    ]);
 
     // Select the resistor using the API
     const components = app.getComponents();
@@ -260,3 +271,4 @@ describe('BreadboardApp - Property Editor', () => {
     expect(presetButtons.length >= 0).toBe(true);
   });
 });
+

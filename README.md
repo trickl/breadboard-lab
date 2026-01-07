@@ -90,20 +90,51 @@ npm run lint
 
 ## Usage
 
-1. **Select a Component**: Click on a component button in the left toolbar (Wire, Resistor, LED, Power Supply, Ground, or Speaker)
-2. **Place Component**: Click on a breadboard hole for the first pin, then click on another hole for the second pin
-3. **View Circuit Info**: The right panel shows component count, circuit nodes, connections, and simulation status
-4. **Observe Visualization**: 
+1. **Open Component Library**: Click the 📦 (Component Library) button to see available components
+2. **Select a Component**: Click on a component from the library (Wire, Resistor, LED, Power Supply, Ground, or Speaker)
+3. **Place Component Interactively**: 
+   - The selected component appears floating next to the breadboard
+   - **Drag** the component body to position it (optional)
+   - **Click a component leg** (highlighted in yellow), then **click a breadboard hole** to connect that leg
+   - Repeat for each leg until all legs are connected
+   - The component automatically places on the breadboard when all legs are connected
+   - Press **Escape** to cancel placement at any time
+4. **View Circuit Info**: The right panel shows component count, circuit nodes, connections, and simulation status
+5. **Observe Visualization**: 
    - Voltage levels shown as color-coded overlays on breadboard holes (hover for exact values)
    - Current flow shown as animated blue particles moving along wires and components
    - Particle speed and density indicate current magnitude
-5. **Enable Audio** (for speaker components):
+6. **Enable Audio** (for speaker components):
    - Click the "🔇 Enable Sound" button in the Audio Output section
    - Or press the **M** key to toggle audio on/off
    - Adjust volume with the slider
    - Speaker components will produce sound based on circuit voltage and current
    - Audio is disabled by default and requires user interaction to start
-6. **Clear All**: Click the "Clear All" button to remove all components and start over
+7. **Clear All**: Click the "Clear All" button to remove all components and start over
+
+### Interactive Component Placement Workflow
+
+The interactive placement workflow (goal.md Section 5.3.1) provides precise control over component connections:
+
+- **Visibility**: Selected components float beside the breadboard, avoiding visual occlusion
+- **Precision**: Connect each leg individually to the exact hole you want
+- **Validation**: System prevents connecting multiple components to the same hole
+- **Feedback**: Visual highlights show which leg you're connecting and valid target holes
+- **Flexibility**: Drag the component body to position it before making connections
+
+This workflow is especially helpful for:
+- Dense circuits with many components
+- Components with specific orientation requirements (LEDs, power supplies)
+- Learning which pin connects where (educational value)
+
+**Keyboard Shortcuts:**
+- **R** - Rotate selected component 90° clockwise
+- **Delete/Backspace** - Delete selected component
+- **Escape** - Cancel current component placement
+- **Ctrl+Z** - Undo last action
+- **Ctrl+Y** or **Ctrl+Shift+Z** - Redo
+- **M** - Toggle audio mute
+- **Space** - Step clock (when EDU-8 present)
 
 ### Audio Output
 
