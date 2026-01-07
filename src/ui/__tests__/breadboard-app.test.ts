@@ -192,11 +192,11 @@ describe('BreadboardApp - Component Rotation', () => {
     expect(rotatedComponent!.rotation).toBe((initialRotation + 90) % 360);
   });
 
-  it('should cycle through all four rotation angles (0, 90, 180, 270)', () => {
-    app.selectComponentType(ComponentType.RESISTOR);
-    // Place in center with plenty of room for rotation (cols 0-13 valid, rows 0-29 valid)
-    app.clickHole({ row: 15, col: 6 });
-    app.clickHole({ row: 15, col: 7 });
+  it('should cycle through all four rotation angles (0, 90, 180, 270)', async () => {
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 15, col: 6 },
+      { row: 15, col: 7 }
+    ]);
 
     const components = app.getComponents();
     const componentId = components[0].id;
@@ -215,11 +215,11 @@ describe('BreadboardApp - Component Rotation', () => {
     }
   });
 
-  it('should apply rotation transform to component SVG', () => {
-    app.selectComponentType(ComponentType.RESISTOR);
-    // Place in center with room for rotation (cols 0-13, rows 0-29)
-    app.clickHole({ row: 15, col: 5 });
-    app.clickHole({ row: 15, col: 8 });
+  it('should apply rotation transform to component SVG', async () => {
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 15, col: 5 },
+      { row: 15, col: 8 }
+    ]);
 
     const components = app.getComponents();
     const componentId = components[0].id;
@@ -265,11 +265,11 @@ describe('BreadboardApp - Component Rotation', () => {
     expect(rotatedComponent).toBeTruthy();
   });
 
-  it('should work with lowercase r key', () => {
-    app.selectComponentType(ComponentType.LED);
-    // Place in center with room for rotation (cols 0-13, rows 0-29)
-    app.clickHole({ row: 15, col: 5 });
-    app.clickHole({ row: 15, col: 8 });
+  it('should work with lowercase r key', async () => {
+    await app.placeComponentInteractive(ComponentType.LED, [
+      { row: 15, col: 5 },
+      { row: 15, col: 8 }
+    ]);
 
     const components = app.getComponents();
     const componentId = components[0].id;
@@ -329,11 +329,11 @@ describe('BreadboardApp - Component Rotation', () => {
     expect(circuitInfo?.textContent).toContain('Components');
   });
 
-  it('should rotate LED component correctly', () => {
-    app.selectComponentType(ComponentType.LED);
-    // Place in center with room for rotation (cols 0-13, rows 0-29)
-    app.clickHole({ row: 15, col: 6 });
-    app.clickHole({ row: 15, col: 8 });
+  it('should rotate LED component correctly', async () => {
+    await app.placeComponentInteractive(ComponentType.LED, [
+      { row: 15, col: 6 },
+      { row: 15, col: 8 }
+    ]);
 
     const components = app.getComponents();
     const componentId = components[0].id;
@@ -367,11 +367,11 @@ describe('BreadboardApp - Component Rotation', () => {
     expect(rotatedPower!.rotation).toBe((initialRotation + 90) % 360);
   });
 
-  it('should rotate wire component correctly', () => {
-    app.selectComponentType(ComponentType.WIRE);
-    // Place in center with room for rotation (cols 0-13, rows 0-29)
-    app.clickHole({ row: 15, col: 5 });
-    app.clickHole({ row: 15, col: 8 });
+  it('should rotate wire component correctly', async () => {
+    await app.placeComponentInteractive(ComponentType.WIRE, [
+      { row: 15, col: 5 },
+      { row: 15, col: 8 }
+    ]);
 
     const components = app.getComponents();
     const componentId = components[0].id;
@@ -386,11 +386,11 @@ describe('BreadboardApp - Component Rotation', () => {
     expect(rotatedWire!.rotation).toBe((initialRotation + 90) % 360);
   });
 
-  it('should rotate ground component correctly', () => {
-    app.selectComponentType(ComponentType.GROUND);
-    // Ground is single-position, place in center (cols 0-13, rows 0-29)
-    app.clickHole({ row: 15, col: 7 });
-    app.clickHole({ row: 15, col: 8 });
+  it('should rotate ground component correctly', async () => {
+    await app.placeComponentInteractive(ComponentType.GROUND, [
+      { row: 15, col: 7 },
+      { row: 15, col: 8 }
+    ]);
 
     const components = app.getComponents();
     const componentId = components[0].id;
@@ -789,9 +789,10 @@ describe('BreadboardApp - Undo/Redo', () => {
   it('should enforce 50-step history limit', async () => {
     // Add 60 components (exceeds 50-step limit)
     for (let i = 0; i < 60; i++) {
-      app.selectComponentType(ComponentType.WIRE);
-      app.clickHole({ row: 0, col: i });
-      app.clickHole({ row: 1, col: i });
+      await app.placeComponentInteractive(ComponentType.WIRE, [
+        { row: 0, col: i },
+        { row: 1, col: i }
+      ]);
     }
 
     expect(app.getComponents().length).toBe(60);

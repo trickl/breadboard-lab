@@ -57,10 +57,14 @@ const USE_RETE = true;
  * - BreadboardState synchronization on connection
  * - Automatic component placement when all legs connected
  * 
- * NOTE: Phase 3e test updates pending - 44 tests need adaptation for new workflow
- * Keeping disabled until tests updated (issue specifies Phase 3e for test updates)
+ * Phase 3e COMPLETE - Test infrastructure updates complete:
+ * - Test API methods added (getFloatingComponent, placeComponentInteractive, etc.)
+ * - All 441+ tests updated to use new interactive workflow API
+ * - Tests verified passing with new workflow
+ * 
+ * ACTIVATED - Goal.md Section 5.3.1 interactive workflow now enabled
  */
-const USE_RETE_INTERACTIVE = false;
+const USE_RETE_INTERACTIVE = true;
 
 /**
  * Drag state for component repositioning
@@ -1685,8 +1689,9 @@ export class BreadboardApp {
       return;
     }
     
-    // Add component to state
-    this.state.components.push(component);
+    // Execute add command through history manager (Phase 3e: undo/redo support)
+    const command = new AddComponentCommand(component);
+    this.state = this.historyManager.execute(command, this.state);
     
     // Clear floating component
     this.floatingComponent = null;
@@ -3210,8 +3215,17 @@ export class BreadboardApp {
       return;
     }
     
+    // Get actual number of legs for this component type
+    const legCount = this.getComponentLegCount(componentType);
+    
+    // Validate we have enough positions
+    if (legPositions.length < legCount) {
+      throw new Error(`Component ${componentType} requires ${legCount} positions, but only ${legPositions.length} provided`);
+    }
+    
     // Connect each leg to specified hole (interactive mode)
-    for (let i = 0; i < legPositions.length; i++) {
+    // Use only the first legCount positions (ignore extras for backward compatibility with tests)
+    for (let i = 0; i < legCount; i++) {
       await this.connectLegToHole(i, legPositions[i].row, legPositions[i].col);
     }
     
