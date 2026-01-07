@@ -50,15 +50,15 @@ const USE_RETE = true;
  * When true, enables drag-and-drop connection creation and floating component placement
  * When false, uses traditional two-click placement workflow
  * 
- * Phase 3: IN DEVELOPMENT - Interactive connection UI with visual feedback
+ * Phase 3d COMPLETE - Interactive connection workflow fully implemented:
+ * - Floating component drag handling
+ * - Interactive component legs with drag-to-connect
+ * - Connection validation (hole occupancy checking)
+ * - BreadboardState synchronization on connection
+ * - Automatic component placement when all legs connected
  * 
- * Current Status: Phase 3b complete, Phase 3c partial (infrastructure ready)
- * - Hole hover effects implemented
- * - Connection line rendering infrastructure added
- * - Floating component model implemented
- * - Remaining: Drag handling, connection creation, tests need updating
- * 
- * NOTE: Keeping disabled until test suite is updated for new workflow
+ * NOTE: Phase 3e test updates pending - 44 tests need adaptation for new workflow
+ * Keeping disabled until tests updated (issue specifies Phase 3e for test updates)
  */
 const USE_RETE_INTERACTIVE = false;
 
@@ -75,6 +75,18 @@ export interface DragState {
 }
 
 /**
+ * Drag state for floating component (Phase 3d)
+ */
+export interface FloatingDragState {
+  floatingComponentId: string;
+  startMousePos: { x: number; y: number };
+  offsetFromComponentCenter: { x: number; y: number }; // Offset from mouse to component center
+  isDraggingConnection: boolean; // True if dragging from a leg to create connection
+  connectionSourceLegIndex?: number; // Which leg is being connected (if isDraggingConnection)
+  connectionTargetHole?: Position; // Target hole being hovered (if any)
+}
+
+/**
  * Main application class managing the breadboard UI and simulation
  */
 export class BreadboardApp {
@@ -83,6 +95,7 @@ export class BreadboardApp {
   private selectedLibraryId: string | null = null;
   private placementStart: Position | null = null;
   private floatingComponent: FloatingComponent | null = null; // Phase 3c: Floating component for new placement workflow
+  private floatingDragState: FloatingDragState | null = null; // Phase 3d: Drag state for floating component
   private extractor: CircuitExtractor;
   private simulator: CircuitSimulator;
   private pixiRenderer: PixiRenderer;
@@ -385,6 +398,18 @@ export class BreadboardApp {
         onComponentDragStart: (componentId, globalX, globalY) => {
           this.handleComponentDragStart(componentId, globalX, globalY);
         },
+        onFloatingComponentDragStart: (floatingComponentId, globalX, globalY) => {
+          this.handleFloatingComponentDragStart(floatingComponentId, globalX, globalY);
+        },
+        onFloatingComponentLegDragStart: (floatingComponentId, legIndex, globalX, globalY) => {
+          this.handleFloatingComponentLegDragStart(floatingComponentId, legIndex, globalX, globalY);
+        },
+        onHoleHover: (position, _event) => {
+          this.handleHoleHover(position);
+        },
+        onHoleHoverOut: (position, _event) => {
+          this.handleHoleHoverOut(position);
+        },
       };
       try {
         await this.pixiRenderer.init(breadboard, handlers);
@@ -632,6 +657,15 @@ export class BreadboardApp {
 
     // Cancel drag on Escape
     if (e.key === 'Escape') {
+      // Phase 3d: Cancel floating component placement
+      if (this.floatingComponent) {
+        e.preventDefault();
+        this.floatingComponent = null;
+        this.cleanupFloatingDrag();
+        void this.render();
+        return;
+      }
+      
       if (this.dragState) {
         e.preventDefault();
         this.cancelDrag();
@@ -1439,9 +1473,37 @@ export class BreadboardApp {
    * Handle mouse move during drag
    */
   private handleMouseMove(event: MouseEvent): void {
+    // Handle floating component drag (Phase 3d)
+    if (this.floatingDragState) {
+      this.updateFloatingComponentDragPreview(event);
+      return;
+    }
+    
+    // Handle placed component drag (existing functionality)
     if (!this.dragState) return;
 
     this.updateDragPreview(event);
+  }
+
+  /**
+   * Phase 3d.1: Update floating component position during drag
+   */
+  private updateFloatingComponentDragPreview(event: MouseEvent): void {
+    if (!this.floatingDragState || !this.floatingComponent) return;
+
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    // Update floating component position based on mouse position
+    this.floatingComponent.position.x = mouseX + this.floatingDragState.offsetFromComponentCenter.x;
+    this.floatingComponent.position.y = mouseY + this.floatingDragState.offsetFromComponentCenter.y;
+
+    // Re-render to show updated position
+    void this.renderBreadboard();
   }
 
   /**
@@ -1495,6 +1557,18 @@ export class BreadboardApp {
    * Handle mouse up to complete or cancel drag
    */
   private handleMouseUp(_event: MouseEvent): void {
+    // Handle floating component drag end (Phase 3d)
+    if (this.floatingDragState) {
+      // Phase 3d.3: Handle connection creation
+      if (this.floatingDragState.isDraggingConnection) {
+        this.handleConnectionCreation();
+      }
+      this.cleanupFloatingDrag();
+      void this.render();
+      return;
+    }
+    
+    // Handle placed component drag end (existing functionality)
     if (!this.dragState) return;
 
     // If we have valid preview positions, update component
@@ -1520,6 +1594,210 @@ export class BreadboardApp {
   }
 
   /**
+   * Phase 3d.3/3d.4: Handle connection creation when user drops leg on hole
+   */
+  private async handleConnectionCreation(): Promise<void> {
+    if (!this.floatingDragState || !this.floatingDragState.isDraggingConnection) {
+      return;
+    }
+
+    const targetHole = this.floatingDragState.connectionTargetHole;
+    if (!targetHole || !this.floatingComponent) {
+      // No target hole - show brief feedback
+      console.log('[Phase 3d.3] Connection canceled - no target hole');
+      return;
+    }
+
+    const legIndex = this.floatingDragState.connectionSourceLegIndex;
+    if (legIndex === undefined) {
+      console.error('[Phase 3d.3] Connection source leg index undefined');
+      return;
+    }
+
+    // Phase 3d.3: Validate hole is not occupied
+    if (this.reteManager && this.reteManager.isHoleOccupied(targetHole)) {
+      console.warn('[Phase 3d.3] Connection rejected - hole already occupied', targetHole);
+      // TODO: Show visual error feedback
+      return;
+    }
+
+    // Phase 3d.4: Record the connection in the floating component
+    if (!this.floatingComponent.connectedLegs) {
+      this.floatingComponent.connectedLegs = new Map();
+    }
+    
+    // Check if this leg is already connected
+    if (this.floatingComponent.connectedLegs.has(legIndex)) {
+      console.warn('[Phase 3d.3] Leg already connected', legIndex);
+      // TODO: Allow reconnecting to a different hole
+      return;
+    }
+    
+    this.floatingComponent.connectedLegs.set(legIndex, targetHole);
+    console.log('[Phase 3d.3] Connection created:', {
+      componentId: this.floatingComponent.id,
+      legIndex,
+      targetHole,
+    });
+    
+    // Phase 3d.4: Check if component is fully placed (all legs connected)
+    const legCount = this.getComponentLegCount(this.floatingComponent.type);
+    const allLegsConnected = this.floatingComponent.connectedLegs.size === legCount;
+    
+    if (allLegsConnected) {
+      // Convert floating component to placed component
+      await this.placeFloatingComponent();
+    }
+  }
+  
+  /**
+   * Phase 3d.4: Convert floating component to placed component in BreadboardState
+   */
+  private async placeFloatingComponent(): Promise<void> {
+    if (!this.floatingComponent || !this.floatingComponent.connectedLegs) {
+      return;
+    }
+    
+    // Extract positions from connected legs (in leg order)
+    const positions: Position[] = [];
+    const legCount = this.getComponentLegCount(this.floatingComponent.type);
+    
+    for (let i = 0; i < legCount; i++) {
+      const pos = this.floatingComponent.connectedLegs.get(i);
+      if (!pos) {
+        console.error('[Phase 3d.4] Leg not connected', i);
+        return; // Should not happen if we check allLegsConnected
+      }
+      positions.push(pos);
+    }
+    
+    // Create component based on type
+    const component = this.createComponentFromFloating(
+      this.floatingComponent.id,
+      this.floatingComponent.type,
+      positions,
+      this.floatingComponent.properties,
+      this.floatingComponent.libraryId
+    );
+    
+    if (!component) {
+      console.error('[Phase 3d.4] Failed to create component');
+      return;
+    }
+    
+    // Add component to state
+    this.state.components.push(component);
+    
+    // Clear floating component
+    this.floatingComponent = null;
+    
+    // Mark as changed
+    this.markAsChanged();
+    
+    // Phase 3d.4: Sync to Rete graph if enabled
+    if (this.reteManager && USE_RETE) {
+      await this.syncStateToRete();
+    }
+    
+    // Re-render to show placed component and run simulation
+    void this.render();
+    
+    console.log('[Phase 3d.4] Component placed successfully', component.id);
+  }
+  
+  /**
+   * Get number of legs for a component type (Phase 3d.4)
+   */
+  private getComponentLegCount(type: ComponentType): number {
+    switch (type) {
+      case ComponentType.RESISTOR:
+        return 2;
+      case ComponentType.LED:
+        return 2;
+      case ComponentType.WIRE:
+        return 2;
+      case ComponentType.POWER_SUPPLY:
+        return 1;
+      case ComponentType.GROUND:
+        return 1;
+      case ComponentType.MICROPROCESSOR:
+        return 16;
+      default:
+        return 2;
+    }
+  }
+  
+  /**
+   * Create a placed component from floating component data (Phase 3d.4)
+   */
+  private createComponentFromFloating(
+    id: string,
+    type: ComponentType,
+    positions: Position[],
+    properties: FloatingComponent['properties'],
+    libraryId?: string
+  ): AnyComponent | null {
+    // Determine rotation (default to 0 for now)
+    const rotation: 0 | 90 | 180 | 270 = 0;
+    
+    switch (type) {
+      case ComponentType.RESISTOR:
+        return {
+          id,
+          type: ComponentType.RESISTOR,
+          positions,
+          rotation,
+          resistance: properties.resistance ?? 220,
+          libraryId,
+        };
+        
+      case ComponentType.LED:
+        return {
+          id,
+          type: ComponentType.LED,
+          positions,
+          rotation,
+          forwardVoltage: properties.forwardVoltage ?? 1.8,
+          maxCurrent: properties.maxCurrent ?? 0.02,
+          libraryId,
+        };
+        
+      case ComponentType.WIRE:
+        return {
+          id,
+          type: ComponentType.WIRE,
+          positions,
+          rotation,
+          resistance: properties.resistance ?? 0.01,
+          libraryId,
+        };
+        
+      case ComponentType.POWER_SUPPLY:
+        return {
+          id,
+          type: ComponentType.POWER_SUPPLY,
+          positions,
+          rotation,
+          voltage: properties.voltage ?? 5.0,
+          libraryId,
+        };
+        
+      case ComponentType.GROUND:
+        return {
+          id,
+          type: ComponentType.GROUND,
+          positions,
+          rotation,
+          libraryId,
+        };
+        
+      default:
+        console.error('[Phase 3d.4] Unknown component type', type);
+        return null;
+    }
+  }
+
+  /**
    * Cancel the current drag operation
    */
   private cancelDrag(): void {
@@ -1539,6 +1817,15 @@ export class BreadboardApp {
   }
 
   /**
+   * Phase 3d.1: Clean up floating component drag state and event listeners
+   */
+  private cleanupFloatingDrag(): void {
+    document.removeEventListener('mousemove', this.handleMouseMoveBound);
+    document.removeEventListener('mouseup', this.handleMouseUpBound);
+    this.floatingDragState = null;
+  }
+
+  /**
    * Convert pixel coordinates to grid position with snapping
    */
   private snapToGrid(pixels: { x: number; y: number }): Position {
@@ -1550,6 +1837,94 @@ export class BreadboardApp {
       row: Math.max(0, Math.min(BreadboardLayout.ROWS - 1, row)),
       col: Math.max(0, Math.min(BreadboardLayout.COLS_PER_SIDE * 2 - 1, col)),
     };
+  }
+
+  /**
+   * Phase 3d.1: Handle drag start for floating component
+   */
+  private handleFloatingComponentDragStart(floatingComponentId: string, globalX: number, globalY: number): void {
+    if (!this.floatingComponent || this.floatingComponent.id !== floatingComponentId) {
+      return;
+    }
+
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    const mouseX = globalX - rect.left;
+    const mouseY = globalY - rect.top;
+
+    // Calculate offset from mouse to component center
+    const offsetX = this.floatingComponent.position.x - mouseX;
+    const offsetY = this.floatingComponent.position.y - mouseY;
+
+    // Initialize floating drag state
+    this.floatingDragState = {
+      floatingComponentId,
+      startMousePos: { x: mouseX, y: mouseY },
+      offsetFromComponentCenter: { x: offsetX, y: offsetY },
+      isDraggingConnection: false,
+    };
+
+    // Attach global mouse handlers for move and up
+    document.addEventListener('mousemove', this.handleMouseMoveBound);
+    document.addEventListener('mouseup', this.handleMouseUpBound);
+  }
+
+  /**
+   * Phase 3d.3: Handle drag start from a component leg to create connection
+   */
+  private handleFloatingComponentLegDragStart(
+    floatingComponentId: string,
+    legIndex: number,
+    globalX: number,
+    globalY: number
+  ): void {
+    if (!this.floatingComponent || this.floatingComponent.id !== floatingComponentId) {
+      return;
+    }
+
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    const mouseX = globalX - rect.left;
+    const mouseY = globalY - rect.top;
+
+    // Initialize floating drag state for connection creation
+    this.floatingDragState = {
+      floatingComponentId,
+      startMousePos: { x: mouseX, y: mouseY },
+      offsetFromComponentCenter: { x: 0, y: 0 }, // Not used for connection drag
+      isDraggingConnection: true,
+      connectionSourceLegIndex: legIndex,
+    };
+
+    // Attach global mouse handlers for move and up
+    document.addEventListener('mousemove', this.handleMouseMoveBound);
+    document.addEventListener('mouseup', this.handleMouseUpBound);
+  }
+
+  /**
+   * Phase 3d.2: Handle hole hover during connection drag
+   */
+  private handleHoleHover(position: Position): void {
+    if (this.floatingDragState && this.floatingDragState.isDraggingConnection) {
+      // Update target hole being hovered
+      this.floatingDragState.connectionTargetHole = position;
+      void this.renderBreadboard();
+    }
+  }
+
+  /**
+   * Phase 3d.2: Handle hole hover out during connection drag
+   */
+  private handleHoleHoverOut(_position: Position): void {
+    if (this.floatingDragState && this.floatingDragState.isDraggingConnection) {
+      // Clear target hole
+      this.floatingDragState.connectionTargetHole = undefined;
+      void this.renderBreadboard();
+    }
   }
 
   /**
@@ -2601,6 +2976,7 @@ export class BreadboardApp {
       position: { x: gridWidth + xOffset, y: yOffset },
       rotation: 0, // Start at 0 degrees
       properties,
+      connectedLegs: new Map(), // Phase 3d.4: Initialize empty connections map
     };
     
     // Clear old placement state

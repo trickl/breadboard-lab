@@ -157,6 +157,7 @@ export interface FloatingComponent {
     maxCurrent?: number; // For LEDs (Amperes)
     voltage?: number; // For power supplies (Volts)
   };
+  connectedLegs?: Map<number, Position>; // Phase 3d.4: Track which legs are connected to which holes
 }
 
 /**
