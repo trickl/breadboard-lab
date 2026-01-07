@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-07  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After activating Rete.js Phase 2 with graph-based connection management (PR #225)
+**Last Updated**: After implementing Rete.js Phase 3a with connection event handling and validation infrastructure (PR #231)
 
 ---
 
@@ -2248,13 +2248,13 @@ src/
 - Circuit extraction and simulation run on every render
 - Hardware acceleration via WebGL improves rendering performance for complex circuits
 
-### Rete.js Integration Architecture (Phase 2 Complete and Active)
+### Rete.js Integration Architecture (Phase 3a Complete)
 
-**Status**: Phase 2 Complete and Active ✅ (PR #225)
+**Status**: Phase 3a Complete ✅ (PR #231)
 
-Phase 2 of the Rete.js migration **activates the graph-based connection management system**. The system now uses Rete.js as the source of truth for connectivity (which holes are occupied, how components connect), while BreadboardState remains the source of truth for component properties (resistance, voltage, rotation).
+Phase 3a of the Rete.js migration **implements the connection event handling and validation infrastructure** needed for interactive connection creation. This establishes the architectural foundation for drag-and-drop connections while maintaining the active graph-based connection management from Phase 2. The system now uses Rete.js as the source of truth for connectivity (which holes are occupied, how components connect), with event handlers and validators ready for UI integration in subsequent phases.
 
-**Core Infrastructure** (`src/core/rete-manager.ts`, 356 lines):
+**Core Infrastructure** (`src/core/rete-manager.ts`, 577 lines):
 
 The `ReteManager` class provides the bridge between the existing component array model and Rete.js's node-based graph representation:
 
@@ -2266,6 +2266,8 @@ The `ReteManager` class provides the bridge between the existing component array
   - Single output socket enforces one-connector-per-hole constraint at data structure level
 - `legSocket` and `holeSocket`: Socket types defining connection compatibility between component legs and breadboard holes
 - `Connection`: Rete connections (edges) between holes and component legs
+- `ConnectionEventHandler`: Callback type for connection lifecycle events
+- `ConnectionValidation`: Interface for validation results with `valid` boolean and optional `reason` string
 
 **ReteManager Capabilities:**
 - Optional initialization (works with or without DOM container)
@@ -2279,6 +2281,17 @@ The `ReteManager` class provides the bridge between the existing component array
   - `getHoleNode(pos)`: Retrieves BreadboardHoleNode by position
   - `getAllHoleNodes()`: Returns all BreadboardHoleNodes
   - `getAllComponentNodes()`: Returns all ComponentNodes
+- **Connection event handling (Phase 3a):**
+  - `onConnectionCreated(handler)`: Register callback for connection creation events
+  - `onConnectionRemoved(handler)`: Register callback for connection removal events
+  - `setConnectionValidator(validator)`: Register validation function that runs before connections are added
+  - `setupConnectionHandlers()`: Internal method that wires Rete.js event pipeline to intercept connection lifecycle
+- **Constraint validation (Phase 3a):**
+  - `validateOneConnectorPerHole(connection)`: Validates that a hole doesn't already have a connection
+  - `isHoleOccupied(pos)`: Checks if a breadboard hole is currently connected (O(n) complexity)
+- **Component management APIs (Phase 3a):**
+  - `createFloatingComponent(id, type, position)`: Creates ComponentNode at arbitrary canvas coordinates (not grid-constrained)
+  - `createConnection(sourceId, socket, targetId, socket)`: Programmatically creates a validated connection, returns boolean success
 - Component-to-node mapping with leg count calculation
 - Node positioning based on breadboard coordinates
 
@@ -2293,10 +2306,15 @@ New method `extractFromReteGraph()` (Phase 2):
 
 **BreadboardApp Integration** (`src/ui/breadboard-app.ts`):
 
-Feature flag system with Phase 2 activation:
-- `USE_RETE` feature flag **ACTIVE** (`true`)
+Feature flag system with Phase 3a:
+- `USE_RETE` feature flag **ACTIVE** (`true`) — enables graph-based extraction
+- `USE_RETE_INTERACTIVE` feature flag **INACTIVE** (`false`) — controls interactive connection UI (Phase 3b+)
 - `initializeReteIntegration()` method creates hidden Rete container
 - `syncStateToRete()` called before circuit extraction in `renderBreadboard()`
+- **`setupReteInteractiveHandlers()` (Phase 3a):** Registers validators and event handlers when `USE_RETE_INTERACTIVE` is enabled
+  - Sets `validateOneConnectorPerHole()` as connection validator
+  - Registers `onConnectionCreated` handler (currently logs events; full BreadboardState sync deferred to Phase 3b)
+  - Registers `onConnectionRemoved` handler (currently logs events)
 - Conditional circuit extraction:
   ```typescript
   const circuit = USE_RETE && this.reteManager
@@ -2310,14 +2328,20 @@ Feature flag system with Phase 2 activation:
 - ✅ Dependencies installed (rete@^2.0.6, rete-area-plugin@^2.1.5, rete-connection-plugin@^2.0.5)
 - ✅ ReteManager class with full editor lifecycle management
 - ✅ Node classes (ComponentNode, BreadboardHoleNode) with socket system
-- ✅ Feature flag **ACTIVATED** (USE_RETE=true)
+- ✅ Feature flag **ACTIVATED** (USE_RETE=true for graph extraction)
 - ✅ Full connection creation between holes and component legs
 - ✅ One-connector-per-hole constraint enforced at data structure level (single output socket per hole)
 - ✅ Circuit extraction from Rete graph active and produces identical results to position-based method
 - ✅ Graph accessor methods for retrieving nodes and connections
-- ✅ 20 unit tests covering initialization, node creation, state sync, connection creation, and accessor methods
+- ✅ **Connection event handler system (Phase 3a)**
+- ✅ **Connection validator registration and invocation pipeline (Phase 3a)**
+- ✅ **One-connector-per-hole runtime validation (Phase 3a)**
+- ✅ **Occupancy detection API for UI feedback (Phase 3a)**
+- ✅ **Floating component creation API (Phase 3a)**
+- ✅ **Programmatic connection creation with validation (Phase 3a)**
+- ✅ 26 unit tests covering initialization, node creation, state sync, connection creation, event handling, and validation (6 new tests in Phase 3a)
 - ✅ 11 circuit extraction tests including Rete-based extraction and equivalence validation
-- ✅ All 435 tests passing (13 new tests in Phase 2, zero breaking changes)
+- ✅ All 441 tests passing (6 new tests in Phase 3a, zero breaking changes)
 - ✅ Rete visual rendering not enabled (PixiJS continues to render all visuals - by design)
 
 **Hybrid Architecture Implemented:**
@@ -2354,8 +2378,8 @@ All Rete.js libraries are MIT licensed and compatible with the project:
 
 **Testing Coverage:**
 
-Test suites with Phase 2 coverage:
-- `src/core/__tests__/rete-manager.test.ts` (20 tests):
+Test suites with Phase 3a coverage:
+- `src/core/__tests__/rete-manager.test.ts` (26 tests):
   - Editor and plugin initialization
   - ComponentNode and BreadboardHoleNode creation
   - Socket type definitions and compatibility
@@ -2364,6 +2388,13 @@ Test suites with Phase 2 coverage:
   - Accessor methods (getComponentNode, getHoleNode, getAllHoleNodes, getAllComponentNodes, getConnections)
   - One-connector-per-hole constraint verification
   - Leg count calculation for different component types
+  - **Phase 3a tests (6 new tests):**
+    - Connection event handler registration
+    - Connection validator registration
+    - One-connector-per-hole validation logic
+    - Hole occupancy detection
+    - Floating component creation
+    - Programmatic connection creation
   
 - `src/core/__tests__/circuit-extractor.test.ts` (11 tests):
   - Position-based extraction (6 tests)
@@ -2374,9 +2405,9 @@ Test suites with Phase 2 coverage:
     - Terminal strip connectivity from Rete graph
     - Rail connectivity from Rete graph
 
-**What Phase 2 Provides:**
+**What Phase 2 & 3a Provide:**
 
-✅ **Activated capabilities:**
+✅ **Activated capabilities (Phase 2):**
 - Rete.js manages connection graph (nodes, sockets, edges) - **ACTIVE**
 - Circuit extraction reads from Rete graph - **ACTIVE**
 - One-connector-per-hole constraint enforced at data structure level - **ACTIVE**
@@ -2384,45 +2415,58 @@ Test suites with Phase 2 coverage:
 - Graph accessor methods for retrieving nodes and connections - **ACTIVE**
 - Equivalence with position-based extraction verified - **ACTIVE**
 
+✅ **Event handling and validation infrastructure (Phase 3a):**
+- Connection event callback registration (onConnectionCreated, onConnectionRemoved) - **IMPLEMENTED**
+- Connection validator registration and pipeline integration - **IMPLEMENTED**
+- One-connector-per-hole runtime validation with error messages - **IMPLEMENTED**
+- Occupancy detection API for UI feedback (isHoleOccupied) - **IMPLEMENTED**
+- Floating component creation API (createFloatingComponent) - **IMPLEMENTED**
+- Programmatic connection creation with validation (createConnection) - **IMPLEMENTED**
+- USE_RETE_INTERACTIVE feature flag for staged rollout - **IMPLEMENTED**
+
 **What This Does NOT Provide Yet:**
 
-Phase 2 focuses on data model and backend integration. The following capabilities are planned for future phases:
-- ❌ Interactive connection creation UI (drag-and-drop wires between holes)
-- ❌ Runtime constraint validation during connection attempts (currently enforced at data structure level only)
+Phase 3a focuses on event handling and validation infrastructure. The following capabilities are planned for Phases 3b-3e:
+- ❌ Interactive connection creation UI (drag-and-drop wires between holes) — Phase 3b-3d
+- ❌ Visual feedback for connection targets (hover states, valid/invalid indicators) — Phase 3b
+- ❌ BreadboardState synchronization on connection events (currently logs only) — Phase 3b
+- ❌ Floating component placement workflow (components appear adjacent to board before connection) — Phase 3c
+- ❌ User-initiated connection drag from legs to holes — Phase 3d
 - ❌ Visual rendering via Rete (PixiJS continues as sole renderer - by design)
-- ❌ User interaction with Rete nodes or connections directly
-- ❌ Socket type validation for electrical compatibility (power vs signal, voltage levels)
-- ❌ Continuous component rotation with dynamic connection updates (still quantized to 90° increments)
-- ❌ Wire re-routing with control points
-- ❌ Component instantiation model (components appear adjacent to board before connection)
+- ❌ User interaction with Rete nodes or connections directly (by design)
+- ❌ Socket type validation for electrical compatibility (power vs signal, voltage levels) — Future phase
+- ❌ Continuous component rotation with dynamic connection updates (still quantized to 90° increments) — Future phase
+- ❌ Wire re-routing with control points — Future phase
 
 **Rollback Capability:**
 
-If issues arise, rollback is immediate:
+If issues arise with Phase 3a features, rollback is immediate via feature flags:
 ```typescript
-const USE_RETE = false; // Disable Rete integration
+const USE_RETE = false; // Disable Rete graph extraction entirely
+const USE_RETE_INTERACTIVE = false; // Disable event handlers (already default)
 ```
 
-All functionality reverts to position-based extraction with zero data loss and no breaking changes.
+All functionality reverts to position-based extraction with zero data loss and no breaking changes. Phase 3a changes are isolated to event handling infrastructure and do not affect existing placement workflows.
 
 **Future Phases:**
 
-Phase 3 will add interactive features:
-1. Enable Rete ConnectionPlugin for user interaction
-2. Drag-and-drop connection creation between holes
-3. Visual feedback for valid/invalid connection targets
-4. Runtime one-connector-per-hole validation during connection attempts
+Phase 3b-3e will complete interactive connection creation:
+- **Phase 3b (Visual Feedback):** Render holes as interactive PixiJS sprites, implement hover states, add connection line rendering, magnetic snapping
+- **Phase 3c (Component Placement):** Implement floating component model, enable component body drag, deprecate two-click placement
+- **Phase 3d (Connection Interaction):** Enable drag-from-leg-to-hole connections, sync to BreadboardState, connection deletion
+- **Phase 3e (Testing & Documentation):** Integration tests, visual regression updates, performance validation, documentation updates
 
 Subsequent phases will add continuous rotation, socket type validation, and advanced constraint enforcement.
 
 **Documentation:**
 
+- `RETE_MIGRATION_PHASE3_SUMMARY.md`: Phase 3a implementation summary with event architecture, validation logic, API reference, and design decisions
 - `RETE_MIGRATION_PHASE2_SUMMARY.md`: Complete Phase 2 implementation summary with architecture diagrams, verification results, and design decisions
 - `RETE_MIGRATION_PHASE1_SUMMARY.md`: Phase 1 foundation summary (architecture setup)
 
 **Educational Note:**
 
-Phase 2 represents a successful architectural migration to graph-based connection management. The system now operates on explicit connectivity data (Rete graph) rather than inferring topology from component positions. This provides a foundation for advanced features like interactive connection creation, constraint enforcement, and wire re-routing while maintaining full backward compatibility and zero visual changes.
+Phase 2 and 3a represent successful architectural milestones in the Rete.js migration. The system now operates on explicit connectivity data (Rete graph) with event handling and validation infrastructure ready for interactive features. Phase 2 provides graph-based connection management, while Phase 3a adds the event pipeline and constraint validation needed for user-facing connection creation in subsequent phases. This foundation enables advanced features like interactive connection creation, real-time constraint enforcement, and wire re-routing while maintaining full backward compatibility and zero visual changes.
 
 ---
 
@@ -2498,7 +2542,7 @@ Both jobs must pass for PR approval. Visual regression failures block merge.
 
 ### Test Coverage
 
-Twenty-three test suites with **435 passing tests** (100% pass rate; 427 unit/integration + 8 visual regression):
+Twenty-three test suites with **441 passing tests** (100% pass rate; 433 unit/integration + 8 visual regression):
 
 **Test infrastructure status**: All tests now pass after PR #179 fixed the test infrastructure to work with Canvas-based rendering. Tests were rewritten to verify application state through public API methods rather than querying SVG DOM elements that no longer exist with PixiJS Canvas rendering.
 
@@ -2759,7 +2803,7 @@ Twenty-three test suites with **435 passing tests** (100% pass rate; 427 unit/in
     - End-to-end counter program execution (4 clock pulses)
     - State persistence across simulation steps
 
-22. **rete-manager.test.ts** (20 tests) ✅ **New in PR #219, expanded in PR #225**
+22. **rete-manager.test.ts** (26 tests) ✅ **New in PR #219, expanded in PR #225 and PR #231**
     - Editor and plugin initialization (with and without DOM container)
     - ComponentNode creation with correct leg count per component type
     - BreadboardHoleNode creation with position data
@@ -2770,11 +2814,18 @@ Twenty-three test suites with **435 passing tests** (100% pass rate; 427 unit/in
     - Multi-component scenario support
     - Component-to-node mapping correctness
     - Cleanup and resource management
-    - **Phase 2 additions** (8 new tests in PR #225):
+    - **Phase 2 additions** (8 tests in PR #225):
       - Connection creation between component legs and holes
       - Accessor methods (getComponentNode, getHoleNode, getAllHoleNodes, getAllComponentNodes, getConnections)
       - One-connector-per-hole constraint enforcement at data structure level
       - Shared hole position handling
+    - **Phase 3a additions** (6 tests in PR #231):
+      - Connection event handler registration (onConnectionCreated, onConnectionRemoved)
+      - Connection validator registration and invocation
+      - One-connector-per-hole validation logic with error messages
+      - Hole occupancy detection (isHoleOccupied)
+      - Floating component creation (createFloatingComponent)
+      - Programmatic connection creation with validation (createConnection)
 
 23. **clock-control-ui.spec.ts** (1 visual test) ✅ **New in PR #197**
     - Clock controls hidden when no microprocessor present
@@ -2817,13 +2868,13 @@ Twenty-three test suites with **435 passing tests** (100% pass rate; 427 unit/in
 
 ### Test Execution
 
-- **435 out of 435 tests pass** (100% pass rate) after PR #225
-- **Rete.js Phase 2 activation** (PR #225):
-  - Added 13 new tests (8 for ReteManager, 5 for CircuitExtractor)
-  - All Rete.js tests passing with 100% coverage of Phase 2 code
-  - Equivalence verified: Rete-based and position-based extraction produce identical node count, edge count, connectivity, and simulation results
+- **441 out of 441 tests pass** (100% pass rate) after PR #231
+- **Rete.js Phase 3a implementation** (PR #231):
+  - Added 6 new tests (connection events, validation, occupancy, floating components)
+  - All Rete.js tests passing with 100% coverage of Phase 3a code
   - Zero breaking changes confirmed: all existing functionality preserved
-  - Manual verification: all example circuits work identically with USE_RETE=true
+  - Feature flag disabled by default (USE_RETE_INTERACTIVE=false)
+  - Manual verification: all example circuits work identically
 - **Rete.js Phase 1 implementation** (PR #219):
   - Added 12 new tests for ReteManager (editor initialization, node creation, state synchronization)
   - All Rete.js tests passing with 100% coverage of new code
@@ -3070,7 +3121,7 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/core/digital-event-queue.ts` | 147 | **NEW (PR #191)**: Priority queue for timestamped digital events (clock edges, state changes) |
 | `src/core/digital-simulator.ts` | 171 | **NEW (PR #191)**: Digital simulation orchestrator bridging analog voltages to digital component execution |
 | `src/core/mixed-signal-simulator.ts` | 170 | **NEW (PR #191)**: Mixed-signal coordinator combining DC solver with digital event-driven simulation |
-| `src/core/rete-manager.ts` | 356 | **Rete.js integration layer bridging BreadboardState and Rete graph (Phase 2 complete, feature flag active)** |
+| `src/core/rete-manager.ts` | 587 | **Rete.js integration layer bridging BreadboardState and Rete graph (Phase 3a complete: event handling and validation infrastructure)** |
 | `src/core/schematic-types.ts` | 83 | Type definitions for schematic symbols, connections, diagrams, and layout configuration (PR #161) |
 | `src/core/schematic-layout.ts` | 369 | Force-directed graph layout algorithm for schematic generation (PR #161) |
 | `src/library/index.ts` | 32 | Library catalog aggregation and exports (PR #143) |
@@ -3389,5 +3440,19 @@ This document describes the system as observed on 2026-01-04 after merging PR #2
 - ✅ **435 tests total (427 unit/integration + 8 visual) all passing after PR #225**
 - ✅ **Zero breaking changes confirmed: all existing functionality preserved with USE_RETE=true verified from PR #225 implementation**
 - ✅ **RETE_MIGRATION_PHASE2_SUMMARY.md documentation (519 lines with architecture diagrams, verification results, design decisions) verified from PR #225 changes**
+- ✅ **Rete.js Phase 3a implementation verified from PR #231 changes**
+- ✅ **Connection event handler system (onConnectionCreated, onConnectionRemoved) verified from PR #231 implementation**
+- ✅ **Connection validator registration and invocation pipeline verified from PR #231 implementation**
+- ✅ **One-connector-per-hole runtime validation with error messages verified from PR #231 implementation**
+- ✅ **Occupancy detection API (isHoleOccupied) verified from PR #231 implementation**
+- ✅ **Floating component creation API (createFloatingComponent) verified from PR #231 implementation**
+- ✅ **Programmatic connection creation with validation (createConnection) verified from PR #231 implementation**
+- ✅ **USE_RETE_INTERACTIVE feature flag for staged rollout verified from PR #231 implementation**
+- ✅ **setupReteInteractiveHandlers() integration in BreadboardApp verified from PR #231 implementation**
+- ✅ **setupConnectionHandlers() event pipeline wiring verified from PR #231 implementation**
+- ✅ **6 new tests for Phase 3a (event handlers, validation, occupancy) verified from PR #231 test results**
+- ✅ **441 tests total (433 unit/integration + 8 visual) all passing after PR #231**
+- ✅ **Zero breaking changes confirmed: all existing functionality preserved verified from PR #231 implementation**
+- ✅ **RETE_MIGRATION_PHASE3_SUMMARY.md documentation (640 lines with event architecture, API reference, design decisions) verified from PR #231 changes**
 
 This is a snapshot of reality, not aspirations or plans.
