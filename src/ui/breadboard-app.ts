@@ -34,6 +34,14 @@ import {
   RotateComponentCommand,
   EditPropertyCommand,
 } from '@/core/command';
+import { ReteManager } from '@/core/rete-manager';
+
+/**
+ * Feature flag: Enable Rete.js integration
+ * When true, ReteManager runs in parallel and syncs with component state
+ * When false, existing PixiJS-only implementation is used
+ */
+const USE_RETE = false; // Will be enabled in Phase 2
 
 /**
  * Drag state for component repositioning
@@ -75,6 +83,7 @@ export class BreadboardApp {
   private handleMouseUpBound: (e: MouseEvent) => void;
   private currentCircuitMetadata: CircuitMetadata | null = null;
   private hasUnsavedChanges = false;
+  private reteManager: ReteManager | null = null; // Optional Rete.js integration
 
   constructor(private container: HTMLElement) {
     this.state = { components: [], selectedComponentId: null };
@@ -102,7 +111,42 @@ export class BreadboardApp {
     // Initialize component library
     this.initializeLibrary();
     
+    // Initialize Rete.js integration (if enabled)
+    if (USE_RETE) {
+      this.initializeReteIntegration();
+    }
+    
     this.render();
+  }
+
+  /**
+   * Initialize Rete.js integration (Phase 1 POC)
+   * Creates ReteManager and syncs with current state
+   */
+  private async initializeReteIntegration(): Promise<void> {
+    try {
+      // Create a separate container for Rete.js (hidden during Phase 1)
+      const reteContainer = document.createElement('div');
+      reteContainer.style.display = 'none'; // Hidden in Phase 1
+      reteContainer.style.position = 'absolute';
+      reteContainer.style.top = '0';
+      reteContainer.style.left = '0';
+      reteContainer.style.width = '100%';
+      reteContainer.style.height = '100%';
+      reteContainer.style.pointerEvents = 'none'; // Don't interfere with PixiJS
+      this.container.appendChild(reteContainer);
+
+      this.reteManager = new ReteManager(reteContainer);
+      await this.reteManager.initialize();
+      
+      // Sync initial state
+      await this.reteManager.syncFromBreadboardState(this.state);
+      
+      console.log('[Rete Integration] Initialized successfully');
+    } catch (error) {
+      console.error('[Rete Integration] Failed to initialize:', error);
+      this.reteManager = null;
+    }
   }
 
   /**
@@ -116,6 +160,21 @@ export class BreadboardApp {
         // Entry might already be registered (e.g., in tests), ignore
       }
     });
+  }
+
+  /**
+   * Sync state to Rete.js graph (if enabled)
+   * Called after state changes to keep Rete graph in sync
+   * NOTE: Currently unused as USE_RETE=false. Will be called in Phase 2.
+   */
+  private async syncStateToRete(): Promise<void> {
+    if (this.reteManager && USE_RETE) {
+      try {
+        await this.reteManager.syncFromBreadboardState(this.state);
+      } catch (error) {
+        console.error('[Rete Integration] Sync failed:', error);
+      }
+    }
   }
 
   /**
