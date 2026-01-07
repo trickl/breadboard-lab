@@ -46,6 +46,15 @@ import { ReteManager } from '@/core/rete-manager';
 const USE_RETE = true;
 
 /**
+ * Feature flag: Enable Rete.js interactive connection creation (Phase 3)
+ * When true, enables drag-and-drop connection creation and floating component placement
+ * When false, uses traditional two-click placement workflow
+ * 
+ * Phase 3: IN DEVELOPMENT - Interactive connection UI with visual feedback
+ */
+const USE_RETE_INTERACTIVE = false;
+
+/**
  * Drag state for component repositioning
  */
 export interface DragState {
@@ -115,14 +124,14 @@ export class BreadboardApp {
     
     // Initialize Rete.js integration (if enabled)
     if (USE_RETE) {
-      this.initializeReteIntegration();
+      void this.initializeReteIntegration();
     }
     
     this.render();
   }
 
   /**
-   * Initialize Rete.js integration (Phase 1 POC)
+   * Initialize Rete.js integration (Phase 1 POC & Phase 3 interactive mode)
    * Creates ReteManager and syncs with current state
    */
   private async initializeReteIntegration(): Promise<void> {
@@ -145,10 +154,52 @@ export class BreadboardApp {
       await this.reteManager.syncFromBreadboardState(this.state);
       
       console.log('[Rete Integration] Initialized successfully');
+      
+      // Phase 3: Setup interactive connection handlers if enabled
+      if (USE_RETE_INTERACTIVE) {
+        this.setupReteInteractiveHandlers();
+      }
     } catch (error) {
       console.error('[Rete Integration] Failed to initialize:', error);
       this.reteManager = null;
     }
+  }
+  
+  /**
+   * Phase 3: Setup connection event handlers for interactive mode
+   * Syncs Rete connection events back to BreadboardState
+   */
+  private setupReteInteractiveHandlers(): void {
+    if (!this.reteManager) return;
+    
+    // Set up connection validator to enforce one-connector-per-hole
+    this.reteManager.setConnectionValidator((connection) => {
+      return this.reteManager!.validateOneConnectorPerHole(connection);
+    });
+    
+    // Handle connection created events
+    this.reteManager.onConnectionCreated((connection) => {
+      console.log('[Rete Interactive] Connection created:', connection);
+      
+      // In full implementation, this would:
+      // 1. Extract component and hole information from connection
+      // 2. Update BreadboardState positions array
+      // 3. Trigger render update
+      // For now, just log the event
+    });
+    
+    // Handle connection removed events
+    this.reteManager.onConnectionRemoved((connection) => {
+      console.log('[Rete Interactive] Connection removed:', connection);
+      
+      // In full implementation, this would:
+      // 1. Extract component and hole information from connection
+      // 2. Remove position from BreadboardState
+      // 3. Trigger render update
+      // For now, just log the event
+    });
+    
+    console.log('[Rete Interactive] Connection handlers configured');
   }
 
   /**

@@ -1,9 +1,10 @@
 /**
  * ReteManager: Bridge between existing component model and Rete.js visual programming graph
  * 
- * This module implements Phase 1 of the Rete.js migration:
- * - Initializes Rete.js editor with area and connection plugins
- * - Maintains bidirectional sync between Rete graph and BreadboardState
+ * This module implements Phase 1, 2, and 3 of the Rete.js migration:
+ * - Phase 1: Initializes Rete.js editor with area and connection plugins
+ * - Phase 2: Maintains bidirectional sync between Rete graph and BreadboardState
+ * - Phase 3: Interactive connection creation with validation and event handling
  * - Preserves all existing functionality during transition
  * 
  * Architecture: Hybrid approach (Option B from planning doc)
@@ -17,6 +18,19 @@ import { AreaPlugin, AreaExtensions } from 'rete-area-plugin';
 import { ConnectionPlugin } from 'rete-connection-plugin';
 import type { Position, BreadboardState } from './types';
 import { ComponentType } from './types';
+
+/**
+ * Connection event handler callback type
+ */
+export type ConnectionEventHandler = (connection: Connection) => void | Promise<void>;
+
+/**
+ * Connection validation result
+ */
+export interface ConnectionValidation {
+  valid: boolean;
+  reason?: string;
+}
 
 /**
  * Socket for component legs
@@ -75,7 +89,7 @@ export class BreadboardHoleNode extends ClassicPreset.Node<
 /**
  * Rete connection between component leg and breadboard hole
  */
-type Connection = ClassicPreset.Connection<
+export type Connection = ClassicPreset.Connection<
   ComponentNode | BreadboardHoleNode,
   ComponentNode | BreadboardHoleNode
 >;
@@ -97,6 +111,11 @@ export class ReteManager {
   private holeNodeMap: Map<string, NodeId> = new Map();
   private syncInProgress = false;
   private initialized = false;
+  
+  // Phase 3: Connection event handlers
+  private onConnectionCreatedHandler: ConnectionEventHandler | null = null;
+  private onConnectionRemovedHandler: ConnectionEventHandler | null = null;
+  private connectionValidatorHandler: ((connection: Connection) => ConnectionValidation) | null = null;
 
   constructor(private container?: HTMLElement) {
     // Initialize Rete editor (always create, even without container)
@@ -127,9 +146,58 @@ export class ReteManager {
       AreaExtensions.selectableNodes(this.area, AreaExtensions.selector(), {
         accumulating: AreaExtensions.accumulateOnCtrl(),
       });
+      
+      // Phase 3: Setup connection event handlers
+      this.setupConnectionHandlers();
     }
     
     this.initialized = true;
+  }
+  
+  /**
+   * Phase 3: Setup connection event listeners
+   * Configures the ConnectionPlugin to handle create/remove events and validation
+   */
+  private setupConnectionHandlers(): void {
+    if (!this.connection) return;
+    
+    // Listen for connection creation events
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    this.editor.addPipe((context) => {
+      // Intercept connection add events
+      if (context.type === 'connectioncreated') {
+        const connection = context.data as Connection;
+        
+        // Validate connection before allowing it
+        if (this.connectionValidatorHandler) {
+          const validation = this.connectionValidatorHandler(connection);
+          if (!validation.valid) {
+            // Connection invalid - prevent it by not calling the handler
+            console.warn(`Connection rejected: ${validation.reason || 'Unknown reason'}`);
+            // Remove the connection immediately
+            void this.editor.removeConnection(connection.id);
+            return;
+          }
+        }
+        
+        // Call onCreate handler if registered
+        if (this.onConnectionCreatedHandler) {
+          void this.onConnectionCreatedHandler(connection);
+        }
+      }
+      
+      // Intercept connection remove events
+      if (context.type === 'connectionremoved') {
+        const connection = context.data as Connection;
+        
+        // Call onRemove handler if registered
+        if (this.onConnectionRemovedHandler) {
+          void this.onConnectionRemovedHandler(connection);
+        }
+      }
+      
+      return context;
+    });
   }
 
   /**
@@ -373,5 +441,147 @@ export class ReteManager {
    */
   getArea(): AreaPlugin<Schemes, any> | null {
     return this.area;
+  }
+  
+  /**
+   * Phase 3: Register connection created event handler
+   */
+  onConnectionCreated(handler: ConnectionEventHandler): void {
+    this.onConnectionCreatedHandler = handler;
+  }
+  
+  /**
+   * Phase 3: Register connection removed event handler
+   */
+  onConnectionRemoved(handler: ConnectionEventHandler): void {
+    this.onConnectionRemovedHandler = handler;
+  }
+  
+  /**
+   * Phase 3: Register connection validator
+   * Validator should return { valid: true } or { valid: false, reason: string }
+   */
+  setConnectionValidator(validator: (connection: Connection) => ConnectionValidation): void {
+    this.connectionValidatorHandler = validator;
+  }
+  
+  /**
+   * Phase 3: Validate one-connector-per-hole constraint
+   * Checks if a hole already has a connection before allowing a new one
+   */
+  validateOneConnectorPerHole(connection: Connection): ConnectionValidation {
+    // Get the source and target nodes
+    const sourceNode = this.editor.getNode(connection.source);
+    const targetNode = this.editor.getNode(connection.target);
+    
+    // Check if either node is a BreadboardHoleNode
+    let holeNode: BreadboardHoleNode | null = null;
+    
+    if (sourceNode instanceof BreadboardHoleNode) {
+      holeNode = sourceNode;
+    } else if (targetNode instanceof BreadboardHoleNode) {
+      holeNode = targetNode;
+    }
+    
+    if (!holeNode) {
+      // No hole involved, connection is valid
+      return { valid: true };
+    }
+    
+    // Check if the hole already has a connection
+    const existingConnections = this.editor.getConnections();
+    const holeHasConnection = existingConnections.some(
+      (conn) => 
+        (conn.source === holeNode!.id || conn.target === holeNode!.id) &&
+        conn.id !== connection.id // Don't count the current connection
+    );
+    
+    if (holeHasConnection) {
+      return {
+        valid: false,
+        reason: `Hole at (${holeNode.position.row}, ${holeNode.position.col}) is already occupied`
+      };
+    }
+    
+    return { valid: true };
+  }
+  
+  /**
+   * Phase 3: Check if a hole is occupied (has a connection)
+   */
+  isHoleOccupied(pos: Position): boolean {
+    const holeNode = this.getHoleNode(pos);
+    if (!holeNode) return false;
+    
+    const connections = this.editor.getConnections();
+    return connections.some(
+      (conn) => conn.source === holeNode.id || conn.target === holeNode.id
+    );
+  }
+  
+  /**
+   * Phase 3: Create a new ComponentNode and add it to the editor
+   * Used for floating component placement workflow
+   */
+  async createFloatingComponent(
+    componentId: string,
+    componentType: ComponentType,
+    position: { x: number; y: number }
+  ): Promise<ComponentNode> {
+    const legCount = this.getComponentLegCount(componentType);
+    const componentNode = new ComponentNode(componentId, componentType, legCount);
+    
+    await this.editor.addNode(componentNode);
+    this.componentNodeMap.set(componentId, componentNode.id);
+    
+    // Position the node if area is available
+    if (this.area) {
+      await this.area.translate(componentNode.id, position);
+    }
+    
+    return componentNode;
+  }
+  
+  /**
+   * Phase 3: Create a connection between a component leg and a hole
+   * Returns true if successful, false if validation failed
+   */
+  async createConnection(
+    sourceNodeId: NodeId,
+    sourceSocket: string,
+    targetNodeId: NodeId,
+    targetSocket: string
+  ): Promise<boolean> {
+    try {
+      const sourceNode = this.editor.getNode(sourceNodeId);
+      const targetNode = this.editor.getNode(targetNodeId);
+      
+      if (!sourceNode || !targetNode) {
+        console.warn('Source or target node not found');
+        return false;
+      }
+      
+      const connection = new ClassicPreset.Connection(
+        sourceNode as ComponentNode | BreadboardHoleNode,
+        sourceSocket,
+        targetNode as ComponentNode | BreadboardHoleNode,
+        targetSocket
+      ) as Connection;
+      
+      // Validate before adding
+      if (this.connectionValidatorHandler) {
+        const validation = this.connectionValidatorHandler(connection);
+        if (!validation.valid) {
+          console.warn(`Connection validation failed: ${validation.reason}`);
+          return false;
+        }
+      }
+      
+      await this.editor.addConnection(connection);
+      return true;
+    } catch (error) {
+      console.error('Error creating connection:', error);
+      return false;
+    }
   }
 }
