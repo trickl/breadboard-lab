@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-07  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After implementing Rete.js Phase 3a with connection event handling and validation infrastructure (PR #231)
+**Last Updated**: After implementing Rete.js Phase 3b-3c infrastructure (PR #237)
 
 ---
 
@@ -2424,49 +2424,90 @@ Test suites with Phase 3a coverage:
 - Programmatic connection creation with validation (createConnection) - **IMPLEMENTED**
 - USE_RETE_INTERACTIVE feature flag for staged rollout - **IMPLEMENTED**
 
+**Phase 3b: Visual Feedback Infrastructure (Implemented in PR #237)**
+
+Phase 3b adds visual feedback systems to support interactive connection creation:
+
+**Hole Hover Effects** - **IMPLEMENTED**
+- Blue glow ring (color: 0x44aaff, width: 2px, alpha: 0.6) on pointerover/pointerout
+- Added `onHoleHover` and `onHoleHoverOut` event handlers to `PixiEventHandlers` interface
+- Modified `renderHole()` method in PixiRenderer to attach/detach glow graphics on hover
+- Performance validated: No frame rate impact with 420 interactive holes
+
+**Connection Line Rendering Infrastructure** - **IMPLEMENTED**
+- Added `connectionsContainer` layer in PixiRenderer (z-order: between breadboard and components)
+- Implemented `renderConnections()` method with bezier curve rendering
+- Line style: 2px width, gray color (0x999999), 0.7 alpha
+- Current implementation renders simplified connections between component positions
+- Future enhancement: Full Rete graph parsing for true leg-to-hole connection rendering (Phase 3d)
+
+**Phase 3c: Floating Component Model (Infrastructure Complete in PR #237)**
+
+Phase 3c adds floating component model infrastructure and rendering:
+
+**FloatingComponent Type System** - **IMPLEMENTED**
+- New `FloatingComponent` interface in `src/core/types.ts`
+- Canvas-based positioning (`{x, y}` pixels) instead of grid positions
+- Continuous rotation support (0-360°) aligns with goal.md Section 7.2 requirement
+- Properties dictionary accommodates all component types
+- Clear separation from `AnyComponent` type maintains floating/placed distinction
+
+**Component Creation Logic** - **IMPLEMENTED**
+- `createFloatingComponent()` method in BreadboardApp
+- Positions component at canvas edge (50px right of breadboard, 100px from top)
+- Populates properties from component library when libraryId provided
+- Modified `selectComponentType()` to use floating workflow when `USE_RETE_INTERACTIVE=true`
+
+**Floating Component Rendering** - **IMPLEMENTED**
+- `renderFloatingComponent()` method in PixiRenderer
+- Semi-transparent rendering (70% opacity) indicates unplaced state
+- Visual representations for all 6 component types (resistor, LED, wire, power supply, ground, microprocessor)
+- "Drag to place" instruction labels for user guidance
+- Integrated into `BreadboardApp.renderBreadboard()` pipeline
+
 **What This Does NOT Provide Yet:**
 
-Phase 3a focuses on event handling and validation infrastructure. The following capabilities are planned for Phases 3b-3e:
-- ❌ Interactive connection creation UI (drag-and-drop wires between holes) — Phase 3b-3d
-- ❌ Visual feedback for connection targets (hover states, valid/invalid indicators) — Phase 3b
-- ❌ BreadboardState synchronization on connection events (currently logs only) — Phase 3b
-- ❌ Floating component placement workflow (components appear adjacent to board before connection) — Phase 3c
-- ❌ User-initiated connection drag from legs to holes — Phase 3d
+Phase 3b-3c focus on infrastructure and visual feedback. The following capabilities are planned for Phases 3d-3e:
+- ❌ Floating component drag handling (user cannot drag the floating component yet) — Phase 3d
+- ❌ Interactive connection creation UI (drag-from-leg-to-hole) — Phase 3d
+- ❌ BreadboardState synchronization on connection events — Phase 3d
+- ❌ Connection deletion UI — Phase 3d
+- ❌ Test updates for floating component workflow (10 tests fail when flag enabled) — Phase 3e
+- ❌ Visual regression test updates — Phase 3e
 - ❌ Visual rendering via Rete (PixiJS continues as sole renderer - by design)
 - ❌ User interaction with Rete nodes or connections directly (by design)
 - ❌ Socket type validation for electrical compatibility (power vs signal, voltage levels) — Future phase
-- ❌ Continuous component rotation with dynamic connection updates (still quantized to 90° increments) — Future phase
+- ❌ Continuous component rotation with dynamic connection updates (still quantized to 90° increments for placed components) — Future phase
 - ❌ Wire re-routing with control points — Future phase
 
 **Rollback Capability:**
 
-If issues arise with Phase 3a features, rollback is immediate via feature flags:
+If issues arise with Phase 3b-3c features, rollback is immediate via feature flags:
 ```typescript
 const USE_RETE = false; // Disable Rete graph extraction entirely
-const USE_RETE_INTERACTIVE = false; // Disable event handlers (already default)
+const USE_RETE_INTERACTIVE = false; // Disable Phase 3b-3c features (already default)
 ```
 
-All functionality reverts to position-based extraction with zero data loss and no breaking changes. Phase 3a changes are isolated to event handling infrastructure and do not affect existing placement workflows.
+All functionality reverts to position-based extraction with zero data loss and no breaking changes. Phase 3b-3c changes are isolated behind feature flag and do not affect existing two-click placement workflow.
 
 **Future Phases:**
 
-Phase 3b-3e will complete interactive connection creation:
-- **Phase 3b (Visual Feedback):** Render holes as interactive PixiJS sprites, implement hover states, add connection line rendering, magnetic snapping
-- **Phase 3c (Component Placement):** Implement floating component model, enable component body drag, deprecate two-click placement
-- **Phase 3d (Connection Interaction):** Enable drag-from-leg-to-hole connections, sync to BreadboardState, connection deletion
+Phase 3d-3e will complete interactive connection creation:
+- **Phase 3d (Connection Interaction):** Enable floating component drag handling, drag-from-leg-to-hole connections, sync to BreadboardState, connection deletion
 - **Phase 3e (Testing & Documentation):** Integration tests, visual regression updates, performance validation, documentation updates
 
-Subsequent phases will add continuous rotation, socket type validation, and advanced constraint enforcement.
+Subsequent phases will add continuous rotation for placed components, socket type validation, and advanced constraint enforcement.
 
 **Documentation:**
 
+- `RETE_MIGRATION_PHASE3BC_PARTIAL.md`: Phase 3b-3c partial implementation summary (visual feedback infrastructure, floating component model, architecture decisions, remaining work)
 - `RETE_MIGRATION_PHASE3_SUMMARY.md`: Phase 3a implementation summary with event architecture, validation logic, API reference, and design decisions
 - `RETE_MIGRATION_PHASE2_SUMMARY.md`: Complete Phase 2 implementation summary with architecture diagrams, verification results, and design decisions
 - `RETE_MIGRATION_PHASE1_SUMMARY.md`: Phase 1 foundation summary (architecture setup)
 
 **Educational Note:**
 
-Phase 2 and 3a represent successful architectural milestones in the Rete.js migration. The system now operates on explicit connectivity data (Rete graph) with event handling and validation infrastructure ready for interactive features. Phase 2 provides graph-based connection management, while Phase 3a adds the event pipeline and constraint validation needed for user-facing connection creation in subsequent phases. This foundation enables advanced features like interactive connection creation, real-time constraint enforcement, and wire re-routing while maintaining full backward compatibility and zero visual changes.
+Phase 2, 3a, and 3b-3c (partial) represent successful architectural milestones in the Rete.js migration. The system now operates on explicit connectivity data (Rete graph) with event handling, validation infrastructure, and visual feedback systems ready for interactive features. Phase 2 provides graph-based connection management, Phase 3a adds the event pipeline and constraint validation, and Phase 3b-3c adds visual feedback (hole hover, connection rendering) and floating component infrastructure. This foundation enables the remaining interactive features (drag handling, connection creation/deletion) in Phases 3d-3e while maintaining full backward compatibility and zero visual changes to the existing two-click workflow.
 
 ---
 
@@ -3262,11 +3303,30 @@ While PR #167 established the PixiJS WebGL rendering foundation, PR #203 impleme
 
 All advanced visual features listed in PR #167 as "Enables Future Work" have now been successfully implemented in PR #203.
 
+**Rete.js Interactive Workflow (Partial Implementation in PR #237)**:
+
+While PR #237 added Phase 3b-3c infrastructure for interactive connection workflow, the following features remain **not yet implemented**:
+
+- ❌ Floating component drag handling (component appears but user cannot drag it yet) — Phase 3d
+- ❌ Interactive connection creation (drag-from-leg-to-hole) — Phase 3d  
+- ❌ BreadboardState synchronization on connection events — Phase 3d
+- ❌ Connection deletion UI — Phase 3d
+- ❌ Test updates for floating component workflow (10 tests fail when USE_RETE_INTERACTIVE=true) — Phase 3e
+- ❌ Visual regression test updates — Phase 3e
+
+**What IS Implemented (PR #237)**:
+- ✅ Hole hover effects with blue glow visual feedback
+- ✅ Connection line rendering infrastructure with bezier curves
+- ✅ FloatingComponent type system with canvas positioning and continuous rotation support
+- ✅ Component creation at canvas edge (appears adjacent to breadboard)
+- ✅ Floating component rendering with 70% opacity and instructions
+- ✅ Feature flag (USE_RETE_INTERACTIVE=false) maintains full backward compatibility
+
 ---
 
 ## Verification
 
-This document describes the system as observed on 2026-01-04 after merging PR #203:
+This document describes the system as observed on 2026-01-07 after merging PR #237:
 
 - ✅ All source files examined
 - ✅ Tests executed (378/378 passing; 100% pass rate maintained after PR #203 photorealistic rendering)
@@ -3454,5 +3514,20 @@ This document describes the system as observed on 2026-01-04 after merging PR #2
 - ✅ **441 tests total (433 unit/integration + 8 visual) all passing after PR #231**
 - ✅ **Zero breaking changes confirmed: all existing functionality preserved verified from PR #231 implementation**
 - ✅ **RETE_MIGRATION_PHASE3_SUMMARY.md documentation (640 lines with event architecture, API reference, design decisions) verified from PR #231 changes**
+- ✅ **Rete.js Phase 3b-3c partial implementation verified from PR #237 changes**
+- ✅ **Hole hover effects with blue glow on pointerover/pointerout verified from PR #237 implementation**
+- ✅ **onHoleHover and onHoleHoverOut event handlers added to PixiEventHandlers verified from PR #237 implementation**
+- ✅ **Connection line rendering infrastructure with connectionsContainer layer verified from PR #237 implementation**
+- ✅ **renderConnections() method with bezier curve rendering verified from PR #237 implementation**
+- ✅ **FloatingComponent interface in types.ts with canvas positioning and continuous rotation verified from PR #237 implementation**
+- ✅ **createFloatingComponent() method in BreadboardApp positioning at canvas edge verified from PR #237 implementation**
+- ✅ **Modified selectComponentType() to use floating workflow when USE_RETE_INTERACTIVE=true verified from PR #237 implementation**
+- ✅ **renderFloatingComponent() method with 70% opacity and drag-to-place labels verified from PR #237 implementation**
+- ✅ **Visual representations for all 6 component types (resistor, LED, wire, power supply, ground, microprocessor) verified from PR #237 implementation**
+- ✅ **Hybrid rendering approach (separate paths for placed vs floating components) verified from PR #237 architecture**
+- ✅ **Feature flag USE_RETE_INTERACTIVE=false maintains backward compatibility verified from PR #237 implementation**
+- ✅ **All 441 tests pass with flag disabled, zero breaking changes verified from PR #237 test results**
+- ✅ **Manual validation: No performance impact with 420 interactive holes verified from PR #237 testing**
+- ✅ **RETE_MIGRATION_PHASE3BC_PARTIAL.md documentation (645 lines with implementation summary, architecture decisions, remaining work) verified from PR #237 changes**
 
 This is a snapshot of reality, not aspirations or plans.
