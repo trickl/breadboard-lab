@@ -401,6 +401,15 @@ export class BreadboardApp {
         onFloatingComponentDragStart: (floatingComponentId, globalX, globalY) => {
           this.handleFloatingComponentDragStart(floatingComponentId, globalX, globalY);
         },
+        onFloatingComponentLegDragStart: (floatingComponentId, legIndex, globalX, globalY) => {
+          this.handleFloatingComponentLegDragStart(floatingComponentId, legIndex, globalX, globalY);
+        },
+        onHoleHover: (position, _event) => {
+          this.handleHoleHover(position);
+        },
+        onHoleHoverOut: (position, _event) => {
+          this.handleHoleHoverOut(position);
+        },
       };
       try {
         await this.pixiRenderer.init(breadboard, handlers);
@@ -1550,7 +1559,12 @@ export class BreadboardApp {
   private handleMouseUp(_event: MouseEvent): void {
     // Handle floating component drag end (Phase 3d)
     if (this.floatingDragState) {
+      // Phase 3d.3: Handle connection creation
+      if (this.floatingDragState.isDraggingConnection) {
+        this.handleConnectionCreation();
+      }
       this.cleanupFloatingDrag();
+      void this.render();
       return;
     }
     
@@ -1577,6 +1591,34 @@ export class BreadboardApp {
 
     // Re-render without preview
     this.render();
+  }
+
+  /**
+   * Phase 3d.3: Handle connection creation when user drops leg on hole
+   */
+  private async handleConnectionCreation(): Promise<void> {
+    if (!this.floatingDragState || !this.floatingDragState.isDraggingConnection) {
+      return;
+    }
+
+    const targetHole = this.floatingDragState.connectionTargetHole;
+    if (!targetHole) {
+      // No target hole - show brief feedback
+      console.log('[Phase 3d.3] Connection canceled - no target hole');
+      return;
+    }
+
+    // TODO: Validate connection and create in ReteManager
+    // For now, just log the connection attempt
+    console.log('[Phase 3d.3] Connection creation:', {
+      componentId: this.floatingDragState.floatingComponentId,
+      legIndex: this.floatingDragState.connectionSourceLegIndex,
+      targetHole,
+    });
+    
+    // TODO Phase 3d.4: Update BreadboardState with connection
+    // TODO Phase 3d.4: Check if component is fully placed
+    // TODO Phase 3d.4: Trigger circuit extraction and simulation
   }
 
   /**
@@ -1651,6 +1693,62 @@ export class BreadboardApp {
     // Attach global mouse handlers for move and up
     document.addEventListener('mousemove', this.handleMouseMoveBound);
     document.addEventListener('mouseup', this.handleMouseUpBound);
+  }
+
+  /**
+   * Phase 3d.3: Handle drag start from a component leg to create connection
+   */
+  private handleFloatingComponentLegDragStart(
+    floatingComponentId: string,
+    legIndex: number,
+    globalX: number,
+    globalY: number
+  ): void {
+    if (!this.floatingComponent || this.floatingComponent.id !== floatingComponentId) {
+      return;
+    }
+
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    const mouseX = globalX - rect.left;
+    const mouseY = globalY - rect.top;
+
+    // Initialize floating drag state for connection creation
+    this.floatingDragState = {
+      floatingComponentId,
+      startMousePos: { x: mouseX, y: mouseY },
+      offsetFromComponentCenter: { x: 0, y: 0 }, // Not used for connection drag
+      isDraggingConnection: true,
+      connectionSourceLegIndex: legIndex,
+    };
+
+    // Attach global mouse handlers for move and up
+    document.addEventListener('mousemove', this.handleMouseMoveBound);
+    document.addEventListener('mouseup', this.handleMouseUpBound);
+  }
+
+  /**
+   * Phase 3d.2: Handle hole hover during connection drag
+   */
+  private handleHoleHover(position: Position): void {
+    if (this.floatingDragState && this.floatingDragState.isDraggingConnection) {
+      // Update target hole being hovered
+      this.floatingDragState.connectionTargetHole = position;
+      void this.renderBreadboard();
+    }
+  }
+
+  /**
+   * Phase 3d.2: Handle hole hover out during connection drag
+   */
+  private handleHoleHoverOut(_position: Position): void {
+    if (this.floatingDragState && this.floatingDragState.isDraggingConnection) {
+      // Clear target hole
+      this.floatingDragState.connectionTargetHole = undefined;
+      void this.renderBreadboard();
+    }
   }
 
   /**

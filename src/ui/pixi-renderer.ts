@@ -1300,6 +1300,10 @@ export class PixiRenderer {
     // Draw a simple representation based on component type
     const visual = new Graphics();
     
+    // Phase 3d.2: Determine leg count and positions
+    const legCount = this.getComponentLegCount(floating.type);
+    const legPositions: { x: number; y: number }[] = [];
+    
     switch (floating.type) {
       case ComponentType.RESISTOR:
         // Simple rectangle for resistor
@@ -1307,9 +1311,13 @@ export class PixiRenderer {
         visual.fill({ color: 0xccaa66, alpha: 1 });
         visual.stroke({ width: 2, color: 0x000000 });
         
+        // Two legs for resistor (left and right)
+        legPositions.push({ x: -25, y: 0 }); // Left leg
+        legPositions.push({ x: 25, y: 0 });  // Right leg
+        
         // Add text label
         const resistorLabel = new Text({ 
-          text: 'Resistor\n(drag to place)', 
+          text: 'Resistor\n(drag legs to holes)', 
           style: { fontSize: 10, fill: 0xffffff } 
         });
         resistorLabel.anchor.set(0.5, 0);
@@ -1323,12 +1331,16 @@ export class PixiRenderer {
         visual.fill({ color: 0xff4444, alpha: 1 });
         visual.stroke({ width: 2, color: 0x000000 });
         
+        // Two legs for LED (anode and cathode)
+        legPositions.push({ x: 0, y: -20 }); // Anode (top)
+        legPositions.push({ x: 0, y: 20 });  // Cathode (bottom)
+        
         const ledLabel = new Text({ 
-          text: 'LED\n(drag to place)', 
+          text: 'LED\n(drag legs to holes)', 
           style: { fontSize: 10, fill: 0xffffff } 
         });
         ledLabel.anchor.set(0.5, 0);
-        ledLabel.y = 20;
+        ledLabel.y = 25;
         floatingContainer.addChild(ledLabel);
         break;
         
@@ -1338,8 +1350,12 @@ export class PixiRenderer {
         visual.lineTo(25, 0);
         visual.stroke({ width: 3, color: 0x333333 });
         
+        // Two connection points for wire
+        legPositions.push({ x: -25, y: 0 });
+        legPositions.push({ x: 25, y: 0 });
+        
         const wireLabel = new Text({ 
-          text: 'Wire\n(drag to place)', 
+          text: 'Wire\n(drag ends to holes)', 
           style: { fontSize: 10, fill: 0xffffff } 
         });
         wireLabel.anchor.set(0.5, 0);
@@ -1360,12 +1376,15 @@ export class PixiRenderer {
         plusLabel.anchor.set(0.5, 0.5);
         floatingContainer.addChild(plusLabel);
         
+        // One connection point for power supply
+        legPositions.push({ x: 0, y: 20 });
+        
         const powerLabel = new Text({ 
-          text: 'Power\n(drag to place)', 
+          text: 'Power\n(drag to hole)', 
           style: { fontSize: 10, fill: 0xffffff } 
         });
         powerLabel.anchor.set(0.5, 0);
-        powerLabel.y = 20;
+        powerLabel.y = 25;
         floatingContainer.addChild(powerLabel);
         break;
         
@@ -1381,8 +1400,11 @@ export class PixiRenderer {
         visual.lineTo(5, 10);
         visual.stroke({ width: 2, color: 0x333333 });
         
+        // One connection point for ground
+        legPositions.push({ x: 0, y: -15 });
+        
         const groundLabel = new Text({ 
-          text: 'Ground\n(drag to place)', 
+          text: 'Ground\n(drag to hole)', 
           style: { fontSize: 10, fill: 0xffffff } 
         });
         groundLabel.anchor.set(0.5, 0);
@@ -1395,9 +1417,43 @@ export class PixiRenderer {
         visual.rect(-15, -15, 30, 30);
         visual.fill({ color: 0x888888, alpha: 1 });
         visual.stroke({ width: 2, color: 0x000000 });
+        
+        // Default two legs
+        legPositions.push({ x: -20, y: 0 });
+        legPositions.push({ x: 20, y: 0 });
     }
     
     floatingContainer.addChild(visual);
+    
+    // Phase 3d.2/3d.3: Render component legs as interactive connection points
+    for (let i = 0; i < legPositions.length; i++) {
+      const legPos = legPositions[i];
+      const leg = new Graphics();
+      
+      // Draw leg as a small circle
+      leg.circle(legPos.x, legPos.y, 5);
+      leg.fill({ color: 0xffff00, alpha: 0.8 }); // Yellow to indicate interactivity
+      leg.stroke({ width: 2, color: 0x000000 });
+      
+      // Make leg interactive for connection drag (Phase 3d.3)
+      leg.eventMode = 'static';
+      leg.cursor = 'crosshair';
+      
+      // Stop propagation so clicking leg doesn't trigger component drag
+      leg.on('pointerdown', (event: FederatedPointerEvent) => {
+        event.stopPropagation();
+        if (this.eventHandlers.onFloatingComponentLegDragStart) {
+          this.eventHandlers.onFloatingComponentLegDragStart(
+            floating.id,
+            i,
+            event.global.x,
+            event.global.y
+          );
+        }
+      });
+      
+      floatingContainer.addChild(leg);
+    }
     
     // Phase 3d: Add drag handler for floating component body
     floatingContainer.on('pointerdown', (event: FederatedPointerEvent) => {
@@ -1412,5 +1468,27 @@ export class PixiRenderer {
     
     // Add to components container (will be rendered on top)
     this.componentsContainer.addChild(floatingContainer);
+  }
+  
+  /**
+   * Get number of legs/pins for a component type (Phase 3d.2)
+   */
+  private getComponentLegCount(type: ComponentType): number {
+    switch (type) {
+      case ComponentType.RESISTOR:
+        return 2;
+      case ComponentType.LED:
+        return 2;
+      case ComponentType.WIRE:
+        return 2;
+      case ComponentType.POWER_SUPPLY:
+        return 1;
+      case ComponentType.GROUND:
+        return 1;
+      case ComponentType.MICROPROCESSOR:
+        return 16; // EDU-8 has 16 pins
+      default:
+        return 2;
+    }
   }
 }
