@@ -167,7 +167,6 @@ export class BreadboardApp {
    * Called after state changes to keep Rete graph in sync
    * NOTE: Currently unused as USE_RETE=false. Will be called in Phase 2.
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async syncStateToRete(): Promise<void> {
     if (this.reteManager && USE_RETE) {
       try {

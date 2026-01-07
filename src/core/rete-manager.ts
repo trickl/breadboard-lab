@@ -15,7 +15,8 @@
 import { NodeEditor, ClassicPreset, GetSchemes, NodeId } from 'rete';
 import { AreaPlugin, AreaExtensions } from 'rete-area-plugin';
 import { ConnectionPlugin } from 'rete-connection-plugin';
-import type { Position, ComponentType, BreadboardState } from './types';
+import type { Position, BreadboardState } from './types';
+import { ComponentType } from './types';
 
 /**
  * Socket for component legs
@@ -210,17 +211,17 @@ export class ReteManager {
    */
   private getComponentLegCount(type: ComponentType): number {
     switch (type) {
-      case 'RESISTOR':
+      case ComponentType.RESISTOR:
         return 2;
-      case 'LED':
+      case ComponentType.LED:
         return 2;
-      case 'WIRE':
+      case ComponentType.WIRE:
         return 2;
-      case 'POWER_SUPPLY':
+      case ComponentType.POWER_SUPPLY:
         return 1;
-      case 'GROUND':
+      case ComponentType.GROUND:
         return 1;
-      case 'MICROPROCESSOR':
+      case ComponentType.MICROPROCESSOR:
         return 16; // EDU-8 has 16 pins
       default:
         return 2;
