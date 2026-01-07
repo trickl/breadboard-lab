@@ -51,6 +51,14 @@ const USE_RETE = true;
  * When false, uses traditional two-click placement workflow
  * 
  * Phase 3: IN DEVELOPMENT - Interactive connection UI with visual feedback
+ * 
+ * Current Status: Phase 3b complete, Phase 3c partial (infrastructure ready)
+ * - Hole hover effects implemented
+ * - Connection line rendering infrastructure added
+ * - Floating component model implemented
+ * - Remaining: Drag handling, connection creation, tests need updating
+ * 
+ * NOTE: Keeping disabled until test suite is updated for new workflow
  */
 const USE_RETE_INTERACTIVE = false;
 
