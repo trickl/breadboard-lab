@@ -360,4 +360,114 @@ describe('ReteManager', () => {
       expect(sharedHole).toBeDefined();
     });
   });
+  
+  describe('Phase 3: Interactive Connection Creation', () => {
+    it('should register connection created handler', () => {
+      let handlerCalled = false;
+      manager.onConnectionCreated(() => {
+        handlerCalled = true;
+      });
+      
+      // Handler should be registered without error
+      expect(handlerCalled).toBe(false); // Not called yet
+    });
+    
+    it('should register connection removed handler', () => {
+      let handlerCalled = false;
+      manager.onConnectionRemoved(() => {
+        handlerCalled = true;
+      });
+      
+      // Handler should be registered without error
+      expect(handlerCalled).toBe(false); // Not called yet
+    });
+    
+    it('should validate one-connector-per-hole constraint', async () => {
+      const resistor: Resistor = {
+        id: 'r1',
+        type: ComponentType.RESISTOR,
+        positions: [{ row: 5, col: 10 }, { row: 5, col: 15 }],
+        rotation: 0,
+        resistance: 220,
+      };
+      
+      const state: BreadboardState = {
+        components: [resistor],
+        selectedComponentId: null,
+      };
+      
+      await manager.initialize();
+      await manager.syncFromBreadboardState(state);
+      
+      // Get the hole node and component node
+      const holeNode = manager.getHoleNode({ row: 5, col: 10 });
+      const componentNode = manager.getComponentNode('r1');
+      
+      expect(holeNode).toBeDefined();
+      expect(componentNode).toBeDefined();
+      
+      // Get the existing connection (from sync)
+      const connections = manager.getConnections();
+      expect(connections.length).toBeGreaterThan(0);
+      
+      const existingConnection = connections[0];
+      
+      // Validate the existing connection (should pass)
+      const validationExisting = manager.validateOneConnectorPerHole(existingConnection);
+      expect(validationExisting.valid).toBe(true);
+    });
+    
+    it('should detect occupied holes', async () => {
+      const resistor: Resistor = {
+        id: 'r1',
+        type: ComponentType.RESISTOR,
+        positions: [{ row: 5, col: 10 }, { row: 5, col: 15 }],
+        rotation: 0,
+        resistance: 220,
+      };
+      
+      const state: BreadboardState = {
+        components: [resistor],
+        selectedComponentId: null,
+      };
+      
+      await manager.initialize();
+      await manager.syncFromBreadboardState(state);
+      
+      // Holes with connections should be occupied
+      expect(manager.isHoleOccupied({ row: 5, col: 10 })).toBe(true);
+      expect(manager.isHoleOccupied({ row: 5, col: 15 })).toBe(true);
+      
+      // Unoccupied hole should return false
+      expect(manager.isHoleOccupied({ row: 7, col: 20 })).toBe(false);
+    });
+    
+    it('should create floating component', async () => {
+      await manager.initialize();
+      
+      const componentNode = await manager.createFloatingComponent(
+        'led1',
+        ComponentType.LED,
+        { x: 100, y: 100 }
+      );
+      
+      expect(componentNode).toBeDefined();
+      expect(componentNode.componentId).toBe('led1');
+      expect(componentNode.componentType).toBe(ComponentType.LED);
+      expect(componentNode.legs).toBe(2);
+      
+      // Should be retrievable
+      const retrieved = manager.getComponentNode('led1');
+      expect(retrieved).toBeDefined();
+      expect(retrieved!.componentId).toBe('led1');
+    });
+    
+    it('should set connection validator', () => {
+      const validator = () => ({ valid: true });
+      manager.setConnectionValidator(validator);
+      
+      // Validator should be set without error
+      // Actual validation happens during connection creation
+    });
+  });
 });

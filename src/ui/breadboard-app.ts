@@ -46,6 +46,15 @@ import { ReteManager } from '@/core/rete-manager';
 const USE_RETE = true;
 
 /**
+ * Feature flag: Enable Rete.js interactive connection creation (Phase 3)
+ * When true, enables drag-and-drop connection creation and floating component placement
+ * When false, uses traditional two-click placement workflow
+ * 
+ * Phase 3: IN DEVELOPMENT - Interactive connection UI with visual feedback
+ */
+const USE_RETE_INTERACTIVE = false;
+
+/**
  * Drag state for component repositioning
  */
 export interface DragState {
