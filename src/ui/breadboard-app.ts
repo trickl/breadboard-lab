@@ -390,6 +390,11 @@ export class BreadboardApp {
     // Render breadboard grid with voltage overlay
     this.pixiRenderer.renderBreadboard(positionToNode, this.cachedSimulation, this.reteManager);
 
+    // Render Rete connection lines (Phase 3b)
+    if (USE_RETE_INTERACTIVE && this.reteManager) {
+      this.pixiRenderer.renderConnections(this.reteManager, this.state.components, this.cachedSimulation);
+    }
+
     // Render components with simulation results for LED glow
     this.pixiRenderer.renderComponents(
       this.state.components,

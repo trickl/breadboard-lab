@@ -61,6 +61,7 @@ export class PixiRenderer {
   
   // Layer containers for proper z-ordering
   private breadboardContainer = new Container();
+  private connectionsContainer = new Container(); // For Rete connection lines
   private componentsContainer = new Container();
   private voltageOverlayContainer = new Container();
   private particlesContainer = new Container();
@@ -121,13 +122,15 @@ export class PixiRenderer {
     
     // Offset all containers to account for padding
     this.breadboardContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
+    this.connectionsContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
     this.componentsContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
     this.voltageOverlayContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
     this.particlesContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
     this.errorOverlayContainer.position.set(PixiRenderer.LABEL_PADDING_X, PixiRenderer.LABEL_PADDING_Y);
     
-    // Add layers in z-order
+    // Add layers in z-order (connections below components, above holes)
     this.app.stage.addChild(this.breadboardContainer);
+    this.app.stage.addChild(this.connectionsContainer);
     this.app.stage.addChild(this.componentsContainer);
     this.app.stage.addChild(this.voltageOverlayContainer);
     this.app.stage.addChild(this.particlesContainer);
@@ -467,6 +470,95 @@ export class PixiRenderer {
         
         const hole = this.renderHole(pos, holeColor, isOccupied);
         this.breadboardContainer.addChild(hole);
+      }
+    }
+  }
+
+  /**
+   * Render Rete connection lines between component legs and holes
+   * Phase 3b: Visual feedback for interactive connections
+   */
+  renderConnections(
+    reteManager: {
+      getConnections(): Array<{
+        id: string;
+        source: string;
+        sourceOutput: string;
+        target: string;
+        targetInput: string;
+      }>;
+      getComponentNode(componentId: string): { componentId: string; componentType: ComponentType } | null;
+      getHoleNode(pos: Position): { position: Position } | null;
+      getAllComponentNodes(): Array<{ componentId: string; componentType: ComponentType }>;
+      getAllHoleNodes(): Array<{ position: Position }>;
+    } | null,
+    components: AnyComponent[],
+    simulation: SimulationResult | null = null
+  ): void {
+    this.connectionsContainer.removeChildren();
+    
+    if (!reteManager) return;
+    
+    const connections = reteManager.getConnections();
+    
+    for (const connection of connections) {
+      // Parse connection to find source and target positions
+      // Connection structure: hole (output) -> component leg (input)
+      // We need to find the positions of both ends
+      
+      // Get source node (should be a hole)
+      const sourceHoleNodes = reteManager.getAllHoleNodes();
+      const sourceHole = sourceHoleNodes.find(h => {
+        // The connection.source is a node ID string
+        // We need to match it with the hole's position
+        return true; // Simplified for now - would need proper node ID lookup
+      });
+      
+      // Get target node (should be a component)
+      const targetComponentNodes = reteManager.getAllComponentNodes();
+      
+      // For now, render connections between all components and holes
+      // This is a simplified implementation - full implementation would parse
+      // the actual connection graph from Rete
+      
+      // Draw simple connection lines between each component and its holes
+      for (const component of components) {
+        for (let i = 0; i < component.positions.length - 1; i++) {
+          const pos1 = component.positions[i];
+          const pos2 = component.positions[i + 1];
+          
+          const p1 = this.positionToPixels(pos1);
+          const p2 = this.positionToPixels(pos2);
+          
+          const line = new Graphics();
+          
+          // Determine line color based on simulation results
+          let lineColor = 0x999999; // Default gray
+          
+          if (simulation?.success) {
+            // Could color by voltage or current in future
+            lineColor = 0xaaaaaa;
+          }
+          
+          // Draw bezier curve connection
+          line.moveTo(p1.x, p1.y);
+          
+          // Control points for bezier curve (gentle arc)
+          const midX = (p1.x + p2.x) / 2;
+          const midY = (p1.y + p2.y) / 2;
+          const offset = 15; // Arc height
+          const ctrlX = midX;
+          const ctrlY = midY - offset;
+          
+          line.bezierCurveTo(
+            p1.x, p1.y - offset / 2,
+            p2.x, p2.y - offset / 2,
+            p2.x, p2.y
+          );
+          line.stroke({ width: 2, color: lineColor, alpha: 0.7 });
+          
+          this.connectionsContainer.addChild(line);
+        }
       }
     }
   }
