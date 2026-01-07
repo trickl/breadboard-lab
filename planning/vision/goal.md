@@ -1,390 +1,404 @@
-# Breadboard Lab — Target System Capability Specification
-
-**Version**: 0.3  
-**Date**: January 2026  
-**Status**: Target state (capability-driven)
-
-This document specifies the target system behavior, data models, rendering requirements, simulation capabilities, and automated test requirements. Each requirement in this document is an implementation target and is suitable for driving both development and CI validation.
-
-**Primary goal:**  
-Breadboard Lab is an educational analysis and explanation aid designed to be paired alongside physical breadboard experiments. It helps learners understand **what is connected**, **what is happening electrically (voltage/current)**, and **why a circuit works or fails**, in ways that are difficult or impossible to do physically.
+# Breadboard Educational Tool  
+## Next Iteration Specification (Rete.js Migration)
 
 ---
 
-## Table of Contents
+## 1. Purpose of This Iteration
 
-1. System Partitioning  
-2. Licensing & Asset Provenance  
-3. Rendering & Interaction Capabilities  
-4. Breadboard Analysis & Debugging Capabilities (Core USP)  
-5. Component Library (Real-World Parts)  
-6. Data Model  
-7. Extraction Pipeline (Breadboard → Nets → Netlist)  
-8. Solver & Simulation Capabilities  
-9. Electricity Flow Visualisation  
-10. Views  
-11. Save/Load, Export/Import, and Canonical Examples  
-12. Testing Strategy  
-13. Non-Goals  
+This iteration focuses on a **foundational architectural shift** and a set of **core UX and simulation capabilities** that unlock the tool’s educational value.
 
----
+The primary goals are:
 
-## System Partitioning
+1. Replace the current **PixiJS/WebGL bespoke wiring system** with a **Rete.js–based visual programming graph**.
+2. Model **physical breadboard interaction realistically**, while enabling **capabilities impossible in physical hardware** (e.g. animated current flow, hidden connectivity, live voltage/current inspection).
+3. Improve **first-time user experience** so the tool is immediately understandable and usable.
+4. Establish a clean separation between:
+   - *Physical placement*
+   - *Electrical behaviour*
+   - *Logical circuit representation*
 
-The system is implemented as distinct layers with explicit, testable boundaries:
-
-┌──────────────────────────────────────────────────────────────┐
-│ Breadboard View (placement + analysis UI) │
-│ - Physical constraints and geometry │
-│ - Component footprints and pin-to-hole insertion │
-│ - Voltage/current/connectivity/error overlays │
-└──────────────────────────────────────────────────────────────┘
-↓
-┌──────────────────────────────────────────────────────────────┐
-│ Electrical Graph / Netlist │
-│ - Nets (connectivity groups) │
-│ - Components with terminals mapped to nets │
-└──────────────────────────────────────────────────────────────┘
-↓
-┌──────────────────────────────────────────────────────────────┐
-│ Solver / Simulation Engine │
-│ - DC operating point, time-domain, digital/event simulation │
-│ - Produces voltages, currents, warnings, derived metrics │
-└──────────────────────────────────────────────────────────────┘
-↓
-┌──────────────────────────────────────────────────────────────┐
-│ Overlays + Explain / Inspect UI │
-│ - Voltage/current/power/error overlays │
-│ - Multimeter-style probing │
-│ - Plain-language inspection │
-└──────────────────────────────────────────────────────────────┘
+This iteration prioritises **correct interaction primitives and mental models**, not breadth of components.
 
 ---
 
-## Licensing & Asset Provenance
+## 2. Architectural Change: PixiJS → Rete.js
 
-### Constraints
+### 2.1 Rationale
 
-- Repository license: MIT.
-- All incorporated code, assets, and documentation must be MIT-compatible.
+The existing PixiJS implementation makes **connector management, snapping, routing, and interaction state** increasingly complex and fragile.
 
-### Part graphics & visual assets
+Rete.js provides:
 
-- Do **not** reuse Fritzing part graphics.
-- Component visuals are produced via:
-  - procedural rendering (preferred for parametric parts)
-  - project-owned SVG assets (original or permissively licensed)
+- Native **node–connector–edge abstractions**
+- Built-in **connection constraints**
+- Support for **re-routing**, **animated edges**, and **custom socket logic**
+- A clean conceptual mapping to **electrical networks**
 
-### Solver libraries
-
-- ngspice (BSD-3-Clause) is permitted via WebAssembly.
-- GPL-licensed solver code is not incorporated.
+Rete.js will act as the **interaction and connectivity backbone**, not merely a diagramming layer.
 
 ---
 
-## Rendering & Interaction Capabilities
+## 3. Core Conceptual Model
 
-### Rendering fidelity (WebGL-grade) — required
+### 3.1 Nodes
 
-Requirements:
-- 2D top-down breadboard rendering, photorealistic enough to resemble a real breadboard.
-- WebGL-capable renderer (PixiJS recommended).
-- Breadboard geometry reflects real physical structure:
-  - 5-hole strips
-  - center trench
-  - power rails and rail breaks
-  - realistic spacing and labeling
-- Breadboard appearance:
-  - white or off-white plastic
-  - small circular holes
-  - row/column labels and numbering
-- Overlapping wires are visually unambiguous.
-- Active LEDs emit glow derived from solver output.
+All meaningful physical and electrical entities are represented as **Rete nodes**, including:
 
-Acceptance criteria:
-- [ ] Crossing wires do not imply a junction.
-- [ ] LED brightness varies with simulated current.
-- [ ] Breadboard visually reads as a real breadboard.
+- Components (LEDs, resistors, transistors, switches, batteries)
+- Breadboard holes (conceptually, even if visually grouped)
+- Wires (either edges or thin intermediary nodes)
 
-### Component placement
+### 3.2 Connectors (Sockets)
 
-Requirements:
-- Drag-and-drop placement from a library.
-- Pins snap to holes with ghost preview.
-- Invalid placements blocked.
-- Rotation via keyboard and UI controls.
+- **Component legs** are fixed connectors attached to a component body.
+- **Breadboard holes** act as exclusive connection points.
+- A **one-connector-per-hole constraint** must be enforced.
 
-### Wiring
-
-Requirements:
-- Drag from hole to hole only.
-- No floating wire endpoints.
-- Straight, orthogonal, or spline routing.
-
-### Selection & editing
-
-Requirements:
-- Single and multi-selection.
-- Undo/redo (≥ 50 steps).
-
-### Resistor visual accuracy and lookup — required
-
-Requirements:
-- Procedural resistor band rendering.
-- Band count derived from tolerance.
-- Integrated color-code lookup tool.
-
-Acceptance criteria:
-- [ ] 1kΩ 5% → brown-black-red-gold.
-- [ ] 10kΩ 1% → brown-black-black-red-brown.
+A valid connection represents **electrical continuity**.
 
 ---
 
-## Breadboard Analysis & Debugging Capabilities (Core USP)
+## 4. Views and Modes Overview
 
-### Purpose
+The application has **two primary views** and **two orthogonal informational modes**.
 
-The Breadboard View is **not only a construction surface**.  
-It is the primary **analysis, debugging, and explanation surface** of the system.
+### 4.1 Primary Views
 
-The system’s core educational value is enabling users to:
-- See electrical phenomena invisible in real life
-- Inspect voltages and currents anywhere
-- Reveal hidden breadboard connectivity
-- Diagnose wiring and conceptual errors
-- Use the virtual circuit as a reference when debugging a real breadboard with a multimeter
+1. **Physical View**
+   - Realistic breadboard and components
+   - Spatial placement and manipulation
+   - Primary construction interface
 
----
+2. **Logical View**
+   - Abstracted circuit representation
+   - Auto-laid-out schematic-style graph
+   - Educational and debugging aid
 
-### Voltage overlay — required
+### 4.2 Informational Modes (UI Toggles)
 
-Requirements:
-- Toggleable overlay on the breadboard.
-- All holes in the same net render with the same voltage color.
-- Numeric voltage inspectable on demand.
-- Floating nodes visually distinct.
+These modes overlay additional information on top of either view:
 
-Acceptance criteria:
-- [ ] All holes in a net show identical voltage coloring.
-- [ ] Clicking a hole displays numeric voltage.
+1. **Electrical View Mode**
+2. **X-Ray Mode**
+
+They are independent toggles and may be enabled or disabled separately.
 
 ---
 
-### Current overlay — required
+## 5. Physical View (formerly “Breadboard View”)
 
-Requirements:
-- Visualisation of current direction and magnitude:
-  - through components
-  - along wires
-- Current inspectable per component/branch.
-- Zero-current components visually distinguishable.
+### 5.1 Purpose
 
-Acceptance criteria:
-- [ ] Direction matches solver output.
-- [ ] Component inspection shows current and power.
+The Physical View represents **what a user would physically build** on a real breadboard, with enhanced clarity and feedback.
 
 ---
 
-### Error & anomaly overlay — required
+### 5.2 Breadboard Model
 
-Requirements:
-- Visual indication of:
-  - short circuits
-  - floating nodes
-  - reversed polarity
-  - overcurrent / power dissipation warnings
+- Breadboard holes are rendered in a realistic grid.
+- Electrically shared rows and rails are modeled internally.
+- By default, **internal connectivity is hidden**.
 
-Acceptance criteria:
-- [ ] Errors are visible in situ on the breadboard.
+This is intentional: hidden structure is revealed explicitly via X-Ray Mode.
 
 ---
 
-### Breadboard connectivity reveal mode — required
+### 5.3 Component Placement Model
 
-Purpose:
-Reveal connectivity hidden in physical breadboards.
+#### 5.3.1 Component Instantiation
 
-Requirements:
-- Toggleable overlay showing:
-  - 5-hole strips
-  - power rails and breaks
-  - center trench isolation
-- Hover/select highlights entire electrically connected net.
-- Can be combined with voltage/current overlays.
+- Selecting a component does **not** immediately place it on the breadboard.
+- The component appears **adjacent to the board**, floating beside it.
+- The user:
+  1. Drags the component body into position
+  2. Connects individual legs to breadboard holes
 
-Acceptance criteria:
-- [ ] Users can infer breadboard topology visually.
-- [ ] Center gap and rail breaks are explicit.
+This avoids visual occlusion and improves comprehension in dense circuits.
 
 ---
 
-### Multimeter-guided debugging — required
+#### 5.3.2 Component Geometry
 
-Requirements:
-- Multimeter mode supporting:
-  - voltage measurement between two holes
-  - current inspection through a selected component
-- UI mirrors real multimeter usage.
-- Values reflect solver output.
+- Components must be **visually realistic**:
+  - LEDs with lens and legs
+  - Resistors with cylindrical bodies and leads
+  - Transistors with appropriate package shapes
 
-Acceptance criteria:
-- [ ] Two-point voltage measurement works.
-- [ ] Values match solver results.
-
----
-
-## Component Library (Real-World Parts)
-
-Requirements:
-- Components represent real, purchasable parts.
-- Stable IDs.
-- Physical and electrical characteristics included.
-- No fictional “magic” components.
-
-Examples:
-- 3mm ultra-bright LED
-- Axial resistors (1/4W, 1% and 5%)
-- Breadboard-compatible speakers
+- Legs are:
+  - Fixed relative to the component body
+  - Represented as Rete connectors
+  - Positioned at realistic angles (e.g. 120° separation for TO-92 transistors)
 
 ---
 
-## Data Model
+### 5.4 Snapping and Constraints
 
-*(unchanged from prior version; retained verbatim for implementation)*
-
----
-
-## Extraction Pipeline (Breadboard → Nets → Netlist)
-
-Requirements:
-- Intrinsic breadboard connectivity + wires + pins produce nets.
-- Each hole maps to exactly one net.
-- Deterministic extraction.
+- Legs **magnetically snap** to free breadboard holes.
+- A hole may only accept **one connector**.
+- Invalid connections should:
+  - Be visually rejected
+  - Provide subtle feedback (e.g. highlight or glow)
 
 ---
 
-## Solver & Simulation Capabilities
+## 6. Wires
 
-### DC operating point
+### 6.1 Wire Representation
 
-- Modified Nodal Analysis.
-- Detects shorts and floating nodes.
+Two acceptable implementations (engineering choice):
 
-### SPICE-class simulation
+1. **Edge-based**
+   - Wire = Rete connection between two breadboard holes
+2. **Node-based**
+   - Wire = thin node with two connectors
 
-- ngspice via WebAssembly.
-- Transient analysis supported.
-- Graceful fallback.
-
-### Digital/event simulation
-
-- Supports {0,1,Z,X} logic.
-- Explicit analog/digital bridges.
-
-### Audio output — required
-
-- Speaker produces real audio via Web Audio API.
-- Disabled by default.
-
-### Simple microprocessor — required
-
-EDU-8 Microprocessor:
-- Explicit internal simulation.
-- Clocked execution.
-- Simple instruction set.
-- Explain panel shows internal state.
+The architecture must not assume one approach exclusively.
 
 ---
 
-## Electricity Flow Visualisation
+### 6.2 Wire Interaction
 
-Requirements:
-- Voltage heatmap on breadboard.
-- Current flow visualisation.
-- Error overlays.
-- Inspection UI shows computed values.
+- Wires are draggable via control points.
+- Re-routing must be supported (Rete re-root pattern):
+  - Dragging a segment recalculates the path
+  - Routing avoids component overlap where possible
 
----
-
-## Views
-
-### Breadboard view — primary
-
-- Primary surface for **construction, analysis, inspection, and debugging**.
-- All overlays operate here.
-
-### Schematic view — derived, explanatory
-
-Purpose:
-Simplify physical complexity into a readable logical representation.
-
-Requirements:
-- Derived from netlist.
-- Non-editable.
-- Deterministic layout algorithm.
-- Nodes/components spaced for readability.
-- Inspectable voltages and currents.
+- Wire colour is user-selectable (default set includes red, black, yellow).
 
 ---
 
-## Save/Load, Export/Import, and Canonical Examples
+### 6.3 Visual Clarity
 
-### Save/load
+Wire rendering should:
 
-- JSON persistence of placements, wiring, and components.
-
-### Canonical examples — required
-
-Examples:
-- LED + resistor
-- Voltage divider
-- Clock-driven microprocessor circuit
-
-Each example must:
-- Load into a known-good state
-- Support overlays and inspection
+- Minimise overlap
+- Prefer orthogonal or gently curved paths
+- Remain legible at moderate zoom levels
 
 ---
 
-## Testing Strategy
+## 7. Selection, Rotation, and Deletion
 
-### Automated tests
+### 7.1 Selection Model
 
-- Unit tests for topology, extraction, solvers.
-- Property-based tests for connectivity invariants.
-- Golden circuits with expected numeric outputs.
-- UI smoke tests (Playwright).
-
-### Visual regression testing — required
-
-Requirements:
-- Headless browser CI runs.
-- Screenshot capture of:
-  - breadboard view
-  - voltage/current/connectivity overlays
-  - schematic view
-- Screenshot delta comparison fails CI on unintended change.
-
-Acceptance criteria:
-- [ ] Visual regression runs in CI.
-- [ ] Overlay visuals are stable and deterministic.
+- Clicking a component body selects it.
+- Selection enables:
+  - Rotation
+  - Deletion
+  - Highlighting of connected wires and holes
 
 ---
 
-## Non-Goals
+### 7.2 Rotation
 
-1. PCB layout.
-2. Full microcontroller firmware emulation.
-3. Large proprietary part catalogs.
-4. Photorealistic 3D rendering.
-5. Real-time collaboration.
-6. Native mobile apps.
-7. RF/transmission-line analysis.
-8. Competing with full desktop EDA tools.
+- All components support **continuous rotation** (not limited to 90°).
+- When selected:
+  - A rotation handle or arc is shown
+  - Dragging rotates the component
+
+Rotation affects:
+- Visual orientation
+- Connector positions
+- Snapping geometry
 
 ---
 
-**Document History**
-- v0.1 (Dec 2025): Initial planning
-- v0.2 (Jan 2026): Capability-driven rewrite
-- v0.3 (Jan 2026): Explicit breadboard analysis/debugging USP, overlays, multimeter workflow, schematic clarification
+### 7.3 Deletion
+
+- Selected components can be deleted via:
+  - On-screen control
+  - Keyboard delete/backspace
+
+Deletion must remove:
+- Associated connectors
+- Associated wires
+- Electrical graph references
+
+---
+
+## 8. Switches and User Interaction
+
+### 8.1 Switch Components
+
+Switches are **stateful, interactive components**.
+
+Primary challenge: left-click is already used for dragging.
+
+#### Interaction Model
+
+- Short click (below movement threshold): toggles switch state
+- Click-and-drag: moves the switch
+- Optional future enhancement: dedicated toggle hotspot
+
+State changes must propagate immediately through the electrical simulation.
+
+---
+
+## 9. Electrical View Mode (UI Toggle)
+
+### 9.1 Purpose
+
+Electrical View Mode exposes **dynamic electrical behaviour** that cannot be observed physically.
+
+---
+
+### 9.2 Animated Current Flow
+
+When enabled:
+
+- Animated connectors show **where current is flowing**
+- Animations appear **only on active paths**
+- Flow direction and speed reflect current magnitude
+
+This applies to:
+- Wires
+- Component legs
+- Internal breadboard connections
+
+---
+
+### 9.3 Voltage and Current Inspection
+
+Electrical View Mode also enables:
+
+- Display of expected **voltage and current**:
+  - On wires
+  - Across component legs
+  - Within breadboard rows and rails
+
+- Values should be visible via:
+  - Hover
+  - Click
+  - Inline annotations (implementation choice)
+
+This explicitly supports multimeter-style learning.
+
+---
+
+## 10. X-Ray Mode (UI Toggle)
+
+### 10.1 Purpose
+
+X-Ray Mode reveals the **hidden internal wiring of the breadboard**.
+
+This explains *why* certain holes are electrically connected.
+
+---
+
+### 10.2 Behaviour
+
+When enabled:
+
+- Internal breadboard buses and rails become visible
+- Electrically shared holes are visually grouped or linked
+- Overlaid wiring is clearly distinguishable from user-added wires
+
+X-Ray Mode is informational only:
+- It does not alter connectivity
+- It does not affect simulation state
+
+---
+
+## 11. LEDs and Visual Electrical Feedback
+
+### 11.1 LED Behaviour
+
+LEDs are not binary indicators.
+
+They must:
+- Respond to voltage and current levels
+- Respect polarity and forward voltage
+- Display proportional brightness
+
+---
+
+### 11.2 Visual Representation
+
+- Brightness represented via:
+  - Emissive intensity
+  - Optional glow/bloom effect
+- Over-voltage or invalid conditions may:
+  - Dim
+  - Flicker
+  - Be visually distinguishable (future extension)
+
+---
+
+## 12. Quick Select Component Bar
+
+### 12.1 Purpose
+
+The tool must be usable **within seconds**.
+
+---
+
+### 12.2 Default Quick Select Items
+
+Displayed prominently on initial load:
+
+- LED
+- Wire (red)
+- Resistor
+- Switch
+- Battery / power source
+
+---
+
+### 12.3 Customisation
+
+- Users can:
+  - Favourite components from the library
+  - Remove items from quick select
+- Quick select reflects favourites dynamically
+
+---
+
+## 13. Initial State: Not an Empty Board
+
+On first load, users must see:
+
+- A **working example circuit**
+- At least one interactive element (e.g. switch + LED)
+
+This immediately communicates:
+- Purpose
+- Interaction model
+- Educational value
+
+---
+
+## 14. Logical View (formerly “Schematic View”)
+
+### 14.1 Purpose
+
+The Logical View presents a **canonical, abstracted circuit diagram**, independent of physical layout.
+
+---
+
+### 14.2 Behaviour
+
+- Generated automatically from the physical/electrical graph
+- Uses layout algorithms to:
+  - Remove spatial noise
+  - Present standard electrical symbols
+- Maintains a one-to-one mapping with circuit topology
+
+This view supports:
+- Conceptual understanding
+- Debugging
+- Teaching abstraction
+
+---
+
+## 15. Summary
+
+This iteration establishes:
+
+- A **robust interaction foundation** via Rete.js
+- A clear distinction between:
+  - Physical construction
+  - Electrical behaviour
+  - Logical representation
+- Two powerful informational modes that provide value beyond physical hardware
+
+Future iterations can extend simulation depth and component variety without revisiting core assumptions.
