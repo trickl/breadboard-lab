@@ -3279,6 +3279,13 @@ export class BreadboardApp {
   }
 
   /**
+   * Get X-Ray Mode state (for testing)
+   */
+  getXrayModeEnabled(): boolean {
+    return this.xrayModeEnabled;
+  }
+
+  /**
    * Select a component by ID (for testing)
    */
   selectComponent(componentId: string): void {
