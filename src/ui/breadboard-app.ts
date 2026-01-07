@@ -91,6 +91,18 @@ export interface FloatingDragState {
 }
 
 /**
+ * Drag state for connection re-routing
+ */
+export interface ConnectionRerouteDragState {
+  type: 'connection-reroute';
+  connectionId: string;
+  endpointType: 'source' | 'target'; // which end is being dragged
+  originalHolePosition: Position;
+  currentMousePosition: { x: number; y: number };
+  targetHole?: Position; // Target hole being hovered (if any)
+}
+
+/**
  * Main application class managing the breadboard UI and simulation
  */
 export class BreadboardApp {
@@ -100,6 +112,8 @@ export class BreadboardApp {
   private placementStart: Position | null = null;
   private floatingComponent: FloatingComponent | null = null; // Phase 3c: Floating component for new placement workflow
   private floatingDragState: FloatingDragState | null = null; // Phase 3d: Drag state for floating component
+  private connectionRerouteDragState: ConnectionRerouteDragState | null = null; // Wire re-routing: Drag state for connection endpoint
+  private selectedConnectionId: string | null = null; // Wire re-routing: Selected connection for re-routing
   private extractor: CircuitExtractor;
   private simulator: CircuitSimulator;
   private pixiRenderer: PixiRenderer;
@@ -414,6 +428,12 @@ export class BreadboardApp {
         onHoleHoverOut: (position, _event) => {
           this.handleHoleHoverOut(position);
         },
+        onConnectionClick: (connectionId, _event) => {
+          this.handleConnectionClick(connectionId);
+        },
+        onConnectionEndpointDragStart: (connectionId, endpointType, globalX, globalY) => {
+          this.handleConnectionEndpointDragStart(connectionId, endpointType, globalX, globalY);
+        },
       };
       try {
         await this.pixiRenderer.init(breadboard, handlers);
@@ -430,7 +450,13 @@ export class BreadboardApp {
 
     // Render Rete connection lines (Phase 3b)
     if (USE_RETE_INTERACTIVE && this.reteManager) {
-      this.pixiRenderer.renderConnections(this.reteManager, this.state.components, this.cachedSimulation);
+      this.pixiRenderer.renderConnections(
+        this.reteManager,
+        this.state.components,
+        this.cachedSimulation,
+        this.selectedConnectionId,
+        this.connectionRerouteDragState
+      );
     }
 
     // Render components with simulation results for LED glow
@@ -718,6 +744,9 @@ export class BreadboardApp {
    */
   private handleComponentClick(componentId: string): void {
     if (!this.dragState) {
+      // Deselect any selected connection
+      this.selectedConnectionId = null;
+      
       this.selectComponentById(componentId);
       // Show explain panel for component
       this.explainPanel.show({ type: 'component', componentId });
@@ -910,6 +939,9 @@ export class BreadboardApp {
    */
   private handleHoleClick(position: Position): void {
     if (!this.selectedComponentType) {
+      // Deselect any selected connection
+      this.selectedConnectionId = null;
+      
       // No component type selected - show node information in explain panel
       if (this.cachedCircuit && this.cachedSimulation && this.cachedSimulation.success) {
         const positionToNode = this.buildPositionToNodeMap(this.cachedCircuit);
@@ -1930,6 +1962,66 @@ export class BreadboardApp {
       this.floatingDragState.connectionTargetHole = undefined;
       void this.renderBreadboard();
     }
+  }
+
+  /**
+   * Wire re-routing: Handle connection click for selection
+   */
+  private handleConnectionClick(connectionId: string): void {
+    // Deselect any selected component
+    if (this.state.selectedComponentId) {
+      this.state = { ...this.state, selectedComponentId: null };
+    }
+    
+    // Toggle connection selection
+    if (this.selectedConnectionId === connectionId) {
+      this.selectedConnectionId = null;
+    } else {
+      this.selectedConnectionId = connectionId;
+    }
+    
+    void this.renderBreadboard();
+  }
+
+  /**
+   * Wire re-routing: Handle endpoint drag start for re-routing
+   */
+  private handleConnectionEndpointDragStart(
+    connectionId: string,
+    endpointType: 'source' | 'target',
+    globalX: number,
+    globalY: number
+  ): void {
+    if (!this.reteManager) return;
+    
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    const mouseX = globalX - rect.left;
+    const mouseY = globalY - rect.top;
+
+    // Get the connection to find original hole position
+    const connections = this.reteManager.getConnections();
+    const connection = connections.find(c => c.id === connectionId);
+    if (!connection) return;
+
+    // For now, we'll use a placeholder position - full implementation would
+    // extract actual hole position from the connection's source/target nodes
+    const originalHolePosition: Position = { row: 0, col: 0 };
+
+    // Initialize connection re-route drag state
+    this.connectionRerouteDragState = {
+      type: 'connection-reroute',
+      connectionId,
+      endpointType,
+      originalHolePosition,
+      currentMousePosition: { x: mouseX, y: mouseY },
+    };
+
+    // Attach global mouse handlers for move and up
+    document.addEventListener('mousemove', this.handleMouseMoveBound);
+    document.addEventListener('mouseup', this.handleMouseUpBound);
   }
 
   /**
