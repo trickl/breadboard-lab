@@ -2250,7 +2250,40 @@ src/
 
 ### Rete.js Integration Architecture (Phase 3a Complete)
 
-**Status**: Phase 3a Complete ✅ (PR #231)
+**Status**: Phase 3a Complete ✅ (PR #231). Wire re-routing capability added (current PR).
+
+**Wire Re-routing Capability** (COMPLETE):
+- **Connection selection**: Click on any wire/connection to select it
+  - Selected connections display blue highlight with thicker stroke width
+  - Deselection occurs when clicking components, holes, or background
+  - Connection state tracked in `selectedConnectionId` (BreadboardApp)
+- **Draggable endpoint handles**: Selected connections show interactive handles at both endpoints
+  - Handles rendered as blue circles with white borders
+  - Cursor changes to "move" on hover
+  - Click and drag to re-route either endpoint
+- **Real-time ghost preview**: During drag, semi-transparent blue preview line shows target connection
+  - Ghost connection follows mouse with snap-to-hole behavior
+  - Target hole indicator (blue circle) shows where connection will be placed
+  - Preview updates on every mouse move for smooth interaction
+- **Validation feedback**: Hover feedback indicates valid vs invalid target holes
+  - Valid holes: Blue target indicator appears
+  - Occupied holes: No indicator (re-routing prevented)
+  - Same hole as source: Allowed (no-op move)
+- **Re-routing execution**: Drop on valid hole re-routes connection endpoint
+  - `rerouteConnection()` method in ReteManager handles graph updates
+  - Validation uses existing `isHoleOccupied()` and `validateConnection()` methods
+  - BreadboardState synchronization after successful re-route
+  - Circuit re-extraction and re-simulation triggered automatically
+- **Test coverage**: 2 new unit tests for re-routing validation
+  - Test: Re-route connection to new hole
+  - Test: Reject re-routing to occupied hole
+  - All 443 tests passing (441 existing + 2 new)
+- **Goal.md compliance**: Satisfies Section 6.2 requirements
+  - ✅ "Wires are draggable via control points"
+  - ✅ "Re-routing must be supported (Rete re-root pattern)"
+- **Known limitations**:
+  - Undo/redo not yet integrated (requires tracking connection changes separately from component positions)
+  - Full BreadboardState sync requires explicit wire/connection tracking (future enhancement)
 
 Phase 3a of the Rete.js migration **implements the connection event handling and validation infrastructure** needed for interactive connection creation. This establishes the architectural foundation for drag-and-drop connections while maintaining the active graph-based connection management from Phase 2. The system now uses Rete.js as the source of truth for connectivity (which holes are occupied, how components connect), with event handlers and validators ready for UI integration in subsequent phases.
 
@@ -2974,7 +3007,12 @@ Twenty-three test suites with **441 passing tests** (100% pass rate; 433 unit/in
 
 ### Test Execution
 
-- **441 out of 441 tests pass** (100% pass rate) after PR #249
+- **443 out of 443 tests pass** (100% pass rate) after wire re-routing implementation
+- **Wire re-routing tests** (current PR):
+  - Added 2 new tests for `rerouteConnection()` method in ReteManager
+  - Test: Re-route connection to new hole (validates method behavior)
+  - Test: Reject re-routing to occupied hole (validates occupancy constraint)
+  - All wire re-routing tests passing
 - **Rete.js Phase 3e implementation** (PR #249):
   - Enabled interactive component placement workflow (USE_RETE_INTERACTIVE = true)
   - Added 5 new public test API methods to BreadboardApp:
