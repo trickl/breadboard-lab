@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { CircuitExtractor } from '../circuit-extractor';
 import { ComponentType } from '../types';
 import type { BreadboardState } from '../types';
+import { ReteManager } from '../rete-manager';
 
 describe('CircuitExtractor', () => {
   const extractor = new CircuitExtractor();
@@ -143,5 +144,156 @@ describe('CircuitExtractor', () => {
     // Since both positions are in the same rail, they're already connected
     // So no edge should be created
     expect(circuit.edges.length).toBe(0);
+  });
+
+  describe('extractFromReteGraph (Phase 2)', () => {
+    let reteManager: ReteManager;
+
+    beforeEach(async () => {
+      reteManager = new ReteManager();
+      await reteManager.initialize();
+    });
+
+    it('should extract circuit from Rete graph - empty state', async () => {
+      const state: BreadboardState = {
+        components: [],
+        selectedComponentId: null,
+      };
+
+      await reteManager.syncFromBreadboardState(state);
+      const circuit = extractor.extractFromReteGraph(reteManager, state);
+
+      expect(circuit.nodes.size).toBe(0); // No components = no occupied positions
+      expect(circuit.edges.length).toBe(0); // No components = no edges
+    });
+
+    it('should extract circuit from Rete graph - single component', async () => {
+      const state: BreadboardState = {
+        components: [
+          {
+            id: 'resistor1',
+            type: ComponentType.RESISTOR,
+            positions: [
+              { row: 5, col: 2 },
+              { row: 10, col: 2 },
+            ],
+            resistance: 1000,
+            rotation: 0,
+          },
+        ],
+        selectedComponentId: null,
+      };
+
+      await reteManager.syncFromBreadboardState(state);
+      const circuit = extractor.extractFromReteGraph(reteManager, state);
+
+      // Should have 2 nodes (one for each terminal strip row)
+      expect(circuit.nodes.size).toBeGreaterThan(0);
+      
+      // Should have 1 edge (resistor connecting two different rows)
+      expect(circuit.edges.length).toBe(1);
+      expect(circuit.edges[0].component.id).toBe('resistor1');
+    });
+
+    it('should produce identical circuit to position-based extraction', async () => {
+      const state: BreadboardState = {
+        components: [
+          {
+            id: 'resistor1',
+            type: ComponentType.RESISTOR,
+            positions: [
+              { row: 5, col: 2 },
+              { row: 10, col: 2 },
+            ],
+            resistance: 1000,
+            rotation: 0,
+          },
+          {
+            id: 'led1',
+            type: ComponentType.LED,
+            positions: [
+              { row: 10, col: 7 },
+              { row: 15, col: 7 },
+            ],
+            forwardVoltage: 2.0,
+            maxCurrent: 0.02,
+            rotation: 0,
+          },
+          {
+            id: 'wire1',
+            type: ComponentType.WIRE,
+            positions: [
+              { row: 5, col: 2 },
+              { row: 5, col: 7 },
+            ],
+            resistance: 0.01,
+            rotation: 0,
+          },
+        ],
+        selectedComponentId: null,
+      };
+
+      await reteManager.syncFromBreadboardState(state);
+      
+      const circuitFromPosition = extractor.extract(state);
+      const circuitFromRete = extractor.extractFromReteGraph(reteManager, state);
+
+      // Both methods should produce the same number of edges
+      expect(circuitFromRete.edges.length).toBe(circuitFromPosition.edges.length);
+      
+      // Edge IDs should match
+      const reteEdgeIds = circuitFromRete.edges.map(e => e.id).sort();
+      const positionEdgeIds = circuitFromPosition.edges.map(e => e.id).sort();
+      expect(reteEdgeIds).toEqual(positionEdgeIds);
+    });
+
+    it('should handle component within same terminal strip', async () => {
+      const state: BreadboardState = {
+        components: [
+          {
+            id: 'wire1',
+            type: ComponentType.WIRE,
+            positions: [
+              { row: 5, col: 2 }, // Same terminal strip
+              { row: 5, col: 3 }, // Same terminal strip (internally connected)
+            ],
+            resistance: 0.01,
+            rotation: 0,
+          },
+        ],
+        selectedComponentId: null,
+      };
+
+      await reteManager.syncFromBreadboardState(state);
+      const circuit = extractor.extractFromReteGraph(reteManager, state);
+
+      // Since both positions are in the same terminal strip row, they're already connected
+      // So no edge should be created
+      expect(circuit.edges.length).toBe(0);
+    });
+
+    it('should handle rail connections correctly', async () => {
+      const state: BreadboardState = {
+        components: [
+          {
+            id: 'wire1',
+            type: ComponentType.WIRE,
+            positions: [
+              { row: 5, col: 1 }, // Left positive rail
+              { row: 5, col: 2 }, // Left terminal strip
+            ],
+            resistance: 0.01,
+            rotation: 0,
+          },
+        ],
+        selectedComponentId: null,
+      };
+
+      await reteManager.syncFromBreadboardState(state);
+      const circuit = extractor.extractFromReteGraph(reteManager, state);
+
+      // Wire should connect rail to terminal strip (different nodes)
+      expect(circuit.edges.length).toBe(1);
+    });
   });
 });

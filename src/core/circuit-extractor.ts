@@ -1,13 +1,16 @@
 import type { BreadboardState, Circuit, CircuitNode, CircuitEdge, Position } from './types';
 import { BreadboardLayout } from './breadboard-layout';
+import type { ReteManager } from './rete-manager';
 
 /**
  * Extracts an electrical circuit graph from the breadboard state.
  * Uses union-find to identify connected nodes.
+ * 
+ * Phase 2: Can extract from either position-based state OR Rete graph
  */
 export class CircuitExtractor {
   /**
-   * Extract circuit from breadboard state
+   * Extract circuit from breadboard state (position-based)
    */
   extract(state: BreadboardState): Circuit {
     // Build a union-find structure to identify connected positions
@@ -83,6 +86,119 @@ export class CircuitExtractor {
 
     // Create circuit edges from components
     // Components connect their start and end positions (which may be in different nodes)
+    const edges: CircuitEdge[] = [];
+    for (const component of state.components) {
+      if (component.positions.length >= 2) {
+        // Find which nodes the component's endpoints belong to
+        const nodeA = uf.find(this.positionToKey(component.positions[0]));
+        const nodeB = uf.find(this.positionToKey(component.positions[component.positions.length - 1]));
+        
+        // Only create edge if component connects different nodes
+        if (nodeA !== nodeB) {
+          edges.push({
+            id: component.id,
+            component,
+            nodeA,
+            nodeB,
+          });
+        }
+      }
+    }
+
+    return { nodes, edges };
+  }
+
+  /**
+   * Extract circuit from Rete graph (Phase 2)
+   * 
+   * This method reads the Rete graph connections to determine component-to-hole
+   * connectivity, then applies breadboard internal connectivity rules to build
+   * the complete electrical circuit.
+   * 
+   * @param reteManager - The ReteManager containing the Rete graph
+   * @param state - The current BreadboardState (for component properties)
+   * @returns Circuit graph with nodes and edges
+   */
+  extractFromReteGraph(reteManager: ReteManager, state: BreadboardState): Circuit {
+    // Build a union-find structure for breadboard internal connectivity
+    const uf = new UnionFind();
+
+    // Step 1: Apply breadboard internal connectivity (same as position-based)
+    // Terminal strips: each row is internally connected on each side
+    for (let row = 0; row < BreadboardLayout.ROWS; row++) {
+      // Left terminal strip (cols 2-6)
+      for (let col = BreadboardLayout.STRIP_LEFT_START; col <= BreadboardLayout.STRIP_LEFT_END; col++) {
+        if (col > BreadboardLayout.STRIP_LEFT_START) {
+          uf.union(
+            this.positionToKey({ row, col: BreadboardLayout.STRIP_LEFT_START }),
+            this.positionToKey({ row, col })
+          );
+        }
+      }
+      // Right terminal strip (cols 7-11)
+      for (let col = BreadboardLayout.STRIP_RIGHT_START; col <= BreadboardLayout.STRIP_RIGHT_END; col++) {
+        if (col > BreadboardLayout.STRIP_RIGHT_START) {
+          uf.union(
+            this.positionToKey({ row, col: BreadboardLayout.STRIP_RIGHT_START }),
+            this.positionToKey({ row, col })
+          );
+        }
+      }
+    }
+
+    // Connect power rails: all holes in each rail are vertically connected
+    const railColumns = [
+      BreadboardLayout.RAIL_LEFT_NEGATIVE,
+      BreadboardLayout.RAIL_LEFT_POSITIVE,
+      BreadboardLayout.RAIL_RIGHT_POSITIVE,
+      BreadboardLayout.RAIL_RIGHT_NEGATIVE,
+    ];
+
+    for (const col of railColumns) {
+      for (let row = 0; row < BreadboardLayout.ROWS; row++) {
+        if (row > 0) {
+          uf.union(
+            this.positionToKey({ row: 0, col }),
+            this.positionToKey({ row, col })
+          );
+        }
+      }
+    }
+
+    // Step 2: Collect all occupied positions from Rete hole nodes
+    const occupiedPositions = new Set<string>();
+    const holeNodes = reteManager.getAllHoleNodes();
+    
+    for (const holeNode of holeNodes) {
+      const key = this.positionToKey(holeNode.position);
+      occupiedPositions.add(key);
+    }
+
+    // Step 3: Build nodes from union-find structure (only for occupied positions)
+    const nodeGroups = new Map<string, Position[]>();
+    for (const posKey of occupiedPositions) {
+      const root = uf.find(posKey);
+      if (!nodeGroups.has(root)) {
+        nodeGroups.set(root, []);
+      }
+      
+      // Parse position from key
+      const [rowStr, colStr] = posKey.split(',');
+      const pos = { row: parseInt(rowStr), col: parseInt(colStr) };
+      nodeGroups.get(root)!.push(pos);
+    }
+
+    // Create circuit nodes
+    const nodes = new Map<string, CircuitNode>();
+    for (const [rootKey, positions] of nodeGroups) {
+      nodes.set(rootKey, {
+        id: rootKey,
+        positions,
+      });
+    }
+
+    // Step 4: Create circuit edges from components
+    // Read from BreadboardState as components still hold electrical properties
     const edges: CircuitEdge[] = [];
     for (const component of state.components) {
       if (component.positions.length >= 2) {

@@ -288,8 +288,18 @@ export class BreadboardApp {
       breadboard.innerHTML = '';
     }
 
+    // Sync state to Rete graph if enabled (Phase 2)
+    if (USE_RETE && this.reteManager) {
+      await this.syncStateToRete();
+    }
+
     // Extract circuit and run simulation (cache for performance)
-    this.cachedCircuit = this.extractor.extract(this.state);
+    // Use Rete-based extraction if enabled, otherwise use position-based
+    if (USE_RETE && this.reteManager) {
+      this.cachedCircuit = this.extractor.extractFromReteGraph(this.reteManager, this.state);
+    } else {
+      this.cachedCircuit = this.extractor.extract(this.state);
+    }
     this.cachedSimulation = this.simulator.simulate(this.cachedCircuit);
     
     // Invalidate schematic cache when circuit changes
@@ -929,7 +939,10 @@ export class BreadboardApp {
     const infoDiv = document.getElementById('circuit-info');
     if (!infoDiv) return;
 
-    const circuit = this.extractor.extract(this.state);
+    // Use Rete-based extraction if enabled, otherwise use position-based
+    const circuit = USE_RETE && this.reteManager
+      ? this.extractor.extractFromReteGraph(this.reteManager, this.state)
+      : this.extractor.extract(this.state);
     const simulation = this.simulator.simulate(circuit);
 
     infoDiv.innerHTML = `
