@@ -45,6 +45,8 @@ interface AnimationPath {
  */
 export interface PixiEventHandlers {
   onHoleClick?: (position: Position, event: FederatedPointerEvent) => void;
+  onHoleHover?: (position: Position, event: FederatedPointerEvent) => void;
+  onHoleHoverOut?: (position: Position, event: FederatedPointerEvent) => void;
   onComponentClick?: (componentId: string, event: FederatedPointerEvent) => void;
   onErrorIconClick?: (error: CircuitError, event: FederatedPointerEvent) => void;
   onComponentDragStart?: (componentId: string, globalX: number, globalY: number) => void;
@@ -358,7 +360,8 @@ export class PixiRenderer {
    */
   private renderHole(
     pos: Position,
-    holeColor: number
+    holeColor: number,
+    isOccupied: boolean = false
   ): Graphics {
     const pixels = this.positionToPixels(pos);
     const hole = new Graphics();
@@ -384,6 +387,33 @@ export class PixiRenderer {
     hole.eventMode = 'static';
     hole.cursor = 'pointer';
     (hole as any).breadboardPosition = pos;
+    (hole as any).holeBaseColor = holeColor;
+    (hole as any).isOccupied = isOccupied;
+    
+    // Hover effect - add highlight glow
+    hole.on('pointerover', (event: FederatedPointerEvent) => {
+      // Add hover glow effect
+      const hoverGlow = new Graphics();
+      hoverGlow.circle(pixels.x, pixels.y, PixiRenderer.HOLE_SIZE / 2 + 3);
+      hoverGlow.stroke({ width: 2, color: 0x44aaff, alpha: 0.6 });
+      (hole as any).hoverGlow = hoverGlow;
+      hole.addChild(hoverGlow);
+      
+      // Call hover handler if registered
+      this.eventHandlers.onHoleHover?.(pos, event);
+    });
+    
+    hole.on('pointerout', (event: FederatedPointerEvent) => {
+      // Remove hover glow
+      const hoverGlow = (hole as any).hoverGlow as Graphics | undefined;
+      if (hoverGlow) {
+        hole.removeChild(hoverGlow);
+        (hole as any).hoverGlow = null;
+      }
+      
+      // Call hover out handler if registered
+      this.eventHandlers.onHoleHoverOut?.(pos, event);
+    });
     
     if (this.eventHandlers.onHoleClick) {
       hole.on('pointerdown', (event: FederatedPointerEvent) => {
@@ -399,7 +429,8 @@ export class PixiRenderer {
    */
   renderBreadboard(
     positionToNode: Map<string, string>,
-    simulation: SimulationResult | null
+    simulation: SimulationResult | null,
+    reteManager?: { isHoleOccupied(pos: Position): boolean } | null
   ): void {
     this.breadboardContainer.removeChildren();
     
@@ -431,7 +462,10 @@ export class PixiRenderer {
           }
         }
         
-        const hole = this.renderHole(pos, holeColor);
+        // Check if hole is occupied (for visual feedback)
+        const isOccupied = reteManager?.isHoleOccupied(pos) ?? false;
+        
+        const hole = this.renderHole(pos, holeColor, isOccupied);
         this.breadboardContainer.addChild(hole);
       }
     }

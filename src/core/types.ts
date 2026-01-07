@@ -142,6 +142,24 @@ export interface BreadboardState {
 }
 
 /**
+ * Floating component (not yet placed on breadboard)
+ * Used for Phase 3c: Interactive component placement workflow
+ */
+export interface FloatingComponent {
+  id: string;
+  type: ComponentType;
+  libraryId?: string;
+  position: { x: number; y: number }; // Canvas coordinates (pixels), not grid positions
+  rotation: number; // Continuous rotation in degrees (0-360)
+  properties: {
+    resistance?: number; // For resistors (Ohms)
+    forwardVoltage?: number; // For LEDs (Volts)
+    maxCurrent?: number; // For LEDs (Amperes)
+    voltage?: number; // For power supplies (Volts)
+  };
+}
+
+/**
  * A node in the electrical circuit
  */
 export interface CircuitNode {

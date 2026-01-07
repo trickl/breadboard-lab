@@ -388,7 +388,7 @@ export class BreadboardApp {
     }
 
     // Render breadboard grid with voltage overlay
-    this.pixiRenderer.renderBreadboard(positionToNode, this.cachedSimulation);
+    this.pixiRenderer.renderBreadboard(positionToNode, this.cachedSimulation, this.reteManager);
 
     // Render components with simulation results for LED glow
     this.pixiRenderer.renderComponents(
