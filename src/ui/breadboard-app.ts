@@ -1509,6 +1509,12 @@ export class BreadboardApp {
    * Handle mouse move during drag
    */
   private handleMouseMove(event: MouseEvent): void {
+    // Handle connection re-routing drag (Wire re-routing)
+    if (this.connectionRerouteDragState) {
+      this.updateConnectionRerouteDragPreview(event);
+      return;
+    }
+    
     // Handle floating component drag (Phase 3d)
     if (this.floatingDragState) {
       this.updateFloatingComponentDragPreview(event);
@@ -1593,6 +1599,14 @@ export class BreadboardApp {
    * Handle mouse up to complete or cancel drag
    */
   private handleMouseUp(_event: MouseEvent): void {
+    // Handle connection re-routing drag end (Wire re-routing)
+    if (this.connectionRerouteDragState) {
+      void this.handleConnectionReroute();
+      this.cleanupConnectionRerouteDrag();
+      void this.render();
+      return;
+    }
+    
     // Handle floating component drag end (Phase 3d)
     if (this.floatingDragState) {
       // Phase 3d.3: Handle connection creation
@@ -1946,6 +1960,19 @@ export class BreadboardApp {
    * Phase 3d.2: Handle hole hover during connection drag
    */
   private handleHoleHover(position: Position): void {
+    // Handle connection re-routing hover (Wire re-routing)
+    if (this.connectionRerouteDragState) {
+      // Check if hole is valid (not occupied)
+      if (this.reteManager && !this.reteManager.isHoleOccupied(position)) {
+        this.connectionRerouteDragState.targetHole = position;
+      } else {
+        this.connectionRerouteDragState.targetHole = undefined;
+      }
+      void this.renderBreadboard();
+      return;
+    }
+    
+    // Handle floating component connection drag
     if (this.floatingDragState && this.floatingDragState.isDraggingConnection) {
       // Update target hole being hovered
       this.floatingDragState.connectionTargetHole = position;
@@ -1957,6 +1984,14 @@ export class BreadboardApp {
    * Phase 3d.2: Handle hole hover out during connection drag
    */
   private handleHoleHoverOut(_position: Position): void {
+    // Handle connection re-routing hover out (Wire re-routing)
+    if (this.connectionRerouteDragState) {
+      this.connectionRerouteDragState.targetHole = undefined;
+      void this.renderBreadboard();
+      return;
+    }
+    
+    // Handle floating component connection drag
     if (this.floatingDragState && this.floatingDragState.isDraggingConnection) {
       // Clear target hole
       this.floatingDragState.connectionTargetHole = undefined;
@@ -2022,6 +2057,82 @@ export class BreadboardApp {
     // Attach global mouse handlers for move and up
     document.addEventListener('mousemove', this.handleMouseMoveBound);
     document.addEventListener('mouseup', this.handleMouseUpBound);
+  }
+  
+  /**
+   * Wire re-routing: Update connection re-route drag preview
+   */
+  private updateConnectionRerouteDragPreview(event: MouseEvent): void {
+    if (!this.connectionRerouteDragState) return;
+
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    // Update current mouse position
+    this.connectionRerouteDragState.currentMousePosition = { x: mouseX, y: mouseY };
+
+    // Snap to nearest hole
+    const snappedPosition = this.snapToGrid({ x: mouseX, y: mouseY });
+    
+    // Check if hole is valid (not occupied or is the other endpoint)
+    if (this.reteManager && !this.reteManager.isHoleOccupied(snappedPosition)) {
+      this.connectionRerouteDragState.targetHole = snappedPosition;
+    } else {
+      this.connectionRerouteDragState.targetHole = undefined;
+    }
+
+    // Re-render to show updated position
+    void this.renderBreadboard();
+  }
+  
+  /**
+   * Wire re-routing: Handle connection re-route on mouse up
+   */
+  private async handleConnectionReroute(): Promise<void> {
+    if (!this.connectionRerouteDragState || !this.reteManager) return;
+
+    const targetHole = this.connectionRerouteDragState.targetHole;
+    if (!targetHole) {
+      console.log('[Wire re-routing] Re-route canceled - no valid target hole');
+      return;
+    }
+
+    // Perform the re-routing
+    const success = await this.reteManager.rerouteConnection(
+      this.connectionRerouteDragState.connectionId,
+      targetHole,
+      this.connectionRerouteDragState.endpointType
+    );
+
+    if (success) {
+      console.log('[Wire re-routing] Connection re-routed successfully');
+      
+      // Mark as changed
+      this.markAsChanged();
+      
+      // Sync BreadboardState from Rete graph
+      if (USE_RETE) {
+        await this.syncStateToRete();
+      }
+      
+      // Keep the connection selected after re-routing
+      // (selectedConnectionId already set)
+    } else {
+      console.warn('[Wire re-routing] Re-route failed');
+    }
+  }
+  
+  /**
+   * Wire re-routing: Clean up connection re-route drag state
+   */
+  private cleanupConnectionRerouteDrag(): void {
+    this.connectionRerouteDragState = null;
+    document.removeEventListener('mousemove', this.handleMouseMoveBound);
+    document.removeEventListener('mouseup', this.handleMouseUpBound);
   }
 
   /**

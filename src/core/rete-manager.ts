@@ -584,4 +584,56 @@ export class ReteManager {
       return false;
     }
   }
+  
+  /**
+   * Wire re-routing: Re-route a connection endpoint to a new hole
+   * Returns true if successful, false if validation failed
+   */
+  async rerouteConnection(
+    connectionId: string,
+    newHolePosition: Position,
+    endpointType: 'source' | 'target'
+  ): Promise<boolean> {
+    try {
+      // Find the connection
+      const connection = this.editor.getConnections().find(c => c.id === connectionId);
+      if (!connection) {
+        console.warn(`Connection ${connectionId} not found`);
+        return false;
+      }
+      
+      // Get the new hole node
+      const newHoleNode = this.getHoleNode(newHolePosition);
+      if (!newHoleNode) {
+        console.warn(`Hole at (${newHolePosition.row}, ${newHolePosition.col}) not found`);
+        return false;
+      }
+      
+      // Check if the new hole is already occupied (unless it's the other end of this connection)
+      const otherEndNodeId = endpointType === 'source' ? connection.target : connection.source;
+      if (newHoleNode.id !== otherEndNodeId && this.isHoleOccupied(newHolePosition)) {
+        console.warn(`Hole at (${newHolePosition.row}, ${newHolePosition.col}) is already occupied`);
+        return false;
+      }
+      
+      // Remove the old connection
+      await this.editor.removeConnection(connectionId);
+      
+      // Create a new connection with the updated endpoint
+      const sourceNodeId = endpointType === 'source' ? newHoleNode.id : connection.source;
+      const targetNodeId = endpointType === 'target' ? newHoleNode.id : connection.target;
+      const sourceSocket = endpointType === 'source' ? 'hole' : connection.sourceOutput;
+      const targetSocket = endpointType === 'target' ? 'hole' : connection.targetInput;
+      
+      return await this.createConnection(
+        sourceNodeId,
+        sourceSocket as string,
+        targetNodeId,
+        targetSocket as string
+      );
+    } catch (error) {
+      console.error('Error re-routing connection:', error);
+      return false;
+    }
+  }
 }
