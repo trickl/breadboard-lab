@@ -75,6 +75,18 @@ export interface DragState {
 }
 
 /**
+ * Drag state for floating component (Phase 3d)
+ */
+export interface FloatingDragState {
+  floatingComponentId: string;
+  startMousePos: { x: number; y: number };
+  offsetFromComponentCenter: { x: number; y: number }; // Offset from mouse to component center
+  isDraggingConnection: boolean; // True if dragging from a leg to create connection
+  connectionSourceLegIndex?: number; // Which leg is being connected (if isDraggingConnection)
+  connectionTargetHole?: Position; // Target hole being hovered (if any)
+}
+
+/**
  * Main application class managing the breadboard UI and simulation
  */
 export class BreadboardApp {
@@ -83,6 +95,7 @@ export class BreadboardApp {
   private selectedLibraryId: string | null = null;
   private placementStart: Position | null = null;
   private floatingComponent: FloatingComponent | null = null; // Phase 3c: Floating component for new placement workflow
+  private floatingDragState: FloatingDragState | null = null; // Phase 3d: Drag state for floating component
   private extractor: CircuitExtractor;
   private simulator: CircuitSimulator;
   private pixiRenderer: PixiRenderer;
@@ -385,6 +398,9 @@ export class BreadboardApp {
         onComponentDragStart: (componentId, globalX, globalY) => {
           this.handleComponentDragStart(componentId, globalX, globalY);
         },
+        onFloatingComponentDragStart: (floatingComponentId, globalX, globalY) => {
+          this.handleFloatingComponentDragStart(floatingComponentId, globalX, globalY);
+        },
       };
       try {
         await this.pixiRenderer.init(breadboard, handlers);
@@ -632,6 +648,15 @@ export class BreadboardApp {
 
     // Cancel drag on Escape
     if (e.key === 'Escape') {
+      // Phase 3d: Cancel floating component placement
+      if (this.floatingComponent) {
+        e.preventDefault();
+        this.floatingComponent = null;
+        this.cleanupFloatingDrag();
+        void this.render();
+        return;
+      }
+      
       if (this.dragState) {
         e.preventDefault();
         this.cancelDrag();
@@ -1439,9 +1464,37 @@ export class BreadboardApp {
    * Handle mouse move during drag
    */
   private handleMouseMove(event: MouseEvent): void {
+    // Handle floating component drag (Phase 3d)
+    if (this.floatingDragState) {
+      this.updateFloatingComponentDragPreview(event);
+      return;
+    }
+    
+    // Handle placed component drag (existing functionality)
     if (!this.dragState) return;
 
     this.updateDragPreview(event);
+  }
+
+  /**
+   * Phase 3d.1: Update floating component position during drag
+   */
+  private updateFloatingComponentDragPreview(event: MouseEvent): void {
+    if (!this.floatingDragState || !this.floatingComponent) return;
+
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    // Update floating component position based on mouse position
+    this.floatingComponent.position.x = mouseX + this.floatingDragState.offsetFromComponentCenter.x;
+    this.floatingComponent.position.y = mouseY + this.floatingDragState.offsetFromComponentCenter.y;
+
+    // Re-render to show updated position
+    void this.renderBreadboard();
   }
 
   /**
@@ -1495,6 +1548,13 @@ export class BreadboardApp {
    * Handle mouse up to complete or cancel drag
    */
   private handleMouseUp(_event: MouseEvent): void {
+    // Handle floating component drag end (Phase 3d)
+    if (this.floatingDragState) {
+      this.cleanupFloatingDrag();
+      return;
+    }
+    
+    // Handle placed component drag end (existing functionality)
     if (!this.dragState) return;
 
     // If we have valid preview positions, update component
@@ -1539,6 +1599,15 @@ export class BreadboardApp {
   }
 
   /**
+   * Phase 3d.1: Clean up floating component drag state and event listeners
+   */
+  private cleanupFloatingDrag(): void {
+    document.removeEventListener('mousemove', this.handleMouseMoveBound);
+    document.removeEventListener('mouseup', this.handleMouseUpBound);
+    this.floatingDragState = null;
+  }
+
+  /**
    * Convert pixel coordinates to grid position with snapping
    */
   private snapToGrid(pixels: { x: number; y: number }): Position {
@@ -1550,6 +1619,38 @@ export class BreadboardApp {
       row: Math.max(0, Math.min(BreadboardLayout.ROWS - 1, row)),
       col: Math.max(0, Math.min(BreadboardLayout.COLS_PER_SIDE * 2 - 1, col)),
     };
+  }
+
+  /**
+   * Phase 3d.1: Handle drag start for floating component
+   */
+  private handleFloatingComponentDragStart(floatingComponentId: string, globalX: number, globalY: number): void {
+    if (!this.floatingComponent || this.floatingComponent.id !== floatingComponentId) {
+      return;
+    }
+
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    const mouseX = globalX - rect.left;
+    const mouseY = globalY - rect.top;
+
+    // Calculate offset from mouse to component center
+    const offsetX = this.floatingComponent.position.x - mouseX;
+    const offsetY = this.floatingComponent.position.y - mouseY;
+
+    // Initialize floating drag state
+    this.floatingDragState = {
+      floatingComponentId,
+      startMousePos: { x: mouseX, y: mouseY },
+      offsetFromComponentCenter: { x: offsetX, y: offsetY },
+      isDraggingConnection: false,
+    };
+
+    // Attach global mouse handlers for move and up
+    document.addEventListener('mousemove', this.handleMouseMoveBound);
+    document.addEventListener('mouseup', this.handleMouseUpBound);
   }
 
   /**

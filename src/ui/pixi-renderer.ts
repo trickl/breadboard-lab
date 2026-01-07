@@ -50,6 +50,8 @@ export interface PixiEventHandlers {
   onComponentClick?: (componentId: string, event: FederatedPointerEvent) => void;
   onErrorIconClick?: (error: CircuitError, event: FederatedPointerEvent) => void;
   onComponentDragStart?: (componentId: string, globalX: number, globalY: number) => void;
+  onFloatingComponentDragStart?: (floatingComponentId: string, globalX: number, globalY: number) => void;
+  onFloatingComponentLegDragStart?: (floatingComponentId: string, legIndex: number, globalX: number, globalY: number) => void;
 }
 
 /**
@@ -1261,7 +1263,7 @@ export class PixiRenderer {
   }
 
   /**
-   * Render floating component (Phase 3c)
+   * Render floating component (Phase 3c/3d)
    * Renders component at arbitrary canvas position with reduced opacity
    */
   renderFloatingComponent(
@@ -1290,6 +1292,10 @@ export class PixiRenderer {
     const floatingContainer = new Container();
     floatingContainer.position.set(floating.position.x, floating.position.y);
     floatingContainer.alpha = 0.7; // Semi-transparent to indicate floating state
+    
+    // Make the container interactive for drag handling (Phase 3d)
+    floatingContainer.eventMode = 'static';
+    floatingContainer.cursor = 'grab';
     
     // Draw a simple representation based on component type
     const visual = new Graphics();
@@ -1392,6 +1398,17 @@ export class PixiRenderer {
     }
     
     floatingContainer.addChild(visual);
+    
+    // Phase 3d: Add drag handler for floating component body
+    floatingContainer.on('pointerdown', (event: FederatedPointerEvent) => {
+      if (this.eventHandlers.onFloatingComponentDragStart) {
+        this.eventHandlers.onFloatingComponentDragStart(
+          floating.id,
+          event.global.x,
+          event.global.y
+        );
+      }
+    });
     
     // Add to components container (will be rendered on top)
     this.componentsContainer.addChild(floatingContainer);
