@@ -3106,6 +3106,123 @@ export class BreadboardApp {
   }
 
   /**
+   * Get current floating component (test helper for Phase 3e)
+   * Used to verify interactive workflow state during testing
+   */
+  getFloatingComponent(): FloatingComponent | null {
+    return this.floatingComponent;
+  }
+
+  /**
+   * Click a component leg (test helper for Phase 3e)
+   * Simulates user clicking a leg on the floating component
+   * @param legIndex - Index of leg to click (0-based)
+   */
+  clickComponentLeg(legIndex: number): void {
+    if (!this.floatingComponent) {
+      throw new Error('No floating component to click leg on');
+    }
+    // For testing, we simulate starting a connection drag from the leg
+    // In real usage, this would be triggered by renderer events
+    const legCount = this.getComponentLegCount(this.floatingComponent.type);
+    if (legIndex < 0 || legIndex >= legCount) {
+      throw new Error(`Invalid leg index ${legIndex} for component type ${this.floatingComponent.type}`);
+    }
+    
+    // Start a connection drag state
+    this.floatingDragState = {
+      floatingComponentId: this.floatingComponent.id,
+      startMousePos: { x: 0, y: 0 }, // Not relevant for testing
+      offsetFromComponentCenter: { x: 0, y: 0 },
+      isDraggingConnection: true,
+      connectionSourceLegIndex: legIndex,
+    };
+  }
+
+  /**
+   * Drag floating component to position (test helper for Phase 3e)
+   * @param canvasX - X coordinate in canvas space
+   * @param canvasY - Y coordinate in canvas space
+   */
+  dragFloatingComponentTo(canvasX: number, canvasY: number): void {
+    if (!this.floatingComponent) {
+      throw new Error('No floating component to drag');
+    }
+    // Update floating component position
+    this.floatingComponent.position.x = canvasX;
+    this.floatingComponent.position.y = canvasY;
+    this.render();
+  }
+
+  /**
+   * Complete leg-to-hole connection (test helper for Phase 3e)
+   * Simulates connecting a specific leg to a breadboard hole
+   * @param legIndex - Index of component leg (0-based)
+   * @param row - Breadboard row
+   * @param col - Breadboard column
+   */
+  async connectLegToHole(legIndex: number, row: number, col: number): Promise<void> {
+    if (!this.floatingComponent) {
+      throw new Error('No floating component to connect');
+    }
+    
+    // Simulate clicking the leg first (sets up connection drag state)
+    this.clickComponentLeg(legIndex);
+    
+    // Set the target hole
+    if (this.floatingDragState) {
+      this.floatingDragState.connectionTargetHole = { row, col };
+    }
+    
+    // Complete the connection
+    await this.handleConnectionCreation();
+    
+    // Clear drag state
+    this.floatingDragState = null;
+  }
+
+  /**
+   * Place component interactively (test helper convenience method for Phase 3e)
+   * High-level method that simulates the complete interactive placement workflow
+   * @param componentType - Type of component to place
+   * @param legPositions - Array of {row, col} for each leg
+   */
+  async placeComponentInteractive(
+    componentType: ComponentType,
+    legPositions: Array<{ row: number; col: number }>
+  ): Promise<void> {
+    // Select component (creates floating component in interactive mode)
+    this.selectComponentType(componentType);
+    
+    // Verify floating component was created (only in interactive mode)
+    if (USE_RETE_INTERACTIVE && !this.floatingComponent) {
+      throw new Error('Floating component was not created in interactive mode');
+    }
+    
+    // If not in interactive mode, fall back to legacy two-click placement
+    if (!USE_RETE_INTERACTIVE) {
+      // Legacy two-click API
+      if (legPositions.length !== 2) {
+        throw new Error('Legacy two-click placement requires exactly 2 positions');
+      }
+      this.clickHole(legPositions[0]);
+      this.clickHole(legPositions[1]);
+      return;
+    }
+    
+    // Connect each leg to specified hole (interactive mode)
+    for (let i = 0; i < legPositions.length; i++) {
+      await this.connectLegToHole(i, legPositions[i].row, legPositions[i].col);
+    }
+    
+    // Component should auto-place when all legs connected
+    // Verify component was placed
+    if (this.floatingComponent !== null) {
+      throw new Error('Component did not auto-place after all legs connected');
+    }
+  }
+
+  /**
    * Switch between breadboard and schematic views
    */
   private switchView(view: 'breadboard' | 'schematic'): void {

@@ -27,10 +27,11 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
     expect(app.getSelectedComponentId()).toBeNull();
   });
 
-  it('should select a component when clicked', () => {
-    app.selectComponentType(ComponentType.WIRE);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+  it('should select a component when clicked', async () => {
+    await app.placeComponentInteractive(ComponentType.WIRE, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
     const components = app.getComponents();
     expect(components.length).toBe(1);
@@ -40,10 +41,11 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
     expect(app.getSelectedComponentId()).toBe(componentId);
   });
 
-  it('should deselect component when clicking breadboard background', () => {
-    app.selectComponentType(ComponentType.WIRE);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+  it('should deselect component when clicking breadboard background', async () => {
+    await app.placeComponentInteractive(ComponentType.WIRE, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
     const components = app.getComponents();
     const componentId = components[0].id;
@@ -58,10 +60,11 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
     expect(app.getSelectedComponentId()).toBeNull();
   });
 
-  it('should delete selected component on Delete key press', () => {
-    app.selectComponentType(ComponentType.WIRE);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+  it('should delete selected component on Delete key press', async () => {
+    await app.placeComponentInteractive(ComponentType.WIRE, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
     const components = app.getComponents();
     expect(components.length).toBe(1);
@@ -74,10 +77,11 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
     expect(app.getComponents().length).toBe(0);
   });
 
-  it('should delete selected component on Backspace key press', () => {
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 30 });
+  it('should delete selected component on Backspace key press', async () => {
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 0, col: 0 },
+      { row: 0, col: 30 }
+    ]);
 
     const components = app.getComponents();
     expect(components.length).toBe(1);
@@ -90,14 +94,16 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
     expect(app.getComponents().length).toBe(0);
   });
 
-  it('should update circuit simulation after component deletion', () => {
-    app.selectComponentType(ComponentType.POWER_SUPPLY);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 1 });
+  it('should update circuit simulation after component deletion', async () => {
+    await app.placeComponentInteractive(ComponentType.POWER_SUPPLY, [
+      { row: 0, col: 0 },
+      { row: 0, col: 1 }
+    ]);
     
-    app.selectComponentType(ComponentType.GROUND);
-    app.clickHole({ row: 5, col: 0 });
-    app.clickHole({ row: 5, col: 1 });
+    await app.placeComponentInteractive(ComponentType.GROUND, [
+      { row: 5, col: 0 },
+      { row: 5, col: 1 }
+    ]);
 
     expect(app.getComponents().length).toBe(2);
 
@@ -110,10 +116,11 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
     expect(app.getComponents().length).toBe(1);
   });
 
-  it('should not delete anything if no component is selected', () => {
-    app.selectComponentType(ComponentType.WIRE);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+  it('should not delete anything if no component is selected', async () => {
+    await app.placeComponentInteractive(ComponentType.WIRE, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
     const initialCount = app.getComponents().length;
     expect(initialCount).toBe(1);
@@ -124,14 +131,16 @@ describe('BreadboardApp - Component Selection and Deletion', () => {
     expect(app.getComponents().length).toBe(initialCount);
   });
 
-  it('should handle multiple component selection correctly', () => {
-    app.selectComponentType(ComponentType.WIRE);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+  it('should handle multiple component selection correctly', async () => {
+    await app.placeComponentInteractive(ComponentType.WIRE, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 1, col: 10 });
-    app.clickHole({ row: 6, col: 10 });
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 1, col: 10 },
+      { row: 6, col: 10 }
+    ]);
 
     const components = app.getComponents();
     expect(components.length).toBe(2);
@@ -163,10 +172,11 @@ describe('BreadboardApp - Component Rotation', () => {
     document.body.removeChild(container);
   });
 
-  it('should rotate selected component 90 degrees on R key press', () => {
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 3, col: 5 });
-    app.clickHole({ row: 3, col: 10 });
+  it('should rotate selected component 90 degrees on R key press', async () => {
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 3, col: 5 },
+      { row: 3, col: 10 }
+    ]);
 
     const components = app.getComponents();
     expect(components.length).toBe(1);
@@ -222,10 +232,11 @@ describe('BreadboardApp - Component Rotation', () => {
     expect(rotatedComponent!.rotation).toBe(90);
   });
 
-  it('should not rotate if no component is selected', () => {
-    app.selectComponentType(ComponentType.WIRE);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+  it('should not rotate if no component is selected', async () => {
+    await app.placeComponentInteractive(ComponentType.WIRE, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
     const components = app.getComponents();
     const initialRotation = components[0].rotation;
@@ -236,10 +247,11 @@ describe('BreadboardApp - Component Rotation', () => {
     expect(app.getComponents()[0].rotation).toBe(initialRotation);
   });
 
-  it('should not rotate during drag operation', () => {
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 3, col: 5 });
-    app.clickHole({ row: 3, col: 10 });
+  it('should not rotate during drag operation', async () => {
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 3, col: 5 },
+      { row: 3, col: 10 }
+    ]);
 
     const components = app.getComponents();
     const componentId = components[0].id;
@@ -272,10 +284,11 @@ describe('BreadboardApp - Component Rotation', () => {
     expect(rotatedComponent!.rotation).toBe((initialRotation + 90) % 360);
   });
 
-  it('should prevent rotation if result would be out of bounds', () => {
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 1 });
+  it('should prevent rotation if result would be out of bounds', async () => {
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 0, col: 0 },
+      { row: 0, col: 1 }
+    ]);
 
     const components = app.getComponents();
     const componentId = components[0].id;
@@ -288,18 +301,21 @@ describe('BreadboardApp - Component Rotation', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should update circuit simulation after rotation', () => {
-    app.selectComponentType(ComponentType.POWER_SUPPLY);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+  it('should update circuit simulation after rotation', async () => {
+    await app.placeComponentInteractive(ComponentType.POWER_SUPPLY, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 0, col: 5 });
-    app.clickHole({ row: 0, col: 10 });
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 0, col: 5 },
+      { row: 0, col: 10 }
+    ]);
 
-    app.selectComponentType(ComponentType.GROUND);
-    app.clickHole({ row: 0, col: 10 });
-    app.clickHole({ row: 0, col: 11 });
+    await app.placeComponentInteractive(ComponentType.GROUND, [
+      { row: 0, col: 10 },
+      { row: 0, col: 11 }
+    ]);
 
     const components = app.getComponents();
     const resistorId = components[1].id;
@@ -332,10 +348,11 @@ describe('BreadboardApp - Component Rotation', () => {
     expect(rotatedLED!.rotation).toBe((initialRotation + 90) % 360);
   });
 
-  it('should rotate power supply component correctly', () => {
-    app.selectComponentType(ComponentType.POWER_SUPPLY);
-    app.clickHole({ row: 5, col: 0 });
-    app.clickHole({ row: 5, col: 5 });
+  it('should rotate power supply component correctly', async () => {
+    await app.placeComponentInteractive(ComponentType.POWER_SUPPLY, [
+      { row: 5, col: 0 },
+      { row: 5, col: 5 }
+    ]);
 
     const components = app.getComponents();
     const componentId = components[0].id;
@@ -407,10 +424,11 @@ describe('BreadboardApp - Component Drag and Drop', () => {
     document.body.removeChild(container);
   });
 
-  it('should start drag operation on mousedown', () => {
-    app.selectComponentType(ComponentType.WIRE);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+  it('should start drag operation on mousedown', async () => {
+    await app.placeComponentInteractive(ComponentType.WIRE, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
     const components = app.getComponents();
     expect(components.length).toBe(1);
@@ -427,10 +445,11 @@ describe('BreadboardApp - Component Drag and Drop', () => {
     expect(dragState?.originalPositions).toEqual(components[0].positions);
   });
 
-  it('should show ghost preview during drag', () => {
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 1, col: 0 });
-    app.clickHole({ row: 1, col: 5 });
+  it('should show ghost preview during drag', async () => {
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 1, col: 0 },
+      { row: 1, col: 5 }
+    ]);
 
     const components = app.getComponents();
     expect(components.length).toBe(1);
@@ -453,10 +472,11 @@ describe('BreadboardApp - Component Drag and Drop', () => {
     expect(currentComponent.positions).toEqual(originalPositions);
   });
 
-  it('should update component position on successful drop', () => {
-    app.selectComponentType(ComponentType.LED);
-    app.clickHole({ row: 2, col: 0 });
-    app.clickHole({ row: 2, col: 5 });
+  it('should update component position on successful drop', async () => {
+    await app.placeComponentInteractive(ComponentType.LED, [
+      { row: 2, col: 0 },
+      { row: 2, col: 5 }
+    ]);
 
     const components = app.getComponents();
     expect(components.length).toBe(1);
@@ -483,10 +503,11 @@ describe('BreadboardApp - Component Drag and Drop', () => {
     expect(app.getDragState()).toBeNull();
   });
 
-  it('should cancel drag on Escape key', () => {
-    app.selectComponentType(ComponentType.POWER_SUPPLY);
-    app.clickHole({ row: 3, col: 0 });
-    app.clickHole({ row: 3, col: 1 });
+  it('should cancel drag on Escape key', async () => {
+    await app.placeComponentInteractive(ComponentType.POWER_SUPPLY, [
+      { row: 3, col: 0 },
+      { row: 3, col: 1 }
+    ]);
 
     const components = app.getComponents();
     expect(components.length).toBe(1);
@@ -511,10 +532,11 @@ describe('BreadboardApp - Component Drag and Drop', () => {
     expect(app.getDragState()).toBeNull();
   });
 
-  it('should maintain selection after successful drag', () => {
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 4, col: 5 });
-    app.clickHole({ row: 4, col: 10 });
+  it('should maintain selection after successful drag', async () => {
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 4, col: 5 },
+      { row: 4, col: 10 }
+    ]);
 
     const components = app.getComponents();
     const componentId = components[0].id;
@@ -554,11 +576,12 @@ describe('BreadboardApp - Undo/Redo', () => {
     document.body.removeChild(container);
   });
 
-  it('should undo component addition', () => {
+  it('should undo component addition', async () => {
     // Add a component
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
     expect(app.getComponents().length).toBe(1);
 
@@ -569,11 +592,12 @@ describe('BreadboardApp - Undo/Redo', () => {
     expect(app.getComponents().length).toBe(0);
   });
 
-  it('should redo component addition', () => {
+  it('should redo component addition', async () => {
     // Add a component
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
     // Undo
     const undoEvent = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
@@ -588,11 +612,12 @@ describe('BreadboardApp - Undo/Redo', () => {
     expect(app.getComponents().length).toBe(1);
   });
 
-  it('should redo with Ctrl+Y', () => {
+  it('should redo with Ctrl+Y', async () => {
     // Add a component
-    app.selectComponentType(ComponentType.LED);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+    await app.placeComponentInteractive(ComponentType.LED, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
     // Undo
     const undoEvent = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
@@ -607,11 +632,12 @@ describe('BreadboardApp - Undo/Redo', () => {
     expect(app.getComponents().length).toBe(1);
   });
 
-  it('should undo component deletion', () => {
+  it('should undo component deletion', async () => {
     // Add a component
-    app.selectComponentType(ComponentType.WIRE);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+    await app.placeComponentInteractive(ComponentType.WIRE, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
     const components = app.getComponents();
     const componentId = components[0].id;
@@ -630,11 +656,12 @@ describe('BreadboardApp - Undo/Redo', () => {
     expect(app.getComponents().length).toBe(1);
   });
 
-  it('should undo component rotation', () => {
+  it('should undo component rotation', async () => {
     // Add a component with enough space to rotate
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 10, col: 10 });
-    app.clickHole({ row: 10, col: 15 });
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 10, col: 10 },
+      { row: 10, col: 15 }
+    ]);
 
     const components = app.getComponents();
     const componentId = components[0].id;
@@ -664,19 +691,22 @@ describe('BreadboardApp - Undo/Redo', () => {
     }
   });
 
-  it('should handle multiple undo operations', () => {
+  it('should handle multiple undo operations', async () => {
     // Add three components
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
-    app.selectComponentType(ComponentType.LED);
-    app.clickHole({ row: 5, col: 0 });
-    app.clickHole({ row: 5, col: 5 });
+    await app.placeComponentInteractive(ComponentType.LED, [
+      { row: 5, col: 0 },
+      { row: 5, col: 5 }
+    ]);
 
-    app.selectComponentType(ComponentType.WIRE);
-    app.clickHole({ row: 10, col: 0 });
-    app.clickHole({ row: 10, col: 5 });
+    await app.placeComponentInteractive(ComponentType.WIRE, [
+      { row: 10, col: 0 },
+      { row: 10, col: 5 }
+    ]);
 
     expect(app.getComponents().length).toBe(3);
 
@@ -694,19 +724,22 @@ describe('BreadboardApp - Undo/Redo', () => {
     expect(app.getComponents().length).toBe(0);
   });
 
-  it('should handle multiple redo operations', () => {
+  it('should handle multiple redo operations', async () => {
     // Add three components
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
-    app.selectComponentType(ComponentType.LED);
-    app.clickHole({ row: 5, col: 0 });
-    app.clickHole({ row: 5, col: 5 });
+    await app.placeComponentInteractive(ComponentType.LED, [
+      { row: 5, col: 0 },
+      { row: 5, col: 5 }
+    ]);
 
-    app.selectComponentType(ComponentType.WIRE);
-    app.clickHole({ row: 10, col: 0 });
-    app.clickHole({ row: 10, col: 5 });
+    await app.placeComponentInteractive(ComponentType.WIRE, [
+      { row: 10, col: 0 },
+      { row: 10, col: 5 }
+    ]);
 
     // Undo all three
     for (let i = 0; i < 3; i++) {
@@ -725,11 +758,12 @@ describe('BreadboardApp - Undo/Redo', () => {
     expect(app.getComponents().length).toBe(3);
   });
 
-  it('should clear redo stack on new action', () => {
+  it('should clear redo stack on new action', async () => {
     // Add a component
-    app.selectComponentType(ComponentType.RESISTOR);
-    app.clickHole({ row: 0, col: 0 });
-    app.clickHole({ row: 0, col: 5 });
+    await app.placeComponentInteractive(ComponentType.RESISTOR, [
+      { row: 0, col: 0 },
+      { row: 0, col: 5 }
+    ]);
 
     // Undo
     const undoEvent = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true });
@@ -738,9 +772,10 @@ describe('BreadboardApp - Undo/Redo', () => {
     expect(app.getComponents().length).toBe(0);
 
     // Add a new component (should clear redo stack)
-    app.selectComponentType(ComponentType.LED);
-    app.clickHole({ row: 5, col: 0 });
-    app.clickHole({ row: 5, col: 5 });
+    await app.placeComponentInteractive(ComponentType.LED, [
+      { row: 5, col: 0 },
+      { row: 5, col: 5 }
+    ]);
 
     expect(app.getComponents().length).toBe(1);
 
@@ -751,7 +786,7 @@ describe('BreadboardApp - Undo/Redo', () => {
     expect(app.getComponents().length).toBe(1);
   });
 
-  it('should enforce 50-step history limit', () => {
+  it('should enforce 50-step history limit', async () => {
     // Add 60 components (exceeds 50-step limit)
     for (let i = 0; i < 60; i++) {
       app.selectComponentType(ComponentType.WIRE);
@@ -777,3 +812,4 @@ describe('BreadboardApp - Undo/Redo', () => {
     expect(app.getComponents().length).toBe(10);
   });
 });
+
