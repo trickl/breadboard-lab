@@ -17,7 +17,7 @@ import {
   downloadCircuitFile,
   uploadCircuitFile,
 } from '@/core/circuit-storage';
-import { EXAMPLE_CIRCUITS } from '@/examples';
+import { EXAMPLE_CIRCUITS, getDefaultExample } from '@/examples';
 import { componentLibrary } from '@/core/component-library';
 import { ALL_LIBRARY_ENTRIES } from '@/library';
 import { AudioManager } from '@/audio/audio-manager';
@@ -169,6 +169,10 @@ export class BreadboardApp {
     }
     
     this.render();
+    
+    // Load default example circuit on initial load (goal.md Section 13)
+    // Only load if board is empty (no components)
+    this.loadDefaultCircuitIfEmpty();
   }
 
   /**
@@ -2888,6 +2892,27 @@ export class BreadboardApp {
       this.loadCircuitFromJSON(example.json);
     } catch (error) {
       alert('Failed to load example: ' + (error as Error).message);
+    }
+  }
+
+  /**
+   * Load default example circuit if the board is empty
+   * Called during initialization to satisfy goal.md Section 13 requirement
+   */
+  private loadDefaultCircuitIfEmpty(): void {
+    // Only load default circuit if board is empty
+    if (this.state.components.length > 0) {
+      return;
+    }
+
+    try {
+      const defaultExample = getDefaultExample();
+      // Use loadCircuitFromJSON directly to avoid unsaved changes check
+      this.loadCircuitFromJSON(defaultExample.json);
+    } catch (error) {
+      // Gracefully handle error - log but don't crash the app
+      console.error('Failed to load default circuit:', error);
+      // Board remains empty, user can still use the application
     }
   }
 
