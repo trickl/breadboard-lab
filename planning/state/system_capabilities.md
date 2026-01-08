@@ -1,14 +1,14 @@
 # Current System Capabilities of Breadboard Lab
 
-**Date**: 2026-01-07  
+**Date**: 2026-01-08  
 **Purpose**: Factual description of what the system demonstrably does today  
-**Last Updated**: After implementing X-Ray Mode to reveal internal breadboard connectivity (PR #261)
+**Last Updated**: After implementing default example circuit loading on application initialization (PR #267)
 
 ---
 
 ## Overview
 
-Breadboard Lab is a web-based electronics simulator that provides a visual breadboard interface for placing components, wiring connections, extracting circuit topology, and performing basic circuit simulation. The system is built with TypeScript, uses Vite for building, and runs entirely in the browser. The system uses PixiJS for WebGL-based rendering and Rete.js for graph-based connection management, including wire re-routing capabilities.
+Breadboard Lab is a web-based electronics simulator that provides a visual breadboard interface for placing components, wiring connections, extracting circuit topology, and performing basic circuit simulation. The system is built with TypeScript, uses Vite for building, and runs entirely in the browser. The system uses PixiJS for WebGL-based rendering and Rete.js for graph-based connection management, including wire re-routing capabilities. On first load, the application displays a working example circuit (EDU-8 Blink) with interactive clock controls, immediately demonstrating the tool's capabilities.
 
 ---
 
@@ -1742,7 +1742,7 @@ The system provides multiple storage mechanisms for persisting circuits locally 
 
 ### Example Circuit Library
 
-The system includes four canonical example circuits demonstrating different electrical concepts and tool features.
+The system includes five canonical example circuits demonstrating different electrical concepts and tool features. On application initialization, the EDU-8 Blink example loads automatically, providing an immediate working demonstration.
 
 **Available examples**:
 
@@ -1766,19 +1766,41 @@ The system includes four canonical example circuits demonstrating different elec
    - Learning objectives: Recognizing short circuits, error detection system, circuit safety
    - Components: Power supply (5V), wire, ground (power connected directly to ground)
 
+5. **EDU-8 Blink** (Microprocessor) — **Default circuit loaded on application initialization**
+   - Educational microprocessor running a Blink program with clock-driven LED toggling
+   - Learning objectives: Clock-driven computation, program counter, instruction execution, digital output, fetch-decode-execute cycle, sequential program flow
+   - Components: EDU-8 Microprocessor (with Blink program loaded), LED (yellow, 3mm), resistor (220Ω), power supply (5V), ground, wires
+   - Interactive features: Clock controls (Step, Run/Pause, Reset), frequency slider, keyboard shortcuts (Space to step)
+   - **Loads automatically on first application launch** to demonstrate tool capabilities immediately (goal.md Section 13 requirement)
+
 **Example metadata**:
 - ID, name, description for each example
-- Category classification: basic, intermediate, demo
-- Learning objectives list (3-4 objectives per example)
+- Category classification: basic, intermediate, demo, microprocessor
+- Learning objectives list (3-6 objectives per example)
 - JSON circuit data embedded in application
 
+**Default circuit loading** (PR #267):
+- On application initialization, `loadDefaultCircuitIfEmpty()` checks if breadboard is empty (no components)
+- If empty, loads EDU-8 Blink example circuit automatically via `getDefaultExample()` function
+- Graceful error handling: if default circuit fails to load, logs error but continues with empty board (user can still use application)
+- Default circuit provides immediate demonstration of:
+  - Working circuit with components, wiring, and power
+  - Interactive clock controls (Step, Run, Reset buttons with frequency slider)
+  - Voltage visualization on power rails and connections
+  - Current animation through resistor and LED
+  - LED glow effect proportional to current
+  - Explain panel with CPU state display (PC, instruction, accumulator, flags)
+- Satisfies goal.md Section 13: "On first load, users must see working example circuit with at least one interactive element"
+
 **Implementation**:
-- `src/examples/index.ts` (96 lines): Example registry and lookup functions
+- `src/examples/index.ts` (125 lines): Example registry, lookup functions, and `getDefaultExample()` function
 - `src/examples/led-resistor.json` (83 lines): LED and Resistor example
 - `src/examples/voltage-divider.json` (93 lines): Voltage Divider example
 - `src/examples/parallel-leds.json` (203 lines): Parallel LEDs example
 - `src/examples/short-circuit-demo.json` (53 lines): Short Circuit Demo example
-- Total: 4 examples, all pre-validated and simulation-ready
+- `src/examples/edu8-blink.json` (87 lines): EDU-8 Blink example (default circuit)
+- `src/ui/breadboard-app.ts`: `loadDefaultCircuitIfEmpty()` method called in constructor
+- Total: 5 examples, all pre-validated and simulation-ready
 
 ### User Interface for Save/Load/Examples
 
@@ -1859,10 +1881,11 @@ The system provides modal dialogs for saving, loading, and browsing example circ
 - No circuit thumbnails or preview images
 
 **Example library constraints**:
-- Fixed set of 4 examples (not user-extensible)
+- Fixed set of 5 examples (not user-extensible)
 - Examples embedded in application code (not dynamically loaded)
-- No example categories beyond basic/intermediate/demo
+- No example categories beyond basic/intermediate/demo/microprocessor
 - No search or filter for examples
+- Default circuit (EDU-8 Blink) cannot be customized without code changes
 
 **UI constraints**:
 - Modal dialogs block background interactions
@@ -3377,13 +3400,13 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 | `src/library/microprocessors.ts` | 77 | Microprocessor library entries (EDU-8 educational virtual IC with DIP-16 package, TTL-compatible electrical specs) (PR #173) |
 | `src/library/other-components.ts` | 202 | Power supplies, wires, ground, and speaker library entries (PR #143) |
 | `src/audio/audio-manager.ts` | 300 | Web Audio API integration and speaker audio management (PR #155) |
-| `src/examples/index.ts` | 96 | Example circuit registry and lookup functions |
+| `src/examples/index.ts` | 125 | Example circuit registry, lookup functions, and `getDefaultExample()` function (PR #267) |
 | `src/examples/led-resistor.json` | 87 | LED and Resistor example circuit (uses power rails) |
 | `src/examples/voltage-divider.json` | 97 | Voltage Divider example circuit (uses power rails) |
 | `src/examples/parallel-leds.json` | 187 | Parallel LEDs example circuit (uses power rails) |
 | `src/examples/short-circuit-demo.json` | 57 | Short Circuit Demo example circuit (uses power rails) |
 | `src/examples/edu8-blink.json` | 87 | **NEW (PR #197)**: EDU-8 Blink example demonstrating clock-driven LED toggling with preset Blink program |
-| `src/ui/breadboard-app.ts` | 3548 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, rail rendering, audio integration, view switcher, clock control UI, X-Ray Mode toggle (PR #261), wire re-routing UI (PR #255), and Rete.js integration (Phase 2 active: USE_RETE=true); PixiJS renderer integration (PR #149, PR #155, PR #161, PR #167, PR #197, PR #219, PR #225, PR #255, PR #261); public testing API added (PR #179); drag-and-drop restored with PixiJS pointer events (PR #185) |
+| `src/ui/breadboard-app.ts` | 3627 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, rail rendering, audio integration, view switcher, clock control UI, X-Ray Mode toggle (PR #261), wire re-routing UI (PR #255), default circuit loading (PR #267), and Rete.js integration (Phase 2 active: USE_RETE=true); PixiJS renderer integration (PR #149, PR #155, PR #161, PR #167, PR #197, PR #219, PR #225, PR #255, PR #261, PR #267); public testing API added (PR #179); drag-and-drop restored with PixiJS pointer events (PR #185) |
 | `src/ui/pixi-renderer.ts` | 1668 | **NEW (PR #167, enhanced PR #203, PR #255, PR #261)**: PixiJS WebGL renderer for unified breadboard rendering with photorealistic enhancements (grid with labels/ridges, components with 3D appearance, voltage overlays, current animation, error icons, LED glow effects); X-Ray Mode overlay (`renderInternalConnectivity()`); wire re-routing visual feedback (endpoint handles, ghost preview); replaces SVG-based ComponentRenderer, CurrentAnimator, and ErrorOverlayRenderer |
 | `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
 | `src/ui/component-renderer.ts` | 568 | **DEPRECATED (PR #167)**: Legacy SVG-based visual component rendering; retained for reference, replaced by PixiRenderer |
@@ -3564,7 +3587,7 @@ The interactive workflow test infrastructure is now complete and the feature fla
 
 ## Verification
 
-This document describes the system as observed on 2026-01-07 after merging PR #261 (X-Ray Mode):
+This document describes the system as observed on 2026-01-08 after merging PR #267 (Default Example Circuit Loading):
 
 - ✅ All source files examined
 - ✅ Tests executed (450/450 passing; 100% pass rate maintained after PR #261 X-Ray Mode implementation)
@@ -3814,5 +3837,15 @@ This document describes the system as observed on 2026-01-07 after merging PR #2
 - ✅ **README.md updated with X-Ray Mode feature documentation and keyboard shortcut verified from PR #261 changes**
 - ✅ **CSS styling for X-Ray Mode toggle button (active state with bright green #44ff88) verified from PR #261 changes**
 - ✅ **Goal.md Section 10 requirements satisfied (X-Ray Mode reveals internal breadboard connectivity) verified from PR #261 completion**
+- ✅ **Default example circuit loading implementation verified from PR #267 changes**
+- ✅ **`getDefaultExample()` function in src/examples/index.ts returning EDU-8 Blink circuit verified from PR #267 implementation**
+- ✅ **`loadDefaultCircuitIfEmpty()` method in BreadboardApp constructor verified from PR #267 implementation**
+- ✅ **Default circuit loads only when breadboard empty (state.components.length === 0) verified from PR #267 implementation**
+- ✅ **Graceful error handling (logs error, continues with empty board) verified from PR #267 implementation**
+- ✅ **Application initialization sequence: render() → loadDefaultCircuitIfEmpty() verified from PR #267 implementation**
+- ✅ **EDU-8 Blink circuit serves as default example demonstrating interactive clock controls verified from PR #267 circuit selection**
+- ✅ **Goal.md Section 13 requirements satisfied ("working example circuit with at least one interactive element on first load") verified from PR #267 completion**
+- ✅ **Example circuit count updated from 4 to 5 examples (added EDU-8 Blink to example list) verified from PR #267 impact**
+- ✅ **All 450 tests passing (no new tests added, existing tests verify default loading via constructor) verified from PR #267 test results**
 
 This is a snapshot of reality, not aspirations or plans.
