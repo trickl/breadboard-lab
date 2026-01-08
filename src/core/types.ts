@@ -53,6 +53,7 @@ export enum ComponentType {
   POWER_SUPPLY = 'POWER_SUPPLY',
   GROUND = 'GROUND',
   MICROPROCESSOR = 'MICROPROCESSOR',
+  SWITCH = 'SWITCH',
 }
 
 /**
@@ -64,6 +65,7 @@ export interface Component {
   positions: Position[]; // Positions this component occupies
   rotation: 0 | 90 | 180 | 270; // Component rotation in degrees
   libraryId?: string; // Optional reference to ComponentLibraryEntry (for real-world parts)
+  switchState?: 'open' | 'closed'; // For switch components
 }
 
 /**
@@ -107,6 +109,14 @@ export interface Ground extends Component {
 }
 
 /**
+ * Switch component (SPST)
+ */
+export interface Switch extends Component {
+  type: ComponentType.SWITCH;
+  switchState?: 'open' | 'closed'; // Optional, defaults to 'open'
+}
+
+/**
  * EDU-8 Microprocessor State
  */
 export interface EDU8State {
@@ -131,7 +141,7 @@ export interface Microprocessor extends Component {
 /**
  * Union type for all component types
  */
-export type AnyComponent = Resistor | LED | Wire | PowerSupply | Ground | Microprocessor;
+export type AnyComponent = Resistor | LED | Wire | PowerSupply | Ground | Microprocessor | Switch;
 
 /**
  * Breadboard state containing all placed components

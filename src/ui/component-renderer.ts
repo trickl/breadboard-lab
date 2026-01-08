@@ -215,6 +215,9 @@ export class ComponentRenderer {
       case ComponentType.MICROPROCESSOR:
         this.renderMicroprocessorAtPositions(contentGroup, component, positions);
         break;
+      case ComponentType.SWITCH:
+        this.renderSwitchAtPositions(contentGroup, component, positions);
+        break;
     }
 
     group.appendChild(contentGroup);
@@ -707,5 +710,72 @@ export class ComponentRenderer {
       // Connection dot at pin
       this.addConnectionDot(group, pin, '#666');
     });
+  }
+
+  /**
+   * Render a switch component at specified positions
+   */
+  private renderSwitchAtPositions(group: SVGGElement, component: AnyComponent, positions: Position[]): void {
+    if (positions.length < 2) return;
+    if (component.type !== ComponentType.SWITCH) return;
+
+    const start = this.positionToPixels(positions[0]);
+    const end = this.positionToPixels(positions[1]);
+
+    const centerX = (start.x + end.x) / 2;
+    const centerY = (start.y + end.y) / 2;
+    const angle = Math.atan2(end.y - start.y, end.x - start.x) * (180 / Math.PI);
+
+    // Switch body dimensions
+    const bodyWidth = 40;
+    const bodyHeight = 20;
+
+    // Draw switch body
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', (centerX - bodyWidth / 2).toString());
+    rect.setAttribute('y', (centerY - bodyHeight / 2).toString());
+    rect.setAttribute('width', bodyWidth.toString());
+    rect.setAttribute('height', bodyHeight.toString());
+    rect.setAttribute('fill', '#404040');
+    rect.setAttribute('stroke', '#606060');
+    rect.setAttribute('stroke-width', '2');
+    rect.setAttribute('rx', '4');
+    rect.setAttribute('transform', `rotate(${angle} ${centerX} ${centerY})`);
+    group.appendChild(rect);
+
+    // Get switch state
+    const switchState = component.switchState ?? 'open';
+    const isClosed = switchState === 'closed';
+
+    // Draw toggle circle
+    const toggleRadius = 8;
+    const toggleOffset = isClosed ? 10 : -10; // Position relative to center
+    const toggleCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    toggleCircle.setAttribute('cx', centerX.toString());
+    toggleCircle.setAttribute('cy', centerY.toString());
+    toggleCircle.setAttribute('r', toggleRadius.toString());
+    toggleCircle.setAttribute('fill', isClosed ? '#00FF00' : '#FFAA00'); // Green when closed, orange when open
+    toggleCircle.setAttribute('stroke', '#606060');
+    toggleCircle.setAttribute('stroke-width', '1');
+    
+    // Transform toggle circle: rotate around center, then translate along rotated X-axis
+    const rotationRad = (angle * Math.PI) / 180;
+    const toggleX = centerX + toggleOffset * Math.cos(rotationRad);
+    const toggleY = centerY + toggleOffset * Math.sin(rotationRad);
+    toggleCircle.setAttribute('cx', toggleX.toString());
+    toggleCircle.setAttribute('cy', toggleY.toString());
+    group.appendChild(toggleCircle);
+
+    // Draw leads from component terminals to body edges
+    // Lead coordinates are calculated by rotating body edge points around center
+    // leftX = centerX - (bodyWidth/2 * cos(angle)) + (bodyHeight/2 * sin(angle))
+    // leftY = centerY - (bodyWidth/2 * sin(angle)) - (bodyHeight/2 * cos(angle))
+    const leftLeadX = centerX - bodyWidth / 2 * Math.cos(rotationRad) + bodyHeight / 2 * Math.sin(rotationRad);
+    const leftLeadY = centerY - bodyWidth / 2 * Math.sin(rotationRad) - bodyHeight / 2 * Math.cos(rotationRad);
+    const rightLeadX = centerX + bodyWidth / 2 * Math.cos(rotationRad) + bodyHeight / 2 * Math.sin(rotationRad);
+    const rightLeadY = centerY + bodyWidth / 2 * Math.sin(rotationRad) - bodyHeight / 2 * Math.cos(rotationRad);
+    
+    this.drawSimpleLead(group, start, leftLeadX, leftLeadY);
+    this.drawSimpleLead(group, end, rightLeadX, rightLeadY);
   }
 }

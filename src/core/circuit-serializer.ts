@@ -36,7 +36,7 @@ export interface SerializedComponent {
   positions: Position[];
   rotation: 0 | 90 | 180 | 270;
   // Component-specific properties stored in metadata
-  metadata?: Record<string, number | number[]>;
+  metadata?: Record<string, number | number[] | string>;
 }
 
 /**
@@ -161,6 +161,11 @@ function serializeComponent(component: AnyComponent): SerializedComponent {
         rom: Array.from(component.state.rom),
       };
       break;
+    case ComponentType.SWITCH:
+      serialized.metadata = {
+        switchState: component.switchState ?? 'open',
+      };
+      break;
   }
 
   return serialized;
@@ -251,6 +256,17 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
           state,
         };
       }
+
+    case ComponentType.SWITCH:
+      return {
+        id,
+        type: ComponentType.SWITCH,
+        positions,
+        rotation,
+        switchState: (metadata.switchState === 'open' || metadata.switchState === 'closed') 
+          ? metadata.switchState 
+          : 'open', // Default to open for backward compatibility
+      };
 
     default:
       throw new Error(`Unknown component type: ${type}`);

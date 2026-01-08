@@ -15,6 +15,7 @@ An open-source, browser-based breadboard simulator designed to teach electronics
 - **Component Library**: Real-world components with physically accurate specifications:
   - 23 resistor values (E12 series, 5% and 1% tolerance)
   - 4 LED types (3mm yellow, 5mm red/green/blue with accurate forward voltages)
+  - SPST toggle switch (manual circuit control with stateful open/closed behavior)
   - Speaker module (8Ω breadboard-compatible)
   - Multiple power supplies (3.3V, 5V, 9V, 12V)
   - **EDU-8 Microprocessor** (educational virtual IC for teaching computational electronics)
@@ -96,7 +97,7 @@ npm run lint
 ## Usage
 
 1. **Open Component Library**: Click the 📦 (Component Library) button to see available components
-2. **Select a Component**: Click on a component from the library (Wire, Resistor, LED, Power Supply, Ground, or Speaker)
+2. **Select a Component**: Click on a component from the library (Wire, Resistor, LED, Switch, Power Supply, Ground, or Speaker)
 3. **Place Component Interactively**: 
    - The selected component appears floating next to the breadboard
    - **Drag** the component body to position it (optional)
@@ -104,18 +105,22 @@ npm run lint
    - Repeat for each leg until all legs are connected
    - The component automatically places on the breadboard when all legs are connected
    - Press **Escape** to cancel placement at any time
-4. **View Circuit Info**: The right panel shows component count, circuit nodes, connections, and simulation status
-5. **Observe Visualization**: 
+4. **Interact with Components**:
+   - **Switches**: Click a placed switch to toggle between open (off) and closed (on) states
+   - Visual indicator shows current state (orange = open, green = closed)
+   - Circuit updates in real-time when switch state changes
+5. **View Circuit Info**: The right panel shows component count, circuit nodes, connections, and simulation status
+6. **Observe Visualization**: 
    - Voltage levels shown as color-coded overlays on breadboard holes (hover for exact values)
    - Current flow shown as animated blue particles moving along wires and components
    - Particle speed and density indicate current magnitude
-6. **Enable Audio** (for speaker components):
+7. **Enable Audio** (for speaker components):
    - Click the "🔇 Enable Sound" button in the Audio Output section
    - Or press the **M** key to toggle audio on/off
    - Adjust volume with the slider
    - Speaker components will produce sound based on circuit voltage and current
    - Audio is disabled by default and requires user interaction to start
-7. **Clear All**: Click the "Clear All" button to remove all components and start over
+8. **Clear All**: Click the "Clear All" button to remove all components and start over
 
 ### Interactive Component Placement Workflow
 

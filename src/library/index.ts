@@ -10,6 +10,7 @@ import {
   WIRE_LIBRARY,
   GROUND_LIBRARY,
   SPEAKER_LIBRARY,
+  SWITCH_LIBRARY,
 } from './other-components';
 import { MICROPROCESSOR_LIBRARY } from './microprocessors';
 import type { ComponentLibraryEntry } from '../core/types';
@@ -25,6 +26,7 @@ export const ALL_LIBRARY_ENTRIES: ComponentLibraryEntry[] = [
   ...GROUND_LIBRARY,
   ...SPEAKER_LIBRARY,
   ...MICROPROCESSOR_LIBRARY,
+  ...SWITCH_LIBRARY,
 ];
 
 /**
@@ -38,4 +40,5 @@ export {
   GROUND_LIBRARY,
   SPEAKER_LIBRARY,
   MICROPROCESSOR_LIBRARY,
+  SWITCH_LIBRARY,
 };
