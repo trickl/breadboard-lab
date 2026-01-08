@@ -3564,10 +3564,10 @@ The interactive workflow test infrastructure is now complete and the feature fla
 
 ## Verification
 
-This document describes the system as observed on 2026-01-07 after merging PR #249 (Phase 3e):
+This document describes the system as observed on 2026-01-07 after merging PR #261 (X-Ray Mode):
 
 - ✅ All source files examined
-- ✅ Tests executed (441/441 passing; 100% pass rate maintained after PR #249 Phase 3e completion)
+- ✅ Tests executed (450/450 passing; 100% pass rate maintained after PR #261 X-Ray Mode implementation)
 - ✅ Build completed successfully
 - ✅ No code modifications made during documentation
 - ✅ Component capabilities verified against source code
@@ -3796,5 +3796,23 @@ This document describes the system as observed on 2026-01-07 after merging PR #2
 - ✅ **All 443 tests passing (441 existing + 2 new) verified from PR #255 test results**
 - ✅ **Goal.md Section 6.2 requirements satisfied ("wires draggable via control points", "re-routing supported") verified from PR #255 completion**
 - ✅ **Known limitation documented: Undo/redo not yet integrated for connection changes verified from PR #255 description**
+- ✅ **X-Ray Mode implementation verified from PR #261 changes**
+- ✅ **X-Ray Mode toggle button (🔬) in View section verified from PR #261 UI changes**
+- ✅ **X-Ray Mode keyboard shortcut (X key, case-insensitive) verified from PR #261 implementation**
+- ✅ **X-Ray Mode state persistence across view switches and component operations verified from PR #261 implementation**
+- ✅ **`renderInternalConnectivity()` method in PixiRenderer class verified from PR #261 implementation**
+- ✅ **Internal connectivity overlay rendering (4 rail bars + 60 strip bars) verified from PR #261 implementation**
+- ✅ **Power rail visualization (blue negative, red positive, vertical connections) verified from PR #261 implementation**
+- ✅ **Terminal strip visualization (yellow bars, horizontal connections, 5 holes per row) verified from PR #261 implementation**
+- ✅ **0.25 alpha transparency overlay z-ordered correctly verified from PR #261 implementation**
+- ✅ **X-Ray Mode UI controls (`updateXrayControls()`, `toggleXrayMode()` methods) verified from PR #261 implementation**
+- ✅ **`xrayModeEnabled` boolean state in BreadboardApp class verified from PR #261 implementation**
+- ✅ **`getXrayModeEnabled()` test API method verified from PR #261 implementation**
+- ✅ **7 new unit tests in xray-mode.test.ts verified from PR #261 test file**
+- ✅ **X-Ray Mode test coverage (toggle, keyboard shortcuts, state persistence, independence) verified from PR #261 test results**
+- ✅ **All 450 tests passing (443 existing + 7 new) verified from PR #261 test results**
+- ✅ **README.md updated with X-Ray Mode feature documentation and keyboard shortcut verified from PR #261 changes**
+- ✅ **CSS styling for X-Ray Mode toggle button (active state with bright green #44ff88) verified from PR #261 changes**
+- ✅ **Goal.md Section 10 requirements satisfied (X-Ray Mode reveals internal breadboard connectivity) verified from PR #261 completion**
 
 This is a snapshot of reality, not aspirations or plans.
