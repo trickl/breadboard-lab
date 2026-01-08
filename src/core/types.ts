@@ -113,7 +113,7 @@ export interface Ground extends Component {
  */
 export interface Switch extends Component {
   type: ComponentType.SWITCH;
-  switchState: 'open' | 'closed';
+  switchState?: 'open' | 'closed'; // Optional, defaults to 'open'
 }
 
 /**

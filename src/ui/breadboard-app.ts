@@ -771,10 +771,36 @@ export class BreadboardApp {
       // Deselect any selected connection
       this.selectedConnectionId = null;
       
+      // Check if component is a switch - if so, toggle its state
+      const component = this.state.components.find(c => c.id === componentId);
+      if (component && component.type === ComponentType.SWITCH) {
+        this.toggleSwitchState(componentId);
+      }
+      
       this.selectComponentById(componentId);
       // Show explain panel for component
       this.explainPanel.show({ type: 'component', componentId });
     }
+  }
+
+  /**
+   * Toggle the state of a switch component
+   */
+  private toggleSwitchState(componentId: string): void {
+    const component = this.state.components.find(c => c.id === componentId);
+    if (!component || component.type !== ComponentType.SWITCH) {
+      return;
+    }
+
+    // Toggle state
+    const newState = component.switchState === 'closed' ? 'open' : 'closed';
+    component.switchState = newState;
+
+    // Mark circuit as changed
+    this.markAsChanged();
+
+    // Re-render (which will re-extract and re-simulate)
+    this.render();
   }
 
   /**
