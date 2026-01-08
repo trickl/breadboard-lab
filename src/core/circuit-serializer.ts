@@ -163,7 +163,7 @@ function serializeComponent(component: AnyComponent): SerializedComponent {
       break;
     case ComponentType.SWITCH:
       serialized.metadata = {
-        switchState: component.switchState,
+        switchState: component.switchState ?? 'open',
       };
       break;
   }
