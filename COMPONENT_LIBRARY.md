@@ -24,12 +24,13 @@ The Component Library system provides a structured catalog of real-world electro
    - Real-world component definitions organized by type:
      - **Resistors** (23 entries): E12 series, 5% and 1% tolerance
      - **LEDs** (4 entries): 3mm yellow, 5mm red/green/blue
+     - **Switches** (1 entry): SPST toggle switch
      - **Speaker** (1 entry): 8Ω breadboard module
      - **Power Supplies** (4 entries): 3.3V, 5V, 9V, 12V
      - **Wires** (2 entries): 22 AWG red/black
      - **Ground** (1 entry): Reference point
      - **Microprocessors** (1 entry): EDU-8 educational processor
-   - Total: 36 component entries
+   - Total: 37 component entries
 
 4. **Library Utilities** (`src/core/component-library-utils.ts`)
    - Helper functions for mapping between abstract components and library entries
@@ -86,6 +87,25 @@ The system maintains 100% backward compatibility with existing circuits:
    - Max current: 20mA
    - Package: T1-3/4 (5mm)
    - Wavelength: 470nm
+
+### Switches (1 entry)
+
+**SPST Toggle Switch** *(required by goal.md Section 12.2)*
+- Type: Single-pole single-throw (SPST)
+- Contact resistance: 0.01Ω (closed), 1GΩ (open)
+- Voltage rating: 250V AC
+- Current rating: 3A
+- Operating force: 150g
+- Lifecycle: 10,000 operations
+- Contact material: Silver
+- Package: Through-hole, 2-pin, 5.08mm (0.2") spacing
+- Interactive: Click to toggle between open and closed states
+- Visual indicator: Orange (open) / Green (closed)
+- Typical uses:
+  - Manual circuit control
+  - Power on/off switching
+  - Input device for digital circuits
+  - Series/parallel switch configurations
 
 ### Speaker (1 entry)
 
