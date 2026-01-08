@@ -7,6 +7,7 @@ import voltageDividerJson from './voltage-divider.json';
 import parallelLedsJson from './parallel-leds.json';
 import shortCircuitDemoJson from './short-circuit-demo.json';
 import edu8BlinkJson from './edu8-blink.json';
+import switchLedJson from './switch-led.json';
 
 /**
  * Example circuit with metadata
@@ -37,6 +38,20 @@ export const EXAMPLE_CIRCUITS: ExampleCircuit[] = [
       'Series circuit behavior',
     ],
     json: JSON.stringify(ledResistorJson),
+  },
+  {
+    id: 'switch-led',
+    name: 'Switch Control LED',
+    description:
+      'Interactive switch controlling an LED. Click the switch to toggle between open and closed states.',
+    category: 'basic',
+    learningObjectives: [
+      'Switch behavior (open vs closed)',
+      'Manual circuit control',
+      'Current flow control',
+      'Interactive component usage',
+    ],
+    json: JSON.stringify(switchLedJson),
   },
   {
     id: 'voltage-divider',
