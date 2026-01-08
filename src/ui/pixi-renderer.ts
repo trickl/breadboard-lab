@@ -600,12 +600,23 @@ export class PixiRenderer {
     hole.circle(pixels.x, pixels.y, PixiRenderer.HOLE_SIZE / 2);
     hole.stroke({ width: 0.5, color: 0x1a1a1a, alpha: 0.8 });
     
-    // Interactive
+    // Interactive - with explicit hit area for better clickability
     hole.eventMode = 'static';
     hole.cursor = 'pointer';
     (hole as any).breadboardPosition = pos;
     (hole as any).holeBaseColor = holeColor;
     (hole as any).isOccupied = isOccupied;
+    
+    // Define explicit hit area: slightly larger than visual hole for easier clicking
+    // Visual hole is HOLE_SIZE/2 = 10px radius, hit area is 12px radius (20% larger)
+    const hitRadius = PixiRenderer.HOLE_SIZE / 2 + 2;
+    hole.hitArea = {
+      contains: (x: number, y: number) => {
+        const dx = x - pixels.x;
+        const dy = y - pixels.y;
+        return (dx * dx + dy * dy) <= (hitRadius * hitRadius);
+      }
+    };
     
     // Hover effect - add highlight glow
     hole.on('pointerover', (event: FederatedPointerEvent) => {
@@ -906,9 +917,16 @@ export class PixiRenderer {
       }
     }
 
-    // Interactive
+    // Interactive - with explicit hit area to avoid blocking holes
     container.eventMode = 'static';
     container.cursor = 'pointer';
+    
+    // Define hit area based on component type
+    // Only the visual component should be clickable, not the space between pins
+    const hitArea = this.createComponentHitArea(component);
+    if (hitArea) {
+      container.hitArea = hitArea;
+    }
     
     container.on('pointerdown', (event: FederatedPointerEvent) => {
       event.stopPropagation(); // Prevent hole click
@@ -980,6 +998,127 @@ export class PixiRenderer {
       row: (positions[0].row + positions[1].row) / 2,
       col: (positions[0].col + positions[1].col) / 2,
     };
+  }
+
+  /**
+   * Create hit area for component to avoid blocking underlying holes
+   * Returns a custom hit area that only covers the actual component visuals
+   */
+  private createComponentHitArea(component: AnyComponent): { contains: (x: number, y: number) => boolean } | null {
+    if (component.positions.length === 0) return null;
+    
+    const positions = component.positions;
+    const pixels = positions.map(pos => this.positionToPixels(pos));
+    
+    switch (component.type) {
+      case ComponentType.WIRE: {
+        // Wire: Check distance to wire path (Manhattan routing)
+        if (positions.length < 2) return null;
+        const p1 = pixels[0];
+        const p2 = pixels[1];
+        const hitTolerance = 8; // 8px tolerance for wire clicks
+        
+        return {
+          contains: (x: number, y: number) => {
+            // Manhattan routing: vertical-horizontal-vertical path
+            const midY = (p1.y + p2.y) / 2;
+            
+            // Check vertical segment from p1 to midpoint
+            if (Math.abs(x - p1.x) < hitTolerance && 
+                y >= Math.min(p1.y, midY) && y <= Math.max(p1.y, midY)) {
+              return true;
+            }
+            
+            // Check horizontal segment at midpoint
+            if (Math.abs(y - midY) < hitTolerance && 
+                x >= Math.min(p1.x, p2.x) && x <= Math.max(p1.x, p2.x)) {
+              return true;
+            }
+            
+            // Check vertical segment from midpoint to p2
+            if (Math.abs(x - p2.x) < hitTolerance && 
+                y >= Math.min(midY, p2.y) && y <= Math.max(midY, p2.y)) {
+              return true;
+            }
+            
+            // Check endpoint circles
+            const distToP1 = Math.sqrt((x - p1.x) ** 2 + (y - p1.y) ** 2);
+            const distToP2 = Math.sqrt((x - p2.x) ** 2 + (y - p2.y) ** 2);
+            return distToP1 < hitTolerance || distToP2 < hitTolerance;
+          }
+        };
+      }
+      
+      case ComponentType.RESISTOR:
+      case ComponentType.LED: {
+        // Resistor/LED: Check if point is within component body or near leads
+        if (positions.length < 2) return null;
+        const p1 = pixels[0];
+        const p2 = pixels[1];
+        const centerX = (p1.x + p2.x) / 2;
+        const centerY = (p1.y + p2.y) / 2;
+        
+        // Component body dimensions
+        const bodyWidth = component.type === ComponentType.RESISTOR ? 60 : 15;
+        const bodyHeight = component.type === ComponentType.RESISTOR ? 20 : 15;
+        const bodyRadius = component.type === ComponentType.LED ? 15 : 0;
+        const leadTolerance = 5; // 5px tolerance for leads
+        
+        return {
+          contains: (x: number, y: number) => {
+            // Check component body
+            if (component.type === ComponentType.LED) {
+              // LED: circular body
+              const distToCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+              if (distToCenter < bodyRadius + 5) return true; // +5px margin
+            } else {
+              // Resistor: rectangular body
+              if (x >= centerX - bodyWidth / 2 && x <= centerX + bodyWidth / 2 &&
+                  y >= centerY - bodyHeight / 2 && y <= centerY + bodyHeight / 2) {
+                return true;
+              }
+            }
+            
+            // Check leads (simple line segments from pins to body)
+            const distToP1 = Math.sqrt((x - p1.x) ** 2 + (y - p1.y) ** 2);
+            const distToP2 = Math.sqrt((x - p2.x) ** 2 + (y - p2.y) ** 2);
+            return distToP1 < leadTolerance || distToP2 < leadTolerance;
+          }
+        };
+      }
+      
+      case ComponentType.POWER_SUPPLY:
+      case ComponentType.GROUND: {
+        // Power supply/Ground: Check if point is within symbol bounds
+        const p = pixels[0];
+        const symbolSize = 30; // Approximate symbol size
+        
+        return {
+          contains: (x: number, y: number) => {
+            return Math.abs(x - p.x) < symbolSize && Math.abs(y - p.y) < symbolSize;
+          }
+        };
+      }
+      
+      case ComponentType.MICROPROCESSOR: {
+        // Microprocessor: Check if point is within chip body
+        const centerPos = this.getComponentCenter(positions);
+        const centerPixels = this.positionToPixels(centerPos);
+        const chipWidth = 80;
+        const chipHeight = 120;
+        
+        return {
+          contains: (x: number, y: number) => {
+            return x >= centerPixels.x - chipWidth / 2 && x <= centerPixels.x + chipWidth / 2 &&
+                   y >= centerPixels.y - chipHeight / 2 && y <= centerPixels.y + chipHeight / 2;
+          }
+        };
+      }
+      
+      default:
+        // Unknown component type: use default bounding box behavior
+        return null;
+    }
   }
 
   /**
