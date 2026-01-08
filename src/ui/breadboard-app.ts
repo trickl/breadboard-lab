@@ -35,6 +35,7 @@ import {
   EditPropertyCommand,
 } from '@/core/command';
 import { ReteManager } from '@/core/rete-manager';
+import { quickSelectManager } from '@/core/quick-select-manager';
 
 /**
  * Feature flag: Enable Rete.js integration
@@ -287,6 +288,9 @@ export class BreadboardApp {
       <div class="main-container">
         <div class="toolbar">
           <h2>Components</h2>
+          <div id="quick-select-container" class="quick-select-bar">
+            <!-- Quick Select components rendered dynamically -->
+          </div>
           <div class="component-list">
             <button id="component-library-btn" class="component-button primary">📦 Component Library</button>
           </div>
@@ -363,6 +367,7 @@ export class BreadboardApp {
     this.explainPanel.initialize(this.container);
     
     this.renderBreadboard();
+    this.renderQuickSelectBar();
     this.attachEventListeners();
     this.updateCircuitInfo();
     this.updateAudioControls();
@@ -507,6 +512,77 @@ export class BreadboardApp {
     // Update speaker audio based on simulation results
     this.updateSpeakerAudio();
     this.updateAudioControls();
+  }
+
+  /**
+   * Render Quick Select component bar
+   * Displays commonly-used components for fast access (goal.md Section 12)
+   */
+  private renderQuickSelectBar(): void {
+    const quickSelectContainer = document.getElementById('quick-select-container');
+    if (!quickSelectContainer) return;
+
+    quickSelectContainer.innerHTML = ''; // Clear existing
+
+    const components = quickSelectManager.getComponents();
+    components.forEach(qsComponent => {
+      const entry = componentLibrary.get(qsComponent.libraryId);
+      if (!entry) return;
+
+      const button = document.createElement('button');
+      button.className = 'quick-select-item';
+      button.dataset.libraryId = qsComponent.libraryId;
+      button.tabIndex = 0;
+      button.setAttribute('aria-label', `Select ${entry.name}`);
+
+      // Icon (use first letter of component name as simple icon)
+      const icon = document.createElement('div');
+      icon.className = 'quick-select-icon';
+      icon.textContent = entry.name.charAt(0).toUpperCase();
+      button.appendChild(icon);
+
+      // Label
+      const label = document.createElement('div');
+      label.className = 'quick-select-label';
+      label.textContent = entry.name.length > 10 
+        ? entry.name.substring(0, 10) + '…' 
+        : entry.name;
+      button.appendChild(label);
+
+      // Remove button (for non-defaults)
+      if (!qsComponent.isDefault) {
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'quick-select-remove';
+        removeBtn.textContent = '✕';
+        removeBtn.setAttribute('aria-label', `Remove ${entry.name} from Quick Select`);
+        removeBtn.onclick = (e) => {
+          e.stopPropagation();
+          quickSelectManager.removeComponent(qsComponent.libraryId);
+          this.renderQuickSelectBar();
+        };
+        button.appendChild(removeBtn);
+      }
+
+      // Click handler - select component from library
+      button.onclick = () => {
+        this.selectComponentFromLibrary(qsComponent.libraryId);
+        // Visual feedback: highlight selected
+        document.querySelectorAll('.quick-select-item').forEach(btn => {
+          btn.classList.remove('selected');
+        });
+        button.classList.add('selected');
+      };
+
+      // Keyboard handler
+      button.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          button.click();
+        }
+      });
+
+      quickSelectContainer.appendChild(button);
+    });
   }
 
   /**
@@ -2557,11 +2633,35 @@ export class BreadboardApp {
         
         // Re-attach click handlers to new cards
         grid.querySelectorAll('.component-card').forEach((card) => {
-          card.addEventListener('click', () => {
+          card.addEventListener('click', (e) => {
+            // Don't select component if clicking the Quick Select button
+            if ((e.target as HTMLElement).classList.contains('add-to-quick-select')) {
+              return;
+            }
             const libraryId = (card as HTMLElement).dataset.libraryId;
             if (libraryId) {
               this.selectComponentFromLibrary(libraryId);
               this.closeModal('component-library-modal');
+            }
+          });
+        });
+        
+        // Attach Quick Select button handlers
+        grid.querySelectorAll('.add-to-quick-select').forEach((button) => {
+          button.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent card click
+            const libraryId = (button as HTMLElement).dataset.libraryId;
+            if (!libraryId) return;
+            
+            if (quickSelectManager.isAtCapacity()) {
+              alert('Quick Select is full (8 components max). Remove a component first.');
+              return;
+            }
+            
+            const added = quickSelectManager.addComponent(libraryId);
+            if (added) {
+              this.renderQuickSelectBar();
+              updateComponentDisplay(); // Refresh to show updated button state
             }
           });
         });
@@ -2618,11 +2718,43 @@ export class BreadboardApp {
 
     // Component card click handlers
     document.querySelectorAll('.component-card').forEach((card) => {
-      card.addEventListener('click', () => {
+      card.addEventListener('click', (e) => {
+        // Don't select component if clicking the Quick Select button
+        if ((e.target as HTMLElement).classList.contains('add-to-quick-select')) {
+          return;
+        }
         const libraryId = (card as HTMLElement).dataset.libraryId;
         if (libraryId) {
           this.selectComponentFromLibrary(libraryId);
           this.closeModal('component-library-modal');
+        }
+      });
+    });
+    
+    // Quick Select button handlers (initial)
+    document.querySelectorAll('.add-to-quick-select').forEach((button) => {
+      button.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent card click
+        const libraryId = (button as HTMLElement).dataset.libraryId;
+        if (!libraryId) return;
+        
+        if (quickSelectManager.isAtCapacity()) {
+          alert('Quick Select is full (8 components max). Remove a component first.');
+          return;
+        }
+        
+        const added = quickSelectManager.addComponent(libraryId);
+        if (added) {
+          this.renderQuickSelectBar();
+          // Update all Quick Select buttons in the library
+          document.querySelectorAll('.add-to-quick-select').forEach((btn) => {
+            const btnLibraryId = (btn as HTMLElement).dataset.libraryId;
+            if (btnLibraryId === libraryId) {
+              (btn as HTMLButtonElement).textContent = '★ In Quick Select';
+              (btn as HTMLButtonElement).disabled = true;
+              btn.classList.add('in-quick-select');
+            }
+          });
         }
       });
     });
@@ -2656,6 +2788,9 @@ export class BreadboardApp {
         // Extract key specs for display
         const specs = this.getComponentSpecs(entry);
         
+        // Check if component is in Quick Select
+        const inQuickSelect = quickSelectManager.hasComponent(entry.id);
+        
         return `
           <div class="component-card" data-library-id="${entry.id}">
             <div class="component-card-header">
@@ -2676,6 +2811,13 @@ export class BreadboardApp {
             ${entry.manufacturerPartNumber ? `
               <div class="component-card-part-number">Part: ${this.escapeHtml(entry.manufacturerPartNumber)}</div>
             ` : ''}
+            <button 
+              class="add-to-quick-select ${inQuickSelect ? 'in-quick-select' : ''}" 
+              data-library-id="${entry.id}"
+              ${inQuickSelect ? 'disabled' : ''}
+            >
+              ${inQuickSelect ? '★ In Quick Select' : '☆ Add to Quick Select'}
+            </button>
           </div>
         `;
       })
