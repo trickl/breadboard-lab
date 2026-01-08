@@ -525,6 +525,19 @@ export class BreadboardApp {
     quickSelectContainer.innerHTML = ''; // Clear existing
 
     const components = quickSelectManager.getComponents();
+    
+    // Show empty state if no components
+    if (components.length === 0) {
+      const emptyState = document.createElement('div');
+      emptyState.className = 'quick-select-empty';
+      emptyState.innerHTML = `
+        <div class="quick-select-empty-icon">⭐</div>
+        <div class="quick-select-empty-text">Add items from Component Library below</div>
+      `;
+      quickSelectContainer.appendChild(emptyState);
+      return;
+    }
+    
     components.forEach(qsComponent => {
       const entry = componentLibrary.get(qsComponent.libraryId);
       if (!entry) return;
@@ -535,25 +548,23 @@ export class BreadboardApp {
       button.tabIndex = 0;
       button.setAttribute('aria-label', `Select ${entry.name}`);
 
-      // Icon (use first letter of component name as simple icon)
+      // Icon container (left side) - use category emoji from Component Library
       const icon = document.createElement('div');
       icon.className = 'quick-select-icon';
-      icon.textContent = entry.name.charAt(0).toUpperCase();
+      icon.textContent = this.getCategoryEmoji(entry.category);
       button.appendChild(icon);
 
-      // Label
+      // Label (right side) - use friendly component name
       const label = document.createElement('div');
       label.className = 'quick-select-label';
-      label.textContent = entry.name.length > 10 
-        ? entry.name.substring(0, 10) + '…' 
-        : entry.name;
+      label.textContent = entry.name;
       button.appendChild(label);
 
       // Remove button (for non-defaults)
       if (!qsComponent.isDefault) {
         const removeBtn = document.createElement('button');
         removeBtn.className = 'quick-select-remove';
-        removeBtn.textContent = '✕';
+        removeBtn.textContent = '×';
         removeBtn.setAttribute('aria-label', `Remove ${entry.name} from Quick Select`);
         removeBtn.onclick = (e) => {
           e.stopPropagation();
@@ -2905,9 +2916,17 @@ export class BreadboardApp {
       componentType = ComponentType.WIRE;
     }
 
-    this.selectedComponentType = componentType;
-    this.selectedLibraryId = libraryId;
-    this.placementStart = null;
+    // In interactive mode, create a floating component immediately
+    // In legacy mode, set selection state for two-click placement
+    if (USE_RETE_INTERACTIVE) {
+      this.createFloatingComponent(componentType, libraryId);
+      this.selectedComponentType = null;
+      this.selectedLibraryId = null;
+    } else {
+      this.selectedComponentType = componentType;
+      this.selectedLibraryId = libraryId;
+      this.placementStart = null;
+    }
   }
 
   /**
