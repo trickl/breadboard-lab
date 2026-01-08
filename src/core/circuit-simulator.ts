@@ -162,7 +162,7 @@ export class CircuitSimulator {
       .map(() => Array(matrixSize).fill(0));
     const i: number[] = Array(matrixSize).fill(0);
 
-    // Process resistive components (resistors, wires, LEDs as resistors)
+    // Process resistive components (resistors, wires, LEDs as resistors, switches)
     for (const edge of circuit.edges) {
       const component = edge.component;
       let conductance = 0;
@@ -175,6 +175,13 @@ export class CircuitSimulator {
         // Model LED as series resistor (simplified)
         // More accurate would be resistor + voltage source
         conductance = 1 / 100; // 100 ohm equivalent resistance
+      } else if (component.type === ComponentType.SWITCH) {
+        // Switch as variable resistor based on state
+        const switchState = component.switchState ?? 'open';
+        const resistance = switchState === 'closed' 
+          ? 0.01  // Wire-like resistance when closed
+          : 1e9;  // Near-infinite resistance when open (1 GΩ)
+        conductance = 1 / resistance;
       } else if (component.type === ComponentType.GROUND || component.type === ComponentType.POWER_SUPPLY) {
         // Handled separately
         continue;
@@ -353,6 +360,11 @@ export class CircuitSimulator {
         // Simplified: treat as 100 ohm resistor
         // More accurate model would include forward voltage drop (Vf) as a voltage source in series
         current = voltageDiff / 100;
+      } else if (component.type === ComponentType.SWITCH) {
+        // Calculate current based on switch state
+        const switchState = component.switchState ?? 'open';
+        const resistance = switchState === 'closed' ? 0.01 : 1e9;
+        current = voltageDiff / resistance;
       } else if (component.type === ComponentType.POWER_SUPPLY) {
         // Extract current from MNA solution vector
         current = voltageSourceCurrents.get(edge.id) || 0;

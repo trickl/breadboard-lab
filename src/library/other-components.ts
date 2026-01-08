@@ -261,3 +261,50 @@ export const SPEAKER_LIBRARY: ComponentLibraryEntry[] = [
     ],
   },
 ];
+
+/**
+ * Switch library entries
+ */
+export const SWITCH_LIBRARY: ComponentLibraryEntry[] = [
+  {
+    id: 'switch-spst',
+    name: 'SPST Toggle Switch',
+    category: 'interconnect',
+    manufacturer: 'Generic',
+    partFamily: 'Toggle Switch',
+    package: {
+      kind: 'header',
+      pinCount: 2,
+      leadSpacingMm: 5.08, // 0.2" standard
+      body: {
+        lengthMm: 12,
+        widthMm: 6,
+        heightMm: 8,
+      },
+    },
+    footprint: {
+      pins: [
+        { pinId: 'terminal1', role: 'terminal' },
+        { pinId: 'terminal2', role: 'terminal' },
+      ],
+    },
+    electrical: {
+      contactResistance: 0.01, // Ohms when closed
+      voltageRating: 250, // V AC
+      currentRating: 3, // A
+      operatingForce: '150g',
+      lifeCycles: 10000,
+      contactMaterial: 'Silver',
+    },
+    visuals: {
+      renderer: 'procedural',
+    },
+    description: 'Single-pole single-throw toggle switch for manual circuit control',
+    typicalUses: [
+      'Manual circuit control',
+      'Power on/off switching',
+      'Input device for digital circuits',
+      'Series/parallel switch configurations',
+    ],
+  },
+];
