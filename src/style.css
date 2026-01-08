@@ -95,6 +95,123 @@ body {
   border-color: #5599ff;
 }
 
+/* Quick Select Bar */
+.quick-select-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 8px;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #444;
+  background: #2a2a2a;
+}
+
+.quick-select-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  padding: 4px;
+  background: #3a3a3a;
+  border: 2px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #fff;
+  font-size: 12px;
+}
+
+.quick-select-item:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border-color: #777;
+}
+
+.quick-select-item:focus {
+  outline: 2px solid #4169e1;
+  outline-offset: 2px;
+}
+
+.quick-select-item.selected {
+  border: 3px solid #4169e1;
+  background: #4a4a4a;
+}
+
+.quick-select-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+  color: #4169e1;
+}
+
+.quick-select-label {
+  font-size: 10px;
+  color: #ccc;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.quick-select-remove {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  background: #e74c3c;
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 10px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+
+.quick-select-item:hover .quick-select-remove {
+  display: flex;
+}
+
+.quick-select-remove:hover {
+  background: #c0392b;
+}
+
+.add-to-quick-select {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: #4169e1;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+  width: 100%;
+}
+
+.add-to-quick-select:hover:not(:disabled) {
+  background: #5179f1;
+}
+
+.add-to-quick-select:disabled,
+.add-to-quick-select.in-quick-select {
+  background: #555;
+  color: #888;
+  cursor: not-allowed;
+}
+
 .workspace {
   flex: 1;
   display: flex;
