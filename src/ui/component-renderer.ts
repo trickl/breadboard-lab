@@ -766,10 +766,16 @@ export class ComponentRenderer {
     toggleCircle.setAttribute('cy', toggleY.toString());
     group.appendChild(toggleCircle);
 
-    // Draw leads
-    this.drawSimpleLead(group, start, centerX - bodyWidth / 2 * Math.cos(rotationRad) + bodyHeight / 2 * Math.sin(rotationRad), 
-                       centerY - bodyWidth / 2 * Math.sin(rotationRad) - bodyHeight / 2 * Math.cos(rotationRad));
-    this.drawSimpleLead(group, end, centerX + bodyWidth / 2 * Math.cos(rotationRad) + bodyHeight / 2 * Math.sin(rotationRad), 
-                       centerY + bodyWidth / 2 * Math.sin(rotationRad) - bodyHeight / 2 * Math.cos(rotationRad));
+    // Draw leads from component terminals to body edges
+    // Lead coordinates are calculated by rotating body edge points around center
+    // leftX = centerX - (bodyWidth/2 * cos(angle)) + (bodyHeight/2 * sin(angle))
+    // leftY = centerY - (bodyWidth/2 * sin(angle)) - (bodyHeight/2 * cos(angle))
+    const leftLeadX = centerX - bodyWidth / 2 * Math.cos(rotationRad) + bodyHeight / 2 * Math.sin(rotationRad);
+    const leftLeadY = centerY - bodyWidth / 2 * Math.sin(rotationRad) - bodyHeight / 2 * Math.cos(rotationRad);
+    const rightLeadX = centerX + bodyWidth / 2 * Math.cos(rotationRad) + bodyHeight / 2 * Math.sin(rotationRad);
+    const rightLeadY = centerY + bodyWidth / 2 * Math.sin(rotationRad) - bodyHeight / 2 * Math.cos(rotationRad);
+    
+    this.drawSimpleLead(group, start, leftLeadX, leftLeadY);
+    this.drawSimpleLead(group, end, rightLeadX, rightLeadY);
   }
 }
