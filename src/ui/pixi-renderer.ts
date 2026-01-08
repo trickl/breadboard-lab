@@ -84,6 +84,17 @@ export class PixiRenderer {
   private static readonly LED_TURN_ON_THRESHOLD = 0.8; // LED turns on at 80% of forward voltage
   private static readonly ASSUMED_SERIES_RESISTANCE_OHMS = 100; // Estimated series resistance for current calculation
 
+  // Component dimensions for consistent rendering and hit detection
+  private static readonly RESISTOR_BODY_WIDTH = 60;
+  private static readonly RESISTOR_BODY_HEIGHT = 20;
+  private static readonly LED_BODY_RADIUS = 15;
+  private static readonly POWER_SUPPLY_SYMBOL_HEIGHT = 30;
+  private static readonly POWER_SUPPLY_SYMBOL_WIDTH = 20;
+  private static readonly GROUND_SYMBOL_WIDTH = 30;
+  private static readonly GROUND_SYMBOL_HEIGHT = 20;
+  private static readonly MICROPROCESSOR_WIDTH = 80;
+  private static readonly MICROPROCESSOR_HEIGHT = 120;
+
   // Wire colors
   private static readonly WIRE_COLORS = [
     '#ff0000', '#000000', '#ffff00', '#00ff00',
@@ -1058,10 +1069,16 @@ export class PixiRenderer {
         const centerX = (p1.x + p2.x) / 2;
         const centerY = (p1.y + p2.y) / 2;
         
-        // Component body dimensions
-        const bodyWidth = component.type === ComponentType.RESISTOR ? 60 : 15;
-        const bodyHeight = component.type === ComponentType.RESISTOR ? 20 : 15;
-        const bodyRadius = component.type === ComponentType.LED ? 15 : 0;
+        // Component body dimensions (matching rendering constants)
+        const bodyWidth = component.type === ComponentType.RESISTOR 
+          ? PixiRenderer.RESISTOR_BODY_WIDTH 
+          : PixiRenderer.LED_BODY_RADIUS;
+        const bodyHeight = component.type === ComponentType.RESISTOR 
+          ? PixiRenderer.RESISTOR_BODY_HEIGHT 
+          : PixiRenderer.LED_BODY_RADIUS;
+        const bodyRadius = component.type === ComponentType.LED 
+          ? PixiRenderer.LED_BODY_RADIUS 
+          : 0;
         const leadTolerance = 5; // 5px tolerance for leads
         
         return {
@@ -1091,11 +1108,16 @@ export class PixiRenderer {
       case ComponentType.GROUND: {
         // Power supply/Ground: Check if point is within symbol bounds
         const p = pixels[0];
-        const symbolSize = 30; // Approximate symbol size
+        const symbolWidth = component.type === ComponentType.POWER_SUPPLY 
+          ? PixiRenderer.POWER_SUPPLY_SYMBOL_WIDTH 
+          : PixiRenderer.GROUND_SYMBOL_WIDTH;
+        const symbolHeight = component.type === ComponentType.POWER_SUPPLY 
+          ? PixiRenderer.POWER_SUPPLY_SYMBOL_HEIGHT 
+          : PixiRenderer.GROUND_SYMBOL_HEIGHT;
         
         return {
           contains: (x: number, y: number) => {
-            return Math.abs(x - p.x) < symbolSize && Math.abs(y - p.y) < symbolSize;
+            return Math.abs(x - p.x) < symbolWidth && Math.abs(y - p.y) < symbolHeight;
           }
         };
       }
@@ -1104,13 +1126,13 @@ export class PixiRenderer {
         // Microprocessor: Check if point is within chip body
         const centerPos = this.getComponentCenter(positions);
         const centerPixels = this.positionToPixels(centerPos);
-        const chipWidth = 80;
-        const chipHeight = 120;
         
         return {
           contains: (x: number, y: number) => {
-            return x >= centerPixels.x - chipWidth / 2 && x <= centerPixels.x + chipWidth / 2 &&
-                   y >= centerPixels.y - chipHeight / 2 && y <= centerPixels.y + chipHeight / 2;
+            return x >= centerPixels.x - PixiRenderer.MICROPROCESSOR_WIDTH / 2 && 
+                   x <= centerPixels.x + PixiRenderer.MICROPROCESSOR_WIDTH / 2 &&
+                   y >= centerPixels.y - PixiRenderer.MICROPROCESSOR_HEIGHT / 2 && 
+                   y <= centerPixels.y + PixiRenderer.MICROPROCESSOR_HEIGHT / 2;
           }
         };
       }
