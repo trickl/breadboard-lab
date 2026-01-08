@@ -814,3 +814,51 @@ describe('BreadboardApp - Undo/Redo', () => {
   });
 });
 
+describe('BreadboardApp - Default Circuit Loading', () => {
+  let container: HTMLElement;
+  let app: BreadboardApp;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    container.id = 'app';
+    document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    if (app) {
+      app.destroy();
+    }
+    document.body.removeChild(container);
+  });
+
+  it('should load default circuit on initialization', () => {
+    app = new BreadboardApp(container);
+    const components = app.getComponents();
+    
+    // Default circuit (EDU-8 Blink) should have components loaded
+    expect(components.length).toBeGreaterThan(0);
+  });
+
+  it('should load edu8-blink circuit as default', () => {
+    app = new BreadboardApp(container);
+    const components = app.getComponents();
+    
+    // Check for microprocessor component
+    const hasMicroprocessor = components.some(c => c.type === ComponentType.MICROPROCESSOR);
+    expect(hasMicroprocessor).toBe(true);
+  });
+
+  it('default circuit should include essential components', () => {
+    app = new BreadboardApp(container);
+    const components = app.getComponents();
+    const componentTypes = components.map(c => c.type);
+    
+    // Essential components for EDU-8 Blink circuit
+    expect(componentTypes).toContain(ComponentType.MICROPROCESSOR);
+    expect(componentTypes).toContain(ComponentType.LED);
+    expect(componentTypes).toContain(ComponentType.RESISTOR);
+    expect(componentTypes).toContain(ComponentType.POWER_SUPPLY);
+    expect(componentTypes).toContain(ComponentType.GROUND);
+  });
+});
+

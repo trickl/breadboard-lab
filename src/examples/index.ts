@@ -110,3 +110,15 @@ export function getExamplesByCategory(
 ): ExampleCircuit[] {
   return EXAMPLE_CIRCUITS.filter((example) => example.category === category);
 }
+
+/**
+ * Get the default example circuit to load on application initialization
+ * Returns the EDU-8 Blink circuit as specified in goal.md Section 13
+ */
+export function getDefaultExample(): ExampleCircuit {
+  const defaultCircuit = getExampleById('edu8-blink');
+  if (!defaultCircuit) {
+    throw new Error('Default example circuit (edu8-blink) not found');
+  }
+  return defaultCircuit;
+}
