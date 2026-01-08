@@ -1622,11 +1622,9 @@ export class BreadboardApp {
     // Calculate offset from mouse to first pin (for smooth dragging)
     // Note: positionToPixels returns grid-relative coords, but we need to add padding
     // to match the canvas coordinate system
-    const LABEL_PADDING_X = 20; // Same as PixiRenderer.LABEL_PADDING_X (private)
-    const LABEL_PADDING_Y = 25; // Same as PixiRenderer.LABEL_PADDING_Y (private)
     const firstPinPixels = this.pixiRenderer.positionToPixels(component.positions[0]);
-    const firstPinCanvasX = firstPinPixels.x + LABEL_PADDING_X;
-    const firstPinCanvasY = firstPinPixels.y + LABEL_PADDING_Y;
+    const firstPinCanvasX = firstPinPixels.x + PixiRenderer.LABEL_PADDING_X;
+    const firstPinCanvasY = firstPinPixels.y + PixiRenderer.LABEL_PADDING_Y;
     const offsetX = firstPinCanvasX - mouseX;
     const offsetY = firstPinCanvasY - mouseY;
 
@@ -2025,13 +2023,9 @@ export class BreadboardApp {
    * which includes LABEL_PADDING offset. We need to subtract this before converting to grid.
    */
   private snapToGrid(pixels: { x: number; y: number }): Position {
-    // Get padding constants from PixiRenderer
-    const LABEL_PADDING_X = 20; // Same as PixiRenderer.LABEL_PADDING_X (private)
-    const LABEL_PADDING_Y = 25; // Same as PixiRenderer.LABEL_PADDING_Y (private)
-    
     // Subtract padding to get coordinates relative to the grid
-    const gridX = pixels.x - LABEL_PADDING_X;
-    const gridY = pixels.y - LABEL_PADDING_Y;
+    const gridX = pixels.x - PixiRenderer.LABEL_PADDING_X;
+    const gridY = pixels.y - PixiRenderer.LABEL_PADDING_Y;
     
     const col = Math.round(gridX / PixiRenderer.HOLE_SPACING);
     const row = Math.round(gridY / PixiRenderer.HOLE_SPACING);

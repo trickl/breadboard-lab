@@ -76,9 +76,9 @@ export class PixiRenderer {
   public static readonly HOLE_MARGIN = 3;
   public static readonly HOLE_SPACING = PixiRenderer.HOLE_SIZE + PixiRenderer.HOLE_MARGIN * 2;
   
-  // Padding for labels
-  private static readonly LABEL_PADDING_X = 20;
-  private static readonly LABEL_PADDING_Y = 25;
+  // Padding for labels (public for coordinate transformation in BreadboardApp)
+  public static readonly LABEL_PADDING_X = 20;
+  public static readonly LABEL_PADDING_Y = 25;
   
   // LED glow effect constants
   private static readonly LED_TURN_ON_THRESHOLD = 0.8; // LED turns on at 80% of forward voltage
