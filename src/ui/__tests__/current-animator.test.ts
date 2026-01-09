@@ -187,9 +187,7 @@ describe('CurrentAnimator', () => {
 
       animator.start(lowCurrentResult, components, mockSvg);
 
-      const lowCurrentParticles = mockSvg.querySelectorAll(
-        '.current-particles circle'
-      ).length;
+      const lowCurrentParticles = mockSvg.querySelectorAll('.current-particles circle').length;
 
       animator.stop();
 
@@ -203,9 +201,7 @@ describe('CurrentAnimator', () => {
 
       animator.start(highCurrentResult, components, mockSvg);
 
-      const highCurrentParticles = mockSvg.querySelectorAll(
-        '.current-particles circle'
-      ).length;
+      const highCurrentParticles = mockSvg.querySelectorAll('.current-particles circle').length;
 
       // High current should have more particles than low current
       expect(highCurrentParticles).toBeGreaterThan(lowCurrentParticles);
@@ -291,7 +287,7 @@ describe('CurrentAnimator', () => {
           ['node1', 5],
           ['node2', 3],
         ]),
-        edgeCurrents: new Map([['led1', 0.010]]),
+        edgeCurrents: new Map([['led1', 0.01]]),
         errors: [],
       };
 

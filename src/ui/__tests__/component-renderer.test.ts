@@ -14,7 +14,7 @@ describe('ComponentRenderer', () => {
     it('should create an SVG element', () => {
       const components: Wire[] = [];
       const svg = renderer.renderComponents(components);
-      
+
       expect(svg.tagName).toBe('svg');
       expect(svg.classList.contains('component-overlay')).toBe(true);
     });
@@ -33,7 +33,7 @@ describe('ComponentRenderer', () => {
 
       const svg = renderer.renderComponents([wire]);
       const wireGroup = svg.querySelector('.component-wire');
-      
+
       expect(wireGroup).not.toBeNull();
       expect(wireGroup?.getAttribute('data-component-id')).toBe('wire-1');
     });
@@ -52,10 +52,10 @@ describe('ComponentRenderer', () => {
 
       const svg = renderer.renderComponents([resistor]);
       const resistorGroup = svg.querySelector('.component-resistor');
-      
+
       expect(resistorGroup).not.toBeNull();
       expect(resistorGroup?.getAttribute('data-component-id')).toBe('resistor-1');
-      
+
       // Check for color bands instead of text label
       // 1kΩ 5% should have 4 bands: brown-black-red-gold
       const bands = resistorGroup?.querySelectorAll('rect[fill]');
@@ -78,10 +78,10 @@ describe('ComponentRenderer', () => {
 
       const svg = renderer.renderComponents([led]);
       const ledGroup = svg.querySelector('.component-led');
-      
+
       expect(ledGroup).not.toBeNull();
       expect(ledGroup?.getAttribute('data-component-id')).toBe('led-1');
-      
+
       // Check for LED circle
       const circle = ledGroup?.querySelector('circle');
       expect(circle).not.toBeNull();
@@ -101,13 +101,13 @@ describe('ComponentRenderer', () => {
 
       const svg = renderer.renderComponents([powerSupply]);
       const powerGroup = svg.querySelector('.component-power_supply');
-      
+
       expect(powerGroup).not.toBeNull();
       expect(powerGroup?.getAttribute('data-component-id')).toBe('power-1');
-      
+
       // Check for voltage label
       const texts = powerGroup?.querySelectorAll('text');
-      const voltageLabel = Array.from(texts || []).find(t => t.textContent === '5V');
+      const voltageLabel = Array.from(texts || []).find((t) => t.textContent === '5V');
       expect(voltageLabel).not.toBeNull();
     });
 
@@ -124,7 +124,7 @@ describe('ComponentRenderer', () => {
 
       const svg = renderer.renderComponents([ground]);
       const groundGroup = svg.querySelector('.component-ground');
-      
+
       expect(groundGroup).not.toBeNull();
       expect(groundGroup?.getAttribute('data-component-id')).toBe('ground-1');
     });
@@ -153,7 +153,7 @@ describe('ComponentRenderer', () => {
       };
 
       const svg = renderer.renderComponents([wire, resistor]);
-      
+
       expect(svg.querySelector('.component-wire')).not.toBeNull();
       expect(svg.querySelector('.component-resistor')).not.toBeNull();
     });
@@ -184,7 +184,7 @@ describe('ComponentRenderer', () => {
       // Add resistor first, then wire
       const svg = renderer.renderComponents([resistor, wire]);
       const children = Array.from(svg.children);
-      
+
       // Wire should be rendered first (index 0)
       expect(children[0].classList.contains('component-wire')).toBe(true);
       // Resistor should be rendered after (index 1)
@@ -219,11 +219,11 @@ describe('ComponentRenderer', () => {
       // First render
       const svg1 = renderer.renderComponents([wire1, wire2]);
       const firstWireColor1 = svg1.querySelector('.component-wire path')?.getAttribute('stroke');
-      
+
       // Second render (should reset colors)
       const svg2 = renderer.renderComponents([wire1, wire2]);
       const firstWireColor2 = svg2.querySelector('.component-wire path')?.getAttribute('stroke');
-      
+
       // Colors should be the same because we reset on each render
       expect(firstWireColor1).toBe(firstWireColor2);
     });

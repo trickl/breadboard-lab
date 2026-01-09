@@ -16,8 +16,9 @@ if (USE_REACT_UI) {
     console.error('App element not found');
   }
 } else {
-  import('./main-legacy').then(() => {
-  }).catch((error) => {
-    console.error('Failed to load legacy app:', error);
-  });
+  import('./main-legacy')
+    .then(() => {})
+    .catch((error) => {
+      console.error('Failed to load legacy app:', error);
+    });
 }

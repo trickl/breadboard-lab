@@ -68,10 +68,22 @@ export class CircuitSimulator {
       const nodeVoltages = this.extractNodeVoltages(solution, nodeIndexMap, groundNodes, circuit);
 
       // Calculate edge currents from voltage differences and MNA solution
-      const edgeCurrents = this.calculateEdgeCurrents(circuit, nodeVoltages, solution, numNodes, voltageSources);
+      const edgeCurrents = this.calculateEdgeCurrents(
+        circuit,
+        nodeVoltages,
+        solution,
+        numNodes,
+        voltageSources
+      );
 
       // Detect circuit errors
-      const errors = this.detectErrors(circuit, nodeVoltages, edgeCurrents, groundNodes, voltageSources);
+      const errors = this.detectErrors(
+        circuit,
+        nodeVoltages,
+        edgeCurrents,
+        groundNodes,
+        voltageSources
+      );
 
       return {
         success: true,
@@ -95,7 +107,12 @@ export class CircuitSimulator {
    */
   private analyzeCircuit(circuit: Circuit): {
     groundNodes: Set<string>;
-    voltageSources: Array<{ edge: CircuitEdge; voltage: number; positiveNode: string; negativeNode: string }>;
+    voltageSources: Array<{
+      edge: CircuitEdge;
+      voltage: number;
+      positiveNode: string;
+      negativeNode: string;
+    }>;
   } {
     const groundNodes = new Set<string>();
     const voltageSources: Array<{
@@ -118,8 +135,8 @@ export class CircuitSimulator {
         voltageSources.push({
           edge,
           voltage: edge.component.voltage,
-          positiveNode: edge.nodeA,  // Higher voltage terminal
-          negativeNode: edge.nodeB,  // Lower voltage terminal
+          positiveNode: edge.nodeA, // Higher voltage terminal
+          negativeNode: edge.nodeB, // Lower voltage terminal
         });
       }
     }
@@ -150,7 +167,12 @@ export class CircuitSimulator {
     circuit: Circuit,
     nodeIndexMap: Map<string, number>,
     groundNodes: Set<string>,
-    voltageSources: Array<{ edge: CircuitEdge; voltage: number; positiveNode: string; negativeNode: string }>
+    voltageSources: Array<{
+      edge: CircuitEdge;
+      voltage: number;
+      positiveNode: string;
+      negativeNode: string;
+    }>
   ): { G: number[][]; i: number[] } {
     const numNodes = nodeIndexMap.size;
     const numVoltageSources = voltageSources.length;
@@ -178,11 +200,15 @@ export class CircuitSimulator {
       } else if (component.type === ComponentType.SWITCH) {
         // Switch as variable resistor based on state
         const switchState = component.switchState ?? 'open';
-        const resistance = switchState === 'closed' 
-          ? 0.01  // Wire-like resistance when closed
-          : 1e9;  // Near-infinite resistance when open (1 GΩ)
+        const resistance =
+          switchState === 'closed'
+            ? 0.01 // Wire-like resistance when closed
+            : 1e9; // Near-infinite resistance when open (1 GΩ)
         conductance = 1 / resistance;
-      } else if (component.type === ComponentType.GROUND || component.type === ComponentType.POWER_SUPPLY) {
+      } else if (
+        component.type === ComponentType.GROUND ||
+        component.type === ComponentType.POWER_SUPPLY
+      ) {
         // Handled separately
         continue;
       }
@@ -333,7 +359,12 @@ export class CircuitSimulator {
     nodeVoltages: Map<string, number>,
     solution: number[],
     numNodes: number,
-    voltageSources: Array<{ edge: CircuitEdge; voltage: number; positiveNode: string; negativeNode: string }>
+    voltageSources: Array<{
+      edge: CircuitEdge;
+      voltage: number;
+      positiveNode: string;
+      negativeNode: string;
+    }>
   ): Map<string, number> {
     const edgeCurrents = new Map<string, number>();
 
@@ -386,14 +417,20 @@ export class CircuitSimulator {
     nodeVoltages: Map<string, number>,
     edgeCurrents: Map<string, number>,
     groundNodes: Set<string>,
-    voltageSources: Array<{ edge: CircuitEdge; voltage: number; positiveNode: string; negativeNode: string }>
+    voltageSources: Array<{
+      edge: CircuitEdge;
+      voltage: number;
+      positiveNode: string;
+      negativeNode: string;
+    }>
   ): CircuitError[] {
     const errors: CircuitError[] = [];
 
     // 1. Detect short circuits (power supply with very high current)
     for (const vs of voltageSources) {
       const current = Math.abs(edgeCurrents.get(vs.edge.id) || 0);
-      if (current > 10) { // More than 10A indicates potential short circuit
+      if (current > 10) {
+        // More than 10A indicates potential short circuit
         const node = circuit.nodes.get(vs.positiveNode);
         errors.push({
           type: ErrorType.SHORT_CIRCUIT,
@@ -402,7 +439,8 @@ export class CircuitSimulator {
           nodeId: vs.positiveNode,
           positions: node?.positions || [],
           message: 'Short circuit detected',
-          explanation: 'The power supply is delivering excessive current (>10A), which indicates a direct or near-direct connection to ground with very little resistance. This would damage a real power supply.',
+          explanation:
+            'The power supply is delivering excessive current (>10A), which indicates a direct or near-direct connection to ground with very little resistance. This would damage a real power supply.',
           suggestions: [
             'Add resistors to limit current flow',
             'Check for unintended wire connections between power and ground',
@@ -415,22 +453,22 @@ export class CircuitSimulator {
     // 2. Detect floating nodes (nodes with very low voltage that should be powered)
     for (const [nodeId, node] of circuit.nodes) {
       if (groundNodes.has(nodeId)) continue;
-      
+
       const voltage = nodeVoltages.get(nodeId) || 0;
-      
+
       // Check if node is connected to any components
       const connectedEdges = circuit.edges.filter(
         (edge) => edge.nodeA === nodeId || edge.nodeB === nodeId
       );
-      
+
       // Skip if node has no components (shouldn't happen but be safe)
       if (connectedEdges.length === 0) continue;
-      
+
       // Check if any edge has non-zero current (indicating node is in active circuit)
       const hasActiveCurrent = connectedEdges.some(
         (edge) => Math.abs(edgeCurrents.get(edge.id) || 0) > 1e-6
       );
-      
+
       // If node has components but very low voltage and no current, it might be floating
       if (Math.abs(voltage) < 0.1 && !hasActiveCurrent && connectedEdges.length > 0) {
         // Check if it's connected to a power source or ground (not floating)
@@ -440,7 +478,7 @@ export class CircuitSimulator {
         const hasPowerConnection = connectedEdges.some(
           (edge) => edge.component.type === ComponentType.POWER_SUPPLY
         );
-        
+
         if (!hasGroundConnection && !hasPowerConnection) {
           errors.push({
             type: ErrorType.FLOATING_NODE,
@@ -448,7 +486,8 @@ export class CircuitSimulator {
             nodeId: nodeId,
             positions: node.positions,
             message: 'Floating node detected',
-            explanation: 'This node is not connected to either power or ground, so it has no defined voltage. Components connected to floating nodes will not function.',
+            explanation:
+              'This node is not connected to either power or ground, so it has no defined voltage. Components connected to floating nodes will not function.',
             suggestions: [
               'Connect this node to a power supply or ground',
               'Add a wire to complete the circuit path',
@@ -463,7 +502,7 @@ export class CircuitSimulator {
     for (const edge of circuit.edges) {
       if (edge.component.type === ComponentType.LED) {
         const current = edgeCurrents.get(edge.id) || 0;
-        
+
         if (current < -1e-6) {
           // Current is flowing backwards through LED
           errors.push({
@@ -472,7 +511,8 @@ export class CircuitSimulator {
             componentId: edge.component.id,
             positions: edge.component.positions,
             message: 'LED connected backwards',
-            explanation: 'LEDs only conduct current in one direction (from anode to cathode). When connected backwards, they block current flow and will not light up. The longer leg (anode) should connect toward the positive voltage.',
+            explanation:
+              'LEDs only conduct current in one direction (from anode to cathode). When connected backwards, they block current flow and will not light up. The longer leg (anode) should connect toward the positive voltage.',
             suggestions: [
               'Rotate the LED 180 degrees to reverse polarity',
               'Verify the LED anode (longer leg) is connected to higher voltage',
@@ -490,7 +530,7 @@ export class CircuitSimulator {
         const voltageA = nodeVoltages.get(edge.nodeA) || 0;
         const voltageB = nodeVoltages.get(edge.nodeB) || 0;
         const voltageDiff = Math.abs(voltageA - voltageB);
-        
+
         // If there's voltage across the LED but no current, it might be an open circuit
         if (voltageDiff > 1.0 && current < 1e-6) {
           errors.push({
@@ -499,7 +539,8 @@ export class CircuitSimulator {
             componentId: edge.component.id,
             positions: edge.component.positions,
             message: 'Possible open circuit',
-            explanation: 'There is voltage across this LED but no current flowing. This could indicate a broken connection, a component not properly inserted, or the LED is connected backwards.',
+            explanation:
+              'There is voltage across this LED but no current flowing. This could indicate a broken connection, a component not properly inserted, or the LED is connected backwards.',
             suggestions: [
               'Check all wire and component connections',
               'Verify the LED is oriented correctly (not backwards)',
@@ -515,7 +556,7 @@ export class CircuitSimulator {
       if (edge.component.type === ComponentType.LED) {
         const current = Math.abs(edgeCurrents.get(edge.id) || 0);
         const maxCurrent = edge.component.maxCurrent;
-        
+
         if (current > maxCurrent * 1.5) {
           // Current is significantly above max rating
           errors.push({
@@ -528,7 +569,7 @@ export class CircuitSimulator {
             suggestions: [
               'Add a series resistor to limit current',
               `For a 5V supply and ${(maxCurrent * 1000).toFixed(1)}mA max current, use a ${Math.round((5 - 2) / maxCurrent / 100) * 100}Ω or larger resistor`,
-              'Use Ohm\'s Law: R = (Vsupply - VLED) / Idesired',
+              "Use Ohm's Law: R = (Vsupply - VLED) / Idesired",
             ],
           });
         }

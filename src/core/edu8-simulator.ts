@@ -1,6 +1,6 @@
 /**
  * EDU-8 Microprocessor Simulator
- * 
+ *
  * A simple educational 8-bit microprocessor with:
  * - 8-bit accumulator
  * - 4-bit program counter (16 instruction program)
@@ -17,11 +17,11 @@ import type { EDU8State } from './types';
 export enum EDU8Opcode {
   LDA = 0x0, // LDA imm4  - Load accumulator with immediate value
   ADD = 0x1, // ADD imm4  - Add immediate value to accumulator
-  IN = 0x2,  // IN        - Load accumulator from input port
+  IN = 0x2, // IN        - Load accumulator from input port
   OUT = 0x3, // OUT       - Output accumulator to output port
-  JZ = 0x4,  // JZ addr4  - Jump if zero flag set
+  JZ = 0x4, // JZ addr4  - Jump if zero flag set
   JMP = 0x5, // JMP addr4 - Unconditional jump
-  HALT = 0xF // HALT      - Stop execution
+  HALT = 0xf, // HALT      - Stop execution
 }
 
 /**
@@ -96,48 +96,44 @@ export function decodeInstruction(instruction: number): { opcode: number; operan
 export function formatInstruction(instruction: number): string {
   const { opcode, operand } = decodeInstruction(instruction);
   const name = INSTRUCTION_NAMES[opcode] || 'UNK';
-  
+
   // Instructions that use operand as immediate value
   if (opcode === EDU8Opcode.LDA || opcode === EDU8Opcode.ADD) {
     return `${name} #${operand}`;
   }
-  
+
   // Instructions that use operand as address
   if (opcode === EDU8Opcode.JZ || opcode === EDU8Opcode.JMP) {
     return `${name} ${operand}`;
   }
-  
+
   // Instructions with no operand
   return name;
 }
 
 /**
  * Handle clock edge (for event-driven simulation)
- * 
+ *
  * Executes one instruction on rising clock edge.
  * Updates clockState to track edge detection.
- * 
+ *
  * @param state Current EDU-8 state
  * @param clockValue Current clock signal value (true = high, false = low)
  * @param inputs Input pin values (4-bit)
  * @returns Updated state
  */
-export function handleClockEdge(
-  state: EDU8State,
-  clockValue: boolean,
-  inputs: number
-): EDU8State {
+export function handleClockEdge(state: EDU8State, clockValue: boolean, inputs: number): EDU8State {
   const previousClock = state.clockState;
   const risingEdge = !previousClock && clockValue;
-  
+
   // Update clock state
   const newState = { ...state, clockState: clockValue };
-  
+
   // Execute instruction on rising edge only
   if (risingEdge) {
     return executeInstruction(newState, inputs);
   }
-  
+
   return newState;
 }
 
@@ -245,7 +241,17 @@ export const PRESET_PROGRAMS = {
     0x00, // LDA #0
     0x30, // OUT
     0x50, // JMP 0
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
   ],
 
   /**
@@ -261,7 +267,18 @@ export const PRESET_PROGRAMS = {
     0x30, // OUT
     0x11, // ADD #1
     0x51, // JMP 1
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
   ],
 
   /**
@@ -275,7 +292,19 @@ export const PRESET_PROGRAMS = {
     0x20, // IN
     0x30, // OUT
     0x50, // JMP 0
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
   ],
 
   /**
@@ -293,6 +322,16 @@ export const PRESET_PROGRAMS = {
     0x05, // LDA #5
     0x30, // OUT
     0x50, // JMP 0
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
   ],
 };

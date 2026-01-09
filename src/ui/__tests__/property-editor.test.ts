@@ -33,7 +33,7 @@ describe('BreadboardApp - Property Editor', () => {
     // Place a resistor
     await app.placeComponentInteractive(ComponentType.RESISTOR, [
       { row: 0, col: 0 },
-      { row: 0, col: 30 }
+      { row: 0, col: 30 },
     ]);
 
     // Select the resistor using the API
@@ -55,7 +55,7 @@ describe('BreadboardApp - Property Editor', () => {
     // Place a power supply
     await app.placeComponentInteractive(ComponentType.POWER_SUPPLY, [
       { row: 0, col: 0 },
-      { row: 0, col: 1 }
+      { row: 0, col: 1 },
     ]);
 
     // Select the power supply using the API
@@ -77,7 +77,7 @@ describe('BreadboardApp - Property Editor', () => {
     // Place an LED
     await app.placeComponentInteractive(ComponentType.LED, [
       { row: 0, col: 0 },
-      { row: 0, col: 1 }
+      { row: 0, col: 1 },
     ]);
 
     // Select the LED using the API
@@ -99,7 +99,7 @@ describe('BreadboardApp - Property Editor', () => {
     // Place a resistor
     await app.placeComponentInteractive(ComponentType.RESISTOR, [
       { row: 0, col: 0 },
-      { row: 0, col: 30 }
+      { row: 0, col: 30 },
     ]);
 
     // Select the resistor using the API
@@ -112,7 +112,7 @@ describe('BreadboardApp - Property Editor', () => {
     resistanceInput.dispatchEvent(new Event('input', { bubbles: true }));
 
     // Wait for debounce (300ms)
-    await new Promise(resolve => setTimeout(resolve, 350));
+    await new Promise((resolve) => setTimeout(resolve, 350));
 
     // Check that component list shows updated value
     const componentItem = container.querySelector('.component-item');
@@ -123,7 +123,7 @@ describe('BreadboardApp - Property Editor', () => {
     // Place a power supply
     await app.placeComponentInteractive(ComponentType.POWER_SUPPLY, [
       { row: 0, col: 0 },
-      { row: 0, col: 1 }
+      { row: 0, col: 1 },
     ]);
 
     // Select the power supply using the API
@@ -136,7 +136,7 @@ describe('BreadboardApp - Property Editor', () => {
     voltageInput.dispatchEvent(new Event('input', { bubbles: true }));
 
     // Wait for debounce (300ms)
-    await new Promise(resolve => setTimeout(resolve, 350));
+    await new Promise((resolve) => setTimeout(resolve, 350));
 
     // Check that component list shows updated value
     const componentItem = container.querySelector('.component-item');
@@ -147,7 +147,7 @@ describe('BreadboardApp - Property Editor', () => {
     // Place an LED
     await app.placeComponentInteractive(ComponentType.LED, [
       { row: 0, col: 0 },
-      { row: 0, col: 1 }
+      { row: 0, col: 1 },
     ]);
 
     // Select the LED using the API
@@ -160,7 +160,7 @@ describe('BreadboardApp - Property Editor', () => {
     forwardVoltageInput.dispatchEvent(new Event('input', { bubbles: true }));
 
     // Wait for debounce (300ms)
-    await new Promise(resolve => setTimeout(resolve, 350));
+    await new Promise((resolve) => setTimeout(resolve, 350));
 
     // Check that component list shows updated value
     const componentItem = container.querySelector('.component-item');
@@ -171,7 +171,7 @@ describe('BreadboardApp - Property Editor', () => {
     // Place a resistor
     await app.placeComponentInteractive(ComponentType.RESISTOR, [
       { row: 0, col: 0 },
-      { row: 0, col: 30 }
+      { row: 0, col: 30 },
     ]);
 
     // Select the resistor using the API
@@ -179,14 +179,15 @@ describe('BreadboardApp - Property Editor', () => {
     app.clickComponent(components[0].id);
 
     // Click a preset button (e.g., 220Ω)
-    const presetButton = Array.from(container.querySelectorAll('.preset-btn'))
-      .find(btn => btn.textContent?.includes('220')) as HTMLButtonElement;
-    
+    const presetButton = Array.from(container.querySelectorAll('.preset-btn')).find((btn) =>
+      btn.textContent?.includes('220')
+    ) as HTMLButtonElement;
+
     if (presetButton) {
       presetButton.click();
 
       // Wait for update
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Check that resistance was updated
       const resistanceInput = container.querySelector('#prop-resistance') as HTMLInputElement;
@@ -201,7 +202,7 @@ describe('BreadboardApp - Property Editor', () => {
     // Place a resistor
     await app.placeComponentInteractive(ComponentType.RESISTOR, [
       { row: 0, col: 0 },
-      { row: 0, col: 30 }
+      { row: 0, col: 30 },
     ]);
 
     // Select the resistor using the API
@@ -225,7 +226,7 @@ describe('BreadboardApp - Property Editor', () => {
     // Place a wire
     await app.placeComponentInteractive(ComponentType.WIRE, [
       { row: 0, col: 0 },
-      { row: 0, col: 5 }
+      { row: 0, col: 5 },
     ]);
 
     // Select the wire using the API
@@ -241,7 +242,7 @@ describe('BreadboardApp - Property Editor', () => {
     // Place a ground
     await app.placeComponentInteractive(ComponentType.GROUND, [
       { row: 0, col: 0 },
-      { row: 0, col: 1 }
+      { row: 0, col: 1 },
     ]);
 
     // Select the ground using the API
@@ -257,7 +258,7 @@ describe('BreadboardApp - Property Editor', () => {
     // Place a resistor
     await app.placeComponentInteractive(ComponentType.RESISTOR, [
       { row: 0, col: 0 },
-      { row: 0, col: 30 }
+      { row: 0, col: 30 },
     ]);
 
     // Select the resistor using the API
@@ -271,4 +272,3 @@ describe('BreadboardApp - Property Editor', () => {
     expect(presetButtons.length >= 0).toBe(true);
   });
 });
-

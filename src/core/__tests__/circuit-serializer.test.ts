@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  serializeCircuit,
-  deserializeCircuit,
-  type CircuitData,
-} from '../circuit-serializer';
+import { serializeCircuit, deserializeCircuit, type CircuitData } from '../circuit-serializer';
 import type { BreadboardState, Resistor, LED, PowerSupply, Ground, Wire } from '../types';
 import { ComponentType } from '../types';
 
@@ -438,9 +434,7 @@ describe('circuit-serializer', () => {
 
         // Check component-specific properties
         if (originalComp.type === ComponentType.RESISTOR) {
-          expect((restoredComp as Resistor).resistance).toBe(
-            (originalComp as Resistor).resistance
-          );
+          expect((restoredComp as Resistor).resistance).toBe((originalComp as Resistor).resistance);
         } else if (originalComp.type === ComponentType.LED) {
           expect((restoredComp as LED).forwardVoltage).toBe((originalComp as LED).forwardVoltage);
           expect((restoredComp as LED).maxCurrent).toBe((originalComp as LED).maxCurrent);

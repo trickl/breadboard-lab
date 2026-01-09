@@ -36,7 +36,7 @@ export class AudioManager {
     try {
       // Initialize AudioContext
       this.audioContext = new AudioContext();
-      
+
       // Create master gain node for volume control
       this.masterGain = this.audioContext.createGain();
       this.masterGain.gain.value = this.volume;
@@ -120,7 +120,7 @@ export class AudioManager {
    */
   setVolume(level: number): void {
     this.volume = Math.max(0, Math.min(1, level));
-    
+
     if (this.masterGain && this.audioContext) {
       // Smooth volume change
       const now = this.audioContext.currentTime;
@@ -235,17 +235,20 @@ export class AudioManager {
    */
   private voltageToFrequency(voltage: number): number {
     // Clamp voltage to range
-    const clampedVoltage = Math.max(AudioManager.MIN_VOLTAGE, Math.min(AudioManager.MAX_VOLTAGE, Math.abs(voltage)));
-    
+    const clampedVoltage = Math.max(
+      AudioManager.MIN_VOLTAGE,
+      Math.min(AudioManager.MAX_VOLTAGE, Math.abs(voltage))
+    );
+
     // Normalize to 0-1
     const normalized = clampedVoltage / AudioManager.MAX_VOLTAGE;
-    
+
     // Logarithmic mapping for more musical frequency distribution
     // log scale: lower voltages produce lower frequencies, higher voltages produce higher frequencies
     const logMin = Math.log(AudioManager.MIN_FREQUENCY);
     const logMax = Math.log(AudioManager.MAX_FREQUENCY);
     const frequency = Math.exp(logMin + normalized * (logMax - logMin));
-    
+
     return frequency;
   }
 
@@ -256,16 +259,16 @@ export class AudioManager {
     // Typical speaker current range: 0-20mA
     const maxCurrent = 0.02; // 20mA
     const clampedCurrent = Math.max(0, Math.min(maxCurrent, Math.abs(current)));
-    
+
     // Normalize to 0-1
     const normalized = clampedCurrent / maxCurrent;
-    
+
     // Scale to reasonable amplitude (0.1 to 0.3 to avoid distortion)
     // Lower base amplitude when multiple speakers are active
     const speakerCount = this.speakers.size;
     const maxAmplitude = speakerCount > 1 ? 0.2 : 0.3;
     const minAmplitude = 0.05;
-    
+
     return minAmplitude + normalized * (maxAmplitude - minAmplitude);
   }
 
@@ -278,7 +281,7 @@ export class AudioManager {
       if (savedVolume !== null) {
         this.volume = parseFloat(savedVolume);
       }
-      
+
       // Audio starts disabled by default (user must explicitly enable)
       this.enabled = false;
     } catch (error) {

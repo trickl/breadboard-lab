@@ -149,15 +149,21 @@ describe('resistanceToColorBands', () => {
     });
 
     it('should throw error for zero resistance', () => {
-      expect(() => resistanceToColorBands(0, 5)).toThrow('Resistance must be a positive finite number');
+      expect(() => resistanceToColorBands(0, 5)).toThrow(
+        'Resistance must be a positive finite number'
+      );
     });
 
     it('should throw error for negative resistance', () => {
-      expect(() => resistanceToColorBands(-100, 5)).toThrow('Resistance must be a positive finite number');
+      expect(() => resistanceToColorBands(-100, 5)).toThrow(
+        'Resistance must be a positive finite number'
+      );
     });
 
     it('should throw error for infinite resistance', () => {
-      expect(() => resistanceToColorBands(Infinity, 5)).toThrow('Resistance must be a positive finite number');
+      expect(() => resistanceToColorBands(Infinity, 5)).toThrow(
+        'Resistance must be a positive finite number'
+      );
     });
   });
 

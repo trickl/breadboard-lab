@@ -202,7 +202,8 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         type: ComponentType.RESISTOR,
         positions,
         rotation,
-        resistance: typeof metadata.resistance === 'number' ? metadata.resistance : DEFAULT_RESISTANCE,
+        resistance:
+          typeof metadata.resistance === 'number' ? metadata.resistance : DEFAULT_RESISTANCE,
       };
 
     case ComponentType.LED:
@@ -211,8 +212,12 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         type: ComponentType.LED,
         positions,
         rotation,
-        forwardVoltage: typeof metadata.forwardVoltage === 'number' ? metadata.forwardVoltage : DEFAULT_LED_FORWARD_VOLTAGE,
-        maxCurrent: typeof metadata.maxCurrent === 'number' ? metadata.maxCurrent : DEFAULT_LED_MAX_CURRENT,
+        forwardVoltage:
+          typeof metadata.forwardVoltage === 'number'
+            ? metadata.forwardVoltage
+            : DEFAULT_LED_FORWARD_VOLTAGE,
+        maxCurrent:
+          typeof metadata.maxCurrent === 'number' ? metadata.maxCurrent : DEFAULT_LED_MAX_CURRENT,
       };
 
     case ComponentType.WIRE:
@@ -221,7 +226,8 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         type: ComponentType.WIRE,
         positions,
         rotation,
-        resistance: typeof metadata.resistance === 'number' ? metadata.resistance : DEFAULT_WIRE_RESISTANCE,
+        resistance:
+          typeof metadata.resistance === 'number' ? metadata.resistance : DEFAULT_WIRE_RESISTANCE,
       };
 
     case ComponentType.POWER_SUPPLY:
@@ -230,7 +236,8 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         type: ComponentType.POWER_SUPPLY,
         positions,
         rotation,
-        voltage: typeof metadata.voltage === 'number' ? metadata.voltage : DEFAULT_POWER_SUPPLY_VOLTAGE,
+        voltage:
+          typeof metadata.voltage === 'number' ? metadata.voltage : DEFAULT_POWER_SUPPLY_VOLTAGE,
       };
 
     case ComponentType.GROUND:
@@ -241,21 +248,20 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         rotation,
       };
 
-    case ComponentType.MICROPROCESSOR:
-      {
-        const state = createInitialEDU8State();
-        // Load ROM if provided
-        if (metadata.rom && Array.isArray(metadata.rom)) {
-          state.rom = new Uint8Array(metadata.rom.slice(0, 16));
-        }
-        return {
-          id,
-          type: ComponentType.MICROPROCESSOR,
-          positions,
-          rotation,
-          state,
-        };
+    case ComponentType.MICROPROCESSOR: {
+      const state = createInitialEDU8State();
+      // Load ROM if provided
+      if (metadata.rom && Array.isArray(metadata.rom)) {
+        state.rom = new Uint8Array(metadata.rom.slice(0, 16));
       }
+      return {
+        id,
+        type: ComponentType.MICROPROCESSOR,
+        positions,
+        rotation,
+        state,
+      };
+    }
 
     case ComponentType.SWITCH:
       return {
@@ -263,9 +269,10 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
         type: ComponentType.SWITCH,
         positions,
         rotation,
-        switchState: (metadata.switchState === 'open' || metadata.switchState === 'closed') 
-          ? metadata.switchState 
-          : 'open', // Default to open for backward compatibility
+        switchState:
+          metadata.switchState === 'open' || metadata.switchState === 'closed'
+            ? metadata.switchState
+            : 'open', // Default to open for backward compatibility
       };
 
     default:

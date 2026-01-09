@@ -1,12 +1,12 @@
 /**
  * ReteManager: Bridge between existing component model and Rete.js visual programming graph
- * 
+ *
  * This module implements Phase 1, 2, and 3 of the Rete.js migration:
  * - Phase 1: Initializes Rete.js editor with area and connection plugins
  * - Phase 2: Maintains bidirectional sync between Rete graph and BreadboardState
  * - Phase 3: Interactive connection creation with validation and event handling
  * - Preserves all existing functionality during transition
- * 
+ *
  * Architecture: Hybrid approach (Option B from planning doc)
  * - Rete.js manages connection graph logic (nodes, sockets, edges)
  * - Existing PixiJS rendering continues unchanged (reads from component array)
@@ -55,7 +55,7 @@ export class ComponentNode extends ClassicPreset.Node<
   constructor(
     public componentId: string,
     public componentType: ComponentType,
-    public legs: number,
+    public legs: number
   ) {
     super(`Component ${componentId}`);
 
@@ -76,9 +76,7 @@ export class BreadboardHoleNode extends ClassicPreset.Node<
   width = 40;
   height = 40;
 
-  constructor(
-    public position: Position,
-  ) {
+  constructor(public position: Position) {
     super(`Hole (${position.row}, ${position.col})`);
 
     // Single output socket - enforces one-connector-per-hole constraint
@@ -111,11 +109,12 @@ export class ReteManager {
   private holeNodeMap: Map<string, NodeId> = new Map();
   private syncInProgress = false;
   private initialized = false;
-  
+
   // Phase 3: Connection event handlers
   private onConnectionCreatedHandler: ConnectionEventHandler | null = null;
   private onConnectionRemovedHandler: ConnectionEventHandler | null = null;
-  private connectionValidatorHandler: ((connection: Connection) => ConnectionValidation) | null = null;
+  private connectionValidatorHandler: ((connection: Connection) => ConnectionValidation) | null =
+    null;
 
   constructor(private container?: HTMLElement) {
     // Initialize Rete editor (always create, even without container)
@@ -128,7 +127,7 @@ export class ReteManager {
    */
   async initialize(): Promise<void> {
     if (this.initialized) return;
-    
+
     // Only initialize visual plugins if container provided
     if (this.container) {
       // Initialize area plugin for viewport management
@@ -146,28 +145,28 @@ export class ReteManager {
       AreaExtensions.selectableNodes(this.area, AreaExtensions.selector(), {
         accumulating: AreaExtensions.accumulateOnCtrl(),
       });
-      
+
       // Phase 3: Setup connection event handlers
       this.setupConnectionHandlers();
     }
-    
+
     this.initialized = true;
   }
-  
+
   /**
    * Phase 3: Setup connection event listeners
    * Configures the ConnectionPlugin to handle create/remove events and validation
    */
   private setupConnectionHandlers(): void {
     if (!this.connection) return;
-    
+
     // Listen for connection creation events
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     this.editor.addPipe((context) => {
       // Intercept connection add events
       if (context.type === 'connectioncreated') {
         const connection = context.data as Connection;
-        
+
         // Validate connection before allowing it
         if (this.connectionValidatorHandler) {
           const validation = this.connectionValidatorHandler(connection);
@@ -179,23 +178,23 @@ export class ReteManager {
             return;
           }
         }
-        
+
         // Call onCreate handler if registered
         if (this.onConnectionCreatedHandler) {
           void this.onConnectionCreatedHandler(connection);
         }
       }
-      
+
       // Intercept connection remove events
       if (context.type === 'connectionremoved') {
         const connection = context.data as Connection;
-        
+
         // Call onRemove handler if registered
         if (this.onConnectionRemovedHandler) {
           void this.onConnectionRemovedHandler(connection);
         }
       }
-      
+
       return context;
     });
   }
@@ -203,7 +202,7 @@ export class ReteManager {
   /**
    * Sync BreadboardState to Rete graph
    * Creates/updates Rete nodes and connections based on component array
-   * 
+   *
    * Phase 2 Implementation:
    * - Creates ComponentNodes for each component
    * - Creates BreadboardHoleNodes for each occupied breadboard position
@@ -226,7 +225,7 @@ export class ReteManager {
       // Step 1: Create BreadboardHoleNodes for all occupied positions
       // We need to collect all unique positions first
       const occupiedPositions = new Map<string, Position>();
-      
+
       for (const component of state.components) {
         for (const pos of component.positions) {
           const key = this.positionToKey(pos);
@@ -255,12 +254,8 @@ export class ReteManager {
       for (const component of state.components) {
         // Determine leg count based on component type
         const legCount = this.getComponentLegCount(component.type);
-        
-        const componentNode = new ComponentNode(
-          component.id,
-          component.type,
-          legCount
-        );
+
+        const componentNode = new ComponentNode(component.id, component.type, legCount);
 
         await this.editor.addNode(componentNode);
         this.componentNodeMap.set(component.id, componentNode.id);
@@ -284,7 +279,7 @@ export class ReteManager {
           if (holeNodeId) {
             // Get the hole node
             const holeNode = this.editor.getNode(holeNodeId);
-            
+
             if (holeNode && holeNode instanceof BreadboardHoleNode) {
               // Create connection from hole to component leg
               // Connection direction: hole (output) -> component leg (input)
@@ -317,7 +312,7 @@ export class ReteManager {
    * Sync Rete graph to BreadboardState
    * Extracts component data from Rete nodes and connections
    * Returns null if no changes detected
-   * 
+   *
    * Phase 2 Implementation:
    * Currently returns null as BreadboardState remains the source of truth
    * for component properties (resistance, voltage, etc.)
@@ -375,7 +370,7 @@ export class ReteManager {
   getComponentNode(componentId: string): ComponentNode | null {
     const nodeId = this.componentNodeMap.get(componentId);
     if (!nodeId) return null;
-    
+
     const node = this.editor.getNode(nodeId);
     return node instanceof ComponentNode ? node : null;
   }
@@ -387,7 +382,7 @@ export class ReteManager {
     const key = this.positionToKey(pos);
     const nodeId = this.holeNodeMap.get(key);
     if (!nodeId) return null;
-    
+
     const node = this.editor.getNode(nodeId);
     return node instanceof BreadboardHoleNode ? node : null;
   }
@@ -424,7 +419,7 @@ export class ReteManager {
   destroy(): void {
     // Clear all nodes and connections
     this.editor.clear();
-    
+
     // NodeEditor doesn't have a destroy method in v2.x
     // Resources are cleaned up by garbage collection
   }
@@ -442,21 +437,21 @@ export class ReteManager {
   getArea(): AreaPlugin<Schemes, any> | null {
     return this.area;
   }
-  
+
   /**
    * Phase 3: Register connection created event handler
    */
   onConnectionCreated(handler: ConnectionEventHandler): void {
     this.onConnectionCreatedHandler = handler;
   }
-  
+
   /**
    * Phase 3: Register connection removed event handler
    */
   onConnectionRemoved(handler: ConnectionEventHandler): void {
     this.onConnectionRemovedHandler = handler;
   }
-  
+
   /**
    * Phase 3: Register connection validator
    * Validator should return { valid: true } or { valid: false, reason: string }
@@ -464,7 +459,7 @@ export class ReteManager {
   setConnectionValidator(validator: (connection: Connection) => ConnectionValidation): void {
     this.connectionValidatorHandler = validator;
   }
-  
+
   /**
    * Phase 3: Validate one-connector-per-hole constraint
    * Checks if a hole already has a connection before allowing a new one
@@ -473,52 +468,49 @@ export class ReteManager {
     // Get the source and target nodes
     const sourceNode = this.editor.getNode(connection.source);
     const targetNode = this.editor.getNode(connection.target);
-    
+
     // Check if either node is a BreadboardHoleNode
     let holeNode: BreadboardHoleNode | null = null;
-    
+
     if (sourceNode instanceof BreadboardHoleNode) {
       holeNode = sourceNode;
     } else if (targetNode instanceof BreadboardHoleNode) {
       holeNode = targetNode;
     }
-    
+
     if (!holeNode) {
       // No hole involved, connection is valid
       return { valid: true };
     }
-    
+
     // Check if the hole already has a connection
     const existingConnections = this.editor.getConnections();
     const holeHasConnection = existingConnections.some(
-      (conn) => 
-        (conn.source === holeNode!.id || conn.target === holeNode!.id) &&
-        conn.id !== connection.id // Don't count the current connection
+      (conn) =>
+        (conn.source === holeNode!.id || conn.target === holeNode!.id) && conn.id !== connection.id // Don't count the current connection
     );
-    
+
     if (holeHasConnection) {
       return {
         valid: false,
-        reason: `Hole at (${holeNode.position.row}, ${holeNode.position.col}) is already occupied`
+        reason: `Hole at (${holeNode.position.row}, ${holeNode.position.col}) is already occupied`,
       };
     }
-    
+
     return { valid: true };
   }
-  
+
   /**
    * Phase 3: Check if a hole is occupied (has a connection)
    */
   isHoleOccupied(pos: Position): boolean {
     const holeNode = this.getHoleNode(pos);
     if (!holeNode) return false;
-    
+
     const connections = this.editor.getConnections();
-    return connections.some(
-      (conn) => conn.source === holeNode.id || conn.target === holeNode.id
-    );
+    return connections.some((conn) => conn.source === holeNode.id || conn.target === holeNode.id);
   }
-  
+
   /**
    * Phase 3: Create a new ComponentNode and add it to the editor
    * Used for floating component placement workflow
@@ -530,18 +522,18 @@ export class ReteManager {
   ): Promise<ComponentNode> {
     const legCount = this.getComponentLegCount(componentType);
     const componentNode = new ComponentNode(componentId, componentType, legCount);
-    
+
     await this.editor.addNode(componentNode);
     this.componentNodeMap.set(componentId, componentNode.id);
-    
+
     // Position the node if area is available
     if (this.area) {
       await this.area.translate(componentNode.id, position);
     }
-    
+
     return componentNode;
   }
-  
+
   /**
    * Phase 3: Create a connection between a component leg and a hole
    * Returns true if successful, false if validation failed
@@ -555,19 +547,19 @@ export class ReteManager {
     try {
       const sourceNode = this.editor.getNode(sourceNodeId);
       const targetNode = this.editor.getNode(targetNodeId);
-      
+
       if (!sourceNode || !targetNode) {
         console.warn('Source or target node not found');
         return false;
       }
-      
+
       const connection = new ClassicPreset.Connection(
         sourceNode as ComponentNode | BreadboardHoleNode,
         sourceSocket,
         targetNode as ComponentNode | BreadboardHoleNode,
         targetSocket
       ) as Connection;
-      
+
       // Validate before adding
       if (this.connectionValidatorHandler) {
         const validation = this.connectionValidatorHandler(connection);
@@ -576,7 +568,7 @@ export class ReteManager {
           return false;
         }
       }
-      
+
       await this.editor.addConnection(connection);
       return true;
     } catch (error) {
@@ -584,7 +576,7 @@ export class ReteManager {
       return false;
     }
   }
-  
+
   /**
    * Wire re-routing: Re-route a connection endpoint to a new hole
    * Returns true if successful, false if validation failed
@@ -596,42 +588,39 @@ export class ReteManager {
   ): Promise<boolean> {
     try {
       // Find the connection
-      const connection = this.editor.getConnections().find(c => c.id === connectionId);
+      const connection = this.editor.getConnections().find((c) => c.id === connectionId);
       if (!connection) {
         console.warn(`Connection ${connectionId} not found`);
         return false;
       }
-      
+
       // Get the new hole node
       const newHoleNode = this.getHoleNode(newHolePosition);
       if (!newHoleNode) {
         console.warn(`Hole at (${newHolePosition.row}, ${newHolePosition.col}) not found`);
         return false;
       }
-      
+
       // Check if the new hole is already occupied (unless it's the other end of this connection)
       const otherEndNodeId = endpointType === 'source' ? connection.target : connection.source;
       if (newHoleNode.id !== otherEndNodeId && this.isHoleOccupied(newHolePosition)) {
-        console.warn(`Hole at (${newHolePosition.row}, ${newHolePosition.col}) is already occupied`);
+        console.warn(
+          `Hole at (${newHolePosition.row}, ${newHolePosition.col}) is already occupied`
+        );
         return false;
       }
-      
+
       // Remove the old connection
       await this.editor.removeConnection(connectionId);
-      
+
       // Create a new connection with the updated endpoint
       const sourceNodeId = endpointType === 'source' ? newHoleNode.id : connection.source;
       const targetNodeId = endpointType === 'target' ? newHoleNode.id : connection.target;
       // Convert socket identifiers to strings (Rete connections can have string or number socket IDs)
       const sourceSocket = endpointType === 'source' ? 'hole' : String(connection.sourceOutput);
       const targetSocket = endpointType === 'target' ? 'hole' : String(connection.targetInput);
-      
-      return await this.createConnection(
-        sourceNodeId,
-        sourceSocket,
-        targetNodeId,
-        targetSocket
-      );
+
+      return await this.createConnection(sourceNodeId, sourceSocket, targetNodeId, targetSocket);
     } catch (error) {
       console.error('Error re-routing connection:', error);
       return false;

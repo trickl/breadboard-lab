@@ -148,12 +148,7 @@ export class BreadboardLayout {
    * Check if a position is valid on the breadboard
    */
   static isValidPosition(pos: Position): boolean {
-    return (
-      pos.row >= 0 &&
-      pos.row < this.ROWS &&
-      pos.col >= 0 &&
-      pos.col < this.TOTAL_COLS
-    );
+    return pos.row >= 0 && pos.row < this.ROWS && pos.col >= 0 && pos.col < this.TOTAL_COLS;
   }
 
   /**

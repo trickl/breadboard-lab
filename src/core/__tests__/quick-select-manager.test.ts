@@ -14,21 +14,27 @@ describe('QuickSelectManager', () => {
   beforeEach(() => {
     // Save original localStorage
     originalLocalStorage = global.localStorage;
-    
+
     // Mock localStorage
     const storage: Record<string, string> = {};
     global.localStorage = {
       getItem: (key: string) => storage[key] || null,
-      setItem: (key: string, value: string) => { storage[key] = value; },
-      removeItem: (key: string) => { delete storage[key]; },
-      clear: () => { Object.keys(storage).forEach(key => delete storage[key]); },
+      setItem: (key: string, value: string) => {
+        storage[key] = value;
+      },
+      removeItem: (key: string) => {
+        delete storage[key];
+      },
+      clear: () => {
+        Object.keys(storage).forEach((key) => delete storage[key]);
+      },
       key: (index: number) => Object.keys(storage)[index] || null,
       length: Object.keys(storage).length,
     } as Storage;
 
     // Clear component library and register test components
     componentLibrary.clear();
-    
+
     // Register default components
     const defaultComponents: ComponentLibraryEntry[] = [
       {
@@ -87,11 +93,11 @@ describe('QuickSelectManager', () => {
       },
     ];
 
-    defaultComponents.forEach(entry => componentLibrary.register(entry));
+    defaultComponents.forEach((entry) => componentLibrary.register(entry));
 
     // Clear localStorage
     localStorage.clear();
-    
+
     // Create new manager instance
     manager = new QuickSelectManager();
   });
@@ -114,7 +120,7 @@ describe('QuickSelectManager', () => {
 
     it('should mark default components as default', () => {
       const components = manager.getComponents();
-      components.forEach(c => {
+      components.forEach((c) => {
         expect(c.isDefault).toBe(true);
       });
     });
@@ -131,21 +137,21 @@ describe('QuickSelectManager', () => {
     it('should load persisted state from localStorage', () => {
       // Add a custom component
       manager.addComponent('resistor-1k-5pct');
-      
+
       // Create new manager instance (should load from localStorage)
       const newManager = new QuickSelectManager();
       const components = newManager.getComponents();
-      
+
       expect(components).toHaveLength(6);
       expect(components[5].libraryId).toBe('resistor-1k-5pct');
     });
 
     it('should save state to localStorage after adding component', () => {
       manager.addComponent('resistor-1k-5pct');
-      
+
       const stored = localStorage.getItem('quickSelectComponents');
       expect(stored).not.toBeNull();
-      
+
       const state = JSON.parse(stored!);
       expect(state.components).toHaveLength(6);
     });
@@ -153,20 +159,20 @@ describe('QuickSelectManager', () => {
     it('should save state to localStorage after removing component', () => {
       manager.addComponent('resistor-1k-5pct');
       manager.removeComponent('resistor-1k-5pct');
-      
+
       const stored = localStorage.getItem('quickSelectComponents');
       expect(stored).not.toBeNull();
-      
+
       const state = JSON.parse(stored!);
       expect(state.components).toHaveLength(5);
     });
 
     it('should handle JSON parse errors gracefully', () => {
       localStorage.setItem('quickSelectComponents', 'invalid json');
-      
+
       const newManager = new QuickSelectManager();
       const components = newManager.getComponents();
-      
+
       expect(components).toHaveLength(5); // Falls back to defaults
     });
   });
@@ -174,7 +180,7 @@ describe('QuickSelectManager', () => {
   describe('addComponent', () => {
     it('should add a valid component successfully', () => {
       const result = manager.addComponent('resistor-1k-5pct');
-      
+
       expect(result).toBe(true);
       expect(manager.hasComponent('resistor-1k-5pct')).toBe(true);
       expect(manager.getComponents()).toHaveLength(6);
@@ -203,10 +209,10 @@ describe('QuickSelectManager', () => {
       });
       manager.addComponent('test-component-1');
       manager.addComponent('test-component-2');
-      
+
       expect(manager.getComponents()).toHaveLength(8);
       expect(manager.isAtCapacity()).toBe(true);
-      
+
       // Try to add 9th component
       componentLibrary.register({
         id: 'test-component-3',
@@ -218,7 +224,7 @@ describe('QuickSelectManager', () => {
         visuals: { renderer: 'procedural' },
       });
       const result = manager.addComponent('test-component-3');
-      
+
       expect(result).toBe(false);
       expect(manager.getComponents()).toHaveLength(8);
     });
@@ -226,14 +232,14 @@ describe('QuickSelectManager', () => {
     it('should reject adding component that already exists', () => {
       manager.addComponent('resistor-1k-5pct');
       const result = manager.addComponent('resistor-1k-5pct');
-      
+
       expect(result).toBe(false);
       expect(manager.getComponents()).toHaveLength(6);
     });
 
     it('should reject adding component with invalid library ID', () => {
       const result = manager.addComponent('non-existent-component');
-      
+
       expect(result).toBe(false);
       expect(manager.getComponents()).toHaveLength(5);
     });
@@ -241,16 +247,16 @@ describe('QuickSelectManager', () => {
     it('should mark added components as non-default', () => {
       manager.addComponent('resistor-1k-5pct');
       const components = manager.getComponents();
-      const addedComponent = components.find(c => c.libraryId === 'resistor-1k-5pct');
-      
+      const addedComponent = components.find((c) => c.libraryId === 'resistor-1k-5pct');
+
       expect(addedComponent?.isDefault).toBe(false);
     });
 
     it('should assign correct order to added components', () => {
       manager.addComponent('resistor-1k-5pct');
       const components = manager.getComponents();
-      const addedComponent = components.find(c => c.libraryId === 'resistor-1k-5pct');
-      
+      const addedComponent = components.find((c) => c.libraryId === 'resistor-1k-5pct');
+
       expect(addedComponent?.order).toBe(5);
     });
   });
@@ -259,7 +265,7 @@ describe('QuickSelectManager', () => {
     it('should remove custom component successfully', () => {
       manager.addComponent('resistor-1k-5pct');
       const result = manager.removeComponent('resistor-1k-5pct');
-      
+
       expect(result).toBe(true);
       expect(manager.hasComponent('resistor-1k-5pct')).toBe(false);
       expect(manager.getComponents()).toHaveLength(5);
@@ -267,7 +273,7 @@ describe('QuickSelectManager', () => {
 
     it('should reject removing default components', () => {
       const result = manager.removeComponent('led-3mm-yellow');
-      
+
       expect(result).toBe(false);
       expect(manager.hasComponent('led-3mm-yellow')).toBe(true);
       expect(manager.getComponents()).toHaveLength(5);
@@ -285,9 +291,9 @@ describe('QuickSelectManager', () => {
         visuals: { renderer: 'procedural' },
       });
       manager.addComponent('test-component');
-      
+
       manager.removeComponent('resistor-1k-5pct');
-      
+
       const components = manager.getComponents();
       components.forEach((c, index) => {
         expect(c.order).toBe(index);
@@ -339,7 +345,7 @@ describe('QuickSelectManager', () => {
       });
       manager.addComponent('test-1');
       manager.addComponent('test-2');
-      
+
       expect(manager.isAtCapacity()).toBe(true);
     });
   });
@@ -347,49 +353,63 @@ describe('QuickSelectManager', () => {
   describe('validateAndRepair', () => {
     it('should restore missing default components', () => {
       // Simulate corrupted state missing a default
-      localStorage.setItem('quickSelectComponents', JSON.stringify({
-        components: [
-          { libraryId: 'wire-22awg-red', isDefault: true, order: 0 },
-          { libraryId: 'resistor-220-5pct', isDefault: true, order: 1 },
-        ]
-      }));
-      
+      localStorage.setItem(
+        'quickSelectComponents',
+        JSON.stringify({
+          components: [
+            { libraryId: 'wire-22awg-red', isDefault: true, order: 0 },
+            { libraryId: 'resistor-220-5pct', isDefault: true, order: 1 },
+          ],
+        })
+      );
+
       const newManager = new QuickSelectManager();
       const components = newManager.getComponents();
-      
+
       expect(components.length).toBeGreaterThanOrEqual(5); // All defaults restored
     });
 
     it('should remove components with invalid library IDs', () => {
-      localStorage.setItem('quickSelectComponents', JSON.stringify({
-        components: [
-          { libraryId: 'led-3mm-yellow', isDefault: true, order: 0 },
-          { libraryId: 'invalid-component', isDefault: false, order: 1 },
-          { libraryId: 'wire-22awg-red', isDefault: true, order: 2 },
-        ]
-      }));
-      
+      localStorage.setItem(
+        'quickSelectComponents',
+        JSON.stringify({
+          components: [
+            { libraryId: 'led-3mm-yellow', isDefault: true, order: 0 },
+            { libraryId: 'invalid-component', isDefault: false, order: 1 },
+            { libraryId: 'wire-22awg-red', isDefault: true, order: 2 },
+          ],
+        })
+      );
+
       const newManager = new QuickSelectManager();
       const components = newManager.getComponents();
-      
-      expect(components.some(c => c.libraryId === 'invalid-component')).toBe(false);
+
+      expect(components.some((c) => c.libraryId === 'invalid-component')).toBe(false);
     });
 
     it('should enforce max capacity constraint', () => {
       // Create state with too many components
       const tooManyComponents = Array.from({ length: 10 }, (_, i) => ({
-        libraryId: i < 5 ? ['led-3mm-yellow', 'wire-22awg-red', 'resistor-220-5pct', 'switch-spst', 'power-5v'][i] : 'resistor-1k-5pct',
+        libraryId:
+          i < 5
+            ? ['led-3mm-yellow', 'wire-22awg-red', 'resistor-220-5pct', 'switch-spst', 'power-5v'][
+                i
+              ]
+            : 'resistor-1k-5pct',
         isDefault: i < 5,
         order: i,
       }));
-      
-      localStorage.setItem('quickSelectComponents', JSON.stringify({
-        components: tooManyComponents
-      }));
-      
+
+      localStorage.setItem(
+        'quickSelectComponents',
+        JSON.stringify({
+          components: tooManyComponents,
+        })
+      );
+
       const newManager = new QuickSelectManager();
       const components = newManager.getComponents();
-      
+
       expect(components.length).toBeLessThanOrEqual(8);
     });
   });

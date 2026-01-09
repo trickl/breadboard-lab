@@ -299,14 +299,14 @@ export interface ComponentLibraryEntry {
  * Represents a component in the Quick Select bar for fast access
  */
 export interface QuickSelectComponent {
-  libraryId: string;         // References ComponentLibraryEntry.id
-  isDefault: boolean;         // True for default 5, false for user favorites
-  order: number;              // Display order (defaults 0-4, favorites 5+)
+  libraryId: string; // References ComponentLibraryEntry.id
+  isDefault: boolean; // True for default 5, false for user favorites
+  order: number; // Display order (defaults 0-4, favorites 5+)
 }
 
 /**
  * Quick Select state persisted to localStorage
  */
 export interface QuickSelectState {
-  components: QuickSelectComponent[];  // Max 8 entries
+  components: QuickSelectComponent[]; // Max 8 entries
 }

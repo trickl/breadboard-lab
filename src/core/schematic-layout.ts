@@ -72,10 +72,10 @@ export class SchematicLayoutGenerator {
 
     for (const edge of circuit.edges) {
       const component = edge.component;
-      
+
       // Get terminal configuration for this component type
       const terminals = this.getTerminalConfiguration(component.type);
-      
+
       // Create layout node with initial random position
       const node: LayoutNode = {
         id: edge.id,
@@ -104,29 +104,18 @@ export class SchematicLayoutGenerator {
   /**
    * Get terminal configuration for a component type
    */
-  private getTerminalConfiguration(
-    type: ComponentType
-  ): Array<{ offset: SchematicPosition }> {
+  private getTerminalConfiguration(type: ComponentType): Array<{ offset: SchematicPosition }> {
     switch (type) {
       case ComponentType.RESISTOR:
       case ComponentType.LED:
       case ComponentType.WIRE:
-        return [
-          { offset: { x: -30, y: 0 } },
-          { offset: { x: 30, y: 0 } },
-        ];
+        return [{ offset: { x: -30, y: 0 } }, { offset: { x: 30, y: 0 } }];
       case ComponentType.POWER_SUPPLY:
-        return [
-          { offset: { x: 0, y: -20 } },
-          { offset: { x: 0, y: 20 } },
-        ];
+        return [{ offset: { x: 0, y: -20 } }, { offset: { x: 0, y: 20 } }];
       case ComponentType.GROUND:
         return [{ offset: { x: 0, y: -20 } }];
       default:
-        return [
-          { offset: { x: -20, y: 0 } },
-          { offset: { x: 20, y: 0 } },
-        ];
+        return [{ offset: { x: -20, y: 0 } }, { offset: { x: 20, y: 0 } }];
     }
   }
 
@@ -135,7 +124,7 @@ export class SchematicLayoutGenerator {
    */
   private extractProperties(component: any): Record<string, number | string> {
     const props: Record<string, number | string> = {};
-    
+
     if ('resistance' in component) {
       props.resistance = component.resistance;
     }
@@ -148,7 +137,7 @@ export class SchematicLayoutGenerator {
     if ('maxCurrent' in component) {
       props.maxCurrent = component.maxCurrent;
     }
-    
+
     return props;
   }
 
@@ -284,10 +273,7 @@ export class SchematicLayoutGenerator {
   /**
    * Create connections between symbols based on nets
    */
-  private createConnections(
-    _circuit: Circuit,
-    symbols: SchematicSymbol[]
-  ): SchematicConnection[] {
+  private createConnections(_circuit: Circuit, symbols: SchematicSymbol[]): SchematicConnection[] {
     const connections: SchematicConnection[] = [];
     const netToTerminals = new Map<string, Array<{ symbol: SchematicSymbol; terminal: any }>>();
 

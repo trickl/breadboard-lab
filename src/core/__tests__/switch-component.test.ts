@@ -83,7 +83,7 @@ describe('Switch Component', () => {
       const result = simulator.simulate(circuit);
 
       expect(result.success).toBe(true);
-      
+
       // When switch is open, very little current should flow
       const switchCurrent = Math.abs(result.edgeCurrents.get('switch') || 0);
       expect(switchCurrent).toBeLessThan(1e-6); // Less than 1 microamp
@@ -144,13 +144,13 @@ describe('Switch Component', () => {
       const result = simulator.simulate(circuit);
 
       expect(result.success).toBe(true);
-      
+
       // When switch is closed, current should flow through circuit
       // Expected: I = V / R = 5V / 100.01Ω ≈ 0.05A (switch adds 0.01Ω)
       const switchCurrent = Math.abs(result.edgeCurrents.get('switch') || 0);
       expect(switchCurrent).toBeGreaterThan(0.04); // More than 40mA
       expect(switchCurrent).toBeLessThan(0.06); // Less than 60mA
-      
+
       // Voltage at node2 should be close to 5V (tiny drop across closed switch)
       const node2Voltage = result.nodeVoltages.get('node2') || 0;
       expect(node2Voltage).toBeGreaterThan(4.99); // More than 4.99V (less than 10mV drop)
@@ -211,7 +211,7 @@ describe('Switch Component', () => {
       const result = simulator.simulate(circuit);
 
       expect(result.success).toBe(true);
-      
+
       // Should behave like open switch (default)
       const switchCurrent = Math.abs(result.edgeCurrents.get('switch') || 0);
       expect(switchCurrent).toBeLessThan(1e-6);
@@ -287,7 +287,7 @@ describe('Switch Component', () => {
       const result = simulator.simulate(circuit);
 
       expect(result.success).toBe(true);
-      
+
       // LED should have virtually no current (off)
       const ledCurrent = Math.abs(result.edgeCurrents.get('led') || 0);
       expect(ledCurrent).toBeLessThan(1e-6);
@@ -361,7 +361,7 @@ describe('Switch Component', () => {
       const result = simulator.simulate(circuit);
 
       expect(result.success).toBe(true);
-      
+
       // LED should have current flowing (on)
       const ledCurrent = Math.abs(result.edgeCurrents.get('led') || 0);
       expect(ledCurrent).toBeGreaterThan(0.01); // More than 10mA

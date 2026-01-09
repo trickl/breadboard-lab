@@ -30,8 +30,10 @@ export class ErrorOverlayRenderer {
 
       // Calculate center position from all error positions
       const centerPos = this.calculateCenterPosition(error.positions);
-      const x = centerPos.col * ErrorOverlayRenderer.HOLE_SPACING + ErrorOverlayRenderer.HOLE_SPACING / 2;
-      const y = centerPos.row * ErrorOverlayRenderer.HOLE_SPACING + ErrorOverlayRenderer.HOLE_SPACING / 2;
+      const x =
+        centerPos.col * ErrorOverlayRenderer.HOLE_SPACING + ErrorOverlayRenderer.HOLE_SPACING / 2;
+      const y =
+        centerPos.row * ErrorOverlayRenderer.HOLE_SPACING + ErrorOverlayRenderer.HOLE_SPACING / 2;
 
       // Create error icon based on type
       const icon = this.createErrorIcon(error, x, y);
@@ -44,7 +46,10 @@ export class ErrorOverlayRenderer {
   /**
    * Calculate center position from a list of positions
    */
-  private calculateCenterPosition(positions: { row: number; col: number }[]): { row: number; col: number } {
+  private calculateCenterPosition(positions: { row: number; col: number }[]): {
+    row: number;
+    col: number;
+  } {
     const avgRow = positions.reduce((sum, pos) => sum + pos.row, 0) / positions.length;
     const avgCol = positions.reduce((sum, pos) => sum + pos.col, 0) / positions.length;
     return { row: avgRow, col: avgCol };
