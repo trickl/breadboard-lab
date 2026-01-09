@@ -54,6 +54,7 @@ export interface PixiEventHandlers {
   onFloatingComponentLegDragStart?: (floatingComponentId: string, legIndex: number, globalX: number, globalY: number) => void;
   onConnectionClick?: (connectionId: string, event: FederatedPointerEvent) => void;
   onConnectionEndpointDragStart?: (connectionId: string, endpointType: 'source' | 'target', globalX: number, globalY: number) => void;
+  onRotateHandleClick?: (componentId: string, event: FederatedPointerEvent) => void;
 }
 
 /**
@@ -925,6 +926,10 @@ export class PixiRenderer {
         highlight.circle(pixels.x, pixels.y, 30);
         highlight.stroke({ width: 3, color: 0x00ff00, alpha: 0.7 });
         container.addChild(highlight);
+
+        // Add rotation handle
+        const rotationHandle = this.createRotationHandle(component, pixels);
+        container.addChild(rotationHandle);
       }
     }
 
@@ -1009,6 +1014,113 @@ export class PixiRenderer {
       row: (positions[0].row + positions[1].row) / 2,
       col: (positions[0].col + positions[1].col) / 2,
     };
+  }
+
+  /**
+   * Create rotation handle for selected component
+   * Positioned at top-right of component with touch-friendly sizing
+   */
+  private createRotationHandle(component: AnyComponent, centerPixels: { x: number; y: number }): Container {
+    const handleContainer = new Container();
+    
+    // Position handle offset from center (top-right)
+    const handleRadius = 22; // 44px diameter for touch-friendly target
+    const handleOffsetX = 40;
+    const handleOffsetY = -40;
+    
+    // Create circular button background
+    const button = new Graphics();
+    button.circle(0, 0, handleRadius);
+    button.fill({ color: 0x4a9eff, alpha: 0.9 });
+    button.circle(0, 0, handleRadius);
+    button.stroke({ width: 2, color: 0xffffff });
+    
+    // Draw rotation arrow icon (↻)
+    // Create a circular arrow
+    const arrowGraphics = new Graphics();
+    const arrowRadius = 10;
+    const arrowStartAngle = Math.PI / 4;
+    const arrowEndAngle = Math.PI * 2 - Math.PI / 4;
+    
+    // Draw arc
+    arrowGraphics.moveTo(
+      Math.cos(arrowStartAngle) * arrowRadius,
+      Math.sin(arrowStartAngle) * arrowRadius
+    );
+    
+    for (let angle = arrowStartAngle; angle <= arrowEndAngle; angle += 0.1) {
+      arrowGraphics.lineTo(
+        Math.cos(angle) * arrowRadius,
+        Math.sin(angle) * arrowRadius
+      );
+    }
+    
+    arrowGraphics.stroke({ width: 2, color: 0xffffff });
+    
+    // Draw arrowhead
+    const arrowheadSize = 4;
+    const arrowheadAngle = arrowEndAngle;
+    const arrowheadX = Math.cos(arrowheadAngle) * arrowRadius;
+    const arrowheadY = Math.sin(arrowheadAngle) * arrowRadius;
+    
+    // Calculate perpendicular direction for arrowhead
+    const perpX = -Math.sin(arrowheadAngle);
+    const perpY = Math.cos(arrowheadAngle);
+    
+    arrowGraphics.moveTo(arrowheadX, arrowheadY);
+    arrowGraphics.lineTo(
+      arrowheadX - perpX * arrowheadSize - Math.cos(arrowheadAngle) * arrowheadSize,
+      arrowheadY - perpY * arrowheadSize - Math.sin(arrowheadAngle) * arrowheadSize
+    );
+    arrowGraphics.stroke({ width: 2, color: 0xffffff });
+    
+    button.addChild(arrowGraphics);
+    handleContainer.addChild(button);
+    
+    // Position handle relative to component center
+    handleContainer.position.set(
+      centerPixels.x + handleOffsetX,
+      centerPixels.y + handleOffsetY
+    );
+    
+    // Make interactive
+    handleContainer.eventMode = 'static';
+    handleContainer.cursor = 'pointer';
+    // Hit area is a circle around the button center at (0, 0) in local container space
+    handleContainer.hitArea = {
+      contains: (x: number, y: number) => {
+        return Math.sqrt(x * x + y * y) <= handleRadius;
+      }
+    };
+    
+    // Add hover effect
+    handleContainer.on('pointerover', () => {
+      button.clear();
+      button.circle(0, 0, handleRadius);
+      button.fill({ color: 0x5ab0ff, alpha: 1.0 }); // Lighter blue on hover
+      button.circle(0, 0, handleRadius);
+      button.stroke({ width: 2, color: 0xffffff });
+      button.addChild(arrowGraphics);
+    });
+    
+    handleContainer.on('pointerout', () => {
+      button.clear();
+      button.circle(0, 0, handleRadius);
+      button.fill({ color: 0x4a9eff, alpha: 0.9 });
+      button.circle(0, 0, handleRadius);
+      button.stroke({ width: 2, color: 0xffffff });
+      button.addChild(arrowGraphics);
+    });
+    
+    // Handle click
+    handleContainer.on('pointerdown', (event: FederatedPointerEvent) => {
+      event.stopPropagation(); // Prevent component drag
+      if (this.eventHandlers.onRotateHandleClick) {
+        this.eventHandlers.onRotateHandleClick(component.id, event);
+      }
+    });
+    
+    return handleContainer;
   }
 
   /**

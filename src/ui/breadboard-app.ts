@@ -449,6 +449,9 @@ export class BreadboardApp {
         onConnectionEndpointDragStart: (connectionId, endpointType, globalX, globalY) => {
           this.handleConnectionEndpointDragStart(connectionId, endpointType, globalX, globalY);
         },
+        onRotateHandleClick: (componentId, _event) => {
+          this.handleRotateHandleClick(componentId);
+        },
       };
       try {
         await this.pixiRenderer.init(breadboard, handlers);
@@ -984,6 +987,19 @@ export class BreadboardApp {
 
     // Re-render to update circuit
     this.render();
+  }
+
+  /**
+   * Handle rotation handle click
+   */
+  private handleRotateHandleClick(componentId: string): void {
+    // Ensure the component is selected
+    if (this.state.selectedComponentId !== componentId) {
+      this.state.selectedComponentId = componentId;
+    }
+    
+    // Rotate the component
+    this.rotateSelectedComponent();
   }
 
   /**
