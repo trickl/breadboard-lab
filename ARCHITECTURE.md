@@ -6,25 +6,21 @@ Breadboard Lab is a web-based electronics simulator built with clean architectur
 
 ## Technology Stack
 
-**Current Implementation:** Vanilla TypeScript + PixiJS 8.6.6
+**Current Implementation:** TypeScript + React + Rete.js
 
-The application uses **PixiJS** as its rendering engine, **not React + Konva**. This architectural decision was made to:
-- Leverage WebGL acceleration for high-performance breadboard rendering
-- Avoid React framework overhead for a canvas-heavy application
-- Use a mature, well-documented 2D rendering library with excellent TypeScript support
-- Enable fine-grained control over rendering pipeline and hit detection
+The application uses **React with SVG rendering** for the UI, providing:
+- DOM-based rendering that's inspectable and testable
+- Declarative component model for maintainable UI code
+- SVG for precise, scalable vector graphics
+- Excellent TypeScript support and ecosystem
 
 **Core Technologies:**
 - **Language:** TypeScript 5.3+ (strict mode)
 - **Build Tool:** Vite 7.3+ (fast dev server, optimized production builds)
-- **Rendering:** PixiJS 8.6.6 (WebGL/Canvas with autoDetectRenderer)
-- **UI Framework:** Vanilla TypeScript with DOM manipulation (no React, no Vue)
-- **State Management:** Immutable component array pattern
+- **UI Framework:** React 19.2+ with SVG rendering
+- **Graph Management:** Rete.js 2.0+ (connection graph and constraints)
+- **State Management:** Immutable state with BreadboardController
 - **Testing:** Vitest (unit/integration), Playwright (visual regression)
-
-**Response to Review Feedback (2026-01-08, Section 7):**
-
-A review noted a perceived discrepancy between "intended" technology (React + Konva) and "actual" technology (PixiJS). This was based on outdated or incorrect assumptions. The application has been built with **vanilla TypeScript + PixiJS** from the beginning, and there is no incomplete migration. The current stack is the intended and final architecture for the MVP.
 
 ## Project Structure
 
@@ -36,11 +32,21 @@ breadboard-lab/
 │   │   ├── breadboard-layout.ts   # Breadboard internal connections
 │   │   ├── circuit-extractor.ts   # Circuit graph extraction
 │   │   ├── circuit-simulator.ts   # Voltage/current simulation
+│   │   ├── rete-manager.ts        # Rete.js graph management
 │   │   └── __tests__/      # Unit tests for core logic
-│   ├── ui/                 # Presentation layer
-│   │   ├── breadboard-app.ts      # Main UI application (vanilla TypeScript)
-│   │   └── pixi-renderer.ts       # PixiJS rendering layer
-│   ├── main.ts             # Application entry point
+│   ├── ui-react/           # React presentation layer
+│   │   ├── App.tsx               # Main React application
+│   │   ├── BreadboardScene.tsx   # Breadboard container component
+│   │   ├── BreadboardSvg.tsx     # SVG breadboard substrate
+│   │   ├── components/           # React component library
+│   │   ├── geometry/             # SVG geometry utilities
+│   │   ├── overlays/             # Voltage/current/error overlays
+│   │   └── rete/                 # Rete.js React integration
+│   ├── ui-controller/      # Renderer-agnostic state management
+│   │   ├── breadboard-controller.ts  # State management
+│   │   ├── types.ts              # Controller types
+│   │   └── __tests__/            # Controller tests
+│   ├── main.tsx            # Application entry point
 │   └── style.css           # Global styles
 ├── index.html              # HTML entry point
 ├── package.json            # Dependencies and scripts
@@ -129,26 +135,27 @@ The core layer contains all domain logic and is completely independent of the UI
 - 16 bytes of program ROM, 4-bit input/output ports
 - Preset programs for educational use (blink, counter, echo, pattern)
 
-### UI Layer (`src/ui/`)
+### UI Layer (`src/ui-react/`, `src/ui-controller/`)
 
-**breadboard-app.ts**
-- Main application class managing UI state
-- Coordinates between user interactions and rendering layer
-- Handles user interactions (component selection, placement, dragging)
-- Updates circuit information display
-- Calls core layer for circuit extraction and simulation
-- Follows MVC-like pattern: state → render → update
-- Written in vanilla TypeScript (no React, no JSX)
+The UI layer is split into renderer-agnostic state management and React-specific presentation:
 
-**pixi-renderer.ts**
-- PixiJS rendering layer for breadboard visualization
-- Renders breadboard grid (300 holes with WebGL acceleration)
-- Renders components (resistors, LEDs, wires, microprocessors, etc.)
-- Handles component graphics (resistor color bands, LED colors)
-- Implements voltage heatmap overlays
-- Implements X-ray mode (internal breadboard connections)
-- Custom hit detection for components and breadboard holes
-- All rendering uses PixiJS Graphics API (no HTML/CSS canvas overlay)
+**ui-controller/** - Renderer-agnostic state management
+- BreadboardController manages application state immutably
+- Provides actions for component manipulation (add, move, rotate, delete)
+- Handles simulation triggering and error detection
+- Publishes state changes to subscribers
+- No dependencies on rendering technology
+
+**ui-react/** - React presentation layer
+- React/SVG rendering of breadboard, components, and overlays
+- BreadboardScene orchestrates layout and interaction
+- BreadboardSvg renders the substrate (holes, rails, strips)
+- ComponentsLayer renders placed components
+- Interactive hole selection and component manipulation
+- Voltage heatmap overlay (V key to toggle)
+- Current flow animation (C key to toggle)
+- Error badges with click-to-explain functionality
+- All rendering uses React DOM and SVG (no canvas, no WebGL)
 
 ### Configuration
 
@@ -422,7 +429,7 @@ Pulse 5: Execute JMP 0   → PC wraps to 0, loop repeats
 - [ ] Iterative convergence for digital output feedback to analog circuit
 
 ### UI Layer
-- [x] Visual wire rendering (DONE with PixiJS)
+- [x] Visual wire rendering (DONE with React/SVG)
 - [x] Component graphics (resistor bands, LED colors) (DONE)
 - [x] Voltage heatmap overlay (DONE)
 - [x] Current flow animation (DONE)

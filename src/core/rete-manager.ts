@@ -9,7 +9,7 @@
  *
  * Architecture: Hybrid approach (Option B from planning doc)
  * - Rete.js manages connection graph logic (nodes, sockets, edges)
- * - Existing PixiJS rendering continues unchanged (reads from component array)
+ * - React/SVG UI renders components (reads from component array)
  * - ReteManager coordinates state synchronization
  */
 

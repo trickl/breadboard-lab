@@ -21,8 +21,8 @@ test.describe('Example Circuit Visual Regression', () => {
     
     const breadboard = getBreadboardContainer(page);
     
-    // Verify Pixi canvas is present
-    await expect(page.locator('#breadboard canvas')).toBeVisible();
+    // Verify React SVG breadboard is present
+    await expect(page.locator('svg.breadboard-svg')).toBeVisible();
     
     // Capture screenshot for comparison
     await expect(breadboard).toHaveScreenshot('led-resistor.png', {
@@ -40,8 +40,8 @@ test.describe('Example Circuit Visual Regression', () => {
     
     const breadboard = getBreadboardContainer(page);
     
-    // Verify Pixi canvas is present
-    await expect(page.locator('#breadboard canvas')).toBeVisible();
+    // Verify React SVG breadboard is present
+    await expect(page.locator('svg.breadboard-svg')).toBeVisible();
     
     // Capture screenshot for comparison
     await expect(breadboard).toHaveScreenshot('voltage-divider.png', {
@@ -59,8 +59,8 @@ test.describe('Example Circuit Visual Regression', () => {
     
     const breadboard = getBreadboardContainer(page);
     
-    // Verify Pixi canvas is present
-    await expect(page.locator('#breadboard canvas')).toBeVisible();
+    // Verify React SVG breadboard is present
+    await expect(page.locator('svg.breadboard-svg')).toBeVisible();
     
     // Capture screenshot for comparison
     await expect(breadboard).toHaveScreenshot('parallel-leds.png', {
@@ -78,8 +78,8 @@ test.describe('Example Circuit Visual Regression', () => {
     
     const breadboard = getBreadboardContainer(page);
     
-    // Verify Pixi canvas is present
-    await expect(page.locator('#breadboard canvas')).toBeVisible();
+    // Verify React SVG breadboard is present
+    await expect(page.locator('svg.breadboard-svg')).toBeVisible();
     
     // Note: Error overlay might not be rendered depending on circuit state
     // The important thing is that the circuit loads and renders consistently
@@ -106,11 +106,11 @@ test.describe('Visual Features Present', () => {
     // Check simulation status
     const simulationStatus = await page.locator('.info-panel').textContent();
     
-    // If simulation succeeded, the Pixi canvas should still be present.
-    // (Voltage overlays are rendered into the canvas; pixel-level assertions are covered
+    // If simulation succeeded, the React SVG breadboard should still be present.
+    // (Voltage overlays are rendered in SVG; pixel-level assertions are covered
     // by the screenshot comparisons in the example tests.)
     if (simulationStatus && simulationStatus.includes('✓ Success')) {
-      await expect(page.locator('#breadboard canvas')).toBeVisible();
+      await expect(page.locator('svg.breadboard-svg')).toBeVisible();
     }
   });
 
@@ -121,8 +121,8 @@ test.describe('Visual Features Present', () => {
   test('Current animation elements are present', async ({ page }) => {
     await loadExample(page, 'led-resistor');
     
-    // Current animation is rendered on the Pixi canvas.
-    await expect(page.locator('#breadboard canvas')).toBeVisible();
+    // Current animation is rendered in React SVG.
+    await expect(page.locator('svg.breadboard-svg')).toBeVisible();
   });
 
   /**
@@ -135,7 +135,7 @@ test.describe('Visual Features Present', () => {
     // Wait a bit more for error detection
     await page.waitForTimeout(500);
     
-    // Error overlays are rendered into the canvas; we at least ensure the app didn't blank.
-    await expect(page.locator('#breadboard canvas')).toBeVisible();
+    // Error overlays are rendered in SVG; we at least ensure the app didn't blank.
+    await expect(page.locator('svg.breadboard-svg')).toBeVisible();
   });
 });
