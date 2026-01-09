@@ -56,7 +56,7 @@ type Schemes = ClassicScheme;
 
 export interface ReteGraphLayerProps {
   controller: BreadboardController;
-  svgRef: React.RefObject<SVGSVGElement>;
+  svgRef: React.RefObject<SVGSVGElement | null>;
   onTransformChange?: (x: number, y: number, zoom: number) => void;
 }
 
@@ -215,7 +215,10 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
   const syncNodes = useCallback(async (state: AppState) => {
     const editor = editorRef.current;
     const area = areaRef.current;
-    if (!editor || !area) return;
+    if (!editor || !area) {
+      console.warn('[ReteGraphLayer] Editor or area not initialized, skipping sync');
+      return;
+    }
 
     const components = state.breadboard.components;
     const componentNodeMap = componentNodeMapRef.current;
@@ -305,13 +308,12 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
         left: 0,
         width: '100%',
         height: '100%',
-        pointerEvents: 'none', // Container doesn't block events
+        pointerEvents: 'none', // Prevent container from intercepting pointer events (nodes handle their own events)
         zIndex: 10,
         transformOrigin: '0 0',
         transform: containerTransform,
       }}
     >
-      {/* CSS to enable pointer events on Rete nodes */}
       <style>{`
         .rete-node {
           pointer-events: auto !important;

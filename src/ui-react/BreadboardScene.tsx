@@ -269,7 +269,7 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
       {/* Rete graph layer overlaid on top */}
       <ReteGraphLayer 
         controller={controller} 
-        svgRef={svgRef as React.RefObject<SVGSVGElement>}
+        svgRef={svgRef}
         onTransformChange={handleReteTransformChange}
       />
     </div>
