@@ -9,6 +9,7 @@ import type { AppState } from '@/ui-controller/types';
 import type { Position } from '@/core/types';
 import { BreadboardSvg } from './BreadboardSvg';
 import { getBreadboardDimensions, LABEL_PADDING_X, LABEL_PADDING_Y } from './geometry/breadboard-layout';
+import { ComponentsLayer } from './components/ComponentsLayer';
 
 export interface BreadboardSceneProps {
   controller: BreadboardController;
@@ -157,6 +158,58 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
     // Future: clear hover state
   }, []);
 
+  // Keyboard event handlers for component operations
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const selectedId = state.breadboard.selectedComponentId;
+
+      // Rotate selected component (R key)
+      if ((e.key === 'r' || e.key === 'R') && selectedId) {
+        e.preventDefault();
+        const component = state.breadboard.components.find((c) => c.id === selectedId);
+        if (!component) return;
+
+        const newRotation = ((component.rotation + 90) % 360) as 0 | 90 | 180 | 270;
+        controller.dispatch({
+          type: 'COMPONENT_ROTATED',
+          componentId: selectedId,
+          rotation: newRotation,
+          positions: component.positions,
+        });
+      }
+
+      // Delete selected component (Delete or Backspace)
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && !e.repeat) {
+        e.preventDefault();
+        controller.dispatch({
+          type: 'COMPONENT_DELETED',
+          componentId: selectedId,
+        });
+      }
+
+      // Cancel drag on Escape
+      if (e.key === 'Escape' && state.componentDrag.dragState) {
+        e.preventDefault();
+        controller.dispatch({
+          type: 'DRAG_CANCELLED',
+        });
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [state.breadboard.selectedComponentId, state.breadboard.components, state.componentDrag.dragState, controller]);
+
+  // Handle background click to deselect
+  const handleBackgroundClick = useCallback(() => {
+    if (state.breadboard.selectedComponentId) {
+      controller.dispatch({
+        type: 'COMPONENT_SELECTED',
+        componentId: null,
+      });
+    }
+  }, [state.breadboard.selectedComponentId, controller]);
+
   return (
     <div
       style={{
@@ -182,6 +235,7 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onClick={handleBackgroundClick}
       >
         {/* Offset group for label padding */}
         <g transform={`translate(${LABEL_PADDING_X}, ${LABEL_PADDING_Y})`}>
@@ -191,6 +245,7 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
             onHoleHover={handleHoleHover}
             onHoleLeave={handleHoleLeave}
           />
+          <ComponentsLayer controller={controller} svgRef={svgRef} />
         </g>
       </svg>
     </div>
