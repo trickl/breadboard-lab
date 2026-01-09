@@ -74,13 +74,18 @@ export class PixiRenderer {
   private errorOverlayContainer = new Container();
   
   // Grid spacing constants
-  public static readonly HOLE_SIZE = 20;
+  public static readonly HOLE_SIZE = 20;  // Used for spacing calculations only (not visual rendering)
   public static readonly HOLE_MARGIN = 3;
   public static readonly HOLE_SPACING = PixiRenderer.HOLE_SIZE + PixiRenderer.HOLE_MARGIN * 2;
   
   // Padding for labels (public for coordinate transformation in BreadboardApp)
   public static readonly LABEL_PADDING_X = 20;
   public static readonly LABEL_PADDING_Y = 25;
+  
+  // Hole visual and interaction constants
+  // Visual hole is smaller for realism, hit area is larger for usability
+  private static readonly HOLE_VISUAL_RADIUS = 7;  // px - small and realistic
+  private static readonly HOLE_HIT_RADIUS = 12;     // px - large and forgiving (maintains usability)
   
   // LED glow effect constants
   private static readonly LED_TURN_ON_THRESHOLD = 0.8; // LED turns on at 80% of forward voltage
@@ -477,29 +482,29 @@ export class PixiRenderer {
       fontWeight: 'bold',
     });
     
-    // Left positive rail (red) - position above the grid
-    const leftPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xdd4444 } });
+    // Left positive rail - position above the grid
+    const leftPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xC0C0C0 } });
     leftPosLabel.anchor.set(0.5, 1);
     leftPosLabel.x = BreadboardLayout.RAIL_LEFT_POSITIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
     leftPosLabel.y = -8;
     this.breadboardContainer.addChild(leftPosLabel);
     
-    // Left negative rail (blue) - position above the grid
-    const leftNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0x4444dd } });
+    // Left negative rail - position above the grid
+    const leftNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0xC0C0C0 } });
     leftNegLabel.anchor.set(0.5, 1);
     leftNegLabel.x = BreadboardLayout.RAIL_LEFT_NEGATIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
     leftNegLabel.y = -8;
     this.breadboardContainer.addChild(leftNegLabel);
     
-    // Right positive rail (red) - position above the grid
-    const rightPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xdd4444 } });
+    // Right positive rail - position above the grid
+    const rightPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xC0C0C0 } });
     rightPosLabel.anchor.set(0.5, 1);
     rightPosLabel.x = BreadboardLayout.RAIL_RIGHT_POSITIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
     rightPosLabel.y = -8;
     this.breadboardContainer.addChild(rightPosLabel);
     
-    // Right negative rail (blue) - position above the grid
-    const rightNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0x4444dd } });
+    // Right negative rail - position above the grid
+    const rightNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0xC0C0C0 } });
     rightNegLabel.anchor.set(0.5, 1);
     rightNegLabel.x = BreadboardLayout.RAIL_RIGHT_NEGATIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
     rightNegLabel.y = -8;
@@ -594,21 +599,21 @@ export class PixiRenderer {
     const pixels = this.positionToPixels(pos);
     const hole = new Graphics();
     
-    // Outer ring (plastic recess shadow)
-    hole.circle(pixels.x, pixels.y, PixiRenderer.HOLE_SIZE / 2 + 2);
+    // Outer ring (plastic recess shadow) - slightly larger than visual hole
+    hole.circle(pixels.x, pixels.y, PixiRenderer.HOLE_VISUAL_RADIUS + 2);
     hole.fill({ color: 0x0a0a0a, alpha: 0.6 });
     
     // Inner hole with metal contact
-    hole.circle(pixels.x, pixels.y, PixiRenderer.HOLE_SIZE / 2);
+    hole.circle(pixels.x, pixels.y, PixiRenderer.HOLE_VISUAL_RADIUS);
     hole.fill(holeColor);
     
-    // Metal contact shine (subtle highlight)
-    const highlightOffset = 2;
-    hole.circle(pixels.x - highlightOffset, pixels.y - highlightOffset, PixiRenderer.HOLE_SIZE / 4);
+    // Metal contact shine (subtle highlight) - scaled proportionally to hole size
+    const highlightOffset = PixiRenderer.HOLE_VISUAL_RADIUS * 0.21; // ~1.5px for 7px radius
+    hole.circle(pixels.x - highlightOffset, pixels.y - highlightOffset, PixiRenderer.HOLE_VISUAL_RADIUS / 3);
     hole.fill({ color: 0xffffff, alpha: 0.15 });
     
     // Outer stroke for definition
-    hole.circle(pixels.x, pixels.y, PixiRenderer.HOLE_SIZE / 2);
+    hole.circle(pixels.x, pixels.y, PixiRenderer.HOLE_VISUAL_RADIUS);
     hole.stroke({ width: 0.5, color: 0x1a1a1a, alpha: 0.8 });
     
     // Interactive - with explicit hit area for better clickability
@@ -618,22 +623,21 @@ export class PixiRenderer {
     (hole as any).holeBaseColor = holeColor;
     (hole as any).isOccupied = isOccupied;
     
-    // Define explicit hit area: slightly larger than visual hole for easier clicking
-    // Visual hole is HOLE_SIZE/2 = 10px radius, hit area is 12px radius (20% larger)
-    const hitRadius = PixiRenderer.HOLE_SIZE / 2 + 2;
+    // Define explicit hit area: significantly larger than visual hole for easier clicking
+    // Visual hole is 7px radius, hit area is 12px radius (71% larger - preserves usability)
     hole.hitArea = {
       contains: (x: number, y: number) => {
         const dx = x - pixels.x;
         const dy = y - pixels.y;
-        return (dx * dx + dy * dy) <= (hitRadius * hitRadius);
+        return (dx * dx + dy * dy) <= (PixiRenderer.HOLE_HIT_RADIUS * PixiRenderer.HOLE_HIT_RADIUS);
       }
     };
     
     // Hover effect - add highlight glow
     hole.on('pointerover', (event: FederatedPointerEvent) => {
-      // Add hover glow effect
+      // Add hover glow effect around visual hole
       const hoverGlow = new Graphics();
-      hoverGlow.circle(pixels.x, pixels.y, PixiRenderer.HOLE_SIZE / 2 + 3);
+      hoverGlow.circle(pixels.x, pixels.y, PixiRenderer.HOLE_VISUAL_RADIUS + 3);
       hoverGlow.stroke({ width: 2, color: 0x44aaff, alpha: 0.6 });
       (hole as any).hoverGlow = hoverGlow;
       hole.addChild(hoverGlow);
@@ -715,11 +719,10 @@ export class PixiRenderer {
         
         let holeColor = 0x505050; // Default metal color
         
-        // Rail coloring with more realistic colors
+        // Rail coloring with neutral, realistic metallic appearance
+        // Rails don't have inherent polarity - polarity is determined by how user connects power
         if (BreadboardLayout.isPositionInRail(pos)) {
-          const rail = BreadboardLayout.getRailForPosition(pos);
-          if (rail?.type === 'positive') holeColor = 0x883333; // Reddish tint
-          else if (rail?.type === 'negative') holeColor = 0x333388; // Bluish tint
+          holeColor = 0xC0C0C0; // Silver metallic - neutral and realistic
         }
         
         // Voltage overlay (overrides base color when simulation is active)
