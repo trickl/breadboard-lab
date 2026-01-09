@@ -12,6 +12,7 @@ import { ComponentType, ErrorType } from '@/core/types';
 import { BreadboardLayout } from '@/core/breadboard-layout';
 import { voltageToColor } from './voltage-colors';
 import { resistanceToColorBands, COLOR_TO_RGB, type ColorBand } from '@/core/resistor-color-code';
+import { ALL_LIBRARY_ENTRIES } from '@/library';
 
 /**
  * Drag state for rendering ghost preview
@@ -989,7 +990,65 @@ export class PixiRenderer {
       }
     });
 
+    // Add interactive pin hit areas for flexible components
+    if (!isDragging && component.id === selectedComponentId) {
+      this.addPinHitAreas(container, component);
+    }
+
     return container;
+  }
+
+  /**
+   * Add interactive pin hit areas for flexible components
+   */
+  private addPinHitAreas(container: Container, component: AnyComponent): void {
+    // Skip if component is rigid or doesn't support pin repositioning
+    const libraryEntry = component.libraryId ? 
+      ALL_LIBRARY_ENTRIES.find((e: any) => e.id === component.libraryId) : null;
+    
+    if (libraryEntry && libraryEntry.flexibility === 'rigid') {
+      return;
+    }
+
+    // Add circular hit areas at each pin position
+    const pinHitRadius = 10; // px - larger than visual hole for easier interaction
+    
+    component.positions.forEach((pos, pinIndex) => {
+      const pixels = this.positionToPixels(pos);
+      
+      // Create a circular hit area for the pin
+      const pinHitArea = new Graphics();
+      pinHitArea.circle(0, 0, pinHitRadius);
+      pinHitArea.fill({ color: 0xffff00, alpha: 0.0 }); // Transparent but interactive
+      pinHitArea.position.set(pixels.x, pixels.y);
+      
+      pinHitArea.eventMode = 'static';
+      pinHitArea.cursor = 'move';
+      
+      // Pin-specific interaction
+      pinHitArea.on('pointerdown', (event: FederatedPointerEvent) => {
+        event.stopPropagation(); // Prevent component drag
+        
+        if (this.eventHandlers.onPinDragStart) {
+          this.eventHandlers.onPinDragStart(component.id, pinIndex, event.global.x, event.global.y);
+        }
+      });
+      
+      // Visual feedback on hover
+      pinHitArea.on('pointerenter', () => {
+        pinHitArea.clear();
+        pinHitArea.circle(0, 0, pinHitRadius);
+        pinHitArea.fill({ color: 0x00ffff, alpha: 0.3 });
+      });
+      
+      pinHitArea.on('pointerleave', () => {
+        pinHitArea.clear();
+        pinHitArea.circle(0, 0, pinHitRadius);
+        pinHitArea.fill({ color: 0xffff00, alpha: 0.0 });
+      });
+      
+      container.addChild(pinHitArea);
+    });
   }
 
   /**
