@@ -9,7 +9,7 @@ import { AudioManager } from '../audio-manager';
 class MockAudioContext {
   destination = {};
   currentTime = 0;
-  
+
   createGain() {
     return {
       gain: {
@@ -21,7 +21,7 @@ class MockAudioContext {
       connect: vi.fn(),
     };
   }
-  
+
   createOscillator() {
     return {
       type: 'sine',
@@ -37,7 +37,7 @@ class MockAudioContext {
       disconnect: vi.fn(),
     };
   }
-  
+
   close() {
     return Promise.resolve();
   }
@@ -50,7 +50,7 @@ describe('AudioManager', () => {
     // Mock AudioContext globally
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     global.AudioContext = MockAudioContext as any;
-    
+
     // Mock localStorage
     global.localStorage = {
       getItem: vi.fn(() => null),
@@ -60,7 +60,7 @@ describe('AudioManager', () => {
       length: 0,
       key: vi.fn(() => null),
     };
-    
+
     audioManager = new AudioManager();
   });
 
@@ -80,7 +80,7 @@ describe('AudioManager', () => {
   it('should disable audio and close AudioContext', async () => {
     await audioManager.enable();
     expect(audioManager.isEnabled()).toBe(true);
-    
+
     audioManager.disable();
     expect(audioManager.isEnabled()).toBe(false);
   });
@@ -88,11 +88,11 @@ describe('AudioManager', () => {
   it('should set volume within valid range', () => {
     audioManager.setVolume(0.8);
     expect(audioManager.getVolume()).toBe(0.8);
-    
+
     // Test clamping
     audioManager.setVolume(1.5);
     expect(audioManager.getVolume()).toBe(1.0);
-    
+
     audioManager.setVolume(-0.5);
     expect(audioManager.getVolume()).toBe(0);
   });
@@ -131,7 +131,7 @@ describe('AudioManager', () => {
     await audioManager.enable();
     audioManager.updateSpeaker('speaker1', 3.3, 0.01);
     expect(audioManager.getActiveSpeakerCount()).toBe(1);
-    
+
     audioManager.removeSpeaker('speaker1');
     expect(audioManager.getActiveSpeakerCount()).toBe(0);
   });
@@ -140,7 +140,7 @@ describe('AudioManager', () => {
     await audioManager.enable();
     audioManager.updateSpeaker('speaker1', 3.3, 0.01);
     expect(audioManager.getActiveSpeakerCount()).toBe(1);
-    
+
     // Update with low voltage
     audioManager.updateSpeaker('speaker1', 0.05, 0.01);
     expect(audioManager.getActiveSpeakerCount()).toBe(0);
@@ -148,10 +148,7 @@ describe('AudioManager', () => {
 
   it('should persist volume to localStorage', () => {
     audioManager.setVolume(0.75);
-    expect(global.localStorage.setItem).toHaveBeenCalledWith(
-      'breadboard-lab-audio-volume',
-      '0.75'
-    );
+    expect(global.localStorage.setItem).toHaveBeenCalledWith('breadboard-lab-audio-volume', '0.75');
   });
 
   it('should load volume from localStorage on initialization', () => {

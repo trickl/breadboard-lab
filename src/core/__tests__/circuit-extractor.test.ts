@@ -30,7 +30,7 @@ describe('CircuitExtractor', () => {
             { row: 5, col: 7 }, // Right terminal strip
           ],
           resistance: 0.01,
-        rotation: 0,
+          rotation: 0,
         },
       ],
       selectedComponentId: null,
@@ -53,7 +53,7 @@ describe('CircuitExtractor', () => {
             { row: 5, col: 3 }, // Same terminal strip (internally connected)
           ],
           resistance: 0.01,
-        rotation: 0,
+          rotation: 0,
         },
       ],
       selectedComponentId: null,
@@ -77,7 +77,7 @@ describe('CircuitExtractor', () => {
             { row: 10, col: 2 },
           ],
           resistance: 1000,
-        rotation: 0,
+          rotation: 0,
         },
         {
           id: 'led1',
@@ -95,7 +95,7 @@ describe('CircuitExtractor', () => {
     };
 
     const circuit = extractor.extract(state);
-    
+
     expect(circuit.edges.length).toBe(2);
   });
 
@@ -189,7 +189,7 @@ describe('CircuitExtractor', () => {
 
       // Should have 2 nodes (one for each terminal strip row)
       expect(circuit.nodes.size).toBeGreaterThan(0);
-      
+
       // Should have 1 edge (resistor connecting two different rows)
       expect(circuit.edges.length).toBe(1);
       expect(circuit.edges[0].component.id).toBe('resistor1');
@@ -234,16 +234,16 @@ describe('CircuitExtractor', () => {
       };
 
       await reteManager.syncFromBreadboardState(state);
-      
+
       const circuitFromPosition = extractor.extract(state);
       const circuitFromRete = extractor.extractFromReteGraph(reteManager, state);
 
       // Both methods should produce the same number of edges
       expect(circuitFromRete.edges.length).toBe(circuitFromPosition.edges.length);
-      
+
       // Edge IDs should match
-      const reteEdgeIds = circuitFromRete.edges.map(e => e.id).sort();
-      const positionEdgeIds = circuitFromPosition.edges.map(e => e.id).sort();
+      const reteEdgeIds = circuitFromRete.edges.map((e) => e.id).sort();
+      const positionEdgeIds = circuitFromPosition.edges.map((e) => e.id).sort();
       expect(reteEdgeIds).toEqual(positionEdgeIds);
     });
 

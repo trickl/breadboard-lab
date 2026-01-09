@@ -24,48 +24,48 @@ describe('BreadboardLayout', () => {
     });
 
     it('should connect positions in same terminal strip row (left side)', () => {
-      expect(
-        BreadboardLayout.areInternallyConnected({ row: 5, col: 2 }, { row: 5, col: 6 })
-      ).toBe(true);
-      expect(
-        BreadboardLayout.areInternallyConnected({ row: 5, col: 3 }, { row: 5, col: 4 })
-      ).toBe(true);
+      expect(BreadboardLayout.areInternallyConnected({ row: 5, col: 2 }, { row: 5, col: 6 })).toBe(
+        true
+      );
+      expect(BreadboardLayout.areInternallyConnected({ row: 5, col: 3 }, { row: 5, col: 4 })).toBe(
+        true
+      );
     });
 
     it('should connect positions in same terminal strip row (right side)', () => {
-      expect(
-        BreadboardLayout.areInternallyConnected({ row: 5, col: 7 }, { row: 5, col: 11 })
-      ).toBe(true);
-      expect(
-        BreadboardLayout.areInternallyConnected({ row: 5, col: 8 }, { row: 5, col: 9 })
-      ).toBe(true);
+      expect(BreadboardLayout.areInternallyConnected({ row: 5, col: 7 }, { row: 5, col: 11 })).toBe(
+        true
+      );
+      expect(BreadboardLayout.areInternallyConnected({ row: 5, col: 8 }, { row: 5, col: 9 })).toBe(
+        true
+      );
     });
 
     it('should NOT connect left and right terminal strips', () => {
-      expect(
-        BreadboardLayout.areInternallyConnected({ row: 5, col: 6 }, { row: 5, col: 7 })
-      ).toBe(false);
+      expect(BreadboardLayout.areInternallyConnected({ row: 5, col: 6 }, { row: 5, col: 7 })).toBe(
+        false
+      );
     });
 
     it('should NOT connect different rows in terminal strips', () => {
-      expect(
-        BreadboardLayout.areInternallyConnected({ row: 5, col: 3 }, { row: 6, col: 3 })
-      ).toBe(false);
+      expect(BreadboardLayout.areInternallyConnected({ row: 5, col: 3 }, { row: 6, col: 3 })).toBe(
+        false
+      );
     });
 
     it('should connect positions in same rail vertically', () => {
-      expect(
-        BreadboardLayout.areInternallyConnected({ row: 0, col: 0 }, { row: 29, col: 0 })
-      ).toBe(true);
-      expect(
-        BreadboardLayout.areInternallyConnected({ row: 5, col: 1 }, { row: 10, col: 1 })
-      ).toBe(true);
+      expect(BreadboardLayout.areInternallyConnected({ row: 0, col: 0 }, { row: 29, col: 0 })).toBe(
+        true
+      );
+      expect(BreadboardLayout.areInternallyConnected({ row: 5, col: 1 }, { row: 10, col: 1 })).toBe(
+        true
+      );
     });
 
     it('should NOT connect different rails', () => {
-      expect(
-        BreadboardLayout.areInternallyConnected({ row: 5, col: 0 }, { row: 5, col: 1 })
-      ).toBe(false);
+      expect(BreadboardLayout.areInternallyConnected({ row: 5, col: 0 }, { row: 5, col: 1 })).toBe(
+        false
+      );
     });
   });
 

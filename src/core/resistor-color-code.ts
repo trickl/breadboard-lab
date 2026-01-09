@@ -190,7 +190,10 @@ export function resistanceToColorBands(resistance: number, tolerance: number = 5
  * @param bands Array of color bands
  * @returns Object with resistance (Ohms) and tolerance (percentage)
  */
-export function colorBandsToResistance(bands: ColorBand[]): { resistance: number; tolerance: number } {
+export function colorBandsToResistance(bands: ColorBand[]): {
+  resistance: number;
+  tolerance: number;
+} {
   if (bands.length !== 4 && bands.length !== 5) {
     throw new Error('Color bands must be 4 or 5 bands');
   }

@@ -19,8 +19,11 @@
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@types/node": "^20.10.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
+    "@vitejs/plugin-react": "^5.1.2",
     "@vitest/ui": "^4.0.16",
     "eslint": "^8.55.0",
     "jsdom": "^27.4.0",
@@ -31,6 +34,8 @@
   },
   "dependencies": {
     "pixi.js": "^8.6.6",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "rete": "^2.0.6",
     "rete-area-plugin": "^2.1.5",
     "rete-connection-plugin": "^2.0.5"

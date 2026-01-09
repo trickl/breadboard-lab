@@ -310,7 +310,7 @@ describe('EDU-8 Simulator', () => {
     it('should execute instruction on rising clock edge', () => {
       let state = createInitialEDU8State();
       state = loadProgram(state, [0x01]); // LDA #1
-      
+
       // Clock low -> high (rising edge) - should execute
       state = handleClockEdge(state, true, 0);
       expect(state.accumulator).toBe(1);
@@ -321,10 +321,10 @@ describe('EDU-8 Simulator', () => {
     it('should not execute on falling clock edge', () => {
       let state = createInitialEDU8State();
       state = loadProgram(state, [0x01]); // LDA #1
-      
+
       // Set clock high first
       state = { ...state, clockState: true };
-      
+
       // Clock high -> low (falling edge) - should not execute
       state = handleClockEdge(state, false, 0);
       expect(state.accumulator).toBe(0); // Unchanged
@@ -335,7 +335,7 @@ describe('EDU-8 Simulator', () => {
     it('should not execute when clock stays low', () => {
       let state = createInitialEDU8State();
       state = loadProgram(state, [0x01]); // LDA #1
-      
+
       // Clock stays low
       state = handleClockEdge(state, false, 0);
       expect(state.accumulator).toBe(0); // Unchanged
@@ -345,11 +345,11 @@ describe('EDU-8 Simulator', () => {
     it('should not execute when clock stays high', () => {
       let state = createInitialEDU8State();
       state = loadProgram(state, [0x01, 0x12]); // LDA #1, ADD #2
-      
+
       // Execute first instruction on rising edge
       state = handleClockEdge(state, true, 0);
       expect(state.programCounter).toBe(1);
-      
+
       // Clock stays high - should not execute again
       state = handleClockEdge(state, true, 0);
       expect(state.programCounter).toBe(1); // Still at instruction 1
@@ -358,39 +358,39 @@ describe('EDU-8 Simulator', () => {
     it('should execute blink program step-by-step with clock', () => {
       let state = createInitialEDU8State();
       state = loadProgram(state, PRESET_PROGRAMS.blink);
-      
+
       // Pulse 1: Rising edge - LDA #1
       state = handleClockEdge(state, true, 0);
       expect(state.programCounter).toBe(1);
       expect(state.accumulator).toBe(1);
-      
+
       // Clock goes low
       state = handleClockEdge(state, false, 0);
-      
+
       // Pulse 2: Rising edge - OUT
       state = handleClockEdge(state, true, 0);
       expect(state.programCounter).toBe(2);
       expect(state.outputs).toBe(1);
-      
+
       // Clock goes low
       state = handleClockEdge(state, false, 0);
-      
+
       // Pulse 3: Rising edge - LDA #0
       state = handleClockEdge(state, true, 0);
       expect(state.programCounter).toBe(3);
       expect(state.accumulator).toBe(0);
-      
+
       // Clock goes low
       state = handleClockEdge(state, false, 0);
-      
+
       // Pulse 4: Rising edge - OUT
       state = handleClockEdge(state, true, 0);
       expect(state.programCounter).toBe(4);
       expect(state.outputs).toBe(0);
-      
+
       // Clock goes low
       state = handleClockEdge(state, false, 0);
-      
+
       // Pulse 5: Rising edge - JMP 0
       state = handleClockEdge(state, true, 0);
       expect(state.programCounter).toBe(0); // Jumped back
@@ -399,14 +399,14 @@ describe('EDU-8 Simulator', () => {
     it('should stop executing when halted', () => {
       let state = createInitialEDU8State();
       state = loadProgram(state, [0xf0]); // HALT
-      
+
       // Execute HALT instruction
       state = handleClockEdge(state, true, 0);
       expect(state.halted).toBe(true);
-      
+
       // Clock goes low
       state = handleClockEdge(state, false, 0);
-      
+
       // Try to execute next instruction - should not execute
       state = handleClockEdge(state, true, 0);
       expect(state.programCounter).toBe(0); // Still at 0
@@ -415,13 +415,13 @@ describe('EDU-8 Simulator', () => {
     it('should update clock state on every call', () => {
       let state = createInitialEDU8State();
       expect(state.clockState).toBe(false);
-      
+
       state = handleClockEdge(state, true, 0);
       expect(state.clockState).toBe(true);
-      
+
       state = handleClockEdge(state, false, 0);
       expect(state.clockState).toBe(false);
-      
+
       state = handleClockEdge(state, true, 0);
       expect(state.clockState).toBe(true);
     });

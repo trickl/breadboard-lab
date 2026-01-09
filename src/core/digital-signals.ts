@@ -1,6 +1,6 @@
 /**
  * Digital Signal Abstraction
- * 
+ *
  * Provides conversion between analog voltages and digital logic levels.
  * Uses TTL-compatible thresholds for educational purposes.
  */
@@ -22,20 +22,20 @@ export type DigitalValue = 0 | 1 | 'Z' | 'X';
  * - V_OH (Output High): 4.5V - typical output voltage for logic 1 (with 5V supply)
  */
 export const TTL_THRESHOLDS = {
-  V_IL: 0.8,  // Input low threshold
-  V_IH: 2.0,  // Input high threshold
-  V_OL: 0.2,  // Output low voltage
-  V_OH: 4.5,  // Output high voltage
+  V_IL: 0.8, // Input low threshold
+  V_IH: 2.0, // Input high threshold
+  V_OL: 0.2, // Output low voltage
+  V_OH: 4.5, // Output high voltage
 } as const;
 
 /**
  * Convert analog voltage to digital logic level
- * 
+ *
  * Uses TTL thresholds with hysteresis to determine digital state:
  * - voltage < 0.8V → 0 (low)
  * - voltage > 2.0V → 1 (high)
  * - 0.8V ≤ voltage ≤ 2.0V → X (undefined/transitional)
- * 
+ *
  * @param voltage Analog voltage in Volts
  * @returns Digital logic value
  */
@@ -52,13 +52,13 @@ export function analogToDigital(voltage: number): DigitalValue {
 
 /**
  * Convert digital logic level to analog voltage
- * 
+ *
  * Uses typical TTL output voltages:
  * - 0 → 0.2V
  * - 1 → 4.5V
  * - Z → null (high impedance, no voltage source)
  * - X → null (undefined state)
- * 
+ *
  * @param value Digital logic value
  * @returns Analog voltage in Volts, or null for high-Z/unknown
  */
@@ -84,11 +84,13 @@ export function isDefinedDigital(value: DigitalValue): value is 0 | 1 {
 /**
  * Convert 4-bit digital value to output voltages
  * Helper for microprocessor output pins
- * 
+ *
  * @param nibble 4-bit value (0-15)
  * @returns Array of 4 digital values [bit3, bit2, bit1, bit0]
  */
-export function nibbleToDigital(nibble: number): [DigitalValue, DigitalValue, DigitalValue, DigitalValue] {
+export function nibbleToDigital(
+  nibble: number
+): [DigitalValue, DigitalValue, DigitalValue, DigitalValue] {
   return [
     ((nibble >> 3) & 1) as DigitalValue,
     ((nibble >> 2) & 1) as DigitalValue,
@@ -100,16 +102,18 @@ export function nibbleToDigital(nibble: number): [DigitalValue, DigitalValue, Di
 /**
  * Convert 4 digital values to 4-bit number
  * Helper for microprocessor input pins
- * 
+ *
  * @param bits Array of 4 digital values [bit3, bit2, bit1, bit0]
  * @returns 4-bit value (0-15), or undefined if any bit is X or Z
  */
-export function digitalToNibble(bits: [DigitalValue, DigitalValue, DigitalValue, DigitalValue]): number | undefined {
+export function digitalToNibble(
+  bits: [DigitalValue, DigitalValue, DigitalValue, DigitalValue]
+): number | undefined {
   // Check if all bits are defined
   if (!bits.every(isDefinedDigital)) {
     return undefined;
   }
-  
+
   return (
     ((bits[0] as number) << 3) |
     ((bits[1] as number) << 2) |

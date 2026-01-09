@@ -117,12 +117,7 @@ function createLEDEntry(spec: LEDSpec): ComponentLibraryEntry {
     maxPinSpan: 20,
     minPinSpan: 3,
     description: spec.description,
-    typicalUses: [
-      'Status indicators',
-      'Visual feedback',
-      'Illumination',
-      'Educational circuits',
-    ],
+    typicalUses: ['Status indicators', 'Visual feedback', 'Illumination', 'Educational circuits'],
   };
 }
 

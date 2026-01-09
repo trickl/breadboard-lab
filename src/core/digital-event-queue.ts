@@ -1,6 +1,6 @@
 /**
  * Digital Event Queue
- * 
+ *
  * Priority queue for digital simulation events, ordered by timestamp.
  * Supports event-driven simulation of digital components.
  */
@@ -58,7 +58,7 @@ export class DigitalEventQueue {
         break;
       }
     }
-    
+
     this.events.splice(insertIndex, 0, event);
   }
 

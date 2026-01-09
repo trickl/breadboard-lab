@@ -56,13 +56,25 @@ describe('CircuitSimulator - MNA Implementation', () => {
         },
         {
           id: 'power1',
-          component: { id: 'power1', type: ComponentType.POWER_SUPPLY, voltage: 5.0, positions: [], rotation: 0 },
+          component: {
+            id: 'power1',
+            type: ComponentType.POWER_SUPPLY,
+            voltage: 5.0,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
         {
           id: 'resistor1',
-          component: { id: 'resistor1', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor1',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
@@ -73,7 +85,7 @@ describe('CircuitSimulator - MNA Implementation', () => {
       expect(result.success).toBe(true);
       expect(result.nodeVoltages.get('vcc')).toBeCloseTo(5.0, 2);
       expect(result.nodeVoltages.get('gnd')).toBe(0);
-      
+
       // Current through resistor should be I = V/R = 5V/1000Ω = 5mA
       const current = result.edgeCurrents.get('resistor1');
       expect(current).toBeDefined();
@@ -96,19 +108,37 @@ describe('CircuitSimulator - MNA Implementation', () => {
         },
         {
           id: 'power1',
-          component: { id: 'power1', type: ComponentType.POWER_SUPPLY, voltage: 5.0, positions: [], rotation: 0 },
-          nodeA: 'vcc',    // Positive terminal at +5V
-          nodeB: 'gnd',    // Negative terminal at ground (0V)
+          component: {
+            id: 'power1',
+            type: ComponentType.POWER_SUPPLY,
+            voltage: 5.0,
+            positions: [],
+            rotation: 0,
+          },
+          nodeA: 'vcc', // Positive terminal at +5V
+          nodeB: 'gnd', // Negative terminal at ground (0V)
         },
         {
           id: 'resistor1',
-          component: { id: 'resistor1', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor1',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'middle',
         },
         {
           id: 'resistor2',
-          component: { id: 'resistor2', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor2',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'middle',
           nodeB: 'gnd',
         },
@@ -137,19 +167,37 @@ describe('CircuitSimulator - MNA Implementation', () => {
         },
         {
           id: 'power1',
-          component: { id: 'power1', type: ComponentType.POWER_SUPPLY, voltage: 5.0, positions: [], rotation: 0 },
+          component: {
+            id: 'power1',
+            type: ComponentType.POWER_SUPPLY,
+            voltage: 5.0,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
         {
           id: 'resistor1',
-          component: { id: 'resistor1', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor1',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
         {
           id: 'resistor2',
-          component: { id: 'resistor2', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor2',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
@@ -186,25 +234,49 @@ describe('CircuitSimulator - MNA Implementation', () => {
         },
         {
           id: 'power1',
-          component: { id: 'power1', type: ComponentType.POWER_SUPPLY, voltage: 5.0, positions: [], rotation: 0 },
+          component: {
+            id: 'power1',
+            type: ComponentType.POWER_SUPPLY,
+            voltage: 5.0,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
         {
           id: 'resistor1',
-          component: { id: 'resistor1', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor1',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'middle',
         },
         {
           id: 'resistor2',
-          component: { id: 'resistor2', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor2',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'middle',
           nodeB: 'gnd',
         },
         {
           id: 'resistor3',
-          component: { id: 'resistor3', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor3',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'middle',
           nodeB: 'gnd',
         },
@@ -225,7 +297,7 @@ describe('CircuitSimulator - MNA Implementation', () => {
     });
 
     it('should handle complex parallel network', () => {
-      // Circuit: 
+      // Circuit:
       // Power(5V) from vcc to gnd
       // R1(1kΩ) from vcc to middle1
       // R2(2kΩ) from middle1 to middle2 (parallel with R3)
@@ -246,25 +318,49 @@ describe('CircuitSimulator - MNA Implementation', () => {
         },
         {
           id: 'power1',
-          component: { id: 'power1', type: ComponentType.POWER_SUPPLY, voltage: 5.0, positions: [], rotation: 0 },
+          component: {
+            id: 'power1',
+            type: ComponentType.POWER_SUPPLY,
+            voltage: 5.0,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
         {
           id: 'resistor1',
-          component: { id: 'resistor1', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor1',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'middle1',
         },
         {
           id: 'resistor2',
-          component: { id: 'resistor2', type: ComponentType.RESISTOR, resistance: 2000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor2',
+            type: ComponentType.RESISTOR,
+            resistance: 2000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'middle1',
           nodeB: 'gnd',
         },
         {
           id: 'resistor3',
-          component: { id: 'resistor3', type: ComponentType.RESISTOR, resistance: 2000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor3',
+            type: ComponentType.RESISTOR,
+            resistance: 2000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'middle1',
           nodeB: 'gnd',
         },
@@ -291,19 +387,37 @@ describe('CircuitSimulator - MNA Implementation', () => {
         },
         {
           id: 'power1',
-          component: { id: 'power1', type: ComponentType.POWER_SUPPLY, voltage: 5.0, positions: [], rotation: 0 },
+          component: {
+            id: 'power1',
+            type: ComponentType.POWER_SUPPLY,
+            voltage: 5.0,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
         {
           id: 'wire1',
-          component: { id: 'wire1', type: ComponentType.WIRE, resistance: 0.01, positions: [], rotation: 0 },
+          component: {
+            id: 'wire1',
+            type: ComponentType.WIRE,
+            resistance: 0.01,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'node2',
         },
         {
           id: 'resistor1',
-          component: { id: 'resistor1', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor1',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'node2',
           nodeB: 'gnd',
         },
@@ -330,13 +444,25 @@ describe('CircuitSimulator - MNA Implementation', () => {
         },
         {
           id: 'power1',
-          component: { id: 'power1', type: ComponentType.POWER_SUPPLY, voltage: 5.0, positions: [], rotation: 0 },
+          component: {
+            id: 'power1',
+            type: ComponentType.POWER_SUPPLY,
+            voltage: 5.0,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
         {
           id: 'resistor1',
-          component: { id: 'resistor1', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor1',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'middle',
         },
@@ -374,7 +500,13 @@ describe('CircuitSimulator - MNA Implementation', () => {
       const circuit = createTestCircuit([
         {
           id: 'resistor1',
-          component: { id: 'resistor1', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor1',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'node1',
           nodeB: 'node2',
         },
@@ -398,13 +530,25 @@ describe('CircuitSimulator - MNA Implementation', () => {
         },
         {
           id: 'power1',
-          component: { id: 'power1', type: ComponentType.POWER_SUPPLY, voltage: 5.0, positions: [], rotation: 0 },
+          component: {
+            id: 'power1',
+            type: ComponentType.POWER_SUPPLY,
+            voltage: 5.0,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
         {
           id: 'wire1',
-          component: { id: 'wire1', type: ComponentType.WIRE, resistance: 0.01, positions: [], rotation: 0 },
+          component: {
+            id: 'wire1',
+            type: ComponentType.WIRE,
+            resistance: 0.01,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
@@ -416,7 +560,7 @@ describe('CircuitSimulator - MNA Implementation', () => {
       expect(result.success).toBe(true);
       expect(result.nodeVoltages.get('vcc')).toBeCloseTo(5.0, 2);
       expect(result.nodeVoltages.get('gnd')).toBe(0);
-      
+
       // Current through wire should be very high: I = V/R = 5V/0.01Ω = 500A (unrealistic but mathematically correct)
       const wireCurrent = Math.abs(result.edgeCurrents.get('wire1') || 0);
       expect(wireCurrent).toBeGreaterThan(100); // Very high current
@@ -438,19 +582,37 @@ describe('CircuitSimulator - MNA Implementation', () => {
         },
         {
           id: 'power1',
-          component: { id: 'power1', type: ComponentType.POWER_SUPPLY, voltage: 5.0, positions: [], rotation: 0 },
+          component: {
+            id: 'power1',
+            type: ComponentType.POWER_SUPPLY,
+            voltage: 5.0,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
         {
           id: 'power2',
-          component: { id: 'power2', type: ComponentType.POWER_SUPPLY, voltage: 3.0, positions: [], rotation: 0 },
+          component: {
+            id: 'power2',
+            type: ComponentType.POWER_SUPPLY,
+            voltage: 3.0,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'node2',
           nodeB: 'gnd',
         },
         {
           id: 'resistor1',
-          component: { id: 'resistor1', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor1',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'node2',
         },
@@ -462,7 +624,7 @@ describe('CircuitSimulator - MNA Implementation', () => {
       expect(result.nodeVoltages.get('vcc')).toBeCloseTo(5.0, 2);
       expect(result.nodeVoltages.get('node2')).toBeCloseTo(3.0, 2);
       expect(result.nodeVoltages.get('gnd')).toBe(0);
-      
+
       // Current through resistor should be (5V - 3V) / 1kΩ = 2mA
       const current = Math.abs(result.edgeCurrents.get('resistor1') || 0);
       expect(current).toBeCloseTo(0.002, 5);
@@ -486,19 +648,37 @@ describe('CircuitSimulator - MNA Implementation', () => {
         },
         {
           id: 'power1',
-          component: { id: 'power1', type: ComponentType.POWER_SUPPLY, voltage: 6.0, positions: [], rotation: 0 },
+          component: {
+            id: 'power1',
+            type: ComponentType.POWER_SUPPLY,
+            voltage: 6.0,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
         {
           id: 'resistor1',
-          component: { id: 'resistor1', type: ComponentType.RESISTOR, resistance: 1000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor1',
+            type: ComponentType.RESISTOR,
+            resistance: 1000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },
         {
           id: 'resistor2',
-          component: { id: 'resistor2', type: ComponentType.RESISTOR, resistance: 2000, positions: [], rotation: 0 },
+          component: {
+            id: 'resistor2',
+            type: ComponentType.RESISTOR,
+            resistance: 2000,
+            positions: [],
+            rotation: 0,
+          },
           nodeA: 'vcc',
           nodeB: 'gnd',
         },

@@ -61,7 +61,7 @@ export const EXAMPLE_CIRCUITS: ExampleCircuit[] = [
     learningObjectives: [
       'Voltage division principle',
       'Series resistance',
-      'Ohm\'s Law application',
+      "Ohm's Law application",
       'Proportional voltage relationships',
     ],
     json: JSON.stringify(voltageDividerJson),

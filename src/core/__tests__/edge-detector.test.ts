@@ -24,7 +24,7 @@ describe('Edge Detector', () => {
     it('should detect rising edge (0 -> 1)', () => {
       const detector = createEdgeDetector(0);
       const result = detectEdge(detector, 1);
-      
+
       expect(result.edge).toBe('rising');
       expect(result.previousValue).toBe(0);
       expect(result.currentValue).toBe(1);
@@ -34,7 +34,7 @@ describe('Edge Detector', () => {
     it('should detect falling edge (1 -> 0)', () => {
       const detector = createEdgeDetector(1);
       const result = detectEdge(detector, 0);
-      
+
       expect(result.edge).toBe('falling');
       expect(result.previousValue).toBe(1);
       expect(result.currentValue).toBe(0);
@@ -44,7 +44,7 @@ describe('Edge Detector', () => {
     it('should detect no edge when value stays 0', () => {
       const detector = createEdgeDetector(0);
       const result = detectEdge(detector, 0);
-      
+
       expect(result.edge).toBe('none');
       expect(result.previousValue).toBe(0);
       expect(result.currentValue).toBe(0);
@@ -53,7 +53,7 @@ describe('Edge Detector', () => {
     it('should detect no edge when value stays 1', () => {
       const detector = createEdgeDetector(1);
       const result = detectEdge(detector, 1);
-      
+
       expect(result.edge).toBe('none');
       expect(result.previousValue).toBe(1);
       expect(result.currentValue).toBe(1);
@@ -62,7 +62,7 @@ describe('Edge Detector', () => {
     it('should not detect edge from undefined value', () => {
       const detector = createEdgeDetector('X' as any);
       const result = detectEdge(detector, 1);
-      
+
       expect(result.edge).toBe('none');
       expect(detector.previousValue).toBe(1); // State still updated
     });
@@ -70,7 +70,7 @@ describe('Edge Detector', () => {
     it('should not detect edge to undefined value', () => {
       const detector = createEdgeDetector(0);
       const result = detectEdge(detector, 'X');
-      
+
       expect(result.edge).toBe('none');
       expect(detector.previousValue).toBe('X'); // State still updated
     });
@@ -78,7 +78,7 @@ describe('Edge Detector', () => {
     it('should not detect edge from high-impedance', () => {
       const detector = createEdgeDetector('Z' as any);
       const result = detectEdge(detector, 1);
-      
+
       expect(result.edge).toBe('none');
     });
 
@@ -86,7 +86,7 @@ describe('Edge Detector', () => {
       const detector = createEdgeDetector(0);
       detectEdge(detector, 'X');
       expect(detector.previousValue).toBe('X');
-      
+
       detectEdge(detector, 'Z');
       expect(detector.previousValue).toBe('Z');
     });
@@ -149,37 +149,37 @@ describe('Edge Detector', () => {
   describe('Sequential edge detection', () => {
     it('should detect multiple edges in sequence', () => {
       const detector = createEdgeDetector(0);
-      
+
       // No edge: 0 -> 0
       expect(detectEdge(detector, 0).edge).toBe('none');
-      
+
       // Rising edge: 0 -> 1
       expect(detectEdge(detector, 1).edge).toBe('rising');
-      
+
       // No edge: 1 -> 1
       expect(detectEdge(detector, 1).edge).toBe('none');
-      
+
       // Falling edge: 1 -> 0
       expect(detectEdge(detector, 0).edge).toBe('falling');
-      
+
       // Rising edge: 0 -> 1
       expect(detectEdge(detector, 1).edge).toBe('rising');
     });
 
     it('should handle clock pulse sequence', () => {
       const detector = createEdgeDetector(0);
-      
+
       // Clock pulse 1
-      expect(detectRisingEdge(detector, 1)).toBe(true);   // 0 -> 1
-      expect(detectRisingEdge(detector, 1)).toBe(false);  // 1 -> 1
-      expect(detectRisingEdge(detector, 0)).toBe(false);  // 1 -> 0
-      
+      expect(detectRisingEdge(detector, 1)).toBe(true); // 0 -> 1
+      expect(detectRisingEdge(detector, 1)).toBe(false); // 1 -> 1
+      expect(detectRisingEdge(detector, 0)).toBe(false); // 1 -> 0
+
       // Clock pulse 2
-      expect(detectRisingEdge(detector, 1)).toBe(true);   // 0 -> 1
-      expect(detectRisingEdge(detector, 0)).toBe(false);  // 1 -> 0
-      
+      expect(detectRisingEdge(detector, 1)).toBe(true); // 0 -> 1
+      expect(detectRisingEdge(detector, 0)).toBe(false); // 1 -> 0
+
       // Clock pulse 3
-      expect(detectRisingEdge(detector, 1)).toBe(true);   // 0 -> 1
+      expect(detectRisingEdge(detector, 1)).toBe(true); // 0 -> 1
     });
   });
 });

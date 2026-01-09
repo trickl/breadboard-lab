@@ -59,7 +59,11 @@ export class ExplainPanel {
   /**
    * Update circuit data for content generation
    */
-  updateCircuitData(circuit: Circuit, simulation: SimulationResult, components: AnyComponent[]): void {
+  updateCircuitData(
+    circuit: Circuit,
+    simulation: SimulationResult,
+    components: AnyComponent[]
+  ): void {
     this.circuit = circuit;
     this.simulation = simulation;
     this.components = components;
@@ -111,7 +115,11 @@ export class ExplainPanel {
   /**
    * Generate content for error explanations
    */
-  private generateErrorContent(errorData: { message: string; explanation: string; suggestions: string[] }): string {
+  private generateErrorContent(errorData: {
+    message: string;
+    explanation: string;
+    suggestions: string[];
+  }): string {
     return `
       <div class="explain-error">
         <h4 class="explain-error-title">⚠️ ${errorData.message}</h4>
@@ -197,11 +205,15 @@ export class ExplainPanel {
 
     // Check if it's ground
     if (Math.abs(voltage) < 0.01) {
-      explanation = '<h5>Why this voltage?</h5><p>This net is at ground (0V), which serves as the reference point for all other voltages in the circuit.</p>';
+      explanation =
+        '<h5>Why this voltage?</h5><p>This net is at ground (0V), which serves as the reference point for all other voltages in the circuit.</p>';
     } else if (voltage > 4) {
-      explanation = '<h5>Why this voltage?</h5><p>This net is connected to a power supply, providing the voltage needed to drive the circuit.</p>';
+      explanation =
+        '<h5>Why this voltage?</h5><p>This net is connected to a power supply, providing the voltage needed to drive the circuit.</p>';
     } else if (voltage > 0.5) {
-      const hasResistor = connectedComponents.some((c) => c.component.type === ComponentType.RESISTOR);
+      const hasResistor = connectedComponents.some(
+        (c) => c.component.type === ComponentType.RESISTOR
+      );
       if (hasResistor) {
         explanation =
           '<h5>Why this voltage?</h5><p>This net is part of a voltage divider. The voltage here is determined by the ratio of resistances between power and ground.</p>';
@@ -285,9 +297,8 @@ export class ExplainPanel {
     if (component.type !== ComponentType.RESISTOR) return '';
 
     const resistance = component.resistance;
-    const resistanceStr = resistance >= 1000 
-      ? (resistance / 1000).toFixed(1) + 'kΩ' 
-      : resistance + 'Ω';
+    const resistanceStr =
+      resistance >= 1000 ? (resistance / 1000).toFixed(1) + 'kΩ' : resistance + 'Ω';
 
     try {
       // Default to 5% tolerance (4-band resistor)
@@ -295,20 +306,22 @@ export class ExplainPanel {
       const bands = resistanceToColorBands(resistance, tolerance);
 
       // Generate color band visualization
-      const bandHTML = bands.map(band => {
-        const colorName = this.formatColorName(band.color);
-        const meaning = this.formatBandMeaning(band.meaning);
-        const bgColor = COLOR_TO_RGB[band.color];
-        const textColor = this.shouldUseDarkText(band.color) ? '#000' : '#fff';
-        
-        return `
+      const bandHTML = bands
+        .map((band) => {
+          const colorName = this.formatColorName(band.color);
+          const meaning = this.formatBandMeaning(band.meaning);
+          const bgColor = COLOR_TO_RGB[band.color];
+          const textColor = this.shouldUseDarkText(band.color) ? '#000' : '#fff';
+
+          return `
           <div class="color-band-item" style="background: ${bgColor}; color: ${textColor}; border: 1px solid #666;">
             <div class="band-color">${colorName}</div>
             <div class="band-meaning">${meaning}</div>
             <div class="band-value">${this.formatBandValue(band)}</div>
           </div>
         `;
-      }).join('');
+        })
+        .join('');
 
       return `
         <div class="explain-section">
@@ -382,7 +395,10 @@ export class ExplainPanel {
   /**
    * Generate a readable explanation of the color code
    */
-  private generateColorCodeReading(bands: ReturnType<typeof resistanceToColorBands>, resistance: number): string {
+  private generateColorCodeReading(
+    bands: ReturnType<typeof resistanceToColorBands>,
+    resistance: number
+  ): string {
     if (bands.length === 4) {
       // 4-band: digit1-digit2-multiplier-tolerance
       const digit1 = bands[0].value;
@@ -435,10 +451,12 @@ export class ExplainPanel {
    */
   private shouldUseDarkText(color: ResistorColor): boolean {
     // Use dark text on light colors
-    return color === ResistorColor.YELLOW || 
-           color === ResistorColor.WHITE || 
-           color === ResistorColor.GOLD || 
-           color === ResistorColor.SILVER;
+    return (
+      color === ResistorColor.YELLOW ||
+      color === ResistorColor.WHITE ||
+      color === ResistorColor.GOLD ||
+      color === ResistorColor.SILVER
+    );
   }
 
   /**
@@ -519,7 +537,7 @@ export class ExplainPanel {
           const state = component.state;
           const currentInstruction = state.rom[state.programCounter];
           const instrName = formatInstruction(currentInstruction);
-          
+
           explanation = `
             <div class="explain-section">
               <h5>EDU-8 Microprocessor State:</h5>

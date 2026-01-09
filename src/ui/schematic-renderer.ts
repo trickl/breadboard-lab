@@ -3,7 +3,11 @@
  * Renders schematic symbols and connections as SVG
  */
 
-import type { SchematicDiagram, SchematicSymbol, SchematicConnection } from '@/core/schematic-types';
+import type {
+  SchematicDiagram,
+  SchematicSymbol,
+  SchematicConnection,
+} from '@/core/schematic-types';
 import { ComponentType } from '@/core/types';
 import { voltageToColor } from './voltage-colors';
 import type { SimulationResult } from '@/core/types';
@@ -86,7 +90,7 @@ export class SchematicRenderer {
    */
   private createPathData(points: Array<{ x: number; y: number }>): string {
     if (points.length === 0) return '';
-    
+
     let pathData = `M ${points[0].x} ${points[0].y}`;
     for (let i = 1; i < points.length; i++) {
       pathData += ` L ${points[i].x} ${points[i].y}`;
@@ -106,7 +110,7 @@ export class SchematicRenderer {
     group.setAttribute('class', 'schematic-symbol');
     group.setAttribute('data-component-id', symbol.componentId);
     group.setAttribute('transform', `translate(${symbol.position.x}, ${symbol.position.y})`);
-    
+
     // Add selection highlight
     if (selectedComponentId === symbol.componentId) {
       group.classList.add('selected');
@@ -156,22 +160,22 @@ export class SchematicRenderer {
    */
   private renderResistorSymbol(_symbol: SchematicSymbol): SVGElement {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    
+
     // Draw zigzag resistor symbol
     const zigzag = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     const height = 8;
     const segmentWidth = 6;
     const segments = 6;
-    const startX = -segmentWidth * segments / 2;
-    
+    const startX = (-segmentWidth * segments) / 2;
+
     let pathData = `M ${startX} 0`;
     for (let i = 0; i < segments; i++) {
       const x = startX + i * segmentWidth + segmentWidth / 2;
-      const y = (i % 2 === 0) ? -height : height;
+      const y = i % 2 === 0 ? -height : height;
       pathData += ` L ${x} ${y}`;
     }
     pathData += ` L ${-startX} 0`;
-    
+
     zigzag.setAttribute('d', pathData);
     zigzag.setAttribute('stroke', '#333');
     zigzag.setAttribute('stroke-width', '2');
@@ -205,7 +209,7 @@ export class SchematicRenderer {
    */
   private renderLEDSymbol(_symbol: SchematicSymbol): SVGElement {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    
+
     // Draw diode triangle
     const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     triangle.setAttribute('points', '-8,-10 -8,10 8,0');
@@ -257,7 +261,7 @@ export class SchematicRenderer {
    */
   private createArrow(x1: number, y1: number, x2: number, y2: number): SVGGElement {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    
+
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', x1.toString());
     line.setAttribute('y1', y1.toString());
@@ -272,7 +276,7 @@ export class SchematicRenderer {
     const dy = y2 - y1;
     const angle = Math.atan2(dy, dx);
     const arrowSize = 4;
-    
+
     const arrowHead = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     const ax1 = x2 - arrowSize * Math.cos(angle - Math.PI / 6);
     const ay1 = y2 - arrowSize * Math.sin(angle - Math.PI / 6);
@@ -290,7 +294,7 @@ export class SchematicRenderer {
    */
   private renderPowerSupplySymbol(_symbol: SchematicSymbol): SVGElement {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    
+
     // Positive terminal (longer line)
     const posLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     posLine.setAttribute('x1', '-12');
@@ -338,7 +342,7 @@ export class SchematicRenderer {
    */
   private renderGroundSymbol(_symbol: SchematicSymbol): SVGElement {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    
+
     // Connection line
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', '0');
@@ -375,7 +379,7 @@ export class SchematicRenderer {
    */
   private renderWireSymbol(_symbol: SchematicSymbol): SVGElement {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    
+
     // Wire line
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', '-30');
@@ -394,7 +398,7 @@ export class SchematicRenderer {
    */
   private renderGenericSymbol(_symbol: SchematicSymbol): SVGElement {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    
+
     // Draw box
     const box = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     box.setAttribute('x', '-15');
@@ -427,7 +431,7 @@ export class SchematicRenderer {
    */
   private createLabel(symbol: SchematicSymbol): SVGElement | null {
     let labelText = '';
-    
+
     if ('resistance' in symbol.properties) {
       const resistance = symbol.properties.resistance as number;
       if (resistance >= 1000000) {
@@ -452,7 +456,7 @@ export class SchematicRenderer {
     text.setAttribute('font-size', '12');
     text.setAttribute('fill', '#333');
     text.textContent = labelText;
-    
+
     return text;
   }
 }

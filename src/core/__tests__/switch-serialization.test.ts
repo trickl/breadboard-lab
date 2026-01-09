@@ -10,7 +10,10 @@ describe('Switch Serialization', () => {
         {
           id: 'switch-1',
           type: ComponentType.SWITCH,
-          positions: [{ row: 10, col: 5 }, { row: 10, col: 6 }],
+          positions: [
+            { row: 10, col: 5 },
+            { row: 10, col: 6 },
+          ],
           rotation: 0,
           switchState: 'closed',
         },
@@ -37,7 +40,10 @@ describe('Switch Serialization', () => {
         {
           id: 'switch-1',
           type: 'SWITCH',
-          positions: [{ row: 10, col: 5 }, { row: 10, col: 6 }],
+          positions: [
+            { row: 10, col: 5 },
+            { row: 10, col: 6 },
+          ],
           rotation: 0,
           metadata: {
             switchState: 'closed',
@@ -66,7 +72,10 @@ describe('Switch Serialization', () => {
         {
           id: 'switch-1',
           type: 'SWITCH',
-          positions: [{ row: 10, col: 5 }, { row: 10, col: 6 }],
+          positions: [
+            { row: 10, col: 5 },
+            { row: 10, col: 6 },
+          ],
           rotation: 0,
           metadata: {},
         },
@@ -87,7 +96,10 @@ describe('Switch Serialization', () => {
         {
           id: 'switch-1',
           type: ComponentType.SWITCH,
-          positions: [{ row: 5, col: 10 }, { row: 5, col: 11 }],
+          positions: [
+            { row: 5, col: 10 },
+            { row: 5, col: 11 },
+          ],
           rotation: 90,
           switchState: 'open',
         },

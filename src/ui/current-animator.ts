@@ -98,7 +98,7 @@ export class CurrentAnimator {
     }
     this.particles = [];
     this.animationPaths.clear();
-    
+
     // Remove particle rendering group using modern API
     if (this.particleGroup) {
       this.particleGroup.remove();
@@ -336,10 +336,7 @@ export class CurrentAnimator {
 
     // Create or reuse particle group
     if (!this.particleGroup) {
-      this.particleGroup = document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'g'
-      );
+      this.particleGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       this.particleGroup.setAttribute('class', 'current-particles');
       this.svgElement.appendChild(this.particleGroup);
     }
@@ -357,10 +354,7 @@ export class CurrentAnimator {
       if (!position) continue;
 
       // Create circle element
-      const circle = document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'circle'
-      );
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       circle.setAttribute('cx', position.x.toString());
       circle.setAttribute('cy', position.y.toString());
       circle.setAttribute('r', (this.config.particleSize / 2).toString());
@@ -390,9 +384,7 @@ export class CurrentAnimator {
     for (let i = 0; i < path.points.length - 1; i++) {
       const p1 = path.points[i];
       const p2 = path.points[i + 1];
-      const length = Math.sqrt(
-        Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)
-      );
+      const length = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
       segmentLengths.push(length);
       totalLength += length;
     }
@@ -407,8 +399,7 @@ export class CurrentAnimator {
       const segmentLength = segmentLengths[i];
       if (accumulatedDistance + segmentLength >= targetDistance) {
         // Target is in this segment
-        const segmentProgress =
-          (targetDistance - accumulatedDistance) / segmentLength;
+        const segmentProgress = (targetDistance - accumulatedDistance) / segmentLength;
         const p1 = path.points[i];
         const p2 = path.points[i + 1];
 

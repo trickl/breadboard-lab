@@ -1,6 +1,6 @@
 /**
  * Mixed-Signal Simulator
- * 
+ *
  * Combines analog DC simulation with digital event-driven simulation.
  * Orchestrates the interaction between CircuitSimulator and DigitalSimulator.
  */
@@ -33,7 +33,7 @@ export interface MixedSignalResult extends SimulationResult {
 
 /**
  * Mixed-Signal Simulator
- * 
+ *
  * Orchestrates analog and digital simulation:
  * 1. Run DC analysis to get analog voltages
  * 2. Abstract clock signal to digital
@@ -52,7 +52,7 @@ export class MixedSignalSimulator {
 
   /**
    * Simulate circuit with optional digital simulation
-   * 
+   *
    * @param circuit Circuit to simulate
    * @param components Component array (will be updated for digital components)
    * @param config Simulation configuration
@@ -91,9 +91,7 @@ export class MixedSignalSimulator {
     }
 
     // Check if any digital components exist
-    const hasDigitalComponents = components.some(
-      (c) => c.type === ComponentType.MICROPROCESSOR
-    );
+    const hasDigitalComponents = components.some((c) => c.type === ComponentType.MICROPROCESSOR);
 
     if (!hasDigitalComponents) {
       const result = this.dcSimulator.simulate(circuit);
@@ -116,7 +114,7 @@ export class MixedSignalSimulator {
     // 1. Run DC analysis
     // 2. Execute digital simulation based on clock voltage
     // 3. Return results
-    
+
     // Future enhancement: iterate until convergence if digital outputs
     // affect analog circuit (requires modeling digital outputs as voltage sources)
 

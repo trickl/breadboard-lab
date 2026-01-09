@@ -1,6 +1,6 @@
 /**
  * Digital Simulator
- * 
+ *
  * Orchestrates event-driven digital simulation for clocked components.
  * Bridges between analog DC solver and digital component logic.
  */
@@ -8,7 +8,12 @@
 import type { Circuit, Microprocessor, SimulationResult, AnyComponent } from './types';
 import { ComponentType } from './types';
 import type { DigitalValue } from './digital-signals';
-import { analogToDigital, digitalToAnalog, nibbleToDigital, digitalToNibble } from './digital-signals';
+import {
+  analogToDigital,
+  digitalToAnalog,
+  nibbleToDigital,
+  digitalToNibble,
+} from './digital-signals';
 import type { EdgeDetectorState } from './edge-detector';
 import { createEdgeDetector, detectRisingEdge } from './edge-detector';
 import { DigitalEventQueue, createClockEdgeEvent } from './digital-event-queue';
@@ -51,14 +56,14 @@ export function createDigitalSimulationState(): DigitalSimulationState {
 
 /**
  * Step digital simulation forward by one clock cycle
- * 
+ *
  * This is the main entry point for digital simulation:
  * 1. Takes analog voltages from DC solver
  * 2. Abstracts clock signals to digital values
  * 3. Detects edges
  * 4. Executes digital component logic on edges
  * 5. Returns updated component states
- * 
+ *
  * @param circuit Circuit with analog simulation results
  * @param components Array of all components (will be updated)
  * @param digitalState Digital simulation state
@@ -132,9 +137,9 @@ export function stepDigitalSimulation(
 
 /**
  * Get digital output voltages from microprocessor
- * 
+ *
  * Converts the 4-bit output register to 4 separate analog voltages.
- * 
+ *
  * @param microprocessor Microprocessor component
  * @returns Array of [OUT0, OUT1, OUT2, OUT3] voltages
  */
@@ -154,15 +159,13 @@ export function getMicroprocessorOutputVoltages(
 
 /**
  * Get digital input values from analog voltages
- * 
+ *
  * Converts 4 analog input voltages to a 4-bit input value.
- * 
+ *
  * @param voltages Array of [IN0, IN1, IN2, IN3] voltages
  * @returns 4-bit input value (0-15), or 0 if any input is undefined
  */
-export function analogVoltagesToInputs(
-  voltages: [number, number, number, number]
-): number {
+export function analogVoltagesToInputs(voltages: [number, number, number, number]): number {
   const digitalInputs: [DigitalValue, DigitalValue, DigitalValue, DigitalValue] = [
     analogToDigital(voltages[3]), // IN3 is bit 3
     analogToDigital(voltages[2]), // IN2 is bit 2

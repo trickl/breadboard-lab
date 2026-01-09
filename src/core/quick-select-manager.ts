@@ -74,14 +74,14 @@ export class QuickSelectManager {
     if (this.components.length >= MAX_COMPONENTS) {
       return false; // At capacity
     }
-    if (this.components.some(c => c.libraryId === libraryId)) {
+    if (this.components.some((c) => c.libraryId === libraryId)) {
       return false; // Already exists
     }
     const entry = componentLibrary.get(libraryId);
     if (!entry) {
       return false; // Invalid library ID
     }
-    
+
     const newComponent: QuickSelectComponent = {
       libraryId,
       isDefault: false,
@@ -96,12 +96,12 @@ export class QuickSelectManager {
    * Remove component from Quick Select (if not default)
    */
   removeComponent(libraryId: string): boolean {
-    const component = this.components.find(c => c.libraryId === libraryId);
+    const component = this.components.find((c) => c.libraryId === libraryId);
     if (!component || component.isDefault) {
       return false; // Cannot remove defaults
     }
-    
-    this.components = this.components.filter(c => c.libraryId !== libraryId);
+
+    this.components = this.components.filter((c) => c.libraryId !== libraryId);
     this.reorder();
     this.save();
     return true;
@@ -111,7 +111,7 @@ export class QuickSelectManager {
    * Check if component is in Quick Select
    */
   hasComponent(libraryId: string): boolean {
-    return this.components.some(c => c.libraryId === libraryId);
+    return this.components.some((c) => c.libraryId === libraryId);
   }
 
   /**
@@ -137,13 +137,13 @@ export class QuickSelectManager {
   private validateAndRepair(): void {
     // Ensure all default components exist
     const defaults = DEFAULT_COMPONENTS.filter(
-      d => !this.components.some(c => c.libraryId === d.libraryId)
+      (d) => !this.components.some((c) => c.libraryId === d.libraryId)
     );
     this.components = [...defaults, ...this.components];
 
     // Validate library IDs
-    this.components = this.components.filter(c => 
-      componentLibrary.get(c.libraryId) !== undefined
+    this.components = this.components.filter(
+      (c) => componentLibrary.get(c.libraryId) !== undefined
     );
 
     // Enforce max capacity

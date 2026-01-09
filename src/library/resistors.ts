@@ -9,15 +9,14 @@ import type { ComponentLibraryEntry } from '../core/types';
 /**
  * E12 series resistor values (commonly available)
  */
-const E12_VALUES = [100, 120, 150, 180, 220, 270, 330, 390, 470, 560, 680, 820, 1000, 2200, 4700, 10000];
+const E12_VALUES = [
+  100, 120, 150, 180, 220, 270, 330, 390, 470, 560, 680, 820, 1000, 2200, 4700, 10000,
+];
 
 /**
  * Generate resistor library entry
  */
-function createResistorEntry(
-  resistance: number,
-  tolerance: number
-): ComponentLibraryEntry {
+function createResistorEntry(resistance: number, tolerance: number): ComponentLibraryEntry {
   const isHighPrecision = tolerance <= 2;
   const id = `resistor-${resistance}-${tolerance}pct`;
   const resistanceStr = formatResistance(resistance);
@@ -88,7 +87,7 @@ function formatResistance(ohms: number): string {
 export const RESISTOR_LIBRARY: ComponentLibraryEntry[] = [
   // 5% tolerance resistors (4-band color code)
   ...E12_VALUES.map((value) => createResistorEntry(value, 5)),
-  
+
   // 1% tolerance resistors (5-band color code) - common values
   createResistorEntry(100, 1),
   createResistorEntry(220, 1),

@@ -17,7 +17,8 @@ export class ComponentRenderer {
   // Breadboard grid spacing (matches CSS in style.css)
   public static readonly HOLE_SIZE = 20;
   public static readonly HOLE_MARGIN = 3;
-  public static readonly HOLE_SPACING = ComponentRenderer.HOLE_SIZE + ComponentRenderer.HOLE_MARGIN * 2;
+  public static readonly HOLE_SPACING =
+    ComponentRenderer.HOLE_SIZE + ComponentRenderer.HOLE_MARGIN * 2;
 
   // Visual styling constants
   private static readonly WIRE_COLORS = [
@@ -111,11 +112,11 @@ export class ComponentRenderer {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     group.setAttribute('class', `component component-${component.type.toLowerCase()}`);
     group.setAttribute('data-component-id', component.id);
-    
+
     // Enable pointer events for component interaction
     group.style.pointerEvents = 'auto';
     group.style.cursor = 'pointer';
-    
+
     // Add selected class if this component is selected
     if (component.id === selectedComponentId) {
       group.classList.add('component-selected');
@@ -133,11 +134,15 @@ export class ComponentRenderer {
         previewGroup.setAttribute('class', 'component-preview component-preview-valid');
         previewGroup.style.opacity = '0.7';
         previewGroup.style.pointerEvents = 'none';
-        
+
         // Create a temporary component with preview positions for rendering
         const previewComponent = { ...component, positions: componentDragState.previewPositions };
-        this.renderComponentByType(previewGroup, previewComponent, componentDragState.previewPositions);
-        
+        this.renderComponentByType(
+          previewGroup,
+          previewComponent,
+          componentDragState.previewPositions
+        );
+
         // Return a wrapper group containing both original and preview
         const wrapperGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         wrapperGroup.appendChild(group);
@@ -149,7 +154,7 @@ export class ComponentRenderer {
         invalidGroup.setAttribute('class', 'component-preview component-preview-invalid');
         invalidGroup.style.opacity = '0.5';
         invalidGroup.style.pointerEvents = 'none';
-        
+
         // Add a red circle or marker to indicate invalid position
         const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         const firstPinPixels = this.positionToPixels(component.positions[0]);
@@ -160,7 +165,7 @@ export class ComponentRenderer {
         marker.setAttribute('stroke', '#ff0000');
         marker.setAttribute('stroke-width', '2');
         invalidGroup.appendChild(marker);
-        
+
         const wrapperGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         wrapperGroup.appendChild(group);
         wrapperGroup.appendChild(invalidGroup);
@@ -187,7 +192,7 @@ export class ComponentRenderer {
 
     // Create a group for the component content that will be rotated
     const contentGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    
+
     // Apply rotation transform around the component center
     if (component.rotation !== 0) {
       contentGroup.setAttribute(
@@ -233,7 +238,7 @@ export class ComponentRenderer {
     if (positions.length === 1) {
       return positions[0];
     }
-    
+
     return {
       row: (positions[0].row + positions[1].row) / 2,
       col: (positions[0].col + positions[1].col) / 2,
@@ -243,7 +248,11 @@ export class ComponentRenderer {
   /**
    * Render a wire component at specified positions
    */
-  private renderWireAtPositions(group: SVGGElement, _component: AnyComponent, positions: Position[]): void {
+  private renderWireAtPositions(
+    group: SVGGElement,
+    _component: AnyComponent,
+    positions: Position[]
+  ): void {
     if (positions.length < 2) return;
 
     const start = this.positionToPixels(positions[0]);
@@ -262,7 +271,7 @@ export class ComponentRenderer {
 
     // Get wire color once and reuse it
     const wireColor = this.getNextWireColor();
-    
+
     path.setAttribute('d', pathData.trim());
     path.setAttribute('stroke', wireColor);
     path.setAttribute('stroke-width', '3');
@@ -280,7 +289,11 @@ export class ComponentRenderer {
   /**
    * Render a resistor component at specified positions
    */
-  private renderResistorAtPositions(group: SVGGElement, component: AnyComponent, positions: Position[]): void {
+  private renderResistorAtPositions(
+    group: SVGGElement,
+    component: AnyComponent,
+    positions: Position[]
+  ): void {
     if (positions.length < 2) return;
     if (component.type !== ComponentType.RESISTOR) return;
 
@@ -319,7 +332,7 @@ export class ComponentRenderer {
       // Default to 5% tolerance (4-band resistor)
       const tolerance = 5;
       const bands = resistanceToColorBands(component.resistance, tolerance);
-      
+
       // Draw color bands
       this.drawColorBands(group, bands, centerX, centerY, bodyWidth, bodyHeight, angle);
     } catch (error) {
@@ -332,14 +345,14 @@ export class ComponentRenderer {
       text.setAttribute('fill', '#000');
       text.setAttribute('font-size', '10');
       text.setAttribute('font-weight', 'bold');
-      
+
       // Format resistance value appropriately
       if (component.resistance >= 1000) {
         text.textContent = `${component.resistance / 1000}kΩ`;
       } else {
         text.textContent = `${component.resistance}Ω`;
       }
-      
+
       group.appendChild(text);
     }
   }
@@ -362,14 +375,14 @@ export class ComponentRenderer {
 
     bands.forEach((band, index) => {
       const bandX = centerX - bodyWidth / 2 + spacing * (index + 1);
-      
+
       const bandRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       bandRect.setAttribute('x', (bandX - bandWidth / 2).toString());
       bandRect.setAttribute('y', (centerY - bodyHeight / 2).toString());
       bandRect.setAttribute('width', bandWidth.toString());
       bandRect.setAttribute('height', bodyHeight.toString());
       bandRect.setAttribute('fill', COLOR_TO_RGB[band.color]);
-      
+
       // Add stroke to make bands more visible
       if (band.color === ResistorColor.WHITE || band.color === ResistorColor.YELLOW) {
         bandRect.setAttribute('stroke', '#888');
@@ -385,7 +398,11 @@ export class ComponentRenderer {
   /**
    * Render an LED component at specified positions
    */
-  private renderLEDAtPositions(group: SVGGElement, component: AnyComponent, positions: Position[]): void {
+  private renderLEDAtPositions(
+    group: SVGGElement,
+    component: AnyComponent,
+    positions: Position[]
+  ): void {
     if (positions.length < 2) return;
     if (component.type !== ComponentType.LED) return;
 
@@ -436,7 +453,11 @@ export class ComponentRenderer {
   /**
    * Render a power supply component at specified positions
    */
-  private renderPowerSupplyAtPositions(group: SVGGElement, component: AnyComponent, positions: Position[]): void {
+  private renderPowerSupplyAtPositions(
+    group: SVGGElement,
+    component: AnyComponent,
+    positions: Position[]
+  ): void {
     if (positions.length < 2) return;
     if (component.type !== ComponentType.POWER_SUPPLY) return;
 
@@ -510,7 +531,11 @@ export class ComponentRenderer {
   /**
    * Render a ground component at specified positions
    */
-  private renderGroundAtPositions(group: SVGGElement, _component: AnyComponent, positions: Position[]): void {
+  private renderGroundAtPositions(
+    group: SVGGElement,
+    _component: AnyComponent,
+    positions: Position[]
+  ): void {
     if (positions.length < 1) return;
 
     const pos = this.positionToPixels(positions[0]);
@@ -633,20 +658,20 @@ export class ComponentRenderer {
     if (positions.length < 16) return;
 
     // Get pixel positions for all 16 pins
-    const pinPixels = positions.map(pos => this.positionToPixels(pos));
-    
+    const pinPixels = positions.map((pos) => this.positionToPixels(pos));
+
     // Calculate chip body bounds
-    const leftPins = pinPixels.slice(0, 8);   // Pins 1-8 (left side, top to bottom)
+    const leftPins = pinPixels.slice(0, 8); // Pins 1-8 (left side, top to bottom)
     const rightPins = pinPixels.slice(8, 16); // Pins 9-16 (right side, bottom to top)
-    
+
     // Body bounds
-    const bodyLeft = Math.min(...leftPins.map(p => p.x)) + 15;
-    const bodyRight = Math.max(...rightPins.map(p => p.x)) - 15;
+    const bodyLeft = Math.min(...leftPins.map((p) => p.x)) + 15;
+    const bodyRight = Math.max(...rightPins.map((p) => p.x)) - 15;
     const bodyTop = leftPins[0].y - 10;
     const bodyBottom = leftPins[7].y + 10;
     const bodyWidth = bodyRight - bodyLeft;
     const bodyHeight = bodyBottom - bodyTop;
-    
+
     // Draw chip body
     const body = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     body.setAttribute('x', bodyLeft.toString());
@@ -658,7 +683,7 @@ export class ComponentRenderer {
     body.setAttribute('stroke-width', '2');
     body.setAttribute('rx', '4');
     group.appendChild(body);
-    
+
     // Draw notch at top (pin 1 indicator)
     const notchRadius = 8;
     const notchCenterX = bodyLeft + bodyWidth / 2;
@@ -668,7 +693,7 @@ export class ComponentRenderer {
     notch.setAttribute('r', notchRadius.toString());
     notch.setAttribute('fill', '#34495e');
     group.appendChild(notch);
-    
+
     // Draw chip label
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     label.setAttribute('x', (bodyLeft + bodyWidth / 2).toString());
@@ -681,7 +706,7 @@ export class ComponentRenderer {
     label.setAttribute('font-family', 'monospace');
     label.textContent = 'EDU-8';
     group.appendChild(label);
-    
+
     // Draw pins
     leftPins.forEach((pin) => {
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -692,11 +717,11 @@ export class ComponentRenderer {
       line.setAttribute('stroke', '#666');
       line.setAttribute('stroke-width', '2');
       group.appendChild(line);
-      
+
       // Connection dot at pin
       this.addConnectionDot(group, pin, '#666');
     });
-    
+
     rightPins.forEach((pin) => {
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       line.setAttribute('x1', pin.x.toString());
@@ -706,7 +731,7 @@ export class ComponentRenderer {
       line.setAttribute('stroke', '#666');
       line.setAttribute('stroke-width', '2');
       group.appendChild(line);
-      
+
       // Connection dot at pin
       this.addConnectionDot(group, pin, '#666');
     });
@@ -715,7 +740,11 @@ export class ComponentRenderer {
   /**
    * Render a switch component at specified positions
    */
-  private renderSwitchAtPositions(group: SVGGElement, component: AnyComponent, positions: Position[]): void {
+  private renderSwitchAtPositions(
+    group: SVGGElement,
+    component: AnyComponent,
+    positions: Position[]
+  ): void {
     if (positions.length < 2) return;
     if (component.type !== ComponentType.SWITCH) return;
 
@@ -757,7 +786,7 @@ export class ComponentRenderer {
     toggleCircle.setAttribute('fill', isClosed ? '#00FF00' : '#FFAA00'); // Green when closed, orange when open
     toggleCircle.setAttribute('stroke', '#606060');
     toggleCircle.setAttribute('stroke-width', '1');
-    
+
     // Transform toggle circle: rotate around center, then translate along rotated X-axis
     const rotationRad = (angle * Math.PI) / 180;
     const toggleX = centerX + toggleOffset * Math.cos(rotationRad);
@@ -770,11 +799,15 @@ export class ComponentRenderer {
     // Lead coordinates are calculated by rotating body edge points around center
     // leftX = centerX - (bodyWidth/2 * cos(angle)) + (bodyHeight/2 * sin(angle))
     // leftY = centerY - (bodyWidth/2 * sin(angle)) - (bodyHeight/2 * cos(angle))
-    const leftLeadX = centerX - bodyWidth / 2 * Math.cos(rotationRad) + bodyHeight / 2 * Math.sin(rotationRad);
-    const leftLeadY = centerY - bodyWidth / 2 * Math.sin(rotationRad) - bodyHeight / 2 * Math.cos(rotationRad);
-    const rightLeadX = centerX + bodyWidth / 2 * Math.cos(rotationRad) + bodyHeight / 2 * Math.sin(rotationRad);
-    const rightLeadY = centerY + bodyWidth / 2 * Math.sin(rotationRad) - bodyHeight / 2 * Math.cos(rotationRad);
-    
+    const leftLeadX =
+      centerX - (bodyWidth / 2) * Math.cos(rotationRad) + (bodyHeight / 2) * Math.sin(rotationRad);
+    const leftLeadY =
+      centerY - (bodyWidth / 2) * Math.sin(rotationRad) - (bodyHeight / 2) * Math.cos(rotationRad);
+    const rightLeadX =
+      centerX + (bodyWidth / 2) * Math.cos(rotationRad) + (bodyHeight / 2) * Math.sin(rotationRad);
+    const rightLeadY =
+      centerY + (bodyWidth / 2) * Math.sin(rotationRad) - (bodyHeight / 2) * Math.cos(rotationRad);
+
     this.drawSimpleLead(group, start, leftLeadX, leftLeadY);
     this.drawSimpleLead(group, end, rightLeadX, rightLeadY);
   }

@@ -23,7 +23,7 @@ function createTestCircuit(includeClockNode = false, clockVoltage = 0): Circuit 
   if (includeClockNode) {
     const clockNode: CircuitNode = { id: 'clk', positions: [] };
     nodes.set('clk', clockNode);
-    
+
     // Add power supply to drive clock
     edges.push({
       id: 'clkpwr',
@@ -53,7 +53,7 @@ describe('Mixed-Signal Simulator', () => {
     it('should run DC analysis when digital simulation disabled', () => {
       const circuit = createTestCircuit();
       const components = [];
-      
+
       const { result } = simulator.simulate(circuit, components, {
         enableDigitalSimulation: false,
       });
@@ -81,7 +81,7 @@ describe('Mixed-Signal Simulator', () => {
   describe('Digital simulation without clock node', () => {
     it('should return error if clock node not specified', () => {
       const circuit = createTestCircuit();
-      
+
       const cpu: Microprocessor = {
         id: 'cpu1',
         type: ComponentType.MICROPROCESSOR,
@@ -129,7 +129,7 @@ describe('Mixed-Signal Simulator', () => {
       expect(components1[0].state.programCounter).toBe(0);
 
       // Update clock power supply to go high
-      const clkPwr = circuit.edges.find(e => e.id === 'clkpwr')!;
+      const clkPwr = circuit.edges.find((e) => e.id === 'clkpwr')!;
       (clkPwr.component as any).voltage = 5.0;
 
       // Second simulation: clock goes high (rising edge)
@@ -149,7 +149,7 @@ describe('Mixed-Signal Simulator', () => {
 
     it('should execute blink program with clock pulses', () => {
       const circuit = createTestCircuit(true, 0);
-      const clkPwr = circuit.edges.find(e => e.id === 'clkpwr')!;
+      const clkPwr = circuit.edges.find((e) => e.id === 'clkpwr')!;
 
       let cpuState = createInitialEDU8State();
       cpuState = loadProgram(cpuState, PRESET_PROGRAMS.blink);
@@ -207,7 +207,7 @@ describe('Mixed-Signal Simulator', () => {
 
     it('should handle multiple microprocessors independently', () => {
       const circuit = createTestCircuit(true, 0);
-      const clkPwr = circuit.edges.find(e => e.id === 'clkpwr')!;
+      const clkPwr = circuit.edges.find((e) => e.id === 'clkpwr')!;
 
       // CPU 1: LDA #1
       let cpu1State = createInitialEDU8State();
@@ -262,7 +262,7 @@ describe('Mixed-Signal Simulator', () => {
 
     it('should persist digital state across simulations', () => {
       const circuit = createTestCircuit(true, 0);
-      const clkPwr = circuit.edges.find(e => e.id === 'clkpwr')!;
+      const clkPwr = circuit.edges.find((e) => e.id === 'clkpwr')!;
 
       let cpuState = createInitialEDU8State();
       cpuState = loadProgram(cpuState, [0x01, 0x12]); // LDA #1, ADD #2

@@ -5,7 +5,7 @@ import type { ReteManager } from './rete-manager';
 /**
  * Extracts an electrical circuit graph from the breadboard state.
  * Uses union-find to identify connected nodes.
- * 
+ *
  * Phase 2: Can extract from either position-based state OR Rete graph
  */
 export class CircuitExtractor {
@@ -21,7 +21,11 @@ export class CircuitExtractor {
     // Terminal strips: each row is internally connected on each side
     for (let row = 0; row < BreadboardLayout.ROWS; row++) {
       // Left terminal strip (cols 2-6)
-      for (let col = BreadboardLayout.STRIP_LEFT_START; col <= BreadboardLayout.STRIP_LEFT_END; col++) {
+      for (
+        let col = BreadboardLayout.STRIP_LEFT_START;
+        col <= BreadboardLayout.STRIP_LEFT_END;
+        col++
+      ) {
         if (col > BreadboardLayout.STRIP_LEFT_START) {
           uf.union(
             this.positionToKey({ row, col: BreadboardLayout.STRIP_LEFT_START }),
@@ -30,7 +34,11 @@ export class CircuitExtractor {
         }
       }
       // Right terminal strip (cols 7-11)
-      for (let col = BreadboardLayout.STRIP_RIGHT_START; col <= BreadboardLayout.STRIP_RIGHT_END; col++) {
+      for (
+        let col = BreadboardLayout.STRIP_RIGHT_START;
+        col <= BreadboardLayout.STRIP_RIGHT_END;
+        col++
+      ) {
         if (col > BreadboardLayout.STRIP_RIGHT_START) {
           uf.union(
             this.positionToKey({ row, col: BreadboardLayout.STRIP_RIGHT_START }),
@@ -51,10 +59,7 @@ export class CircuitExtractor {
     for (const col of railColumns) {
       for (let row = 0; row < BreadboardLayout.ROWS; row++) {
         if (row > 0) {
-          uf.union(
-            this.positionToKey({ row: 0, col }),
-            this.positionToKey({ row, col })
-          );
+          uf.union(this.positionToKey({ row: 0, col }), this.positionToKey({ row, col }));
         }
       }
     }
@@ -91,8 +96,10 @@ export class CircuitExtractor {
       if (component.positions.length >= 2) {
         // Find which nodes the component's endpoints belong to
         const nodeA = uf.find(this.positionToKey(component.positions[0]));
-        const nodeB = uf.find(this.positionToKey(component.positions[component.positions.length - 1]));
-        
+        const nodeB = uf.find(
+          this.positionToKey(component.positions[component.positions.length - 1])
+        );
+
         // Only create edge if component connects different nodes
         if (nodeA !== nodeB) {
           edges.push({
@@ -110,11 +117,11 @@ export class CircuitExtractor {
 
   /**
    * Extract circuit from Rete graph (Phase 2)
-   * 
+   *
    * This method reads the Rete graph connections to determine component-to-hole
    * connectivity, then applies breadboard internal connectivity rules to build
    * the complete electrical circuit.
-   * 
+   *
    * @param reteManager - The ReteManager containing the Rete graph
    * @param state - The current BreadboardState (for component properties)
    * @returns Circuit graph with nodes and edges
@@ -127,7 +134,11 @@ export class CircuitExtractor {
     // Terminal strips: each row is internally connected on each side
     for (let row = 0; row < BreadboardLayout.ROWS; row++) {
       // Left terminal strip (cols 2-6)
-      for (let col = BreadboardLayout.STRIP_LEFT_START; col <= BreadboardLayout.STRIP_LEFT_END; col++) {
+      for (
+        let col = BreadboardLayout.STRIP_LEFT_START;
+        col <= BreadboardLayout.STRIP_LEFT_END;
+        col++
+      ) {
         if (col > BreadboardLayout.STRIP_LEFT_START) {
           uf.union(
             this.positionToKey({ row, col: BreadboardLayout.STRIP_LEFT_START }),
@@ -136,7 +147,11 @@ export class CircuitExtractor {
         }
       }
       // Right terminal strip (cols 7-11)
-      for (let col = BreadboardLayout.STRIP_RIGHT_START; col <= BreadboardLayout.STRIP_RIGHT_END; col++) {
+      for (
+        let col = BreadboardLayout.STRIP_RIGHT_START;
+        col <= BreadboardLayout.STRIP_RIGHT_END;
+        col++
+      ) {
         if (col > BreadboardLayout.STRIP_RIGHT_START) {
           uf.union(
             this.positionToKey({ row, col: BreadboardLayout.STRIP_RIGHT_START }),
@@ -157,10 +172,7 @@ export class CircuitExtractor {
     for (const col of railColumns) {
       for (let row = 0; row < BreadboardLayout.ROWS; row++) {
         if (row > 0) {
-          uf.union(
-            this.positionToKey({ row: 0, col }),
-            this.positionToKey({ row, col })
-          );
+          uf.union(this.positionToKey({ row: 0, col }), this.positionToKey({ row, col }));
         }
       }
     }
@@ -168,7 +180,7 @@ export class CircuitExtractor {
     // Step 2: Collect all occupied positions from Rete hole nodes
     const occupiedPositions = new Set<string>();
     const holeNodes = reteManager.getAllHoleNodes();
-    
+
     for (const holeNode of holeNodes) {
       const key = this.positionToKey(holeNode.position);
       occupiedPositions.add(key);
@@ -181,7 +193,7 @@ export class CircuitExtractor {
       if (!nodeGroups.has(root)) {
         nodeGroups.set(root, []);
       }
-      
+
       // Parse position from key
       const [rowStr, colStr] = posKey.split(',');
       const pos = { row: parseInt(rowStr), col: parseInt(colStr) };
@@ -204,8 +216,10 @@ export class CircuitExtractor {
       if (component.positions.length >= 2) {
         // Find which nodes the component's endpoints belong to
         const nodeA = uf.find(this.positionToKey(component.positions[0]));
-        const nodeB = uf.find(this.positionToKey(component.positions[component.positions.length - 1]));
-        
+        const nodeB = uf.find(
+          this.positionToKey(component.positions[component.positions.length - 1])
+        );
+
         // Only create edge if component connects different nodes
         if (nodeA !== nodeB) {
           edges.push({

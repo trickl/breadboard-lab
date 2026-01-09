@@ -1,6 +1,6 @@
 /**
  * Edge Detector
- * 
+ *
  * Detects rising and falling edges on digital signals by tracking state changes.
  */
 
@@ -30,7 +30,7 @@ export interface EdgeDetectorState {
 
 /**
  * Create initial edge detector state
- * 
+ *
  * @param initialValue Initial value (defaults to 0)
  */
 export function createEdgeDetector(initialValue: DigitalValue = 0): EdgeDetectorState {
@@ -41,18 +41,15 @@ export function createEdgeDetector(initialValue: DigitalValue = 0): EdgeDetector
 
 /**
  * Detect edge on a signal
- * 
+ *
  * Compares current value to previous value and returns edge type.
  * Only detects edges on defined values (0 or 1).
- * 
+ *
  * @param state Edge detector state (will be updated)
  * @param currentValue Current digital value
  * @returns Edge detection result
  */
-export function detectEdge(
-  state: EdgeDetectorState,
-  currentValue: DigitalValue
-): EdgeDetection {
+export function detectEdge(state: EdgeDetectorState, currentValue: DigitalValue): EdgeDetection {
   const previousValue = state.previousValue;
   let edge: EdgeType = 'none';
 
@@ -77,43 +74,34 @@ export function detectEdge(
 
 /**
  * Detect rising edge specifically
- * 
+ *
  * @param state Edge detector state (will be updated)
  * @param currentValue Current digital value
  * @returns True if rising edge detected
  */
-export function detectRisingEdge(
-  state: EdgeDetectorState,
-  currentValue: DigitalValue
-): boolean {
+export function detectRisingEdge(state: EdgeDetectorState, currentValue: DigitalValue): boolean {
   const detection = detectEdge(state, currentValue);
   return detection.edge === 'rising';
 }
 
 /**
  * Detect falling edge specifically
- * 
+ *
  * @param state Edge detector state (will be updated)
  * @param currentValue Current digital value
  * @returns True if falling edge detected
  */
-export function detectFallingEdge(
-  state: EdgeDetectorState,
-  currentValue: DigitalValue
-): boolean {
+export function detectFallingEdge(state: EdgeDetectorState, currentValue: DigitalValue): boolean {
   const detection = detectEdge(state, currentValue);
   return detection.edge === 'falling';
 }
 
 /**
  * Reset edge detector to a specific value
- * 
+ *
  * @param state Edge detector state to reset
  * @param value Value to reset to (defaults to 0)
  */
-export function resetEdgeDetector(
-  state: EdgeDetectorState,
-  value: DigitalValue = 0
-): void {
+export function resetEdgeDetector(state: EdgeDetectorState, value: DigitalValue = 0): void {
   state.previousValue = value;
 }

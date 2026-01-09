@@ -125,7 +125,8 @@ export const POWER_SUPPLY_LIBRARY: ComponentLibraryEntry[] = [
       renderer: 'procedural',
     },
     flexibility: 'rigid',
-    description: '12V DC power supply, commonly used for motors, relays, and automotive applications',
+    description:
+      '12V DC power supply, commonly used for motors, relays, and automotive applications',
     typicalUses: ['Motor control', 'Relay circuits', 'Automotive projects', 'LED strips'],
   },
 ];
@@ -226,7 +227,11 @@ export const GROUND_LIBRARY: ComponentLibraryEntry[] = [
       renderer: 'procedural',
     },
     description: 'Circuit ground reference point (0V), required for all circuits',
-    typicalUses: ['Circuit reference point', 'Return path for current', 'Voltage measurement reference'],
+    typicalUses: [
+      'Circuit reference point',
+      'Return path for current',
+      'Voltage measurement reference',
+    ],
   },
 ];
 
@@ -264,12 +269,7 @@ export const SPEAKER_LIBRARY: ComponentLibraryEntry[] = [
     },
     flexibility: 'rigid',
     description: 'Small 8Ω speaker module for breadboard use, foundation for audio output features',
-    typicalUses: [
-      'Audio output',
-      'Tone generation',
-      'Alert sounds',
-      'Educational audio circuits',
-    ],
+    typicalUses: ['Audio output', 'Tone generation', 'Alert sounds', 'Educational audio circuits'],
   },
 ];
 

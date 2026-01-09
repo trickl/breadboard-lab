@@ -70,9 +70,7 @@ export class DeleteComponentCommand implements Command {
       components: state.components.filter((c) => c.id !== this.componentId),
       // Clear selection if we're deleting the selected component
       selectedComponentId:
-        state.selectedComponentId === this.componentId
-          ? null
-          : state.selectedComponentId,
+        state.selectedComponentId === this.componentId ? null : state.selectedComponentId,
     };
   }
 
