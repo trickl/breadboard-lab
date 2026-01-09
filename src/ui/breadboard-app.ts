@@ -1656,8 +1656,15 @@ export class BreadboardApp {
 
     const rect = breadboard.getBoundingClientRect();
     // Convert PixiJS global coordinates to breadboard-relative coordinates
-    const mouseX = globalX - rect.left;
-    const mouseY = globalY - rect.top;
+    const rawMouseX = globalX - rect.left;
+    const rawMouseY = globalY - rect.top;
+    
+    // Transform coordinates from rotated canvas space to logical breadboard space
+    const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
+      rawMouseX,
+      rawMouseY,
+      this.breadboardOrientation
+    );
 
     // Calculate offset from mouse to first pin (for smooth dragging)
     // Note: positionToPixels returns grid-relative coords, but we need to add padding
@@ -1718,8 +1725,15 @@ export class BreadboardApp {
     if (!breadboard) return;
 
     const rect = breadboard.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    const rawMouseX = event.clientX - rect.left;
+    const rawMouseY = event.clientY - rect.top;
+    
+    // Transform coordinates from rotated canvas space to logical breadboard space
+    const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
+      rawMouseX,
+      rawMouseY,
+      this.breadboardOrientation
+    );
 
     // Update floating component position based on mouse position
     this.floatingComponent.position.x = mouseX + this.floatingDragState.offsetFromComponentCenter.x;
@@ -1739,8 +1753,15 @@ export class BreadboardApp {
     if (!breadboard) return;
 
     const rect = breadboard.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    const rawMouseX = event.clientX - rect.left;
+    const rawMouseY = event.clientY - rect.top;
+    
+    // Transform coordinates from rotated canvas space to logical breadboard space
+    const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
+      rawMouseX,
+      rawMouseY,
+      this.breadboardOrientation
+    );
 
     this.dragState.currentMousePos = { x: mouseX, y: mouseY };
 
@@ -2058,6 +2079,73 @@ export class BreadboardApp {
   }
 
   /**
+   * Transform mouse coordinates from rotated canvas space to logical breadboard space.
+   * 
+   * The breadboard can be rotated via CSS transform, which changes the coordinate space
+   * of mouse events. This method applies the inverse rotation to map canvas coordinates
+   * back to logical breadboard coordinates.
+   * 
+   * @param mouseX - Mouse X coordinate in canvas space (after CSS rotation)
+   * @param mouseY - Mouse Y coordinate in canvas space (after CSS rotation)
+   * @param orientation - Current breadboard rotation angle (0, 90, 180, or 270 degrees)
+   * @returns Transformed coordinates in logical breadboard space
+   */
+  private transformMouseCoordinates(
+    mouseX: number,
+    mouseY: number,
+    orientation: 0 | 90 | 180 | 270
+  ): { x: number; y: number } {
+    // No transformation needed at 0°
+    if (orientation === 0) {
+      return { x: mouseX, y: mouseY };
+    }
+
+    // Get canvas dimensions
+    const canvas = this.pixiRenderer.getCanvas();
+    if (!canvas) {
+      return { x: mouseX, y: mouseY };
+    }
+    const rect = canvas.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    // Convert to center-relative coordinates
+    const relX = mouseX - centerX;
+    const relY = mouseY - centerY;
+
+    // Apply inverse rotation
+    let transformedRelX: number;
+    let transformedRelY: number;
+
+    switch (orientation) {
+      case 90:
+        // Inverse of 90° CW is 90° CCW: (x,y) -> (y,-x)
+        transformedRelX = relY;
+        transformedRelY = -relX;
+        break;
+      case 180:
+        // Inverse of 180°: (x,y) -> (-x,-y)
+        transformedRelX = -relX;
+        transformedRelY = -relY;
+        break;
+      case 270:
+        // Inverse of 270° CW (or 90° CCW) is 90° CW: (x,y) -> (-y,x)
+        transformedRelX = -relY;
+        transformedRelY = relX;
+        break;
+      default:
+        transformedRelX = relX;
+        transformedRelY = relY;
+    }
+
+    // Convert back to canvas-absolute coordinates
+    return {
+      x: transformedRelX + centerX,
+      y: transformedRelY + centerY,
+    };
+  }
+
+  /**
    * Convert pixel coordinates to grid position with snapping
    * Note: pixels are expected to be relative to the breadboard canvas element,
    * which includes LABEL_PADDING offset. We need to subtract this before converting to grid.
@@ -2089,8 +2177,15 @@ export class BreadboardApp {
     if (!breadboard) return;
 
     const rect = breadboard.getBoundingClientRect();
-    const mouseX = globalX - rect.left;
-    const mouseY = globalY - rect.top;
+    const rawMouseX = globalX - rect.left;
+    const rawMouseY = globalY - rect.top;
+    
+    // Transform coordinates from rotated canvas space to logical breadboard space
+    const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
+      rawMouseX,
+      rawMouseY,
+      this.breadboardOrientation
+    );
 
     // Calculate offset from mouse to component center
     const offsetX = this.floatingComponent.position.x - mouseX;
@@ -2126,8 +2221,15 @@ export class BreadboardApp {
     if (!breadboard) return;
 
     const rect = breadboard.getBoundingClientRect();
-    const mouseX = globalX - rect.left;
-    const mouseY = globalY - rect.top;
+    const rawMouseX = globalX - rect.left;
+    const rawMouseY = globalY - rect.top;
+    
+    // Transform coordinates from rotated canvas space to logical breadboard space
+    const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
+      rawMouseX,
+      rawMouseY,
+      this.breadboardOrientation
+    );
 
     // Initialize floating drag state for connection creation
     this.floatingDragState = {
@@ -2220,8 +2322,15 @@ export class BreadboardApp {
     if (!breadboard) return;
 
     const rect = breadboard.getBoundingClientRect();
-    const mouseX = globalX - rect.left;
-    const mouseY = globalY - rect.top;
+    const rawMouseX = globalX - rect.left;
+    const rawMouseY = globalY - rect.top;
+    
+    // Transform coordinates from rotated canvas space to logical breadboard space
+    const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
+      rawMouseX,
+      rawMouseY,
+      this.breadboardOrientation
+    );
 
     // Get the connection to find original hole position
     const connections = this.reteManager.getConnections();
@@ -2256,8 +2365,15 @@ export class BreadboardApp {
     if (!breadboard) return;
 
     const rect = breadboard.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    const rawMouseX = event.clientX - rect.left;
+    const rawMouseY = event.clientY - rect.top;
+    
+    // Transform coordinates from rotated canvas space to logical breadboard space
+    const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
+      rawMouseX,
+      rawMouseY,
+      this.breadboardOrientation
+    );
 
     // Update current mouse position
     this.connectionRerouteDragState.currentMousePosition = { x: mouseX, y: mouseY };
