@@ -1,5 +1,5 @@
 import type { AppState } from './types';
-import type { AnyComponent } from '@/core/types';
+import type { AnyComponent, Position } from '@/core/types';
 
 export function getComponents(state: AppState): AnyComponent[] {
   return state.breadboard.components;
@@ -65,4 +65,17 @@ export function getSimulationErrors(state: AppState) {
 
 export function isSimulationSuccessful(state: AppState): boolean {
   return state.simulation.cachedSimulation?.success ?? false;
+}
+
+export function isHoleOccupied(state: AppState, position: Position): boolean {
+  const key = `${position.row},${position.col}`;
+  return state.connections.occupiedHoles.has(key);
+}
+
+export function getConnections(state: AppState) {
+  return state.connections.list;
+}
+
+export function getConnectionDragState(state: AppState) {
+  return state.connectionDrag.dragState;
 }

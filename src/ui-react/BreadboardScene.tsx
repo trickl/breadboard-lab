@@ -10,6 +10,7 @@ import type { Position } from '@/core/types';
 import { BreadboardSvg } from './BreadboardSvg';
 import { getBreadboardDimensions, LABEL_PADDING_X, LABEL_PADDING_Y } from './geometry/breadboard-layout';
 import { ComponentsLayer } from './components/ComponentsLayer';
+import { ConnectionsLayer } from './components/ConnectionsLayer';
 import { ReteGraphLayer } from './rete/ReteGraphLayer';
 
 export interface BreadboardSceneProps {
@@ -188,7 +189,15 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
         });
       }
 
-      // Cancel drag on Escape
+      // Cancel connection drag on Escape
+      if (e.key === 'Escape' && state.connectionDrag.dragState) {
+        e.preventDefault();
+        controller.dispatch({
+          type: 'CONNECTION_DRAG_CANCELLED',
+        });
+      }
+
+      // Cancel component drag on Escape
       if (e.key === 'Escape' && state.componentDrag.dragState) {
         e.preventDefault();
         controller.dispatch({
@@ -199,7 +208,7 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [state.breadboard.selectedComponentId, state.breadboard.components, state.componentDrag.dragState, controller]);
+  }, [state.breadboard.selectedComponentId, state.breadboard.components, state.componentDrag.dragState, state.connectionDrag.dragState, controller]);
 
   // Handle background click to deselect
   const handleBackgroundClick = useCallback(() => {
@@ -263,6 +272,7 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
             onHoleHover={handleHoleHover}
             onHoleLeave={handleHoleLeave}
           />
+          <ConnectionsLayer controller={controller} />
           <ComponentsLayer controller={controller} svgRef={svgRef} />
         </g>
       </svg>

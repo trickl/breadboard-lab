@@ -8,7 +8,9 @@ import type { BreadboardController } from '@/ui-controller';
 import type { AppState } from '@/ui-controller/types';
 import type { Position } from '@/core/types';
 import { ComponentRenderer } from './ComponentRenderer';
+import { ConnectionDragPreview } from './ConnectionDragPreview';
 import { pixelsToPosition, positionToPixels, isValidPosition } from '../geometry/breadboard-layout';
+import { isHoleOccupied } from '@/ui-controller/selectors';
 
 export interface ComponentsLayerProps {
   controller: BreadboardController;
@@ -22,6 +24,7 @@ export const ComponentsLayer: React.FC<ComponentsLayerProps> = ({ controller, sv
   const [state, setState] = useState<AppState>(controller.getState());
   const isDraggingRef = useRef(false);
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const isConnectionDraggingRef = useRef(false);
 
   // Subscribe to controller state
   useEffect(() => {
@@ -116,9 +119,53 @@ export const ComponentsLayer: React.FC<ComponentsLayerProps> = ({ controller, sv
     [state.breadboard.components, controller]
   );
 
-  // Handle pointer move (drag component)
+  // Handle leg pointer down (start connection drag)
+  const handleLegPointerDown = useCallback(
+    (e: React.PointerEvent, componentId: string, legIndex: number) => {
+      e.stopPropagation();
+
+      const component = state.breadboard.components.find((c) => c.id === componentId);
+      if (!component || legIndex >= component.positions.length) return;
+
+      const legPosition = component.positions[legIndex];
+
+      // Start connection drag
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_STARTED',
+        componentId,
+        legIndex,
+        position: legPosition,
+      });
+
+      isConnectionDraggingRef.current = true;
+    },
+    [state.breadboard.components, controller]
+  );
+
+  // Handle pointer move (drag component or connection)
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
+      // Handle connection drag
+      if (state.connectionDrag.dragState) {
+        const svgCoords = screenToSVG(e.clientX, e.clientY);
+        if (!svgCoords) return;
+
+        // Convert to grid position
+        const gridPosition = pixelsToPosition(svgCoords.x, svgCoords.y);
+
+        // Check if valid hole and not occupied
+        const isValid = isValidPosition(gridPosition) && !isHoleOccupied(state, gridPosition);
+
+        controller.dispatch({
+          type: 'CONNECTION_DRAG_MOVED',
+          pointerPosition: svgCoords,
+          hoveredHole: isValidPosition(gridPosition) ? gridPosition : null,
+          isValid,
+        });
+        return;
+      }
+
+      // Handle component drag
       const dragState = state.componentDrag.dragState;
       if (!dragState) return;
 
@@ -163,6 +210,24 @@ export const ComponentsLayer: React.FC<ComponentsLayerProps> = ({ controller, sv
     };
 
     const handlePointerUp = () => {
+      // Handle connection drag completion
+      if (state.connectionDrag.dragState) {
+        const dragState = state.connectionDrag.dragState;
+        if (dragState.isValidTarget && dragState.hoveredHolePosition) {
+          controller.dispatch({
+            type: 'CONNECTION_DRAG_COMPLETED',
+            targetPosition: dragState.hoveredHolePosition,
+          });
+        } else {
+          controller.dispatch({
+            type: 'CONNECTION_DRAG_CANCELLED',
+          });
+        }
+        isConnectionDraggingRef.current = false;
+        return;
+      }
+
+      // Handle component drag completion
       const dragState = state.componentDrag.dragState;
       if (!dragState) return;
 
@@ -191,15 +256,19 @@ export const ComponentsLayer: React.FC<ComponentsLayerProps> = ({ controller, sv
       document.removeEventListener('pointermove', handlePointerMove);
       document.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [state.componentDrag.dragState, state.breadboard.components, controller, screenToSVG]);
+  }, [state.componentDrag.dragState, state.connectionDrag.dragState, state.breadboard.components, controller, screenToSVG, state]);
 
   // Render components
   const components = state.breadboard.components;
   const selectedId = state.breadboard.selectedComponentId;
   const dragState = state.componentDrag.dragState;
+  const connectionDragState = state.connectionDrag.dragState;
 
   return (
     <g className="components-layer">
+      {/* Render connection drag preview */}
+      {connectionDragState && <ConnectionDragPreview dragState={connectionDragState} />}
+
       {/* Render wires first (behind other components) */}
       {components
         .filter((c) => c.type === 'WIRE')
@@ -241,6 +310,24 @@ export const ComponentsLayer: React.FC<ComponentsLayerProps> = ({ controller, sv
                 isSelected={component.id === selectedId && !isDragging}
                 onPointerDown={handleComponentPointerDown}
               />
+              {/* Interactive leg circles for connection drag */}
+              {component.positions.map((pos, legIndex) => {
+                const pixels = positionToPixels(pos);
+                return (
+                  <circle
+                    key={`${component.id}-leg-${legIndex}`}
+                    cx={pixels.x}
+                    cy={pixels.y}
+                    r={8}
+                    fill="transparent"
+                    stroke="transparent"
+                    strokeWidth={2}
+                    className="component-leg"
+                    style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
+                    onPointerDown={(e) => handleLegPointerDown(e, component.id, legIndex)}
+                  />
+                );
+              })}
             </g>
           );
         })}

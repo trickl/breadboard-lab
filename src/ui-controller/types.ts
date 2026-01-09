@@ -27,8 +27,14 @@ export interface AppState {
   };
 
   connections: {
+    list: Connection[];
+    occupiedHoles: Map<string, string>;
     selectedConnectionId: string | null;
     rerouteDragState: ConnectionRerouteDragState | null;
+  };
+
+  connectionDrag: {
+    dragState: ConnectionDragState | null;
   };
 
   componentDrag: {
@@ -95,6 +101,23 @@ export interface PinDragState {
   offsetFromPin: { x: number; y: number };
 }
 
+export interface Connection {
+  id: string;
+  sourceComponentId: string;
+  sourceLegIndex: number;
+  sourcePosition: Position;
+  targetPosition: Position;
+}
+
+export interface ConnectionDragState {
+  sourceComponentId: string;
+  sourceLegIndex: number;
+  sourcePosition: Position;
+  currentPointerPosition: { x: number; y: number };
+  hoveredHolePosition: Position | null;
+  isValidTarget: boolean;
+}
+
 export type Action =
   | { type: 'COMPONENT_ADDED'; component: AnyComponent }
   | { type: 'COMPONENT_MOVED'; componentId: string; positions: Position[] }
@@ -106,6 +129,10 @@ export type Action =
   | { type: 'CONNECTION_CREATED'; connectionId: string }
   | { type: 'CONNECTION_DELETED'; connectionId: string }
   | { type: 'CONNECTION_SELECTED'; connectionId: string | null }
+  | { type: 'CONNECTION_DRAG_STARTED'; componentId: string; legIndex: number; position: Position }
+  | { type: 'CONNECTION_DRAG_MOVED'; pointerPosition: { x: number; y: number }; hoveredHole: Position | null; isValid: boolean }
+  | { type: 'CONNECTION_DRAG_COMPLETED'; targetPosition: Position }
+  | { type: 'CONNECTION_DRAG_CANCELLED' }
   | { type: 'CONNECTION_REROUTE_STARTED'; connectionId: string; endpointType: 'source' | 'target'; position: Position; mousePos: { x: number; y: number } }
   | { type: 'CONNECTION_REROUTE_MOVED'; mousePos: { x: number; y: number }; targetHole?: Position }
   | { type: 'CONNECTION_REROUTE_COMPLETED' }
