@@ -558,9 +558,9 @@ export class PixiRenderer {
     
     // Render horizontal terminal strips using logical row positions
     // Each row has a left strip (cols 2-6) and a right strip (cols 7-11)
+    const stripHeight = PixiRenderer.HOLE_SPACING * 0.4;
+    
     for (let row = 0; row < BreadboardLayout.ROWS; row++) {
-      const stripHeight = PixiRenderer.HOLE_SPACING * 0.4;
-      
       // Left strip
       const leftStart = { row, col: BreadboardLayout.STRIP_LEFT_START };
       const leftEnd = { row, col: BreadboardLayout.STRIP_LEFT_END };
