@@ -222,7 +222,7 @@ This PR fully implements **Milestone 1 — Extract a renderer-agnostic controlle
 
 ✅ **AppState and Action types are explicitly defined**
    - `AppState` interface: 9 domains with full type safety
-   - `Action` discriminated union: 26 action types
+   - `Action` discriminated union: 47 action types
    - All drag states explicitly typed
    - TypeScript enforces correctness at compile time
 
@@ -235,7 +235,7 @@ This PR fully implements **Milestone 1 — Extract a renderer-agnostic controlle
 - `src/ui-controller/types.ts` (145 lines) - State and action type definitions
 - `src/ui-controller/breadboard-controller.ts` (544 lines) - Pure state reducer with observable pattern
 - `src/ui-controller/simulation-runner.ts` (66 lines) - Debounced simulation orchestration
-- `src/ui-controller/selectors.ts` (68 lines) - 18 derived data query functions
+- `src/ui-controller/selectors.ts` (68 lines) - 16 derived data query functions
 - `src/ui-controller/index.ts` (50 lines) - Module exports and state factory
 - `src/ui-controller/__tests__/breadboard-controller.test.ts` (test file with 25 test cases)
 
