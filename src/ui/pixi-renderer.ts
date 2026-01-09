@@ -516,6 +516,15 @@ export class PixiRenderer {
    * Shows power rails (vertical connections) and terminal strips (horizontal connections)
    * Enhanced to clearly reveal internal connections with high-visibility traces
    */
+  /**
+   * Render X-Ray Mode overlay showing internal breadboard connectivity
+   * 
+   * Uses logical grid positions (row, col) to ensure correct rendering at all breadboard orientations.
+   * Previously used absolute pixel coordinates which failed at rotated angles (90°, 180°, 270°).
+   * 
+   * Fix: Convert rail and strip endpoints to logical positions, then use positionToPixels()
+   * for coordinate conversion. This ensures traces rotate naturally with the breadboard.
+   */
   private renderInternalConnectivity(): void {
     const overlay = new Graphics();
     
@@ -525,61 +534,57 @@ export class PixiRenderer {
     overlay.alpha = traceAlpha;
     
     const railWidth = PixiRenderer.HOLE_SPACING * 0.7;
-    const railX = PixiRenderer.HOLE_SPACING / 2;
     
-    overlay.rect(
-      railX - railWidth / 2,
-      0,
-      railWidth,
-      BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING
-    );
-    overlay.fill({ color: traceColor });
-    
-    overlay.rect(
-      PixiRenderer.HOLE_SPACING + railX - railWidth / 2,
-      0,
-      railWidth,
-      BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING
-    );
-    overlay.fill({ color: traceColor });
-    
-    overlay.rect(
-      12 * PixiRenderer.HOLE_SPACING + railX - railWidth / 2,
-      0,
-      railWidth,
-      BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING
-    );
-    overlay.fill({ color: traceColor });
-    
-    overlay.rect(
-      13 * PixiRenderer.HOLE_SPACING + railX - railWidth / 2,
-      0,
-      railWidth,
-      BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING
-    );
-    overlay.fill({ color: traceColor });
-    
-    for (let row = 0; row < BreadboardLayout.ROWS; row++) {
-      const rowY = row * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
-      const stripHeight = PixiRenderer.HOLE_SPACING * 0.4;
+    // Render vertical power rails using logical column positions
+    // Rails at columns 0, 1, 12, 13 span from row 0 to row 29
+    const railColumns = [0, 1, 12, 13];
+    for (const col of railColumns) {
+      // Calculate bounding box in logical space
+      const topPos = { row: 0, col };
+      const bottomPos = { row: BreadboardLayout.ROWS - 1, col };
       
+      const topPixels = this.positionToPixels(topPos);
+      const bottomPixels = this.positionToPixels(bottomPos);
+      
+      // Draw rail trace connecting top to bottom
       overlay.rect(
-        BreadboardLayout.STRIP_LEFT_START * PixiRenderer.HOLE_SPACING,
-        rowY - stripHeight / 2,
-        (BreadboardLayout.STRIP_LEFT_END - BreadboardLayout.STRIP_LEFT_START + 1) * PixiRenderer.HOLE_SPACING,
-        stripHeight
+        topPixels.x - railWidth / 2,
+        topPixels.y,
+        railWidth,
+        bottomPixels.y - topPixels.y + PixiRenderer.HOLE_SPACING
       );
       overlay.fill({ color: traceColor });
     }
     
+    // Render horizontal terminal strips using logical row positions
+    // Each row has a left strip (cols 2-6) and a right strip (cols 7-11)
     for (let row = 0; row < BreadboardLayout.ROWS; row++) {
-      const rowY = row * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
       const stripHeight = PixiRenderer.HOLE_SPACING * 0.4;
       
+      // Left strip
+      const leftStart = { row, col: BreadboardLayout.STRIP_LEFT_START };
+      const leftEnd = { row, col: BreadboardLayout.STRIP_LEFT_END };
+      const leftStartPixels = this.positionToPixels(leftStart);
+      const leftEndPixels = this.positionToPixels(leftEnd);
+      
       overlay.rect(
-        BreadboardLayout.STRIP_RIGHT_START * PixiRenderer.HOLE_SPACING,
-        rowY - stripHeight / 2,
-        (BreadboardLayout.STRIP_RIGHT_END - BreadboardLayout.STRIP_RIGHT_START + 1) * PixiRenderer.HOLE_SPACING,
+        leftStartPixels.x,
+        leftStartPixels.y - stripHeight / 2,
+        leftEndPixels.x - leftStartPixels.x + PixiRenderer.HOLE_SPACING,
+        stripHeight
+      );
+      overlay.fill({ color: traceColor });
+      
+      // Right strip
+      const rightStart = { row, col: BreadboardLayout.STRIP_RIGHT_START };
+      const rightEnd = { row, col: BreadboardLayout.STRIP_RIGHT_END };
+      const rightStartPixels = this.positionToPixels(rightStart);
+      const rightEndPixels = this.positionToPixels(rightEnd);
+      
+      overlay.rect(
+        rightStartPixels.x,
+        rightStartPixels.y - stripHeight / 2,
+        rightEndPixels.x - rightStartPixels.x + PixiRenderer.HOLE_SPACING,
         stripHeight
       );
       overlay.fill({ color: traceColor });
