@@ -477,29 +477,29 @@ export class PixiRenderer {
       fontWeight: 'bold',
     });
     
-    // Left positive rail (red) - position above the grid
-    const leftPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xdd4444 } });
+    // Left positive rail - position above the grid
+    const leftPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xC0C0C0 } });
     leftPosLabel.anchor.set(0.5, 1);
     leftPosLabel.x = BreadboardLayout.RAIL_LEFT_POSITIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
     leftPosLabel.y = -8;
     this.breadboardContainer.addChild(leftPosLabel);
     
-    // Left negative rail (blue) - position above the grid
-    const leftNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0x4444dd } });
+    // Left negative rail - position above the grid
+    const leftNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0xC0C0C0 } });
     leftNegLabel.anchor.set(0.5, 1);
     leftNegLabel.x = BreadboardLayout.RAIL_LEFT_NEGATIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
     leftNegLabel.y = -8;
     this.breadboardContainer.addChild(leftNegLabel);
     
-    // Right positive rail (red) - position above the grid
-    const rightPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xdd4444 } });
+    // Right positive rail - position above the grid
+    const rightPosLabel = new Text({ text: '+', style: { ...railLabelStyle, fill: 0xC0C0C0 } });
     rightPosLabel.anchor.set(0.5, 1);
     rightPosLabel.x = BreadboardLayout.RAIL_RIGHT_POSITIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
     rightPosLabel.y = -8;
     this.breadboardContainer.addChild(rightPosLabel);
     
-    // Right negative rail (blue) - position above the grid
-    const rightNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0x4444dd } });
+    // Right negative rail - position above the grid
+    const rightNegLabel = new Text({ text: '-', style: { ...railLabelStyle, fill: 0xC0C0C0 } });
     rightNegLabel.anchor.set(0.5, 1);
     rightNegLabel.x = BreadboardLayout.RAIL_RIGHT_NEGATIVE * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
     rightNegLabel.y = -8;
@@ -715,11 +715,10 @@ export class PixiRenderer {
         
         let holeColor = 0x505050; // Default metal color
         
-        // Rail coloring with more realistic colors
+        // Rail coloring with neutral, realistic metallic appearance
+        // Rails don't have inherent polarity - polarity is determined by how user connects power
         if (BreadboardLayout.isPositionInRail(pos)) {
-          const rail = BreadboardLayout.getRailForPosition(pos);
-          if (rail?.type === 'positive') holeColor = 0x883333; // Reddish tint
-          else if (rail?.type === 'negative') holeColor = 0x333388; // Bluish tint
+          holeColor = 0xC0C0C0; // Silver metallic - neutral and realistic
         }
         
         // Voltage overlay (overrides base color when simulation is active)
