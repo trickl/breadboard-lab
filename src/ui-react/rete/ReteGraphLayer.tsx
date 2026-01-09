@@ -61,6 +61,31 @@ export interface ReteGraphLayerProps {
 }
 
 /**
+ * Calculate CSS transform to align Rete container with SVG viewBox
+ * The SVG uses a viewBox coordinate system, but Rete renders in DOM screen space.
+ * We need to apply the inverse transform to make Rete coordinates match SVG world coordinates.
+ */
+function calculateReteContainerTransform(svgElement: SVGSVGElement | null): string {
+  if (!svgElement) return 'none';
+  
+  // Get SVG viewBox (world coordinates)
+  const viewBox = svgElement.viewBox.baseVal;
+  
+  // Get SVG client size (screen coordinates)
+  const clientRect = svgElement.getBoundingClientRect();
+  
+  // Calculate scale factors
+  const scaleX = clientRect.width / viewBox.width;
+  const scaleY = clientRect.height / viewBox.height;
+  
+  // Calculate offset (viewBox origin in screen space)
+  const offsetX = -viewBox.x * scaleX;
+  const offsetY = -viewBox.y * scaleY;
+  
+  return `translate(${offsetX}px, ${offsetY}px) scale(${scaleX}, ${scaleY})`;
+}
+
+/**
  * Get number of legs/pins for a component type
  */
 function getComponentLegCount(type: ComponentType): number {
@@ -88,13 +113,49 @@ function getComponentLegCount(type: ComponentType): number {
  * ReteGraphLayer - Renders Rete editor aligned with breadboard coordinate system
  */
 export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({ 
-  controller, 
+  controller,
+  svgRef,
   onTransformChange 
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<NodeEditor<Schemes> | null>(null);
   const areaRef = useRef<AreaPlugin<Schemes, any> | null>(null);
   const componentNodeMapRef = useRef<Map<string, string>>(new Map());
+  const [containerTransform, setContainerTransform] = React.useState<string>('none');
+
+  // Update container transform when SVG changes
+  useEffect(() => {
+    const updateTransform = () => {
+      const transform = calculateReteContainerTransform(svgRef.current);
+      setContainerTransform(transform);
+    };
+    
+    // Update on mount and when SVG ref changes
+    updateTransform();
+    
+    // Update on window resize (changes SVG client dimensions)
+    window.addEventListener('resize', updateTransform);
+    
+    // Use MutationObserver to track viewBox changes on the SVG
+    const svg = svgRef.current;
+    if (svg) {
+      const observer = new MutationObserver(() => {
+        updateTransform();
+      });
+      
+      observer.observe(svg, {
+        attributes: true,
+        attributeFilter: ['viewBox'],
+      });
+      
+      return () => {
+        window.removeEventListener('resize', updateTransform);
+        observer.disconnect();
+      };
+    }
+    
+    return () => window.removeEventListener('resize', updateTransform);
+  }, [svgRef]);
 
   // Initialize Rete editor
   useEffect(() => {
@@ -102,8 +163,11 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     if (!container) return;
 
     const editor = new NodeEditor<Schemes>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const area = new AreaPlugin<Schemes, any>(container);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const connection = new ConnectionPlugin<Schemes, any>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const render = new ReactPlugin<Schemes, any>({ createRoot });
 
     // Configure React renderer with classic preset
@@ -243,6 +307,8 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
         height: '100%',
         pointerEvents: 'none', // Container doesn't block events
         zIndex: 10,
+        transformOrigin: '0 0',
+        transform: containerTransform,
       }}
     >
       {/* CSS to enable pointer events on Rete nodes */}
