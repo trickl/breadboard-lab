@@ -79,3 +79,11 @@ export function getConnections(state: AppState) {
 export function getConnectionDragState(state: AppState) {
   return state.connectionDrag.dragState;
 }
+
+export function isVoltageOverlayEnabled(state: AppState): boolean {
+  return state.ui.showVoltageOverlay ?? false;
+}
+
+export function isCurrentAnimationEnabled(state: AppState): boolean {
+  return state.ui.showCurrentAnimation ?? false;
+}

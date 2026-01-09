@@ -38,6 +38,8 @@ export function createInitialState(): AppState {
       breadboardOrientation: 0,
       currentTheme: 'dark',
       currentView: 'breadboard',
+      showVoltageOverlay: false,
+      showCurrentAnimation: false,
     },
     circuit: {
       metadata: null,
