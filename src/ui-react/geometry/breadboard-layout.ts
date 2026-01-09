@@ -7,7 +7,7 @@ import { BreadboardLayout } from '@/core/breadboard-layout';
 import type { Position } from '@/core/types';
 
 /**
- * Geometry constants matching PixiJS renderer
+ * Geometry constants matching the original renderer specifications
  */
 export const HOLE_SIZE = 20;
 export const HOLE_MARGIN = 3;
