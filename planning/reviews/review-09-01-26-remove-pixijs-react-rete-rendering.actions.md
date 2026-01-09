@@ -132,7 +132,7 @@ This PR fully implements **Milestone 1 — Extract a renderer-agnostic controlle
 
 1. **Extract state transitions from BreadboardApp** (line 307)
    - ✅ Created `src/ui-controller/breadboard-controller.ts` with pure state management logic
-   - ✅ Implemented reducer pattern handling 26 action types
+   - ✅ Implemented reducer pattern handling 47 action types
    - ✅ All state transitions are immutable and renderer-agnostic
    - ✅ Zero dependencies on DOM, canvas, or PixiJS
    - Location: `src/ui-controller/breadboard-controller.ts` (544 lines)
@@ -148,12 +148,14 @@ This PR fully implements **Milestone 1 — Extract a renderer-agnostic controlle
      - `ui`: X-ray mode, orientation, theme, view
      - `circuit`: Metadata and unsaved changes flag
      - `counters`: Component ID generation
-   - ✅ Created discriminated union `Action` type with 26 action variants:
+   - ✅ Created discriminated union `Action` type with 47 action variants:
      - Component actions: ADDED, MOVED, ROTATED, DELETED, SELECTED, PROPERTY_CHANGED
      - Pin actions: SELECTED
-     - Connection actions: CREATED, DELETED, SELECTED, REROUTE_*
-     - Drag actions: DRAG_*, PIN_DRAG_*, FLOATING_DRAG_*
+     - Connection actions: CREATED, DELETED, SELECTED, REROUTE_STARTED, REROUTE_MOVED, REROUTE_COMPLETED, REROUTE_CANCELLED
+     - Drag actions: DRAG_STARTED, DRAG_MOVED, DRAG_COMPLETED, DRAG_CANCELLED
+     - Pin drag actions: PIN_DRAG_STARTED, PIN_DRAG_MOVED, PIN_DRAG_COMPLETED, PIN_DRAG_CANCELLED
      - Floating component actions: CREATED, MOVED, ROTATED, LEG_CONNECTED, PLACED, CANCELLED
+     - Floating drag actions: FLOATING_DRAG_STARTED, FLOATING_DRAG_MOVED, FLOATING_DRAG_COMPLETED
      - Placement actions: TYPE_SELECTED, STARTED, COMPLETED, CANCELLED
      - Simulation actions: COMPLETED, CLEARED
      - UI actions: XRAY_MODE_TOGGLED, BREADBOARD_ROTATED, THEME_TOGGLED, VIEW_SWITCHED
@@ -166,14 +168,14 @@ This PR fully implements **Milestone 1 — Extract a renderer-agnostic controlle
    - ✅ Implemented `BreadboardController` class with:
      - Observable pattern (subscribe/unsubscribe)
      - Immutable state updates with change detection
-     - Pure reducer function handling all 26 actions
+     - Pure reducer function handling all 47 actions
      - Type-safe dispatch method
    - ✅ Created `SimulationRunner` for debounced simulation orchestration:
      - Integrates `CircuitExtractor` and `CircuitSimulator`
      - 100ms debounce to prevent excessive simulation runs
      - Supports both Rete-based and position-based extraction
      - Dispatches results back to controller as actions
-   - ✅ Created `selectors.ts` with 18 pure query functions:
+   - ✅ Created `selectors.ts` with 16 pure query functions:
      - Component queries: `getComponents`, `getSelectedComponent`, `getComponentById`
      - Simulation queries: `getSimulationResult`, `getCircuit`, `getNodeVoltage`, `getEdgeCurrent`, `getSimulationErrors`, `isSimulationSuccessful`
      - UI queries: `isXrayModeEnabled`, `getCurrentTheme`, `getBreadboardOrientation`, `getCurrentView`
@@ -202,7 +204,7 @@ This PR fully implements **Milestone 1 — Extract a renderer-agnostic controlle
      - Listener notifications on state changes
      - Correct state transitions for each action
      - Edge cases (invalid operations, empty state)
-   - Location: `src/ui-controller/__tests__/breadboard-controller.test.ts` (14,047 lines of test code)
+   - Location: `src/ui-controller/__tests__/breadboard-controller.test.ts` (467 lines)
 
 #### Acceptance Criteria Met (lines 311-313)
 
