@@ -188,6 +188,104 @@ export class BreadboardController {
           },
         };
 
+      case 'CONNECTION_DRAG_STARTED':
+        return {
+          ...state,
+          connectionDrag: {
+            dragState: {
+              sourceComponentId: action.componentId,
+              sourceLegIndex: action.legIndex,
+              sourcePosition: action.position,
+              currentPointerPosition: { x: 0, y: 0 },
+              hoveredHolePosition: null,
+              isValidTarget: false,
+            },
+          },
+        };
+
+      case 'CONNECTION_DRAG_MOVED':
+        if (!state.connectionDrag.dragState) return state;
+        return {
+          ...state,
+          connectionDrag: {
+            dragState: {
+              ...state.connectionDrag.dragState,
+              currentPointerPosition: action.pointerPosition,
+              hoveredHolePosition: action.hoveredHole,
+              isValidTarget: action.isValid,
+            },
+          },
+        };
+
+      case 'CONNECTION_DRAG_COMPLETED': {
+        if (!state.connectionDrag.dragState) return state;
+        
+        // Create new connection
+        const connectionId = `conn-${Date.now()}`;
+        const dragState = state.connectionDrag.dragState;
+        const holeKey = `${action.targetPosition.row},${action.targetPosition.col}`;
+        
+        const newConnection = {
+          id: connectionId,
+          sourceComponentId: dragState.sourceComponentId,
+          sourceLegIndex: dragState.sourceLegIndex,
+          sourcePosition: dragState.sourcePosition,
+          targetPosition: action.targetPosition,
+        };
+        
+        const newOccupiedHoles = new Map(state.connections.occupiedHoles);
+        newOccupiedHoles.set(holeKey, connectionId);
+        
+        return {
+          ...state,
+          connections: {
+            ...state.connections,
+            list: [...state.connections.list, newConnection],
+            occupiedHoles: newOccupiedHoles,
+          },
+          connectionDrag: {
+            dragState: null,
+          },
+          circuit: {
+            ...state.circuit,
+            hasUnsavedChanges: true,
+          },
+        };
+      }
+
+      case 'CONNECTION_DRAG_CANCELLED':
+        return {
+          ...state,
+          connectionDrag: {
+            dragState: null,
+          },
+        };
+
+      case 'CONNECTION_DELETED': {
+        const connection = state.connections.list.find((c) => c.id === action.connectionId);
+        if (!connection) return state;
+        
+        const holeKey = `${connection.targetPosition.row},${connection.targetPosition.col}`;
+        const newOccupiedHoles = new Map(state.connections.occupiedHoles);
+        newOccupiedHoles.delete(holeKey);
+        
+        return {
+          ...state,
+          connections: {
+            ...state.connections,
+            list: state.connections.list.filter((c) => c.id !== action.connectionId),
+            occupiedHoles: newOccupiedHoles,
+            selectedConnectionId: state.connections.selectedConnectionId === action.connectionId
+              ? null
+              : state.connections.selectedConnectionId,
+          },
+          circuit: {
+            ...state.circuit,
+            hasUnsavedChanges: true,
+          },
+        };
+      }
+
       case 'DRAG_STARTED':
         return {
           ...state,

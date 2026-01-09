@@ -464,4 +464,227 @@ describe('BreadboardController', () => {
       expect(state.simulation.cachedSimulation).toBeNull();
     });
   });
+
+  describe('Connection drag actions', () => {
+    it('should start connection drag', () => {
+      const controller = new BreadboardController(createTestState());
+      
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_STARTED',
+        componentId: 'comp-1',
+        legIndex: 0,
+        position: { row: 5, col: 8 },
+      });
+
+      const state = controller.getState();
+      expect(state.connectionDrag.dragState).not.toBeNull();
+      expect(state.connectionDrag.dragState?.sourceComponentId).toBe('comp-1');
+      expect(state.connectionDrag.dragState?.sourceLegIndex).toBe(0);
+      expect(state.connectionDrag.dragState?.sourcePosition).toEqual({ row: 5, col: 8 });
+    });
+
+    it('should update connection drag position', () => {
+      const controller = new BreadboardController(createTestState());
+      
+      // Start drag first
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_STARTED',
+        componentId: 'comp-1',
+        legIndex: 0,
+        position: { row: 5, col: 8 },
+      });
+
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_MOVED',
+        pointerPosition: { x: 100, y: 200 },
+        hoveredHole: { row: 6, col: 9 },
+        isValid: true,
+      });
+
+      const state = controller.getState();
+      expect(state.connectionDrag.dragState?.currentPointerPosition).toEqual({ x: 100, y: 200 });
+      expect(state.connectionDrag.dragState?.hoveredHolePosition).toEqual({ row: 6, col: 9 });
+      expect(state.connectionDrag.dragState?.isValidTarget).toBe(true);
+    });
+
+    it('should complete connection drag and create connection', () => {
+      const controller = new BreadboardController(createTestState());
+      
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_STARTED',
+        componentId: 'comp-1',
+        legIndex: 0,
+        position: { row: 5, col: 8 },
+      });
+
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_COMPLETED',
+        targetPosition: { row: 6, col: 9 },
+      });
+
+      const state = controller.getState();
+      expect(state.connectionDrag.dragState).toBeNull();
+      expect(state.connections.list).toHaveLength(1);
+      expect(state.connections.list[0].sourceComponentId).toBe('comp-1');
+      expect(state.connections.list[0].sourceLegIndex).toBe(0);
+      expect(state.connections.list[0].sourcePosition).toEqual({ row: 5, col: 8 });
+      expect(state.connections.list[0].targetPosition).toEqual({ row: 6, col: 9 });
+    });
+
+    it('should cancel connection drag', () => {
+      const controller = new BreadboardController(createTestState());
+      
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_STARTED',
+        componentId: 'comp-1',
+        legIndex: 0,
+        position: { row: 5, col: 8 },
+      });
+
+      controller.dispatch({ type: 'CONNECTION_DRAG_CANCELLED' });
+
+      const state = controller.getState();
+      expect(state.connectionDrag.dragState).toBeNull();
+      expect(state.connections.list).toHaveLength(0);
+    });
+
+    it('should track occupied holes', () => {
+      const controller = new BreadboardController(createTestState());
+      
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_STARTED',
+        componentId: 'comp-1',
+        legIndex: 0,
+        position: { row: 5, col: 8 },
+      });
+
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_COMPLETED',
+        targetPosition: { row: 6, col: 9 },
+      });
+
+      const state = controller.getState();
+      expect(state.connections.occupiedHoles.get('6,9')).toBe(state.connections.list[0].id);
+    });
+
+    it('should delete connection and clear occupied hole', () => {
+      const controller = new BreadboardController(createTestState());
+      
+      // Create connection
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_STARTED',
+        componentId: 'comp-1',
+        legIndex: 0,
+        position: { row: 5, col: 8 },
+      });
+
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_COMPLETED',
+        targetPosition: { row: 6, col: 9 },
+      });
+
+      const state1 = controller.getState();
+      const connectionId = state1.connections.list[0].id;
+
+      // Delete connection
+      controller.dispatch({
+        type: 'CONNECTION_DELETED',
+        connectionId,
+      });
+
+      const state2 = controller.getState();
+      expect(state2.connections.list).toHaveLength(0);
+      expect(state2.connections.occupiedHoles.has('6,9')).toBe(false);
+    });
+
+    it('should allow multiple connections from same leg to different holes', () => {
+      const controller = new BreadboardController(createTestState());
+      
+      // First connection from leg 0 to hole A
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_STARTED',
+        componentId: 'comp-1',
+        legIndex: 0,
+        position: { row: 5, col: 8 },
+      });
+
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_COMPLETED',
+        targetPosition: { row: 6, col: 9 },
+      });
+
+      // Second connection from same leg 0 to different hole B
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_STARTED',
+        componentId: 'comp-1',
+        legIndex: 0,
+        position: { row: 5, col: 8 },
+      });
+
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_COMPLETED',
+        targetPosition: { row: 7, col: 10 },
+      });
+
+      const state = controller.getState();
+      expect(state.connections.list).toHaveLength(2);
+      expect(state.connections.occupiedHoles.get('6,9')).toBeDefined();
+      expect(state.connections.occupiedHoles.get('7,10')).toBeDefined();
+    });
+
+    it('should mark circuit as changed when connection is created', () => {
+      const controller = new BreadboardController(createTestState());
+      
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_STARTED',
+        componentId: 'comp-1',
+        legIndex: 0,
+        position: { row: 5, col: 8 },
+      });
+
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_COMPLETED',
+        targetPosition: { row: 6, col: 9 },
+      });
+
+      const state = controller.getState();
+      expect(state.circuit.hasUnsavedChanges).toBe(true);
+    });
+
+    it('should mark circuit as changed when connection is deleted', () => {
+      const controller = new BreadboardController(createTestState());
+      
+      // Create connection
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_STARTED',
+        componentId: 'comp-1',
+        legIndex: 0,
+        position: { row: 5, col: 8 },
+      });
+
+      controller.dispatch({
+        type: 'CONNECTION_DRAG_COMPLETED',
+        targetPosition: { row: 6, col: 9 },
+      });
+
+      // Mark as saved
+      const state1 = controller.getState();
+      controller.dispatch({
+        type: 'CIRCUIT_SAVED',
+        metadata: { name: 'Test', description: '', createdAt: Date.now(), updatedAt: Date.now() },
+      });
+
+      const state2 = controller.getState();
+      expect(state2.circuit.hasUnsavedChanges).toBe(false);
+
+      // Delete connection
+      controller.dispatch({
+        type: 'CONNECTION_DELETED',
+        connectionId: state1.connections.list[0].id,
+      });
+
+      const state3 = controller.getState();
+      expect(state3.circuit.hasUnsavedChanges).toBe(true);
+    });
+  });
 });

@@ -17,8 +17,13 @@ export function createInitialState(): AppState {
       dragState: null,
     },
     connections: {
+      list: [],
+      occupiedHoles: new Map(),
       selectedConnectionId: null,
       rerouteDragState: null,
+    },
+    connectionDrag: {
+      dragState: null,
     },
     componentDrag: {
       dragState: null,
