@@ -1,4 +1,12 @@
-import type { AnyComponent, BreadboardState, Position, Circuit, SimulationResult, ComponentLibraryEntry, FloatingComponent } from '@/core/types';
+import type {
+  AnyComponent,
+  BreadboardState,
+  Position,
+  Circuit,
+  SimulationResult,
+  ComponentLibraryEntry,
+  FloatingComponent,
+} from '@/core/types';
 import { ComponentType } from '@/core/types';
 import { BreadboardLayout } from '@/core/breadboard-layout';
 import { CircuitExtractor } from '@/core/circuit-extractor';
@@ -42,7 +50,7 @@ import { quickSelectManager } from '@/core/quick-select-manager';
  * Feature flag: Enable Rete.js integration
  * When true, ReteManager runs in parallel and syncs with component state
  * When false, existing PixiJS-only implementation is used
- * 
+ *
  * Phase 2: ACTIVATED - Rete.js manages connection graph and circuit extraction
  */
 const USE_RETE = true;
@@ -51,19 +59,19 @@ const USE_RETE = true;
  * Feature flag: Enable Rete.js interactive connection creation (Phase 3)
  * When true, enables drag-and-drop connection creation and floating component placement
  * When false, uses traditional two-click placement workflow
- * 
+ *
  * Phase 3d COMPLETE - Interactive connection workflow fully implemented:
  * - Floating component drag handling
  * - Interactive component legs with drag-to-connect
  * - Connection validation (hole occupancy checking)
  * - BreadboardState synchronization on connection
  * - Automatic component placement when all legs connected
- * 
+ *
  * Phase 3e COMPLETE - Test infrastructure updates complete:
  * - Test API methods added (getFloatingComponent, placeComponentInteractive, etc.)
  * - All 441+ tests updated to use new interactive workflow API
  * - Tests verified passing with new workflow
- * 
+ *
  * ACTIVATED - Goal.md Section 5.3.1 interactive workflow now enabled
  */
 const USE_RETE_INTERACTIVE = true;
@@ -169,10 +177,10 @@ export class BreadboardApp {
     this.handleKeyDownBound = this.handleKeyDown.bind(this);
     this.handleMouseMoveBound = this.handleMouseMove.bind(this);
     this.handleMouseUpBound = this.handleMouseUp.bind(this);
-    
+
     // Load and apply theme from localStorage before rendering
     this.loadTheme();
-    
+
     // Load breadboard orientation from localStorage
     const savedOrientation = localStorage.getItem('breadboard_orientation');
     if (savedOrientation) {
@@ -181,7 +189,7 @@ export class BreadboardApp {
         this.breadboardOrientation = orientation;
       }
     }
-    
+
     // Set up clock controller callbacks
     this.clockController.setOnClockChange((clockHigh) => {
       this.handleClockChange(clockHigh);
@@ -189,17 +197,17 @@ export class BreadboardApp {
     this.clockController.setOnReset(() => {
       this.handleClockReset();
     });
-    
+
     // Initialize component library
     this.initializeLibrary();
-    
+
     // Initialize Rete.js integration (if enabled)
     if (USE_RETE) {
       void this.initializeReteIntegration();
     }
-    
+
     this.render();
-    
+
     // Load default example circuit on initial load (goal.md Section 13)
     // Only load if board is empty (no components)
     this.loadDefaultCircuitIfEmpty();
@@ -224,12 +232,12 @@ export class BreadboardApp {
 
       this.reteManager = new ReteManager(reteContainer);
       await this.reteManager.initialize();
-      
+
       // Sync initial state
       await this.reteManager.syncFromBreadboardState(this.state);
-      
+
       console.log('[Rete Integration] Initialized successfully');
-      
+
       // Phase 3: Setup interactive connection handlers if enabled
       if (USE_RETE_INTERACTIVE) {
         this.setupReteInteractiveHandlers();
@@ -239,41 +247,41 @@ export class BreadboardApp {
       this.reteManager = null;
     }
   }
-  
+
   /**
    * Phase 3: Setup connection event handlers for interactive mode
    * Syncs Rete connection events back to BreadboardState
    */
   private setupReteInteractiveHandlers(): void {
     if (!this.reteManager) return;
-    
+
     // Set up connection validator to enforce one-connector-per-hole
     this.reteManager.setConnectionValidator((connection) => {
       return this.reteManager!.validateOneConnectorPerHole(connection);
     });
-    
+
     // Handle connection created events
     this.reteManager.onConnectionCreated((connection) => {
       console.log('[Rete Interactive] Connection created:', connection);
-      
+
       // In full implementation, this would:
       // 1. Extract component and hole information from connection
       // 2. Update BreadboardState positions array
       // 3. Trigger render update
       // For now, just log the event
     });
-    
+
     // Handle connection removed events
     this.reteManager.onConnectionRemoved((connection) => {
       console.log('[Rete Interactive] Connection removed:', connection);
-      
+
       // In full implementation, this would:
       // 1. Extract component and hole information from connection
       // 2. Remove position from BreadboardState
       // 3. Trigger render update
       // For now, just log the event
     });
-    
+
     console.log('[Rete Interactive] Connection handlers configured');
   }
 
@@ -404,10 +412,9 @@ export class BreadboardApp {
       </div>
     `;
 
-    
     // Initialize explain panel
     this.explainPanel.initialize(this.container);
-    
+
     this.renderBreadboard();
     this.renderQuickSelectBar();
     this.attachEventListeners();
@@ -451,7 +458,7 @@ export class BreadboardApp {
       this.cachedCircuit = this.extractor.extract(this.state);
     }
     this.cachedSimulation = this.simulator.simulate(this.cachedCircuit);
-    
+
     // Invalidate schematic cache when circuit changes
     this.cachedSchematic = null;
 
@@ -512,7 +519,12 @@ export class BreadboardApp {
     }
 
     // Render breadboard grid with voltage overlay
-    this.pixiRenderer.renderBreadboard(positionToNode, this.cachedSimulation, this.reteManager, this.xrayModeEnabled);
+    this.pixiRenderer.renderBreadboard(
+      positionToNode,
+      this.cachedSimulation,
+      this.reteManager,
+      this.xrayModeEnabled
+    );
 
     // Render Rete connection lines (Phase 3b)
     if (USE_RETE_INTERACTIVE && this.reteManager) {
@@ -576,7 +588,7 @@ export class BreadboardApp {
     quickSelectContainer.innerHTML = ''; // Clear existing
 
     const components = quickSelectManager.getComponents();
-    
+
     // Show empty state if no components
     if (components.length === 0) {
       const emptyState = document.createElement('div');
@@ -588,8 +600,8 @@ export class BreadboardApp {
       quickSelectContainer.appendChild(emptyState);
       return;
     }
-    
-    components.forEach(qsComponent => {
+
+    components.forEach((qsComponent) => {
       const entry = componentLibrary.get(qsComponent.libraryId);
       if (!entry) return;
 
@@ -629,7 +641,7 @@ export class BreadboardApp {
       button.onclick = () => {
         this.selectComponentFromLibrary(qsComponent.libraryId);
         // Visual feedback: highlight selected
-        document.querySelectorAll('.quick-select-item').forEach(btn => {
+        document.querySelectorAll('.quick-select-item').forEach((btn) => {
           btn.classList.remove('selected');
         });
         button.classList.add('selected');
@@ -828,7 +840,7 @@ export class BreadboardApp {
   destroy(): void {
     document.removeEventListener('keydown', this.handleKeyDownBound);
     this.pixiRenderer.stopAnimation();
-    
+
     // Clear any pending debounce timers
     if (this.updateDebounceTimer !== null) {
       clearTimeout(this.updateDebounceTimer);
@@ -839,12 +851,10 @@ export class BreadboardApp {
   /**
    * Attach event handlers to component SVG elements
    */
-  
 
   /**
    * Attach event handlers to error icon SVG elements
    */
-  
 
   /**
    * Handle keyboard events (Delete key, Escape key, R key, M key)
@@ -858,7 +868,10 @@ export class BreadboardApp {
     }
 
     // Redo: Ctrl+Shift+Z (Cmd+Shift+Z on Mac) or Ctrl+Y
-    if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') || ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
+    if (
+      ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') ||
+      ((e.ctrlKey || e.metaKey) && e.key === 'y')
+    ) {
       e.preventDefault();
       this.redo();
       return;
@@ -874,7 +887,7 @@ export class BreadboardApp {
         void this.render();
         return;
       }
-      
+
       if (this.dragState) {
         e.preventDefault();
         this.cancelDrag();
@@ -917,7 +930,7 @@ export class BreadboardApp {
     if (e.key === 'Delete' || e.key === 'Backspace') {
       // Prevent browser back navigation on Backspace
       e.preventDefault();
-      
+
       if (this.state.selectedComponentId && !this.dragState) {
         this.deleteSelectedComponent();
       }
@@ -931,13 +944,13 @@ export class BreadboardApp {
     if (!this.dragState) {
       // Deselect any selected connection
       this.selectedConnectionId = null;
-      
+
       // Check if component is a switch - if so, toggle its state
-      const component = this.state.components.find(c => c.id === componentId);
+      const component = this.state.components.find((c) => c.id === componentId);
       if (component && component.type === ComponentType.SWITCH) {
         this.toggleSwitchState(componentId);
       }
-      
+
       this.selectComponentById(componentId);
       // Show explain panel for component
       this.explainPanel.show({ type: 'component', componentId });
@@ -948,7 +961,7 @@ export class BreadboardApp {
    * Toggle the state of a switch component
    */
   private toggleSwitchState(componentId: string): void {
-    const component = this.state.components.find(c => c.id === componentId);
+    const component = this.state.components.find((c) => c.id === componentId);
     if (!component || component.type !== ComponentType.SWITCH) {
       return;
     }
@@ -967,7 +980,11 @@ export class BreadboardApp {
   /**
    * Show error dialog from PixiJS error icon click
    */
-  private showErrorDialog(error: { message: string; explanation: string; suggestions: string[] }): void {
+  private showErrorDialog(error: {
+    message: string;
+    explanation: string;
+    suggestions: string[];
+  }): void {
     this.explainPanel.show({
       type: 'error',
       errorData: error,
@@ -997,9 +1014,7 @@ export class BreadboardApp {
     if (!this.state.selectedComponentId) return;
 
     // Find the component to delete
-    const component = this.state.components.find(
-      (c) => c.id === this.state.selectedComponentId
-    );
+    const component = this.state.components.find((c) => c.id === this.state.selectedComponentId);
     if (!component) return;
 
     // If deleting a speaker, remove its audio
@@ -1024,9 +1039,7 @@ export class BreadboardApp {
   private rotateSelectedComponent(): void {
     if (!this.state.selectedComponentId) return;
 
-    const component = this.state.components.find(
-      (c) => c.id === this.state.selectedComponentId
-    );
+    const component = this.state.components.find((c) => c.id === this.state.selectedComponentId);
     if (!component) return;
 
     // Calculate next rotation (0 -> 90 -> 180 -> 270 -> 0)
@@ -1034,7 +1047,11 @@ export class BreadboardApp {
     const nextRotation = ((currentRotation + 90) % 360) as 0 | 90 | 180 | 270;
 
     // Calculate new positions after rotation
-    const newPositions = this.calculateRotatedPositions(component.positions, component.rotation, nextRotation);
+    const newPositions = this.calculateRotatedPositions(
+      component.positions,
+      component.rotation,
+      nextRotation
+    );
 
     // Validate new positions
     if (!this.isValidComponentPosition(component.id, newPositions)) {
@@ -1068,7 +1085,7 @@ export class BreadboardApp {
     if (this.state.selectedComponentId !== componentId) {
       this.state.selectedComponentId = componentId;
     }
-    
+
     // Rotate the component
     this.rotateSelectedComponent();
   }
@@ -1165,13 +1182,13 @@ export class BreadboardApp {
     if (!this.selectedComponentType) {
       // Deselect any selected connection
       this.selectedConnectionId = null;
-      
+
       // No component type selected - show node information in explain panel
       if (this.cachedCircuit && this.cachedSimulation && this.cachedSimulation.success) {
         const positionToNode = this.buildPositionToNodeMap(this.cachedCircuit);
         const posKey = this.positionToKey(position);
         const nodeId = positionToNode.get(posKey);
-        
+
         if (nodeId) {
           this.explainPanel.show({ type: 'node', nodeId });
         }
@@ -1200,7 +1217,9 @@ export class BreadboardApp {
     let component: AnyComponent;
 
     // Get properties from library if libraryId is set
-    const libraryEntry = this.selectedLibraryId ? componentLibrary.get(this.selectedLibraryId) : undefined;
+    const libraryEntry = this.selectedLibraryId
+      ? componentLibrary.get(this.selectedLibraryId)
+      : undefined;
 
     switch (this.selectedComponentType) {
       case ComponentType.WIRE:
@@ -1288,7 +1307,7 @@ export class BreadboardApp {
     const command = new AddComponentCommand(component);
     this.state = this.historyManager.execute(command, this.state);
     this.markAsChanged();
-    
+
     // Clear library selection after placement
     this.selectedLibraryId = null;
   }
@@ -1296,7 +1315,6 @@ export class BreadboardApp {
   /**
    * Check if a position is occupied by a component
    */
-  
 
   /**
    * Update the component properties display
@@ -1312,34 +1330,20 @@ export class BreadboardApp {
   }
 
   /**
-   * Get component-specific details for display
-   */
-  private getComponentDetails(component: AnyComponent): string {
-    switch (component.type) {
-      case ComponentType.RESISTOR:
-        return `${component.resistance >= 1000 ? component.resistance / 1000 + 'kΩ' : component.resistance + 'Ω'}`;
-      case ComponentType.LED:
-        return `Vf: ${component.forwardVoltage}V`;
-      case ComponentType.POWER_SUPPLY:
-        return `${component.voltage}V`;
-      case ComponentType.WIRE:
-        return `R: ${component.resistance}Ω`;
-      case ComponentType.GROUND:
-        return 'GND';
-      default:
-        return '';
-    }
-  }
-
-  /**
-   * Render property editor for selected component
+   * Render property editor for selected component or connection
    */
   private renderPropertyEditor(): string {
+    // Check if a connection is selected (Rete connection line)
+    if (this.selectedConnectionId && this.reteManager) {
+      return this.renderConnectionProperties(this.selectedConnectionId);
+    }
+
+    // Check if a component is selected
     if (!this.state.selectedComponentId) {
       return '';
     }
 
-    const component = this.state.components.find(c => c.id === this.state.selectedComponentId);
+    const component = this.state.components.find((c) => c.id === this.state.selectedComponentId);
     if (!component) {
       return '';
     }
@@ -1452,6 +1456,81 @@ export class BreadboardApp {
   }
 
   /**
+   * Render connection properties for selected Rete connection
+   */
+  private renderConnectionProperties(connectionId: string): string {
+    if (!this.reteManager) {
+      return '';
+    }
+
+    const connections = this.reteManager.getConnections();
+    const connection = connections.find((c) => c.id === connectionId);
+
+    if (!connection) {
+      return '';
+    }
+
+    // Extract connection information
+    const sourceNode = this.reteManager['editor'].getNode(connection.source);
+    const targetNode = this.reteManager['editor'].getNode(connection.target);
+
+    let fromInfo = 'Unknown';
+    let toInfo = 'Unknown';
+    let connectionStatus = 'Connected';
+
+    // Format source information
+    if (sourceNode && 'position' in sourceNode) {
+      // BreadboardHoleNode
+      fromInfo = `Row ${sourceNode.position.row}, Col ${sourceNode.position.col} (Breadboard Hole)`;
+    } else if (sourceNode && 'componentId' in sourceNode) {
+      // ComponentNode
+      const legName = connection.sourceOutput || 'Unknown';
+      fromInfo = `Component ${sourceNode.componentId} - ${legName}`;
+    }
+
+    // Format target information
+    if (targetNode && 'position' in targetNode) {
+      // BreadboardHoleNode
+      toInfo = `Row ${targetNode.position.row}, Col ${targetNode.position.col} (Breadboard Hole)`;
+    } else if (targetNode && 'componentId' in targetNode) {
+      // ComponentNode
+      const legName = connection.targetInput || 'Unknown';
+      toInfo = `Component ${targetNode.componentId} - ${legName}`;
+    }
+
+    const fields = `
+      <div class="property-field">
+        <label>Connection Info</label>
+        <div class="property-info">
+          <div class="info-row">
+            <span class="info-label">Type:</span>
+            <span class="info-value">Connection</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">From:</span>
+            <span class="info-value">${fromInfo}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">To:</span>
+            <span class="info-value">${toInfo}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Status:</span>
+            <span class="info-value">${connectionStatus}</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    return `
+      <div class="property-editor">
+        <h3>Component Properties</h3>
+        ${fields}
+      </div>
+    `;
+  }
+
+  /**
    * Attach event listeners to property editor inputs and buttons
    */
   private attachPropertyEditorListeners(): void {
@@ -1459,14 +1538,14 @@ export class BreadboardApp {
       return;
     }
 
-    const component = this.state.components.find(c => c.id === this.state.selectedComponentId);
+    const component = this.state.components.find((c) => c.id === this.state.selectedComponentId);
     if (!component) {
       return;
     }
 
     // Handle input changes
     const inputs = document.querySelectorAll('.property-field input[type="number"]');
-    inputs.forEach(input => {
+    inputs.forEach((input) => {
       input.addEventListener('input', (e) => {
         const target = e.target as HTMLInputElement;
         const value = parseFloat(target.value);
@@ -1483,14 +1562,16 @@ export class BreadboardApp {
 
     // Handle preset buttons
     const presetButtons = document.querySelectorAll('.property-editor .preset-button');
-    presetButtons.forEach(button => {
+    presetButtons.forEach((button) => {
       button.addEventListener('click', (e) => {
         const target = e.target as HTMLButtonElement;
         const presetValue = parseFloat(target.dataset.preset || '0');
         // Find the input field within the same property editor
         const propertyEditor = document.querySelector('.property-editor');
-        const input = propertyEditor?.querySelector('.property-field input[type="number"]') as HTMLInputElement;
-        
+        const input = propertyEditor?.querySelector(
+          '.property-field input[type="number"]'
+        ) as HTMLInputElement;
+
         if (input) {
           input.value = presetValue.toString();
           const fieldId = input.id;
@@ -1504,7 +1585,11 @@ export class BreadboardApp {
   /**
    * Validate property value based on component type
    */
-  private validatePropertyValue(componentType: ComponentType, fieldId: string, value: number): boolean {
+  private validatePropertyValue(
+    componentType: ComponentType,
+    fieldId: string,
+    value: number
+  ): boolean {
     if (isNaN(value)) {
       return false;
     }
@@ -1535,7 +1620,11 @@ export class BreadboardApp {
   /**
    * Get validation error message
    */
-  private getValidationErrorMessage(componentType: ComponentType, fieldId: string, value: number): string {
+  private getValidationErrorMessage(
+    componentType: ComponentType,
+    fieldId: string,
+    value: number
+  ): string {
     if (isNaN(value)) {
       return 'Please enter a valid number';
     }
@@ -1588,7 +1677,7 @@ export class BreadboardApp {
    * Update component property value
    */
   private updateComponentProperty(componentId: string, fieldId: string, value: number): void {
-    const component = this.state.components.find(c => c.id === componentId);
+    const component = this.state.components.find((c) => c.id === componentId);
     if (!component) {
       return;
     }
@@ -1632,9 +1721,9 @@ export class BreadboardApp {
     if (this.updateDebounceTimer !== null) {
       clearTimeout(this.updateDebounceTimer);
     }
-    
+
     this.markAsChanged();
-    
+
     this.updateDebounceTimer = window.setTimeout(() => {
       this.render();
       this.updateDebounceTimer = null;
@@ -1646,36 +1735,32 @@ export class BreadboardApp {
    */
   private buildPositionToNodeMap(circuit: Circuit): Map<string, string> {
     const map = new Map<string, string>();
-    
+
     for (const [nodeId, node] of circuit.nodes) {
       for (const pos of node.positions) {
         const key = this.positionToKey(pos);
         map.set(key, nodeId);
       }
     }
-    
+
     return map;
   }
 
   /**
    * Apply voltage overlay styling to a hole element
    */
-  
 
   /**
    * Show voltage tooltip on hole hover
    */
-  
 
   /**
    * Update tooltip position
    */
-  
 
   /**
    * Hide voltage tooltip
    */
-  
 
   /**
    * Convert position to string key
@@ -1704,7 +1789,7 @@ export class BreadboardApp {
     // Convert PixiJS global coordinates to breadboard-relative coordinates
     const rawMouseX = globalX - rect.left;
     const rawMouseY = globalY - rect.top;
-    
+
     // Transform coordinates from rotated canvas space to logical breadboard space
     const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
       rawMouseX,
@@ -1742,14 +1827,23 @@ export class BreadboardApp {
   /**
    * Handle pin drag start for individual pin repositioning
    */
-  private handlePinDragStart(componentId: string, pinIndex: number, globalX: number, globalY: number): void {
+  private handlePinDragStart(
+    componentId: string,
+    pinIndex: number,
+    globalX: number,
+    globalY: number
+  ): void {
     const component = this.state.components.find((c) => c.id === componentId);
     if (!component) return;
 
     // Check if component is flexible
-    const libraryEntry = component.libraryId ? ALL_LIBRARY_ENTRIES.find((e) => e.id === component.libraryId) : null;
+    const libraryEntry = component.libraryId
+      ? ALL_LIBRARY_ENTRIES.find((e) => e.id === component.libraryId)
+      : null;
     if (libraryEntry && libraryEntry.flexibility === 'rigid') {
-      console.log(`[Pin Drag] Component ${componentId} is rigid - cannot reposition individual pins`);
+      console.log(
+        `[Pin Drag] Component ${componentId} is rigid - cannot reposition individual pins`
+      );
       return;
     }
 
@@ -1766,7 +1860,7 @@ export class BreadboardApp {
     const rect = breadboard.getBoundingClientRect();
     const rawMouseX = globalX - rect.left;
     const rawMouseY = globalY - rect.top;
-    
+
     // Transform coordinates from rotated canvas space to logical breadboard space
     const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
       rawMouseX,
@@ -1810,19 +1904,19 @@ export class BreadboardApp {
       this.updateConnectionRerouteDragPreview(event);
       return;
     }
-    
+
     // Handle pin drag (Pin repositioning)
     if (this.pinDragState) {
       this.updatePinDragPreview(event);
       return;
     }
-    
+
     // Handle floating component drag (Phase 3d)
     if (this.floatingDragState) {
       this.updateFloatingComponentDragPreview(event);
       return;
     }
-    
+
     // Handle placed component drag (existing functionality)
     if (!this.dragState) return;
 
@@ -1841,7 +1935,7 @@ export class BreadboardApp {
     const rect = breadboard.getBoundingClientRect();
     const rawMouseX = event.clientX - rect.left;
     const rawMouseY = event.clientY - rect.top;
-    
+
     // Transform coordinates from rotated canvas space to logical breadboard space
     const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
       rawMouseX,
@@ -1899,13 +1993,15 @@ export class BreadboardApp {
     const component = this.state.components.find((c) => c.id === componentId);
     if (!component) return false;
 
-    const libraryEntry = component.libraryId ? ALL_LIBRARY_ENTRIES.find((e) => e.id === component.libraryId) : null;
+    const libraryEntry = component.libraryId
+      ? ALL_LIBRARY_ENTRIES.find((e) => e.id === component.libraryId)
+      : null;
     if (libraryEntry && libraryEntry.maxPinSpan !== undefined) {
       // Calculate span with new position
       const newPositions = [...component.positions];
       newPositions[pinIndex] = position;
       const span = this.calculatePinSpan(newPositions);
-      
+
       if (libraryEntry.maxPinSpan && span > libraryEntry.maxPinSpan) {
         return false;
       }
@@ -1923,7 +2019,7 @@ export class BreadboardApp {
    */
   private calculatePinSpan(positions: Position[]): number {
     if (positions.length < 2) return 0;
-    
+
     let maxDist = 0;
     for (let i = 0; i < positions.length; i++) {
       for (let j = i + 1; j < positions.length; j++) {
@@ -1950,7 +2046,7 @@ export class BreadboardApp {
     const rect = breadboard.getBoundingClientRect();
     const rawMouseX = event.clientX - rect.left;
     const rawMouseY = event.clientY - rect.top;
-    
+
     // Transform coordinates from rotated canvas space to logical breadboard space
     const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
       rawMouseX,
@@ -1978,7 +2074,7 @@ export class BreadboardApp {
     const rect = breadboard.getBoundingClientRect();
     const rawMouseX = event.clientX - rect.left;
     const rawMouseY = event.clientY - rect.top;
-    
+
     // Transform coordinates from rotated canvas space to logical breadboard space
     const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
       rawMouseX,
@@ -2031,7 +2127,7 @@ export class BreadboardApp {
       void this.render();
       return;
     }
-    
+
     // Handle pin drag end (Pin repositioning)
     if (this.pinDragState) {
       this.handlePinDragEnd();
@@ -2039,7 +2135,7 @@ export class BreadboardApp {
       void this.render();
       return;
     }
-    
+
     // Handle floating component drag end (Phase 3d)
     if (this.floatingDragState) {
       // Phase 3d.3: Handle connection creation
@@ -2050,7 +2146,7 @@ export class BreadboardApp {
       void this.render();
       return;
     }
-    
+
     // Handle placed component drag end (existing functionality)
     if (!this.dragState) return;
 
@@ -2096,8 +2192,12 @@ export class BreadboardApp {
         this.state = this.historyManager.execute(command, this.state);
         this.markAsChanged();
 
-        console.log(`[Pin Drag] Repositioned pin ${this.pinDragState.pinIndex} of ${component.id} from`, 
-                    this.pinDragState.originalPosition, 'to', this.pinDragState.previewPosition);
+        console.log(
+          `[Pin Drag] Repositioned pin ${this.pinDragState.pinIndex} of ${component.id} from`,
+          this.pinDragState.originalPosition,
+          'to',
+          this.pinDragState.previewPosition
+        );
       }
     }
   }
@@ -2144,31 +2244,31 @@ export class BreadboardApp {
     if (!this.floatingComponent.connectedLegs) {
       this.floatingComponent.connectedLegs = new Map();
     }
-    
+
     // Check if this leg is already connected
     if (this.floatingComponent.connectedLegs.has(legIndex)) {
       console.warn('[Phase 3d.3] Leg already connected', legIndex);
       // TODO: Allow reconnecting to a different hole
       return;
     }
-    
+
     this.floatingComponent.connectedLegs.set(legIndex, targetHole);
     console.log('[Phase 3d.3] Connection created:', {
       componentId: this.floatingComponent.id,
       legIndex,
       targetHole,
     });
-    
+
     // Phase 3d.4: Check if component is fully placed (all legs connected)
     const legCount = this.getComponentLegCount(this.floatingComponent.type);
     const allLegsConnected = this.floatingComponent.connectedLegs.size === legCount;
-    
+
     if (allLegsConnected) {
       // Convert floating component to placed component
       await this.placeFloatingComponent();
     }
   }
-  
+
   /**
    * Phase 3d.4: Convert floating component to placed component in BreadboardState
    */
@@ -2176,11 +2276,11 @@ export class BreadboardApp {
     if (!this.floatingComponent || !this.floatingComponent.connectedLegs) {
       return;
     }
-    
+
     // Extract positions from connected legs (in leg order)
     const positions: Position[] = [];
     const legCount = this.getComponentLegCount(this.floatingComponent.type);
-    
+
     for (let i = 0; i < legCount; i++) {
       const pos = this.floatingComponent.connectedLegs.get(i);
       if (!pos) {
@@ -2189,7 +2289,7 @@ export class BreadboardApp {
       }
       positions.push(pos);
     }
-    
+
     // Create component based on type
     const component = this.createComponentFromFloating(
       this.floatingComponent.id,
@@ -2198,33 +2298,33 @@ export class BreadboardApp {
       this.floatingComponent.properties,
       this.floatingComponent.libraryId
     );
-    
+
     if (!component) {
       console.error('[Phase 3d.4] Failed to create component');
       return;
     }
-    
+
     // Execute add command through history manager (Phase 3e: undo/redo support)
     const command = new AddComponentCommand(component);
     this.state = this.historyManager.execute(command, this.state);
-    
+
     // Clear floating component
     this.floatingComponent = null;
-    
+
     // Mark as changed
     this.markAsChanged();
-    
+
     // Phase 3d.4: Sync to Rete graph if enabled
     if (this.reteManager && USE_RETE) {
       await this.syncStateToRete();
     }
-    
+
     // Re-render to show placed component and run simulation
     void this.render();
-    
+
     console.log('[Phase 3d.4] Component placed successfully', component.id);
   }
-  
+
   /**
    * Get number of legs for a component type (Phase 3d.4)
    */
@@ -2246,7 +2346,7 @@ export class BreadboardApp {
         return 2;
     }
   }
-  
+
   /**
    * Create a placed component from floating component data (Phase 3d.4)
    */
@@ -2259,7 +2359,7 @@ export class BreadboardApp {
   ): AnyComponent | null {
     // Determine rotation (default to 0 for now)
     const rotation: 0 | 90 | 180 | 270 = 0;
-    
+
     switch (type) {
       case ComponentType.RESISTOR:
         return {
@@ -2270,7 +2370,7 @@ export class BreadboardApp {
           resistance: properties.resistance ?? 220,
           libraryId,
         };
-        
+
       case ComponentType.LED:
         return {
           id,
@@ -2281,7 +2381,7 @@ export class BreadboardApp {
           maxCurrent: properties.maxCurrent ?? 0.02,
           libraryId,
         };
-        
+
       case ComponentType.WIRE:
         return {
           id,
@@ -2291,7 +2391,7 @@ export class BreadboardApp {
           resistance: properties.resistance ?? 0.01,
           libraryId,
         };
-        
+
       case ComponentType.POWER_SUPPLY:
         return {
           id,
@@ -2301,7 +2401,7 @@ export class BreadboardApp {
           voltage: properties.voltage ?? 5.0,
           libraryId,
         };
-        
+
       case ComponentType.GROUND:
         return {
           id,
@@ -2310,7 +2410,7 @@ export class BreadboardApp {
           rotation,
           libraryId,
         };
-        
+
       default:
         console.error('[Phase 3d.4] Unknown component type', type);
         return null;
@@ -2347,11 +2447,11 @@ export class BreadboardApp {
 
   /**
    * Transform mouse coordinates from rotated canvas space to logical breadboard space.
-   * 
+   *
    * The breadboard can be rotated via CSS transform, which changes the coordinate space
    * of mouse events. This method applies the inverse rotation to map canvas coordinates
    * back to logical breadboard coordinates.
-   * 
+   *
    * @param mouseX - Mouse X coordinate in canvas space (after CSS rotation)
    * @param mouseY - Mouse Y coordinate in canvas space (after CSS rotation)
    * @param orientation - Current breadboard rotation angle (0, 90, 180, or 270 degrees)
@@ -2421,7 +2521,7 @@ export class BreadboardApp {
     // Subtract padding to get coordinates relative to the grid
     const gridX = pixels.x - PixiRenderer.LABEL_PADDING_X;
     const gridY = pixels.y - PixiRenderer.LABEL_PADDING_Y;
-    
+
     const col = Math.round(gridX / PixiRenderer.HOLE_SPACING);
     const row = Math.round(gridY / PixiRenderer.HOLE_SPACING);
 
@@ -2435,7 +2535,11 @@ export class BreadboardApp {
   /**
    * Phase 3d.1: Handle drag start for floating component
    */
-  private handleFloatingComponentDragStart(floatingComponentId: string, globalX: number, globalY: number): void {
+  private handleFloatingComponentDragStart(
+    floatingComponentId: string,
+    globalX: number,
+    globalY: number
+  ): void {
     if (!this.floatingComponent || this.floatingComponent.id !== floatingComponentId) {
       return;
     }
@@ -2446,7 +2550,7 @@ export class BreadboardApp {
     const rect = breadboard.getBoundingClientRect();
     const rawMouseX = globalX - rect.left;
     const rawMouseY = globalY - rect.top;
-    
+
     // Transform coordinates from rotated canvas space to logical breadboard space
     const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
       rawMouseX,
@@ -2490,7 +2594,7 @@ export class BreadboardApp {
     const rect = breadboard.getBoundingClientRect();
     const rawMouseX = globalX - rect.left;
     const rawMouseY = globalY - rect.top;
-    
+
     // Transform coordinates from rotated canvas space to logical breadboard space
     const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
       rawMouseX,
@@ -2527,7 +2631,7 @@ export class BreadboardApp {
       void this.renderBreadboard();
       return;
     }
-    
+
     // Handle floating component connection drag
     if (this.floatingDragState && this.floatingDragState.isDraggingConnection) {
       // Update target hole being hovered
@@ -2546,7 +2650,7 @@ export class BreadboardApp {
       void this.renderBreadboard();
       return;
     }
-    
+
     // Handle floating component connection drag
     if (this.floatingDragState && this.floatingDragState.isDraggingConnection) {
       // Clear target hole
@@ -2563,14 +2667,14 @@ export class BreadboardApp {
     if (this.state.selectedComponentId) {
       this.state = { ...this.state, selectedComponentId: null };
     }
-    
+
     // Toggle connection selection
     if (this.selectedConnectionId === connectionId) {
       this.selectedConnectionId = null;
     } else {
       this.selectedConnectionId = connectionId;
     }
-    
+
     void this.renderBreadboard();
   }
 
@@ -2584,14 +2688,14 @@ export class BreadboardApp {
     globalY: number
   ): void {
     if (!this.reteManager) return;
-    
+
     const breadboard = document.getElementById('breadboard');
     if (!breadboard) return;
 
     const rect = breadboard.getBoundingClientRect();
     const rawMouseX = globalX - rect.left;
     const rawMouseY = globalY - rect.top;
-    
+
     // Transform coordinates from rotated canvas space to logical breadboard space
     const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
       rawMouseX,
@@ -2601,7 +2705,7 @@ export class BreadboardApp {
 
     // Get the connection to find original hole position
     const connections = this.reteManager.getConnections();
-    const connection = connections.find(c => c.id === connectionId);
+    const connection = connections.find((c) => c.id === connectionId);
     if (!connection) return;
 
     // For now, we'll use a placeholder position - full implementation would
@@ -2621,7 +2725,7 @@ export class BreadboardApp {
     document.addEventListener('mousemove', this.handleMouseMoveBound);
     document.addEventListener('mouseup', this.handleMouseUpBound);
   }
-  
+
   /**
    * Wire re-routing: Update connection re-route drag preview
    */
@@ -2634,7 +2738,7 @@ export class BreadboardApp {
     const rect = breadboard.getBoundingClientRect();
     const rawMouseX = event.clientX - rect.left;
     const rawMouseY = event.clientY - rect.top;
-    
+
     // Transform coordinates from rotated canvas space to logical breadboard space
     const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
       rawMouseX,
@@ -2647,7 +2751,7 @@ export class BreadboardApp {
 
     // Snap to nearest hole
     const snappedPosition = this.snapToGrid({ x: mouseX, y: mouseY });
-    
+
     // Check if hole is valid (not occupied or is the other endpoint)
     if (this.reteManager && !this.reteManager.isHoleOccupied(snappedPosition)) {
       this.connectionRerouteDragState.targetHole = snappedPosition;
@@ -2658,7 +2762,7 @@ export class BreadboardApp {
     // Re-render to show updated position
     void this.renderBreadboard();
   }
-  
+
   /**
    * Wire re-routing: Handle connection re-route on mouse up
    */
@@ -2680,22 +2784,22 @@ export class BreadboardApp {
 
     if (success) {
       console.log('[Wire re-routing] Connection re-routed successfully');
-      
+
       // Mark as changed
       this.markAsChanged();
-      
+
       // Sync BreadboardState from Rete graph
       if (USE_RETE) {
         await this.syncStateToRete();
       }
-      
+
       // Keep the connection selected after re-routing
       // (selectedConnectionId already set)
     } else {
       console.warn('[Wire re-routing] Re-route failed');
     }
   }
-  
+
   /**
    * Wire re-routing: Clean up connection re-route drag state
    */
@@ -2708,7 +2812,6 @@ export class BreadboardApp {
   /**
    * Convert position to pixel coordinates
    */
-  
 
   /**
    * Validate if a component can be placed at the given positions
@@ -2988,7 +3091,7 @@ export class BreadboardApp {
    */
   private showComponentLibraryDialog(): void {
     const allComponents = componentLibrary.getAll();
-    
+
     // Group components by category
     const categories = new Map<string, ComponentLibraryEntry[]>();
     allComponents.forEach((entry) => {
@@ -2999,7 +3102,7 @@ export class BreadboardApp {
     });
 
     // Category display names and order
-    const categoryOrder: Array<{key: string; label: string; emoji: string}> = [
+    const categoryOrder: Array<{ key: string; label: string; emoji: string }> = [
       { key: 'passive', label: 'Passive Components', emoji: '🔲' },
       { key: 'diode', label: 'Diodes & LEDs', emoji: '💡' },
       { key: 'power', label: 'Power Supplies', emoji: '⚡' },
@@ -3029,12 +3132,15 @@ export class BreadboardApp {
             <div class="library-categories">
               <button class="category-pill active" data-category="all">All (${allComponents.length})</button>
               ${categoryOrder
-                .filter(cat => categories.has(cat.key))
-                .map(cat => `
+                .filter((cat) => categories.has(cat.key))
+                .map(
+                  (cat) => `
                   <button class="category-pill" data-category="${cat.key}">
                     ${cat.emoji} ${cat.label} (${categories.get(cat.key)!.length})
                   </button>
-                `).join('')}
+                `
+                )
+                .join('')}
             </div>
 
             <div class="component-grid" id="component-grid">
@@ -3067,14 +3173,14 @@ export class BreadboardApp {
       if (currentSearchQuery) {
         filteredComponents = componentLibrary.search(currentSearchQuery);
         if (currentCategory !== 'all') {
-          filteredComponents = filteredComponents.filter(c => c.category === currentCategory);
+          filteredComponents = filteredComponents.filter((c) => c.category === currentCategory);
         }
       }
 
       const grid = document.getElementById('component-grid');
       if (grid) {
         grid.innerHTML = this.renderComponentCards(filteredComponents);
-        
+
         // Re-attach click handlers to new cards
         grid.querySelectorAll('.component-card').forEach((card) => {
           card.addEventListener('click', (e) => {
@@ -3089,19 +3195,19 @@ export class BreadboardApp {
             }
           });
         });
-        
+
         // Attach Quick Select button handlers
         grid.querySelectorAll('.add-to-quick-select').forEach((button) => {
           button.addEventListener('click', (e) => {
             e.stopPropagation(); // Prevent card click
             const libraryId = (button as HTMLElement).dataset.libraryId;
             if (!libraryId) return;
-            
+
             if (quickSelectManager.isAtCapacity()) {
               alert('Quick Select is full (8 components max). Remove a component first.');
               return;
             }
-            
+
             const added = quickSelectManager.addComponent(libraryId);
             if (added) {
               this.renderQuickSelectBar();
@@ -3124,15 +3230,15 @@ export class BreadboardApp {
     // Search input handler
     const searchInput = document.getElementById('library-search-input') as HTMLInputElement;
     const searchClear = document.getElementById('library-search-clear');
-    
+
     searchInput?.addEventListener('input', (e) => {
       const query = (e.target as HTMLInputElement).value;
       currentSearchQuery = query;
-      
+
       if (searchClear) {
         searchClear.style.display = query ? 'block' : 'none';
       }
-      
+
       updateComponentDisplay();
     });
 
@@ -3151,11 +3257,11 @@ export class BreadboardApp {
       pill.addEventListener('click', () => {
         const category = (pill as HTMLElement).dataset.category || 'all';
         currentCategory = category;
-        
+
         // Update active state
         document.querySelectorAll('.category-pill').forEach((p) => p.classList.remove('active'));
         pill.classList.add('active');
-        
+
         updateComponentDisplay();
       });
     });
@@ -3174,19 +3280,19 @@ export class BreadboardApp {
         }
       });
     });
-    
+
     // Quick Select button handlers (initial)
     document.querySelectorAll('.add-to-quick-select').forEach((button) => {
       button.addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent card click
         const libraryId = (button as HTMLElement).dataset.libraryId;
         if (!libraryId) return;
-        
+
         if (quickSelectManager.isAtCapacity()) {
           alert('Quick Select is full (8 components max). Remove a component first.');
           return;
         }
-        
+
         const added = quickSelectManager.addComponent(libraryId);
         if (added) {
           this.renderQuickSelectBar();
@@ -3231,10 +3337,10 @@ export class BreadboardApp {
       .map((entry) => {
         // Extract key specs for display
         const specs = this.getComponentSpecs(entry);
-        
+
         // Check if component is in Quick Select
         const inQuickSelect = quickSelectManager.hasComponent(entry.id);
-        
+
         return `
           <div class="component-card" data-library-id="${entry.id}">
             <div class="component-card-header">
@@ -3242,19 +3348,31 @@ export class BreadboardApp {
               <div class="component-card-category">${this.getCategoryEmoji(entry.category)}</div>
             </div>
             <div class="component-card-specs">
-              ${specs.map(spec => `<div class="spec-item">${this.escapeHtml(spec)}</div>`).join('')}
+              ${specs.map((spec) => `<div class="spec-item">${this.escapeHtml(spec)}</div>`).join('')}
             </div>
-            ${entry.package ? `
+            ${
+              entry.package
+                ? `
               <div class="component-card-package">
                 Package: ${this.escapeHtml(entry.package.kind.toUpperCase())} • ${entry.package.pinCount} pins
               </div>
-            ` : ''}
-            ${entry.description ? `
+            `
+                : ''
+            }
+            ${
+              entry.description
+                ? `
               <div class="component-card-description">${this.escapeHtml(entry.description)}</div>
-            ` : ''}
-            ${entry.manufacturerPartNumber ? `
+            `
+                : ''
+            }
+            ${
+              entry.manufacturerPartNumber
+                ? `
               <div class="component-card-part-number">Part: ${this.escapeHtml(entry.manufacturerPartNumber)}</div>
-            ` : ''}
+            `
+                : ''
+            }
             <button 
               class="add-to-quick-select ${inQuickSelect ? 'in-quick-select' : ''}" 
               data-library-id="${entry.id}"
@@ -3273,39 +3391,39 @@ export class BreadboardApp {
    */
   private getComponentSpecs(entry: ComponentLibraryEntry): string[] {
     const specs: string[] = [];
-    
+
     if (entry.electrical.resistance !== undefined) {
       const r = entry.electrical.resistance as number;
       const rStr = r >= 1000 ? `${r / 1000}kΩ` : `${r}Ω`;
       specs.push(`R: ${rStr}`);
-      
+
       if (entry.electrical.tolerance !== undefined) {
         specs.push(`±${entry.electrical.tolerance}%`);
       }
     }
-    
+
     if (entry.electrical.forwardVoltage !== undefined) {
       specs.push(`Vf: ${entry.electrical.forwardVoltage}V`);
     }
-    
+
     if (entry.electrical.voltage !== undefined) {
       specs.push(`${entry.electrical.voltage}V`);
     }
-    
+
     if (entry.electrical.maxCurrent !== undefined) {
       const current = entry.electrical.maxCurrent as number;
       const currentStr = current >= 1 ? `${current}A` : `${current * 1000}mA`;
       specs.push(`Max: ${currentStr}`);
     }
-    
+
     if (entry.electrical.powerRating !== undefined) {
       specs.push(`${entry.electrical.powerRating}W`);
     }
-    
+
     if (entry.electrical.impedance !== undefined) {
       specs.push(`Z: ${entry.electrical.impedance}Ω`);
     }
-    
+
     return specs;
   }
 
@@ -3314,10 +3432,10 @@ export class BreadboardApp {
    */
   private getCategoryEmoji(category: string): string {
     const emojiMap: Record<string, string> = {
-      'passive': '🔲',
-      'diode': '💡',
-      'power': '⚡',
-      'interconnect': '📏',
+      passive: '🔲',
+      diode: '💡',
+      power: '⚡',
+      interconnect: '📏',
       'electro-acoustic': '🔊',
       'virtual-educational': '⏚',
     };
@@ -3333,7 +3451,7 @@ export class BreadboardApp {
 
     // Determine component type from library entry
     let componentType: ComponentType;
-    
+
     if (entry.electrical.resistance !== undefined && entry.category === 'passive') {
       componentType = ComponentType.RESISTOR;
     } else if (entry.electrical.forwardVoltage !== undefined) {
@@ -3608,7 +3726,7 @@ export class BreadboardApp {
    */
   private updateXrayControls(): void {
     const toggleBtn = document.getElementById('toggle-xray-btn');
-    
+
     if (toggleBtn) {
       if (this.xrayModeEnabled) {
         toggleBtn.textContent = '🔬 X-Ray: ON';
@@ -3628,7 +3746,7 @@ export class BreadboardApp {
     this.breadboardOrientation = ((this.breadboardOrientation + 90) % 360) as 0 | 90 | 180 | 270;
     this.updateBoardRotationControls();
     this.applyBreadboardRotation();
-    
+
     // Save to localStorage
     localStorage.setItem('breadboard_orientation', this.breadboardOrientation.toString());
   }
@@ -3638,7 +3756,7 @@ export class BreadboardApp {
    */
   private updateBoardRotationControls(): void {
     const rotateBtn = document.getElementById('rotate-board-btn');
-    
+
     if (rotateBtn) {
       rotateBtn.textContent = `🔄 Rotate Board (${this.breadboardOrientation}°)`;
       if (this.breadboardOrientation !== 0) {
@@ -3685,7 +3803,7 @@ export class BreadboardApp {
     this.currentTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
     this.applyTheme();
     this.updateThemeToggleButton();
-    
+
     // Save to localStorage
     localStorage.setItem('breadboard-theme', this.currentTheme);
   }
@@ -3708,7 +3826,7 @@ export class BreadboardApp {
   private updateThemeToggleButton(): void {
     const toggleBtn = document.getElementById('theme-toggle-btn');
     const toggleSlider = toggleBtn?.querySelector('.theme-toggle-slider');
-    
+
     if (toggleBtn && toggleSlider) {
       if (this.currentTheme === 'light') {
         toggleBtn.classList.add('light');
@@ -3784,7 +3902,7 @@ export class BreadboardApp {
     }
 
     const state = this.clockController.getState();
-    
+
     // Update step button (disable when running)
     if (stepBtn) {
       (stepBtn as HTMLButtonElement).disabled = state.isRunning;
@@ -3821,7 +3939,7 @@ export class BreadboardApp {
       const microprocessor = this.state.components.find(
         (c) => c.type === ComponentType.MICROPROCESSOR
       );
-      
+
       if (microprocessor && microprocessor.type === ComponentType.MICROPROCESSOR) {
         if (microprocessor.state.halted) {
           clockStatus.textContent = `Halted (${state.instructionCount} instructions)`;
@@ -3858,17 +3976,17 @@ export class BreadboardApp {
     // Execute clock edge on microprocessor
     // This will handle rising edge detection and instruction execution internally
     const newState = edu8HandleClockEdge(microprocessor.state, clockHigh, 0);
-    
+
     // Update component with new state
     this.state.components[microprocessorIndex] = {
       ...microprocessor,
       state: newState,
     };
-    
+
     // Re-render breadboard to show updated state
     // This will update the explain panel and voltage overlays
     this.renderBreadboard();
-    
+
     // Update clock controls to reflect new state
     this.updateClockControls();
   }
@@ -3913,7 +4031,7 @@ export class BreadboardApp {
     for (const speaker of speakerComponents) {
       // Find the circuit edge for this speaker
       const edge = this.cachedCircuit.edges.find((e) => e.component.id === speaker.id);
-      
+
       if (edge) {
         // Get voltage across speaker terminals
         const nodeA = this.cachedCircuit.nodes.get(edge.nodeA);
@@ -3941,18 +4059,18 @@ export class BreadboardApp {
    */
   private createFloatingComponent(type: ComponentType, libraryId?: string): void {
     const id = `floating-${this.componentIdCounter++}`;
-    
+
     // Position at right edge of breadboard
     const gridWidth = BreadboardLayout.TOTAL_COLS * PixiRenderer.HOLE_SPACING;
     const xOffset = 50; // 50px to the right of breadboard
     const yOffset = 100; // 100px from top
-    
+
     // Get properties from library if available
     const libraryEntry = libraryId ? componentLibrary.get(libraryId) : undefined;
-    
+
     // Create floating component with default properties
     const properties: FloatingComponent['properties'] = {};
-    
+
     switch (type) {
       case ComponentType.RESISTOR:
         properties.resistance = (libraryEntry?.electrical.resistance as number) ?? 1000;
@@ -3968,7 +4086,7 @@ export class BreadboardApp {
         properties.resistance = (libraryEntry?.electrical.resistance as number) ?? 0.01;
         break;
     }
-    
+
     this.floatingComponent = {
       id,
       type,
@@ -3978,7 +4096,7 @@ export class BreadboardApp {
       properties,
       connectedLegs: new Map(), // Phase 3d.4: Initialize empty connections map
     };
-    
+
     // Clear old placement state
     this.placementStart = null;
     this.render();
@@ -4074,7 +4192,7 @@ export class BreadboardApp {
     // which matches how mouse coordinates work in real drag operations
     const pixelX = position.col * PixiRenderer.HOLE_SPACING;
     const pixelY = position.row * PixiRenderer.HOLE_SPACING;
-    
+
     const breadboard = document.getElementById('breadboard');
     if (!breadboard) return;
 
@@ -4133,9 +4251,11 @@ export class BreadboardApp {
     // In real usage, this would be triggered by renderer events
     const legCount = this.getComponentLegCount(this.floatingComponent.type);
     if (legIndex < 0 || legIndex >= legCount) {
-      throw new Error(`Invalid leg index ${legIndex} for component type ${this.floatingComponent.type}`);
+      throw new Error(
+        `Invalid leg index ${legIndex} for component type ${this.floatingComponent.type}`
+      );
     }
-    
+
     // Start a connection drag state
     this.floatingDragState = {
       floatingComponentId: this.floatingComponent.id,
@@ -4172,18 +4292,18 @@ export class BreadboardApp {
     if (!this.floatingComponent) {
       throw new Error('No floating component to connect');
     }
-    
+
     // Simulate clicking the leg first (sets up connection drag state)
     this.clickComponentLeg(legIndex);
-    
+
     // Set the target hole
     if (this.floatingDragState) {
       this.floatingDragState.connectionTargetHole = { row, col };
     }
-    
+
     // Complete the connection
     await this.handleConnectionCreation();
-    
+
     // Clear drag state
     this.floatingDragState = null;
   }
@@ -4200,12 +4320,12 @@ export class BreadboardApp {
   ): Promise<void> {
     // Select component (creates floating component in interactive mode)
     this.selectComponentType(componentType);
-    
+
     // Verify floating component was created (only in interactive mode)
     if (USE_RETE_INTERACTIVE && !this.floatingComponent) {
       throw new Error('Floating component was not created in interactive mode');
     }
-    
+
     // If not in interactive mode, fall back to legacy two-click placement
     if (!USE_RETE_INTERACTIVE) {
       // Legacy two-click API
@@ -4216,21 +4336,23 @@ export class BreadboardApp {
       this.clickHole(legPositions[1]);
       return;
     }
-    
+
     // Get actual number of legs for this component type
     const legCount = this.getComponentLegCount(componentType);
-    
+
     // Validate we have enough positions
     if (legPositions.length < legCount) {
-      throw new Error(`Component ${componentType} requires ${legCount} positions, but only ${legPositions.length} provided`);
+      throw new Error(
+        `Component ${componentType} requires ${legCount} positions, but only ${legPositions.length} provided`
+      );
     }
-    
+
     // Connect each leg to specified hole (interactive mode)
     // Use only the first legCount positions (ignore extras for backward compatibility with tests)
     for (let i = 0; i < legCount; i++) {
       await this.connectLegToHole(i, legPositions[i].row, legPositions[i].col);
     }
-    
+
     // Component should auto-place when all legs connected
     // Verify component was placed
     if (this.floatingComponent !== null) {
@@ -4242,13 +4364,12 @@ export class BreadboardApp {
    * Switch between breadboard and schematic views
    */
   private switchView(view: 'breadboard' | 'schematic'): void {
-    
     // Update view containers visibility
     const breadboardContainer = document.getElementById('breadboard-view-container');
     const schematicContainer = document.getElementById('schematic-view-container');
     const breadboardBtn = document.getElementById('breadboard-view-btn');
     const schematicBtn = document.getElementById('schematic-view-btn');
-    
+
     if (view === 'breadboard') {
       if (breadboardContainer) breadboardContainer.style.display = 'flex';
       if (schematicContainer) schematicContainer.style.display = 'none';
@@ -4259,7 +4380,7 @@ export class BreadboardApp {
       if (schematicContainer) schematicContainer.style.display = 'flex';
       breadboardBtn?.classList.remove('active');
       schematicBtn?.classList.add('active');
-      
+
       // Render schematic view
       this.renderSchematic();
     }
@@ -4310,7 +4431,7 @@ export class BreadboardApp {
    */
   private attachSchematicEventHandlers(svg: SVGElement): void {
     const symbols = svg.querySelectorAll('.schematic-symbol');
-    
+
     symbols.forEach((symbolEl) => {
       // Click handler for selection and explain panel
       symbolEl.addEventListener('click', (e) => {
