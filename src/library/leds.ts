@@ -113,6 +113,9 @@ function createLEDEntry(spec: LEDSpec): ComponentLibraryEntry {
     visuals: {
       renderer: 'procedural',
     },
+    flexibility: 'flexible',
+    maxPinSpan: 20,
+    minPinSpan: 3,
     description: spec.description,
     typicalUses: [
       'Status indicators',

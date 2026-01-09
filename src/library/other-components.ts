@@ -34,6 +34,7 @@ export const POWER_SUPPLY_LIBRARY: ComponentLibraryEntry[] = [
     visuals: {
       renderer: 'procedural',
     },
+    flexibility: 'rigid',
     description: '3.3V DC power supply, commonly used for microcontrollers and logic circuits',
     typicalUses: ['Microcontroller power', 'Logic circuit power', 'Sensor power'],
   },
@@ -63,6 +64,7 @@ export const POWER_SUPPLY_LIBRARY: ComponentLibraryEntry[] = [
     visuals: {
       renderer: 'procedural',
     },
+    flexibility: 'rigid',
     description: '5V DC power supply, standard for Arduino, USB, and general electronics',
     typicalUses: ['Arduino power', 'USB power', 'General electronics', 'LED circuits'],
   },
@@ -92,6 +94,7 @@ export const POWER_SUPPLY_LIBRARY: ComponentLibraryEntry[] = [
     visuals: {
       renderer: 'procedural',
     },
+    flexibility: 'rigid',
     description: '9V DC power supply, commonly from 9V batteries or wall adapters',
     typicalUses: ['Battery-powered projects', 'Audio circuits', 'Voltage regulators'],
   },
@@ -121,6 +124,7 @@ export const POWER_SUPPLY_LIBRARY: ComponentLibraryEntry[] = [
     visuals: {
       renderer: 'procedural',
     },
+    flexibility: 'rigid',
     description: '12V DC power supply, commonly used for motors, relays, and automotive applications',
     typicalUses: ['Motor control', 'Relay circuits', 'Automotive projects', 'LED strips'],
   },
@@ -156,6 +160,9 @@ export const WIRE_LIBRARY: ComponentLibraryEntry[] = [
     visuals: {
       renderer: 'procedural',
     },
+    flexibility: 'flexible',
+    maxPinSpan: 30,
+    minPinSpan: 1,
     description: '22 AWG solid core hookup wire in red, perfect for breadboard connections',
     typicalUses: ['Point-to-point connections', 'Power distribution', 'Breadboard wiring'],
   },
@@ -185,6 +192,9 @@ export const WIRE_LIBRARY: ComponentLibraryEntry[] = [
     visuals: {
       renderer: 'procedural',
     },
+    flexibility: 'flexible',
+    maxPinSpan: 30,
+    minPinSpan: 1,
     description: '22 AWG solid core hookup wire in black, commonly used for ground connections',
     typicalUses: ['Ground connections', 'Point-to-point connections', 'Breadboard wiring'],
   },
@@ -252,6 +262,7 @@ export const SPEAKER_LIBRARY: ComponentLibraryEntry[] = [
     visuals: {
       renderer: 'procedural',
     },
+    flexibility: 'rigid',
     description: 'Small 8Ω speaker module for breadboard use, foundation for audio output features',
     typicalUses: [
       'Audio output',
@@ -299,6 +310,9 @@ export const SWITCH_LIBRARY: ComponentLibraryEntry[] = [
     visuals: {
       renderer: 'procedural',
     },
+    flexibility: 'flexible',
+    maxPinSpan: 20,
+    minPinSpan: 3,
     description: 'Single-pole single-throw toggle switch for manual circuit control',
     typicalUses: [
       'Manual circuit control',

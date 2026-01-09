@@ -63,6 +63,7 @@ export const MICROPROCESSOR_LIBRARY: ComponentLibraryEntry[] = [
     visuals: {
       renderer: 'procedural',
     },
+    flexibility: 'rigid',
     description:
       'Educational 8-bit microprocessor with 4-bit I/O ports, clock-driven execution, and programmable ROM. Designed for teaching computational electronics and the connection between software and hardware.',
     typicalUses: [
