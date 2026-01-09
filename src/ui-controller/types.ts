@@ -126,7 +126,6 @@ export type Action =
   | { type: 'COMPONENT_SELECTED'; componentId: string | null }
   | { type: 'COMPONENT_PROPERTY_CHANGED'; componentId: string; property: string; value: unknown }
   | { type: 'PIN_SELECTED'; componentId: string; pinIndex: number | null }
-  | { type: 'CONNECTION_CREATED'; connectionId: string }
   | { type: 'CONNECTION_DELETED'; connectionId: string }
   | { type: 'CONNECTION_SELECTED'; connectionId: string | null }
   | { type: 'CONNECTION_DRAG_STARTED'; componentId: string; legIndex: number; position: Position }
