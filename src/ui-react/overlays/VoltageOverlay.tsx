@@ -12,11 +12,9 @@ import type { Position } from '@/core/types';
 import { 
   isVoltageOverlayEnabled, 
   getSimulationResult, 
-  getComponents,
-  getConnections,
+  getCircuit,
 } from '@/ui-controller/selectors';
 import { positionToPixels } from '../geometry/breadboard-layout';
-import { BreadboardLayout } from '@/core/breadboard-layout';
 
 export interface VoltageOverlayProps {
   controller: BreadboardController;
@@ -46,62 +44,26 @@ function voltageToColor(voltage: number, maxVoltage: number = 12): string {
 }
 
 /**
- * Get all positions that are part of a net with voltage
+ * Get all positions with their voltages from the circuit
  */
-function getNetPositions(state: AppState): Map<string, number> {
+function getPositionVoltages(state: AppState): Map<string, number> {
+  const circuit = getCircuit(state);
   const simulationResult = getSimulationResult(state);
-  if (!simulationResult || !simulationResult.success) {
+  
+  if (!circuit || !simulationResult || !simulationResult.success) {
     return new Map();
   }
 
   const positionVoltages = new Map<string, number>();
-  const components = getComponents(state);
-  const connections = getConnections(state);
 
-  // Map each component pin position to its voltage
-  for (const component of components) {
-    for (let i = 0; i < component.positions.length; i++) {
-      const pos = component.positions[i];
-      
-      // Find the net this position belongs to
-      const connectedPositions = BreadboardLayout.getConnectedPositions(pos);
-      
-      // Check simulation result for voltage at this net
-      // The simulation stores voltages by node ID, which corresponds to connected positions
-      for (const [_nodeId, voltage] of simulationResult.nodeVoltages.entries()) {
-        // Simple heuristic: if the nodeId contains this position, use it
-        // In practice, we'd need the circuit extractor's position-to-node mapping
-        // For now, we'll just store voltages for all connected holes
-        for (const connectedPos of connectedPositions) {
-          const connectedKey = `${connectedPos.row},${connectedPos.col}`;
-          if (!positionVoltages.has(connectedKey)) {
-            positionVoltages.set(connectedKey, voltage);
-          }
-        }
-      }
-    }
-  }
-
-  // Also include connection target positions
-  for (const connection of connections) {
-    
-    // Find voltage for these positions from simulation
-    for (const [_nodeId, voltage] of simulationResult.nodeVoltages.entries()) {
-      const connectedSource = BreadboardLayout.getConnectedPositions(connection.sourcePosition);
-      const connectedTarget = BreadboardLayout.getConnectedPositions(connection.targetPosition);
-      
-      for (const pos of connectedSource) {
-        const key = `${pos.row},${pos.col}`;
-        if (!positionVoltages.has(key)) {
-          positionVoltages.set(key, voltage);
-        }
-      }
-      
-      for (const pos of connectedTarget) {
-        const key = `${pos.row},${pos.col}`;
-        if (!positionVoltages.has(key)) {
-          positionVoltages.set(key, voltage);
-        }
+  // Iterate through circuit nodes and map their positions to voltages
+  for (const [nodeId, node] of circuit.nodes.entries()) {
+    const voltage = simulationResult.nodeVoltages.get(nodeId);
+    if (voltage !== undefined) {
+      // All positions in this node have the same voltage
+      for (const pos of node.positions) {
+        const posKey = `${pos.row},${pos.col}`;
+        positionVoltages.set(posKey, voltage);
       }
     }
   }
@@ -124,7 +86,7 @@ export const VoltageOverlay: React.FC<VoltageOverlayProps> = ({ controller }) =>
     if (!isEnabled || !simulationResult || !simulationResult.success) {
       return new Map<string, number>();
     }
-    return getNetPositions(state);
+    return getPositionVoltages(state);
   }, [isEnabled, simulationResult, state]);
 
   if (!isEnabled || voltagePositions.size === 0) {
