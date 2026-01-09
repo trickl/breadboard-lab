@@ -52,6 +52,8 @@ export interface AppState {
     breadboardOrientation: 0 | 90 | 180 | 270;
     currentTheme: 'light' | 'dark';
     currentView: 'breadboard' | 'schematic';
+    showVoltageOverlay: boolean;
+    showCurrentAnimation: boolean;
   };
 
   circuit: {
@@ -163,6 +165,8 @@ export type Action =
   | { type: 'BREADBOARD_ROTATED' }
   | { type: 'THEME_TOGGLED' }
   | { type: 'VIEW_SWITCHED'; view: 'breadboard' | 'schematic' }
+  | { type: 'VOLTAGE_OVERLAY_TOGGLED' }
+  | { type: 'CURRENT_ANIMATION_TOGGLED' }
   | { type: 'CIRCUIT_LOADED'; components: AnyComponent[]; metadata: CircuitMetadata | null }
   | { type: 'CIRCUIT_CLEARED' }
   | { type: 'CIRCUIT_SAVED'; metadata: CircuitMetadata }

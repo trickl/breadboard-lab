@@ -12,6 +12,9 @@ import { getBreadboardDimensions, LABEL_PADDING_X, LABEL_PADDING_Y } from './geo
 import { ComponentsLayer } from './components/ComponentsLayer';
 import { ConnectionsLayer } from './components/ConnectionsLayer';
 import { ReteGraphLayer } from './rete/ReteGraphLayer';
+import { VoltageOverlay } from './overlays/VoltageOverlay';
+import { CurrentAnimation } from './overlays/CurrentAnimation';
+import { ErrorOverlay } from './overlays/ErrorOverlay';
 
 export interface BreadboardSceneProps {
   controller: BreadboardController;
@@ -204,6 +207,22 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
           type: 'DRAG_CANCELLED',
         });
       }
+
+      // Toggle voltage overlay (V key)
+      if (e.key === 'v' || e.key === 'V') {
+        e.preventDefault();
+        controller.dispatch({
+          type: 'VOLTAGE_OVERLAY_TOGGLED',
+        });
+      }
+
+      // Toggle current animation (C key)
+      if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        controller.dispatch({
+          type: 'CURRENT_ANIMATION_TOGGLED',
+        });
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -272,8 +291,16 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
             onHoleHover={handleHoleHover}
             onHoleLeave={handleHoleLeave}
           />
+          {/* Voltage overlay (above substrate, below connections) */}
+          <VoltageOverlay controller={controller} />
+          {/* Connections layer */}
           <ConnectionsLayer controller={controller} />
+          {/* Current animation (above connections, below components) */}
+          <CurrentAnimation controller={controller} />
+          {/* Components layer */}
           <ComponentsLayer controller={controller} svgRef={svgRef} />
+          {/* Error overlay (top layer) */}
+          <ErrorOverlay controller={controller} />
         </g>
       </svg>
       {/* Rete graph layer overlaid on top */}

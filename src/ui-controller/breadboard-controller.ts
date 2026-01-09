@@ -535,6 +535,24 @@ export class BreadboardController {
           },
         };
 
+      case 'VOLTAGE_OVERLAY_TOGGLED':
+        return {
+          ...state,
+          ui: {
+            ...state.ui,
+            showVoltageOverlay: !state.ui.showVoltageOverlay,
+          },
+        };
+
+      case 'CURRENT_ANIMATION_TOGGLED':
+        return {
+          ...state,
+          ui: {
+            ...state.ui,
+            showCurrentAnimation: !state.ui.showCurrentAnimation,
+          },
+        };
+
       case 'BREADBOARD_ROTATED':
         const nextRotation = ((state.ui.breadboardOrientation + 90) % 360) as 0 | 90 | 180 | 270;
         return {
