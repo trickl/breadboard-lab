@@ -24,7 +24,7 @@ import type { BreadboardController } from '@/ui-controller';
 import type { AppState } from '@/ui-controller/types';
 import type { AnyComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
-import { positionToPixels } from '../geometry/breadboard-layout';
+import { positionToPixels, LABEL_PADDING_X, LABEL_PADDING_Y } from '../geometry/breadboard-layout';
 
 /**
  * Socket for component legs
@@ -121,6 +121,12 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     editorRef.current = editor;
     areaRef.current = area;
 
+    // Set initial area transform to match default SVG viewBox
+    // This prevents Rete from using its default (0,0) origin
+    area.area.transform.x = 0;
+    area.area.transform.y = 0;
+    area.area.transform.k = 1;
+
     // Listen for area transform changes to sync with SVG viewBox
     // This implements DR-3: Rete as source of truth for pan/zoom
     area.addPipe((context) => {
@@ -190,10 +196,14 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
         const firstPos = component.positions[0];
         const worldCoords = positionToPixels(firstPos);
         
+        // Apply label padding offset to match SVG coordinate system
+        const x = worldCoords.x + LABEL_PADDING_X;
+        const y = worldCoords.y + LABEL_PADDING_Y;
+        
         // Position the node at the component's location
         await area.translate(node.id, {
-          x: worldCoords.x - node.width / 2,
-          y: worldCoords.y - node.height / 2,
+          x: x - node.width / 2,
+          y: y - node.height / 2,
         });
       }
     }
@@ -231,9 +241,19 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
         left: 0,
         width: '100%',
         height: '100%',
-        pointerEvents: 'all',
+        pointerEvents: 'none', // Container doesn't block events
         zIndex: 10,
       }}
-    />
+    >
+      {/* CSS to enable pointer events on Rete nodes */}
+      <style>{`
+        .rete-node {
+          pointer-events: auto !important;
+        }
+        .rete-connection {
+          pointer-events: auto !important;
+        }
+      `}</style>
+    </div>
   );
 };
