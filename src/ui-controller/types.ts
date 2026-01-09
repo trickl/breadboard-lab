@@ -5,8 +5,8 @@ import type {
   FloatingComponent,
   Circuit,
   SimulationResult,
-  CircuitMetadata,
 } from '@/core/types';
+import type { CircuitMetadata } from '@/core/circuit-serializer';
 
 export interface AppState {
   breadboard: {
