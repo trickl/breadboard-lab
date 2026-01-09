@@ -46,8 +46,9 @@ function getErrorVisuals(errorType: ErrorType): {
 
 /**
  * Calculate center position from error positions
+ * Returns a position with potentially fractional coordinates for centroid calculation
  */
-function getErrorPosition(error: CircuitError, components: ReturnType<typeof getComponents>) {
+function getErrorPosition(error: CircuitError, components: ReturnType<typeof getComponents>): { row: number; col: number } | null {
   if (error.positions.length === 0) {
     return null;
   }
@@ -115,8 +116,14 @@ export const ErrorOverlay: React.FC<ErrorOverlayProps> = ({ controller, onErrorC
     if (onErrorClick) {
       onErrorClick(error);
     } else {
-      // Default behavior: log error details
+      // Default behavior: log error details to console
+      // TODO: Replace with proper modal/toast notification system
       console.log('Error clicked:', error);
+      console.log(`${error.type}: ${error.message}`);
+      console.log(`Explanation: ${error.explanation}`);
+      console.log(`Suggestions:`, error.suggestions);
+      
+      // Temporary fallback to alert for MVP
       alert(`${error.type}: ${error.message}\n\n${error.explanation}\n\nSuggestions:\n${error.suggestions.join('\n')}`);
     }
   }, [onErrorClick]);

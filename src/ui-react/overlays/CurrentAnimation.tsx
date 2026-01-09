@@ -67,11 +67,20 @@ export const CurrentAnimation: React.FC<CurrentAnimationProps> = ({ controller }
     return connections
       .map(conn => {
         // Try to find edge current for this connection
-        // Edge IDs might be component IDs or connection IDs
-        // Try both the source component ID and the connection ID
-        let current = simulationResult.edgeCurrents.get(conn.sourceComponentId) ?? 
-                      simulationResult.edgeCurrents.get(conn.id) ??
-                      0;
+        // The edge ID in the simulation corresponds to the source component ID
+        // because connections are created from component legs
+        // First try the source component ID (most common case)
+        let current = simulationResult.edgeCurrents.get(conn.sourceComponentId);
+        
+        // Fallback: try the connection ID itself (for special cases)
+        if (current === undefined) {
+          current = simulationResult.edgeCurrents.get(conn.id);
+        }
+        
+        // Default to 0 if no current found
+        if (current === undefined) {
+          current = 0;
+        }
 
         return { connection: conn, current };
       })
