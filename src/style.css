@@ -499,6 +499,38 @@ body {
   margin-top: 0.25rem;
 }
 
+.property-info {
+  padding: 0.75rem;
+  background-color: #3c3c3c;
+  border: 1px solid #4c4c4c;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+
+.property-info .info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #444;
+}
+
+.property-info .info-row:last-child {
+  border-bottom: none;
+}
+
+.property-info .info-label {
+  font-size: 0.85rem;
+  color: #999;
+  font-weight: 500;
+}
+
+.property-info .info-value {
+  font-size: 0.85rem;
+  color: var(--text-color);
+  font-weight: 400;
+}
+
 /* Error overlay styles */
 .error-icon {
   transition: all 0.2s ease;

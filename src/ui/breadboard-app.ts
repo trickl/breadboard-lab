@@ -310,6 +310,17 @@ export class BreadboardApp {
             <button id="save-btn" class="toolbar-btn">💾 Save Circuit</button>
             <button id="clear-btn" class="toolbar-btn" style="background: #ff4444; border-color: #ff5555;">🗑️ Clear All</button>
           </div>
+        </div>
+        <div class="workspace">
+          <div class="breadboard-container" id="breadboard-view-container">
+            <div id="breadboard" class="breadboard"></div>
+            <div class="voltage-tooltip" id="voltage-tooltip"></div>
+          </div>
+          <div class="schematic-container" id="schematic-view-container" style="display: none;">
+            <div id="schematic" class="schematic"></div>
+          </div>
+        </div>
+        <div class="info-panel">
           <div class="view-controls">
             <h3>View</h3>
             <div class="view-tabs">
@@ -358,19 +369,7 @@ export class BreadboardApp {
               <span class="clock-status" id="clock-status">Paused</span>
             </div>
           </div>
-        </div>
-        <div class="workspace">
-          <div class="breadboard-container" id="breadboard-view-container">
-            <div id="breadboard" class="breadboard"></div>
-            <div class="voltage-tooltip" id="voltage-tooltip"></div>
-          </div>
-          <div class="schematic-container" id="schematic-view-container" style="display: none;">
-            <div id="schematic" class="schematic"></div>
-          </div>
-        </div>
-        <div class="info-panel">
-          <h2>Circuit Info</h2>
-          <div id="circuit-info"></div>
+          <div id="component-properties"></div>
         </div>
       </div>
     `;
@@ -382,7 +381,7 @@ export class BreadboardApp {
     this.renderBreadboard();
     this.renderQuickSelectBar();
     this.attachEventListeners();
-    this.updateCircuitInfo();
+    this.updateComponentProperties();
     this.updateAudioControls();
     this.updateClockControls();
   }
@@ -1252,56 +1251,13 @@ export class BreadboardApp {
   
 
   /**
-   * Update the circuit information display
+   * Update the component properties display
    */
-  private updateCircuitInfo(): void {
-    const infoDiv = document.getElementById('circuit-info');
-    if (!infoDiv) return;
+  private updateComponentProperties(): void {
+    const propertiesDiv = document.getElementById('component-properties');
+    if (!propertiesDiv) return;
 
-    // Use Rete-based extraction if enabled, otherwise use position-based
-    const circuit = USE_RETE && this.reteManager
-      ? this.extractor.extractFromReteGraph(this.reteManager, this.state)
-      : this.extractor.extract(this.state);
-    const simulation = this.simulator.simulate(circuit);
-
-    infoDiv.innerHTML = `
-      <div class="info-section">
-        <h3>Components</h3>
-        <div class="info-value">${this.state.components.length}</div>
-      </div>
-      <div class="info-section">
-        <h3>Nodes</h3>
-        <div class="info-value">${circuit.nodes.size}</div>
-      </div>
-      <div class="info-section">
-        <h3>Connections</h3>
-        <div class="info-value">${circuit.edges.length}</div>
-      </div>
-      <div class="info-section">
-        <h3>Simulation</h3>
-        <div class="info-value">${simulation.success ? '✓ Success' : '✗ Failed'}</div>
-      </div>
-      ${
-        this.state.components.length > 0
-          ? `
-      <div class="info-section">
-        <h3>Component List</h3>
-        ${this.state.components
-          .map(
-            (c) => `
-          <div class="component-item">
-            <strong>${c.type}</strong><br>
-            ${this.getComponentDetails(c)}
-          </div>
-        `
-          )
-          .join('')}
-      </div>
-      `
-          : ''
-      }
-      ${this.renderPropertyEditor()}
-    `;
+    propertiesDiv.innerHTML = this.renderPropertyEditor();
 
     // Attach property editor event listeners after rendering
     this.attachPropertyEditorListeners();
@@ -1392,8 +1348,50 @@ export class BreadboardApp {
         break;
 
       case ComponentType.WIRE:
+        fields = `
+          <div class="property-field">
+            <label>Wire Info</label>
+            <div class="property-info">
+              <div class="info-row">
+                <span class="info-label">Type:</span>
+                <span class="info-value">Wire</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">From:</span>
+                <span class="info-value">Row ${component.positions[0].row}, Col ${component.positions[0].col}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">To:</span>
+                <span class="info-value">Row ${component.positions[1].row}, Col ${component.positions[1].col}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Resistance:</span>
+                <span class="info-value">${component.resistance}Ω</span>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
       case ComponentType.GROUND:
-        // No editable properties for these components
+        fields = `
+          <div class="property-field">
+            <label>Ground Info</label>
+            <div class="property-info">
+              <div class="info-row">
+                <span class="info-label">Type:</span>
+                <span class="info-value">Ground</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Position:</span>
+                <span class="info-value">Row ${component.positions[0].row}, Col ${component.positions[0].col}</span>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
+      default:
         return '';
     }
 
