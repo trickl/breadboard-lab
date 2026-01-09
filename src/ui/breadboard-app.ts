@@ -137,6 +137,7 @@ export class BreadboardApp {
   private hasUnsavedChanges = false;
   private reteManager: ReteManager | null = null; // Optional Rete.js integration
   private xrayModeEnabled = false; // X-Ray Mode: show internal breadboard connectivity
+  private breadboardOrientation: 0 | 90 | 180 | 270 = 0; // Breadboard orientation in degrees
 
   constructor(private container: HTMLElement) {
     this.state = { components: [], selectedComponentId: null };
@@ -152,6 +153,15 @@ export class BreadboardApp {
     this.handleKeyDownBound = this.handleKeyDown.bind(this);
     this.handleMouseMoveBound = this.handleMouseMove.bind(this);
     this.handleMouseUpBound = this.handleMouseUp.bind(this);
+    
+    // Load breadboard orientation from localStorage
+    const savedOrientation = localStorage.getItem('breadboard_orientation');
+    if (savedOrientation) {
+      const orientation = parseInt(savedOrientation, 10);
+      if (orientation === 0 || orientation === 90 || orientation === 180 || orientation === 270) {
+        this.breadboardOrientation = orientation;
+      }
+    }
     
     // Set up clock controller callbacks
     this.clockController.setOnClockChange((clockHigh) => {
@@ -310,6 +320,9 @@ export class BreadboardApp {
               <button id="toggle-xray-btn" class="toolbar-btn xray-toggle" title="Show internal breadboard connectivity (X key)">
                 🔬 X-Ray Mode
               </button>
+              <button id="rotate-board-btn" class="toolbar-btn board-rotate-toggle" title="Rotate breadboard orientation (0° / 90° / 180° / 270°)">
+                🔄 Rotate Board
+              </button>
             </div>
           </div>
           <div class="audio-controls">
@@ -455,6 +468,9 @@ export class BreadboardApp {
       };
       try {
         await this.pixiRenderer.init(breadboard, handlers);
+        // Apply breadboard rotation after initialization
+        this.applyBreadboardRotation();
+        this.updateBoardRotationControls();
       } catch (error) {
         // PixiJS initialization failed (likely in test environment without canvas support)
         // Continue without rendering - tests can still verify app state
@@ -733,6 +749,14 @@ export class BreadboardApp {
     if (toggleXrayBtn) {
       toggleXrayBtn.addEventListener('click', () => {
         this.toggleXrayMode();
+      });
+    }
+
+    // Breadboard rotation button
+    const rotateBoardBtn = document.getElementById('rotate-board-btn');
+    if (rotateBoardBtn) {
+      rotateBoardBtn.addEventListener('click', () => {
+        this.rotateBreadboard();
       });
     }
 
@@ -3209,6 +3233,51 @@ export class BreadboardApp {
       } else {
         toggleBtn.textContent = '🔬 X-Ray Mode';
         toggleBtn.classList.remove('active');
+      }
+    }
+  }
+
+  /**
+   * Rotate breadboard orientation 90 degrees clockwise
+   * Cycles through 0° → 90° → 180° → 270° → 0°
+   */
+  private rotateBreadboard(): void {
+    this.breadboardOrientation = ((this.breadboardOrientation + 90) % 360) as 0 | 90 | 180 | 270;
+    this.updateBoardRotationControls();
+    this.applyBreadboardRotation();
+    
+    // Save to localStorage
+    localStorage.setItem('breadboard_orientation', this.breadboardOrientation.toString());
+  }
+
+  /**
+   * Update breadboard rotation button UI based on current orientation
+   */
+  private updateBoardRotationControls(): void {
+    const rotateBtn = document.getElementById('rotate-board-btn');
+    
+    if (rotateBtn) {
+      rotateBtn.textContent = `🔄 Rotate Board (${this.breadboardOrientation}°)`;
+      if (this.breadboardOrientation !== 0) {
+        rotateBtn.classList.add('active');
+      } else {
+        rotateBtn.classList.remove('active');
+      }
+    }
+  }
+
+  /**
+   * Apply CSS transform to rotate breadboard canvas
+   */
+  private applyBreadboardRotation(): void {
+    const canvas = this.pixiRenderer.getCanvas();
+    if (canvas) {
+      const parent = canvas.parentElement;
+      if (parent) {
+        // Apply rotation transform to canvas parent container
+        parent.style.transformOrigin = 'center center';
+        parent.style.transition = 'transform 0.3s ease-in-out';
+        parent.style.transform = `rotate(${this.breadboardOrientation}deg)`;
       }
     }
   }
