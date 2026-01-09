@@ -1775,6 +1775,7 @@ export class BreadboardApp {
     );
 
     // Calculate offset from mouse to pin
+    // Note: positionToPixels returns grid-relative coords, so we add padding to convert to canvas coords
     const pinPixels = this.pixiRenderer.positionToPixels(component.positions[pinIndex]);
     const pinCanvasX = pinPixels.x + PixiRenderer.LABEL_PADDING_X;
     const pinCanvasY = pinPixels.y + PixiRenderer.LABEL_PADDING_Y;
@@ -1918,6 +1919,7 @@ export class BreadboardApp {
 
   /**
    * Calculate the span (distance) between pins
+   * Uses Euclidean distance for more accurate measurement of physical span
    */
   private calculatePinSpan(positions: Position[]): number {
     if (positions.length < 2) return 0;
@@ -1925,12 +1927,14 @@ export class BreadboardApp {
     let maxDist = 0;
     for (let i = 0; i < positions.length; i++) {
       for (let j = i + 1; j < positions.length; j++) {
-        const dist = Math.abs(positions[i].row - positions[j].row) + 
-                     Math.abs(positions[i].col - positions[j].col);
+        // Use Euclidean distance for diagonal placements
+        const rowDiff = positions[i].row - positions[j].row;
+        const colDiff = positions[i].col - positions[j].col;
+        const dist = Math.sqrt(rowDiff * rowDiff + colDiff * colDiff);
         maxDist = Math.max(maxDist, dist);
       }
     }
-    return maxDist;
+    return Math.round(maxDist); // Round to nearest hole
   }
 
   /**

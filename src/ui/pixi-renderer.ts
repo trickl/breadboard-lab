@@ -7,7 +7,7 @@ import {
   FederatedPointerEvent,
   ColorMatrixFilter,
 } from 'pixi.js';
-import type { AnyComponent, Position, SimulationResult, CircuitError, Resistor, LED } from '@/core/types';
+import type { AnyComponent, Position, SimulationResult, CircuitError, Resistor, LED, ComponentLibraryEntry } from '@/core/types';
 import { ComponentType, ErrorType } from '@/core/types';
 import { BreadboardLayout } from '@/core/breadboard-layout';
 import { voltageToColor } from './voltage-colors';
@@ -1004,7 +1004,7 @@ export class PixiRenderer {
   private addPinHitAreas(container: Container, component: AnyComponent): void {
     // Skip if component is rigid or doesn't support pin repositioning
     const libraryEntry = component.libraryId ? 
-      ALL_LIBRARY_ENTRIES.find((e: any) => e.id === component.libraryId) : null;
+      ALL_LIBRARY_ENTRIES.find((e: ComponentLibraryEntry) => e.id === component.libraryId) : null;
     
     if (libraryEntry && libraryEntry.flexibility === 'rigid') {
       return;
@@ -1427,8 +1427,7 @@ export class PixiRenderer {
     const colDiff = Math.abs(positions[1].col - positions[0].col);
     
     // Component is bent if both row and column differ (diagonal placement)
-    // or if the span is unusual (not the typical 5-hole resistor span)
-    return (rowDiff > 0 && colDiff > 0) || (rowDiff === 0 && colDiff === 0);
+    return (rowDiff > 0 && colDiff > 0);
   }
 
   /**
@@ -1872,6 +1871,7 @@ export class PixiRenderer {
     graphics.circle(midX, midY + radius + 8, 4);
     graphics.fill({ color: 0xffaa00, alpha: 0.6 });
   }
+
   /**
    * Render power supply
    */
