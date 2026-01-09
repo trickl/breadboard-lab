@@ -138,6 +138,7 @@ export class BreadboardApp {
   private reteManager: ReteManager | null = null; // Optional Rete.js integration
   private xrayModeEnabled = false; // X-Ray Mode: show internal breadboard connectivity
   private breadboardOrientation: 0 | 90 | 180 | 270 = 0; // Breadboard orientation in degrees
+  private currentTheme: 'light' | 'dark' = 'dark'; // Current theme
 
   constructor(private container: HTMLElement) {
     this.state = { components: [], selectedComponentId: null };
@@ -153,6 +154,9 @@ export class BreadboardApp {
     this.handleKeyDownBound = this.handleKeyDown.bind(this);
     this.handleMouseMoveBound = this.handleMouseMove.bind(this);
     this.handleMouseUpBound = this.handleMouseUp.bind(this);
+    
+    // Load and apply theme from localStorage before rendering
+    this.loadTheme();
     
     // Load breadboard orientation from localStorage
     const savedOrientation = localStorage.getItem('breadboard_orientation');
@@ -292,8 +296,19 @@ export class BreadboardApp {
   private render(): void {
     this.container.innerHTML = `
       <div class="header">
-        <h1>🔌 Breadboard Lab</h1>
-        <p>Build circuits, visualize connections, simulate in real-time</p>
+        <div class="header-content">
+          <h1>🔌 Breadboard Lab</h1>
+          <p>Build circuits, visualize connections, simulate in real-time</p>
+        </div>
+        <button 
+          id="theme-toggle-btn" 
+          class="theme-toggle ${this.currentTheme === 'light' ? 'light' : ''}" 
+          role="button"
+          aria-label="Toggle between light and dark theme"
+          tabindex="0"
+        >
+          <div class="theme-toggle-slider">${this.currentTheme === 'dark' ? '🌙' : '☀️'}</div>
+        </button>
       </div>
       <div class="main-container">
         <div class="toolbar">
@@ -756,6 +771,21 @@ export class BreadboardApp {
     if (rotateBoardBtn) {
       rotateBoardBtn.addEventListener('click', () => {
         this.rotateBreadboard();
+      });
+    }
+
+    // Theme toggle button
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    if (themeToggleBtn) {
+      themeToggleBtn.addEventListener('click', () => {
+        this.toggleTheme();
+      });
+      // Keyboard accessibility
+      themeToggleBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.toggleTheme();
+        }
       });
     }
 
@@ -3392,6 +3422,61 @@ export class BreadboardApp {
         parent.style.transformOrigin = 'center center';
         parent.style.transition = 'transform 0.3s ease-in-out';
         parent.style.transform = `rotate(${this.breadboardOrientation}deg)`;
+      }
+    }
+  }
+
+  /**
+   * Load theme preference from localStorage
+   */
+  private loadTheme(): void {
+    const savedTheme = localStorage.getItem('breadboard-theme') as 'light' | 'dark' | null;
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      this.currentTheme = savedTheme;
+    } else {
+      this.currentTheme = 'dark'; // Default to dark theme
+    }
+    this.applyTheme();
+  }
+
+  /**
+   * Toggle between light and dark theme
+   */
+  private toggleTheme(): void {
+    this.currentTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+    this.applyTheme();
+    this.updateThemeToggleButton();
+    
+    // Save to localStorage
+    localStorage.setItem('breadboard-theme', this.currentTheme);
+  }
+
+  /**
+   * Apply the current theme to the document
+   */
+  private applyTheme(): void {
+    const root = document.documentElement;
+    if (this.currentTheme === 'light') {
+      root.setAttribute('data-theme', 'light');
+    } else {
+      root.removeAttribute('data-theme');
+    }
+  }
+
+  /**
+   * Update theme toggle button UI based on current theme
+   */
+  private updateThemeToggleButton(): void {
+    const toggleBtn = document.getElementById('theme-toggle-btn');
+    const toggleSlider = toggleBtn?.querySelector('.theme-toggle-slider');
+    
+    if (toggleBtn && toggleSlider) {
+      if (this.currentTheme === 'light') {
+        toggleBtn.classList.add('light');
+        toggleSlider.textContent = '☀️';
+      } else {
+        toggleBtn.classList.remove('light');
+        toggleSlider.textContent = '🌙';
       }
     }
   }

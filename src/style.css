@@ -1,6 +1,38 @@
 :root {
+  /* Dark theme (default) */
   --bg-color: #1a1a1a;
   --text-color: #e0e0e0;
+  --header-bg: #2c2c2c;
+  --sidebar-bg: #2c2c2c;
+  --panel-bg: #3c3c3c;
+  --border-color: #4c4c4c;
+  --hover-bg: #4c4c4c;
+  --input-bg: #3c3c3c;
+  --modal-bg: #2c2c2c;
+  --secondary-text: #999;
+  --breadboard-bg: #f5e6d3;
+  --hole-color: #2c2c2c;
+  --grid-color: #d4c5b0;
+  --component-resistor: #d4a574;
+  --component-led: #ff4444;
+  --component-wire: #4488ff;
+  --rail-positive: #ff3333;
+  --rail-negative: #3333ff;
+}
+
+:root[data-theme="light"] {
+  /* Light theme */
+  --bg-color: #f5f5f5;
+  --text-color: #2c2c2c;
+  --header-bg: #ffffff;
+  --sidebar-bg: #ffffff;
+  --panel-bg: #f8f8f8;
+  --border-color: #ddd;
+  --hover-bg: #e8e8e8;
+  --input-bg: #ffffff;
+  --modal-bg: #ffffff;
+  --secondary-text: #666;
+  /* Breadboard and components remain the same */
   --breadboard-bg: #f5e6d3;
   --hole-color: #2c2c2c;
   --grid-color: #d4c5b0;
@@ -17,11 +49,17 @@
   box-sizing: border-box;
 }
 
+/* Smooth transitions for theme changes */
+:root {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   background-color: var(--bg-color);
   color: var(--text-color);
   line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #app {
@@ -31,9 +69,18 @@ body {
 }
 
 .header {
-  background-color: #2c2c2c;
+  background-color: var(--header-bg);
   padding: 1rem 2rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.header-content {
+  flex: 1;
 }
 
 .header h1 {
@@ -43,8 +90,54 @@ body {
 
 .header p {
   font-size: 0.9rem;
-  color: #999;
+  color: var(--secondary-text);
   margin-top: 0.25rem;
+  transition: color 0.3s ease;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  position: relative;
+  width: 60px;
+  height: 32px;
+  background-color: var(--panel-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  flex-shrink: 0;
+  margin-left: 1rem;
+}
+
+.theme-toggle:hover {
+  border-color: #4488ff;
+  transform: scale(1.05);
+}
+
+.theme-toggle-slider {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background-color: #4488ff;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.theme-toggle.light .theme-toggle-slider {
+  transform: translateX(28px);
+}
+
+.theme-toggle[aria-label]:focus {
+  outline: 2px solid #4488ff;
+  outline-offset: 2px;
 }
 
 .main-container {
@@ -55,9 +148,10 @@ body {
 
 .toolbar {
   width: 250px;
-  background-color: #2c2c2c;
+  background-color: var(--sidebar-bg);
   padding: 1.5rem;
   overflow-y: auto;
+  transition: background-color 0.3s ease;
 }
 
 .toolbar h2 {
@@ -73,8 +167,8 @@ body {
 }
 
 .component-button {
-  background-color: #3c3c3c;
-  border: 2px solid #4c4c4c;
+  background-color: var(--panel-bg);
+  border: 2px solid var(--border-color);
   border-radius: 6px;
   padding: 0.75rem 1rem;
   color: var(--text-color);
@@ -85,8 +179,8 @@ body {
 }
 
 .component-button:hover {
-  background-color: #4c4c4c;
-  border-color: #5c5c5c;
+  background-color: var(--hover-bg);
+  border-color: var(--border-color);
   transform: translateY(-1px);
 }
 
@@ -381,9 +475,10 @@ body {
 
 .info-panel {
   width: 300px;
-  background-color: #2c2c2c;
+  background-color: var(--sidebar-bg);
   padding: 1.5rem;
   overflow-y: auto;
+  transition: background-color 0.3s ease;
 }
 
 .info-panel h2 {
@@ -398,10 +493,11 @@ body {
 
 .info-section h3 {
   font-size: 0.9rem;
-  color: #999;
+  color: var(--secondary-text);
   margin-bottom: 0.5rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  transition: color 0.3s ease;
 }
 
 .info-value {
@@ -412,10 +508,11 @@ body {
 
 .component-item {
   padding: 0.5rem;
-  background-color: #3c3c3c;
+  background-color: var(--panel-bg);
   border-radius: 4px;
   margin-bottom: 0.5rem;
   font-size: 0.85rem;
+  transition: background-color 0.3s ease;
 }
 
 /* Property editor styles */
@@ -438,21 +535,22 @@ body {
 .property-field label {
   display: block;
   font-size: 0.85rem;
-  color: #999;
+  color: var(--secondary-text);
   margin-bottom: 0.5rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  transition: color 0.3s ease;
 }
 
 .property-field input[type="number"] {
   width: 100%;
   padding: 0.5rem;
-  background-color: #3c3c3c;
-  border: 2px solid #4c4c4c;
+  background-color: var(--input-bg);
+  border: 2px solid var(--border-color);
   border-radius: 4px;
   color: var(--text-color);
   font-size: 0.9rem;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .property-field input[type="number"]:focus {
@@ -474,8 +572,8 @@ body {
 
 .preset-button {
   padding: 0.4rem 0.6rem;
-  background-color: #3c3c3c;
-  border: 1px solid #4c4c4c;
+  background-color: var(--panel-bg);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   color: var(--text-color);
   font-size: 0.8rem;
@@ -484,8 +582,8 @@ body {
 }
 
 .preset-button:hover {
-  background-color: #4c4c4c;
-  border-color: #5c5c5c;
+  background-color: var(--hover-bg);
+  border-color: var(--border-color);
 }
 
 .preset-button:active {
@@ -501,10 +599,11 @@ body {
 
 .property-info {
   padding: 0.75rem;
-  background-color: #3c3c3c;
-  border: 1px solid #4c4c4c;
+  background-color: var(--panel-bg);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   margin-top: 0.5rem;
+  transition: all 0.3s ease;
 }
 
 .property-info .info-row {
@@ -521,8 +620,9 @@ body {
 
 .property-info .info-label {
   font-size: 0.85rem;
-  color: #999;
+  color: var(--secondary-text);
   font-weight: 500;
+  transition: color 0.3s ease;
 }
 
 .property-info .info-value {
@@ -556,11 +656,11 @@ body {
   top: 80px;
   width: 380px;
   max-height: calc(100vh - 100px);
-  background-color: #2c2c2c;
-  border: 2px solid #4c4c4c;
+  background-color: var(--sidebar-bg);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   box-shadow: -4px 4px 16px rgba(0, 0, 0, 0.4);
-  transition: right 0.3s ease;
+  transition: right 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
   z-index: 1000;
   overflow: hidden;
   display: flex;
@@ -576,8 +676,9 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  background-color: #3c3c3c;
-  border-bottom: 2px solid #4c4c4c;
+  background-color: var(--panel-bg);
+  border-bottom: 2px solid var(--border-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .explain-panel-header h3 {
@@ -589,7 +690,7 @@ body {
 .explain-panel-close {
   background: none;
   border: none;
-  color: #999;
+  color: var(--secondary-text);
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0;
@@ -603,7 +704,7 @@ body {
 }
 
 .explain-panel-close:hover {
-  background-color: #4c4c4c;
+  background-color: var(--hover-bg);
   color: var(--text-color);
 }
 
@@ -614,11 +715,12 @@ body {
 }
 
 .explain-panel-hint {
-  color: #999;
+  color: var(--secondary-text);
   font-size: 0.9rem;
   font-style: italic;
   text-align: center;
   padding: 2rem 1rem;
+  transition: color 0.3s ease;
 }
 
 .explain-error-title,
@@ -635,10 +737,11 @@ body {
 
 .explain-section h5 {
   font-size: 0.9rem;
-  color: #999;
+  color: var(--secondary-text);
   margin: 0 0 0.5rem 0;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  transition: color 0.3s ease;
 }
 
 .explain-section p {
@@ -746,7 +849,7 @@ body {
 }
 
 .modal {
-  background-color: #2c2c2c;
+  background-color: var(--modal-bg);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   max-width: 600px;
@@ -755,6 +858,7 @@ body {
   display: flex;
   flex-direction: column;
   animation: slideUp 0.3s ease-out;
+  transition: background-color 0.3s ease;
 }
 
 @keyframes slideUp {
@@ -832,12 +936,13 @@ body {
 .form-group textarea {
   width: 100%;
   padding: 0.75rem;
-  background-color: #3c3c3c;
-  border: 1px solid #4c4c4c;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--text-color);
   font-size: 1rem;
   font-family: inherit;
+  transition: all 0.2s ease;
 }
 
 .form-group input[type="text"]:focus,
@@ -872,12 +977,13 @@ body {
 }
 
 .btn-secondary {
-  background-color: #3c3c3c;
+  background-color: var(--panel-bg);
   color: var(--text-color);
+  transition: all 0.2s ease;
 }
 
 .btn-secondary:hover {
-  background-color: #4c4c4c;
+  background-color: var(--hover-bg);
 }
 
 .btn-danger {
@@ -904,8 +1010,8 @@ body {
 }
 
 .list-item {
-  background-color: #3c3c3c;
-  border: 1px solid #4c4c4c;
+  background-color: var(--panel-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 1rem;
   cursor: pointer;
@@ -913,8 +1019,8 @@ body {
 }
 
 .list-item:hover {
-  background-color: #4c4c4c;
-  border-color: #5c5c5c;
+  background-color: var(--hover-bg);
+  border-color: var(--border-color);
 }
 
 .list-item-title {
@@ -926,8 +1032,9 @@ body {
 
 .list-item-description {
   font-size: 0.85rem;
-  color: #999;
+  color: var(--secondary-text);
   margin-bottom: 0.5rem;
+  transition: color 0.3s ease;
 }
 
 .list-item-meta {
@@ -1017,8 +1124,8 @@ body {
 .toolbar-btn {
   width: 100%;
   padding: 0.75rem;
-  background-color: #3c3c3c;
-  border: 1px solid #4c4c4c;
+  background-color: var(--panel-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--text-color);
   cursor: pointer;
@@ -1028,8 +1135,8 @@ body {
 }
 
 .toolbar-btn:hover {
-  background-color: #4c4c4c;
-  border-color: #5c5c5c;
+  background-color: var(--hover-bg);
+  border-color: var(--border-color);
 }
 
 .toolbar-btn.primary {
