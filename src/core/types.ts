@@ -149,6 +149,7 @@ export type AnyComponent = Resistor | LED | Wire | PowerSupply | Ground | Microp
 export interface BreadboardState {
   components: AnyComponent[];
   selectedComponentId: string | null;
+  selectedPinIndex?: number | null;
 }
 
 /**
@@ -253,6 +254,11 @@ export type ComponentCategory =
 export type PackageKind = 'axial' | 't1' | 't1-3-4' | 'dip' | 'sip' | 'header' | 'module';
 
 /**
+ * Component flexibility type for pin repositioning
+ */
+export type ComponentFlexibility = 'flexible' | 'rigid' | 'semi-rigid';
+
+/**
  * Component library entry representing a real-world part
  * Based on specification in planning/vision/goal.md Section 4
  */
@@ -281,6 +287,9 @@ export interface ComponentLibraryEntry {
   visuals: {
     renderer: 'procedural' | 'svg';
   };
+  flexibility?: ComponentFlexibility;
+  maxPinSpan?: number;
+  minPinSpan?: number;
   description?: string;
   typicalUses?: string[];
 }

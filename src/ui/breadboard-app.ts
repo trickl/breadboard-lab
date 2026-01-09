@@ -33,6 +33,7 @@ import {
   MoveComponentCommand,
   RotateComponentCommand,
   EditPropertyCommand,
+  RepositionPinCommand,
 } from '@/core/command';
 import { ReteManager } from '@/core/rete-manager';
 import { quickSelectManager } from '@/core/quick-select-manager';
@@ -104,6 +105,19 @@ export interface ConnectionRerouteDragState {
 }
 
 /**
+ * Drag state for individual pin repositioning
+ */
+export interface PinDragState {
+  componentId: string;
+  pinIndex: number;
+  startMousePos: { x: number; y: number };
+  currentMousePos: { x: number; y: number };
+  originalPosition: Position;
+  previewPosition: Position | null; // null if invalid
+  offsetFromPin: { x: number; y: number }; // Offset from mouse to pin
+}
+
+/**
  * Main application class managing the breadboard UI and simulation
  */
 export class BreadboardApp {
@@ -115,6 +129,7 @@ export class BreadboardApp {
   private floatingDragState: FloatingDragState | null = null; // Phase 3d: Drag state for floating component
   private connectionRerouteDragState: ConnectionRerouteDragState | null = null; // Wire re-routing: Drag state for connection endpoint
   private selectedConnectionId: string | null = null; // Wire re-routing: Selected connection for re-routing
+  private pinDragState: PinDragState | null = null; // Pin repositioning: Drag state for individual pin
   private extractor: CircuitExtractor;
   private simulator: CircuitSimulator;
   private pixiRenderer: PixiRenderer;
@@ -141,7 +156,7 @@ export class BreadboardApp {
   private currentTheme: 'light' | 'dark' = 'dark'; // Current theme
 
   constructor(private container: HTMLElement) {
-    this.state = { components: [], selectedComponentId: null };
+    this.state = { components: [], selectedComponentId: null, selectedPinIndex: null };
     this.extractor = new CircuitExtractor();
     this.simulator = new CircuitSimulator();
     this.pixiRenderer = new PixiRenderer();
@@ -478,6 +493,9 @@ export class BreadboardApp {
         },
         onRotateHandleClick: (componentId, _event) => {
           this.handleRotateHandleClick(componentId);
+        },
+        onPinDragStart: (componentId, pinIndex, globalX, globalY) => {
+          this.handlePinDragStart(componentId, pinIndex, globalX, globalY);
         },
       };
       try {
@@ -1722,12 +1740,80 @@ export class BreadboardApp {
   }
 
   /**
+   * Handle pin drag start for individual pin repositioning
+   */
+  private handlePinDragStart(componentId: string, pinIndex: number, globalX: number, globalY: number): void {
+    const component = this.state.components.find((c) => c.id === componentId);
+    if (!component) return;
+
+    // Check if component is flexible
+    const libraryEntry = component.libraryId ? ALL_LIBRARY_ENTRIES.find((e) => e.id === component.libraryId) : null;
+    if (libraryEntry && libraryEntry.flexibility === 'rigid') {
+      console.log(`[Pin Drag] Component ${componentId} is rigid - cannot reposition individual pins`);
+      return;
+    }
+
+    // Select component and pin if not already selected
+    if (this.state.selectedComponentId !== componentId) {
+      this.state.selectedComponentId = componentId;
+    }
+    this.state.selectedPinIndex = pinIndex;
+
+    // Get the breadboard element to calculate relative coordinates
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    const rawMouseX = globalX - rect.left;
+    const rawMouseY = globalY - rect.top;
+    
+    // Transform coordinates from rotated canvas space to logical breadboard space
+    const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
+      rawMouseX,
+      rawMouseY,
+      this.breadboardOrientation
+    );
+
+    // Calculate offset from mouse to pin
+    // Note: positionToPixels returns grid-relative coords, so we add padding to convert to canvas coords
+    const pinPixels = this.pixiRenderer.positionToPixels(component.positions[pinIndex]);
+    const pinCanvasX = pinPixels.x + PixiRenderer.LABEL_PADDING_X;
+    const pinCanvasY = pinPixels.y + PixiRenderer.LABEL_PADDING_Y;
+    const offsetX = pinCanvasX - mouseX;
+    const offsetY = pinCanvasY - mouseY;
+
+    // Initialize pin drag state
+    this.pinDragState = {
+      componentId: componentId,
+      pinIndex: pinIndex,
+      startMousePos: { x: mouseX, y: mouseY },
+      currentMousePos: { x: mouseX, y: mouseY },
+      originalPosition: component.positions[pinIndex],
+      previewPosition: null,
+      offsetFromPin: { x: offsetX, y: offsetY },
+    };
+
+    // Attach global mouse handlers for move and up
+    document.addEventListener('mousemove', this.handleMouseMoveBound);
+    document.addEventListener('mouseup', this.handleMouseUpBound);
+
+    // Re-render to show initial drag state
+    this.renderBreadboard();
+  }
+
+  /**
    * Handle mouse move during drag
    */
   private handleMouseMove(event: MouseEvent): void {
     // Handle connection re-routing drag (Wire re-routing)
     if (this.connectionRerouteDragState) {
       this.updateConnectionRerouteDragPreview(event);
+      return;
+    }
+    
+    // Handle pin drag (Pin repositioning)
+    if (this.pinDragState) {
+      this.updatePinDragPreview(event);
       return;
     }
     
@@ -1741,6 +1827,115 @@ export class BreadboardApp {
     if (!this.dragState) return;
 
     this.updateDragPreview(event);
+  }
+
+  /**
+   * Update pin drag preview position
+   */
+  private updatePinDragPreview(event: MouseEvent): void {
+    if (!this.pinDragState) return;
+
+    const breadboard = document.getElementById('breadboard');
+    if (!breadboard) return;
+
+    const rect = breadboard.getBoundingClientRect();
+    const rawMouseX = event.clientX - rect.left;
+    const rawMouseY = event.clientY - rect.top;
+    
+    // Transform coordinates from rotated canvas space to logical breadboard space
+    const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
+      rawMouseX,
+      rawMouseY,
+      this.breadboardOrientation
+    );
+
+    this.pinDragState.currentMousePos = { x: mouseX, y: mouseY };
+
+    // Calculate target position for pin
+    const targetX = mouseX - this.pinDragState.offsetFromPin.x;
+    const targetY = mouseY - this.pinDragState.offsetFromPin.y;
+
+    // Convert to grid position with snapping
+    const snappedPin = this.snapToGrid({ x: targetX, y: targetY });
+
+    // Validate the new position
+    const component = this.state.components.find((c) => c.id === this.pinDragState!.componentId);
+    if (!component) return;
+
+    // Check if position is valid (on breadboard, not occupied by another component's pin)
+    if (this.isValidPinPosition(component.id, this.pinDragState.pinIndex, snappedPin)) {
+      this.pinDragState.previewPosition = snappedPin;
+    } else {
+      this.pinDragState.previewPosition = null;
+    }
+
+    // Re-render to show preview
+    this.renderBreadboard();
+  }
+
+  /**
+   * Validate if a pin position is valid
+   */
+  private isValidPinPosition(componentId: string, pinIndex: number, position: Position): boolean {
+    // Check if position is on the breadboard
+    if (!BreadboardLayout.isValidPosition(position)) {
+      return false;
+    }
+
+    // Check if position is occupied by another component's pin
+    for (const component of this.state.components) {
+      if (component.id === componentId) {
+        // Allow repositioning to the same pin's other positions (for bent components)
+        continue;
+      }
+      for (const pos of component.positions) {
+        if (pos.row === position.row && pos.col === position.col) {
+          return false;
+        }
+      }
+    }
+
+    // Check span constraints if component has library entry
+    const component = this.state.components.find((c) => c.id === componentId);
+    if (!component) return false;
+
+    const libraryEntry = component.libraryId ? ALL_LIBRARY_ENTRIES.find((e) => e.id === component.libraryId) : null;
+    if (libraryEntry && libraryEntry.maxPinSpan !== undefined) {
+      // Calculate span with new position
+      const newPositions = [...component.positions];
+      newPositions[pinIndex] = position;
+      const span = this.calculatePinSpan(newPositions);
+      
+      if (libraryEntry.maxPinSpan && span > libraryEntry.maxPinSpan) {
+        return false;
+      }
+      if (libraryEntry.minPinSpan && span < libraryEntry.minPinSpan) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Calculate the span (distance) between pins
+   * Uses Euclidean distance for more accurate measurement of physical span
+   */
+  private calculatePinSpan(positions: Position[]): number {
+    if (positions.length < 2) return 0;
+    
+    let maxDist = 0;
+    for (let i = 0; i < positions.length; i++) {
+      for (let j = i + 1; j < positions.length; j++) {
+        // Use Euclidean distance for diagonal placements
+        const rowDiff = positions[i].row - positions[j].row;
+        const colDiff = positions[i].col - positions[j].col;
+        const dist = Math.sqrt(rowDiff * rowDiff + colDiff * colDiff);
+        maxDist = Math.max(maxDist, dist);
+      }
+    }
+    // Round Euclidean distance to nearest integer for comparison with constraints
+    return Math.round(maxDist);
   }
 
   /**
@@ -1837,6 +2032,14 @@ export class BreadboardApp {
       return;
     }
     
+    // Handle pin drag end (Pin repositioning)
+    if (this.pinDragState) {
+      this.handlePinDragEnd();
+      this.cleanupPinDrag();
+      void this.render();
+      return;
+    }
+    
     // Handle floating component drag end (Phase 3d)
     if (this.floatingDragState) {
       // Phase 3d.3: Handle connection creation
@@ -1871,6 +2074,42 @@ export class BreadboardApp {
 
     // Re-render without preview
     this.render();
+  }
+
+  /**
+   * Handle pin drag end to complete or cancel pin repositioning
+   */
+  private handlePinDragEnd(): void {
+    if (!this.pinDragState) return;
+
+    // If we have a valid preview position, update the pin
+    if (this.pinDragState.previewPosition) {
+      const component = this.state.components.find((c) => c.id === this.pinDragState!.componentId);
+      if (component) {
+        // Execute reposition pin command through history manager
+        const command = new RepositionPinCommand(
+          component.id,
+          this.pinDragState.pinIndex,
+          this.pinDragState.originalPosition,
+          this.pinDragState.previewPosition
+        );
+        this.state = this.historyManager.execute(command, this.state);
+        this.markAsChanged();
+
+        console.log(`[Pin Drag] Repositioned pin ${this.pinDragState.pinIndex} of ${component.id} from`, 
+                    this.pinDragState.originalPosition, 'to', this.pinDragState.previewPosition);
+      }
+    }
+  }
+
+  /**
+   * Clean up pin drag state
+   */
+  private cleanupPinDrag(): void {
+    this.pinDragState = null;
+    this.state.selectedPinIndex = null;
+    document.removeEventListener('mousemove', this.handleMouseMoveBound);
+    document.removeEventListener('mouseup', this.handleMouseUpBound);
   }
 
   /**

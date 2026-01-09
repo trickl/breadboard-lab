@@ -55,6 +55,9 @@ function createResistorEntry(
     visuals: {
       renderer: 'procedural',
     },
+    flexibility: 'flexible',
+    maxPinSpan: 20,
+    minPinSpan: 3,
     description: `Standard through-hole axial resistor, ${resistanceStr} ±${toleranceStr}, 1/4W power rating, ${bandCount}-band color code`,
     typicalUses: [
       'Current limiting',
