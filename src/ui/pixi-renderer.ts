@@ -74,7 +74,7 @@ export class PixiRenderer {
   private errorOverlayContainer = new Container();
   
   // Grid spacing constants
-  public static readonly HOLE_SIZE = 20;
+  public static readonly HOLE_SIZE = 20;  // Used for spacing calculations only (not visual rendering)
   public static readonly HOLE_MARGIN = 3;
   public static readonly HOLE_SPACING = PixiRenderer.HOLE_SIZE + PixiRenderer.HOLE_MARGIN * 2;
   
@@ -607,8 +607,8 @@ export class PixiRenderer {
     hole.circle(pixels.x, pixels.y, PixiRenderer.HOLE_VISUAL_RADIUS);
     hole.fill(holeColor);
     
-    // Metal contact shine (subtle highlight) - scaled proportionally
-    const highlightOffset = 1.5;
+    // Metal contact shine (subtle highlight) - scaled proportionally to hole size
+    const highlightOffset = PixiRenderer.HOLE_VISUAL_RADIUS * 0.21; // ~1.5px for 7px radius
     hole.circle(pixels.x - highlightOffset, pixels.y - highlightOffset, PixiRenderer.HOLE_VISUAL_RADIUS / 3);
     hole.fill({ color: 0xffffff, alpha: 0.15 });
     
