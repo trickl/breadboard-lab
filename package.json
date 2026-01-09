@@ -33,7 +33,6 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
-    "pixi.js": "^8.6.6",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "rete": "^2.0.6",
