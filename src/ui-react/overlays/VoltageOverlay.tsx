@@ -20,13 +20,16 @@ export interface VoltageOverlayProps {
   controller: BreadboardController;
 }
 
+// Default maximum voltage for color scaling
+const DEFAULT_MAX_VOLTAGE = 12;
+
 /**
  * Convert voltage to RGB color using a heatmap
  * 0V = Blue (#0000ff)
  * Positive voltage = Red (#ff0000)
  * Negative voltage = Darker blue
  */
-function voltageToColor(voltage: number, maxVoltage: number = 12): string {
+function voltageToColor(voltage: number, maxVoltage: number = DEFAULT_MAX_VOLTAGE): string {
   const absVoltage = Math.abs(voltage);
   
   if (voltage >= 0) {
@@ -94,10 +97,13 @@ export const VoltageOverlay: React.FC<VoltageOverlayProps> = ({ controller }) =>
   }
 
   // Determine max voltage for color scaling
-  const maxVoltage = Math.max(
-    12, // Default max
-    ...Array.from(simulationResult?.nodeVoltages.values() || []).map(Math.abs)
-  );
+  const maxVoltage = useMemo(() => {
+    if (!simulationResult || !simulationResult.success) {
+      return DEFAULT_MAX_VOLTAGE;
+    }
+    const voltages = Array.from(simulationResult.nodeVoltages.values()).map(Math.abs);
+    return voltages.length > 0 ? Math.max(DEFAULT_MAX_VOLTAGE, ...voltages) : DEFAULT_MAX_VOLTAGE;
+  }, [simulationResult]);
 
   return (
     <g className="voltage-overlay" style={{ pointerEvents: 'none' }}>
