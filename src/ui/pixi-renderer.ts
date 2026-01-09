@@ -7,7 +7,7 @@ import {
   FederatedPointerEvent,
   ColorMatrixFilter,
 } from 'pixi.js';
-import type { AnyComponent, Position, SimulationResult, CircuitError } from '@/core/types';
+import type { AnyComponent, Position, SimulationResult, CircuitError, Resistor, LED } from '@/core/types';
 import { ComponentType, ErrorType } from '@/core/types';
 import { BreadboardLayout } from '@/core/breadboard-layout';
 import { voltageToColor } from './voltage-colors';
@@ -1403,8 +1403,38 @@ export class PixiRenderer {
   private renderResistor(graphics: Graphics, component: AnyComponent, positions: Position[]): void {
     if (positions.length < 2 || component.type !== ComponentType.RESISTOR) return;
 
+    const resistor = component as Resistor;
     const start = this.positionToPixels(positions[0]);
     const end = this.positionToPixels(positions[1]);
+    
+    // Check if resistor is bent (pins not in straight line or span changed significantly)
+    const isBent = this.isComponentBent(positions);
+    
+    if (isBent) {
+      this.renderBentResistor(graphics, resistor, start, end);
+    } else {
+      this.renderStraightResistor(graphics, resistor, start, end);
+    }
+  }
+
+  /**
+   * Check if component legs are bent (not in original straight configuration)
+   */
+  private isComponentBent(positions: Position[]): boolean {
+    if (positions.length !== 2) return false;
+    
+    const rowDiff = Math.abs(positions[1].row - positions[0].row);
+    const colDiff = Math.abs(positions[1].col - positions[0].col);
+    
+    // Component is bent if both row and column differ (diagonal placement)
+    // or if the span is unusual (not the typical 5-hole resistor span)
+    return (rowDiff > 0 && colDiff > 0) || (rowDiff === 0 && colDiff === 0);
+  }
+
+  /**
+   * Render straight resistor (original rendering)
+   */
+  private renderStraightResistor(graphics: Graphics, component: Resistor, start: {x: number, y: number}, end: {x: number, y: number}): void {
     const centerX = (start.x + end.x) / 2;
     const centerY = (start.y + end.y) / 2;
 
@@ -1472,6 +1502,96 @@ export class PixiRenderer {
   }
 
   /**
+   * Render bent resistor with curved leads
+   */
+  private renderBentResistor(graphics: Graphics, component: Resistor, start: {x: number, y: number}, end: {x: number, y: number}): void {
+    const bodyWidth = 60;
+    const bodyHeight = 20;
+    const shadowOffset = 2;
+
+    // Calculate body position (offset from midpoint toward start pin)
+    const midX = (start.x + end.x) / 2;
+    const midY = (start.y + end.y) / 2;
+    
+    // Position body slightly toward the start pin
+    const bodyOffsetRatio = 0.3;
+    const bodyX = start.x + (midX - start.x) * (1 + bodyOffsetRatio);
+    const bodyY = start.y + (midY - start.y) * (1 + bodyOffsetRatio);
+
+    // Draw bent leads using curves
+    // Lead 1: from start to body
+    const cp1x = start.x + (bodyX - start.x) * 0.5;
+    const cp1y = start.y + (bodyY - start.y) * 0.5;
+    
+    // Lead shadow
+    graphics.moveTo(start.x + shadowOffset, start.y + shadowOffset);
+    graphics.quadraticCurveTo(
+      cp1x + shadowOffset, cp1y + shadowOffset,
+      bodyX - bodyWidth / 2 + shadowOffset, bodyY + shadowOffset
+    );
+    graphics.stroke({ width: 2, color: 0x000000, alpha: 0.3 });
+    
+    // Main lead
+    graphics.moveTo(start.x, start.y);
+    graphics.quadraticCurveTo(cp1x, cp1y, bodyX - bodyWidth / 2, bodyY);
+    graphics.stroke({ width: 2, color: 0x888888 });
+
+    // Lead 2: from body to end
+    const cp2x = bodyX + (end.x - bodyX) * 0.5;
+    const cp2y = bodyY + (end.y - bodyY) * 0.5;
+    
+    // Lead shadow
+    graphics.moveTo(bodyX + bodyWidth / 2 + shadowOffset, bodyY + shadowOffset);
+    graphics.quadraticCurveTo(
+      cp2x + shadowOffset, cp2y + shadowOffset,
+      end.x + shadowOffset, end.y + shadowOffset
+    );
+    graphics.stroke({ width: 2, color: 0x000000, alpha: 0.3 });
+    
+    // Main lead
+    graphics.moveTo(bodyX + bodyWidth / 2, bodyY);
+    graphics.quadraticCurveTo(cp2x, cp2y, end.x, end.y);
+    graphics.stroke({ width: 2, color: 0x888888 });
+
+    // Body shadow
+    graphics.rect(
+      bodyX - bodyWidth / 2 + shadowOffset,
+      bodyY - bodyHeight / 2 + shadowOffset,
+      bodyWidth,
+      bodyHeight
+    );
+    graphics.fill({ color: 0x000000, alpha: 0.3 });
+
+    // Body with gradient-like appearance
+    graphics.rect(bodyX - bodyWidth / 2, bodyY - bodyHeight / 2, bodyWidth, bodyHeight);
+    graphics.fill(0xd4a574);
+    
+    // Top highlight for 3D effect
+    graphics.rect(bodyX - bodyWidth / 2, bodyY - bodyHeight / 2, bodyWidth, bodyHeight / 3);
+    graphics.fill({ color: 0xf0c080, alpha: 0.3 });
+    
+    // Outline
+    graphics.rect(bodyX - bodyWidth / 2, bodyY - bodyHeight / 2, bodyWidth, bodyHeight);
+    graphics.stroke({ width: 2, color: 0x8b6f47 });
+
+    // Color bands
+    const bands = resistanceToColorBands(component.resistance);
+    const bandSpacing = bodyWidth / (bands.length + 1);
+    
+    bands.forEach((band: ColorBand, index: number) => {
+      const rgb = COLOR_TO_RGB[band.color];
+      const color = this.parseColor(rgb);
+      const x = bodyX - bodyWidth / 2 + bandSpacing * (index + 1);
+      graphics.rect(x - 2, bodyY - bodyHeight / 2, 4, bodyHeight);
+      graphics.fill(color);
+    });
+    
+    // Visual indicator that component is bent (subtle highlight)
+    graphics.circle(bodyX, bodyY - bodyHeight / 2 - 8, 4);
+    graphics.fill({ color: 0xffaa00, alpha: 0.6 });
+  }
+
+  /**
    * Render LED with enhanced appearance, translucency, and glow effect
    */
   private renderLED(
@@ -1483,8 +1603,32 @@ export class PixiRenderer {
   ): void {
     if (positions.length < 2 || component.type !== ComponentType.LED) return;
 
+    const led = component as LED;
     const start = this.positionToPixels(positions[0]);
     const end = this.positionToPixels(positions[1]);
+    
+    // Check if LED is bent
+    const isBent = this.isComponentBent(positions);
+    
+    if (isBent) {
+      this.renderBentLED(graphics, led, start, end, simulation, positionToNode, positions);
+    } else {
+      this.renderStraightLED(graphics, led, start, end, simulation, positionToNode, positions);
+    }
+  }
+
+  /**
+   * Render straight LED (original rendering)
+   */
+  private renderStraightLED(
+    graphics: Graphics,
+    component: LED,
+    start: {x: number, y: number},
+    end: {x: number, y: number},
+    simulation: SimulationResult | null,
+    positionToNode: Map<string, string> | undefined,
+    positions: Position[]
+  ): void {
     const centerX = (start.x + end.x) / 2;
     const centerY = (start.y + end.y) / 2;
     const radius = 15;
@@ -1596,6 +1740,138 @@ export class PixiRenderer {
     graphics.stroke({ width: 2, color: 0xff0000 });
   }
 
+  /**
+   * Render bent LED with curved leads
+   */
+  private renderBentLED(
+    graphics: Graphics,
+    component: LED,
+    start: {x: number, y: number},
+    end: {x: number, y: number},
+    simulation: SimulationResult | null,
+    positionToNode: Map<string, string> | undefined,
+    positions: Position[]
+  ): void {
+    const radius = 15;
+    const shadowOffset = 2;
+
+    // Calculate body position (offset from midpoint)
+    const midX = (start.x + end.x) / 2;
+    const midY = (start.y + end.y) / 2;
+    
+    // LED body color and state calculation (same as straight LED)
+    let ledColor = 0xff4444;
+    if (component.forwardVoltage >= 3.0) {
+      ledColor = 0x4444ff;
+    } else if (component.forwardVoltage >= 2.0) {
+      ledColor = 0xffff44;
+    }
+
+    let ledCurrent = 0;
+    let isOn = false;
+    if (simulation?.success && positionToNode) {
+      const pos0Key = `${positions[0].row},${positions[0].col}`;
+      const pos1Key = `${positions[1].row},${positions[1].col}`;
+      const node0 = positionToNode.get(pos0Key);
+      const node1 = positionToNode.get(pos1Key);
+      
+      if (node0 && node1) {
+        const v0 = simulation.nodeVoltages.get(node0) ?? 0;
+        const v1 = simulation.nodeVoltages.get(node1) ?? 0;
+        const voltageDrop = Math.abs(v0 - v1);
+        
+        if (voltageDrop > component.forwardVoltage * PixiRenderer.LED_TURN_ON_THRESHOLD) {
+          isOn = true;
+          const excessVoltage = voltageDrop - component.forwardVoltage;
+          ledCurrent = Math.min(
+            excessVoltage / PixiRenderer.ASSUMED_SERIES_RESISTANCE_OHMS,
+            component.maxCurrent
+          );
+        }
+      }
+    }
+
+    // Draw bent leads using curves
+    const cp1x = start.x + (midX - start.x) * 0.5;
+    const cp1y = start.y + (midY - start.y) * 0.5;
+    const cp2x = midX + (end.x - midX) * 0.5;
+    const cp2y = midY + (end.y - midY) * 0.5;
+
+    // Lead shadows
+    graphics.moveTo(start.x + shadowOffset, start.y + shadowOffset);
+    graphics.quadraticCurveTo(
+      cp1x + shadowOffset, cp1y + shadowOffset,
+      midX + shadowOffset, midY - radius + shadowOffset
+    );
+    graphics.stroke({ width: 2, color: 0x000000, alpha: 0.3 });
+    
+    graphics.moveTo(midX + shadowOffset, midY + radius + shadowOffset);
+    graphics.quadraticCurveTo(
+      cp2x + shadowOffset, cp2y + shadowOffset,
+      end.x + shadowOffset, end.y + shadowOffset
+    );
+    graphics.stroke({ width: 2, color: 0x000000, alpha: 0.3 });
+
+    // Main leads
+    graphics.moveTo(start.x, start.y);
+    graphics.quadraticCurveTo(cp1x, cp1y, midX, midY - radius);
+    graphics.stroke({ width: 2, color: 0x888888 });
+    
+    graphics.moveTo(midX, midY + radius);
+    graphics.quadraticCurveTo(cp2x, cp2y, end.x, end.y);
+    graphics.stroke({ width: 2, color: 0x888888 });
+
+    // Shadow
+    graphics.circle(midX + shadowOffset, midY + shadowOffset, radius);
+    graphics.fill({ color: 0x000000, alpha: 0.3 });
+
+    // Glow effect when LED is on
+    if (isOn && ledCurrent > 0) {
+      const glowIntensity = Math.min(ledCurrent / component.maxCurrent, 1.0);
+      const glowRadius = radius + 15 * glowIntensity;
+      
+      graphics.circle(midX, midY, glowRadius);
+      graphics.fill({ color: ledColor, alpha: 0.15 * glowIntensity });
+      
+      graphics.circle(midX, midY, radius + 8 * glowIntensity);
+      graphics.fill({ color: ledColor, alpha: 0.3 * glowIntensity });
+      
+      graphics.circle(midX, midY, radius + 3);
+      graphics.fill({ color: ledColor, alpha: 0.5 * glowIntensity });
+    }
+
+    // Body (translucent) - brighter when on
+    const bodyAlpha = isOn ? 0.7 : 0.4;
+    graphics.circle(midX, midY, radius);
+    graphics.fill({ color: ledColor, alpha: bodyAlpha });
+    
+    // Inner core (brighter) - much brighter when on
+    const coreAlpha = isOn ? 0.95 : 0.6;
+    graphics.circle(midX, midY, radius * 0.6);
+    graphics.fill({ color: ledColor, alpha: coreAlpha });
+    
+    // Highlight for translucent appearance
+    graphics.circle(midX - radius / 3, midY - radius / 3, radius / 3);
+    graphics.fill({ color: 0xffffff, alpha: isOn ? 0.7 : 0.5 });
+    
+    // Outline
+    graphics.circle(midX, midY, radius);
+    graphics.stroke({ width: 2, color: 0x888888 });
+
+    // + symbol for anode
+    const plusSize = 6;
+    const plusY = midY - radius - 8;
+    graphics.moveTo(midX, plusY - plusSize);
+    graphics.lineTo(midX, plusY + plusSize);
+    graphics.stroke({ width: 2, color: 0xff0000 });
+    graphics.moveTo(midX - plusSize, plusY);
+    graphics.lineTo(midX + plusSize, plusY);
+    graphics.stroke({ width: 2, color: 0xff0000 });
+    
+    // Visual indicator that component is bent (subtle highlight)
+    graphics.circle(midX, midY + radius + 8, 4);
+    graphics.fill({ color: 0xffaa00, alpha: 0.6 });
+  }
   /**
    * Render power supply
    */
