@@ -10,6 +10,7 @@ import type { Position } from '@/core/types';
 import { BreadboardSvg } from './BreadboardSvg';
 import { getBreadboardDimensions, LABEL_PADDING_X, LABEL_PADDING_Y } from './geometry/breadboard-layout';
 import { ComponentsLayer } from './components/ComponentsLayer';
+import { ReteGraphLayer } from './rete/ReteGraphLayer';
 
 export interface BreadboardSceneProps {
   controller: BreadboardController;
@@ -210,6 +211,22 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
     }
   }, [state.breadboard.selectedComponentId, controller]);
 
+  // Handle Rete transform changes (DR-3: Rete is source of truth for pan/zoom)
+  // Currently disabled to maintain existing SVG pan/zoom functionality
+  // TODO: Enable after validating Rete coordinate alignment
+  const handleReteTransformChange = useCallback(
+    (_x: number, _y: number, _zoom: number) => {
+      // Future: sync SVG viewBox from Rete transform
+      // setViewBox({
+      //   x: x,
+      //   y: y,
+      //   width: totalWidth / zoom,
+      //   height: totalHeight / zoom,
+      // });
+    },
+    []
+  );
+
   return (
     <div
       style={{
@@ -220,6 +237,7 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        position: 'relative',
       }}
     >
       <svg
@@ -248,6 +266,12 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
           <ComponentsLayer controller={controller} svgRef={svgRef} />
         </g>
       </svg>
+      {/* Rete graph layer overlaid on top */}
+      <ReteGraphLayer 
+        controller={controller} 
+        svgRef={svgRef}
+        onTransformChange={handleReteTransformChange}
+      />
     </div>
   );
 };
