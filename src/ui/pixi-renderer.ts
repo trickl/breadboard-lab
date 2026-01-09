@@ -1004,7 +1004,7 @@ export class PixiRenderer {
   private addPinHitAreas(container: Container, component: AnyComponent): void {
     // Skip if component is rigid or doesn't support pin repositioning
     const libraryEntry = component.libraryId ? 
-      ALL_LIBRARY_ENTRIES.find((e: ComponentLibraryEntry) => e.id === component.libraryId) : null;
+      ALL_LIBRARY_ENTRIES.find(e => e.id === component.libraryId) : null;
     
     if (libraryEntry && libraryEntry.flexibility === 'rigid') {
       return;
@@ -1012,6 +1012,8 @@ export class PixiRenderer {
 
     // Add circular hit areas at each pin position
     const pinHitRadius = 10; // px - larger than visual hole for easier interaction
+    const PIN_HOVER_COLOR = 0xffff00; // Transparent yellow for hover state
+    const PIN_HOVER_ACTIVE_COLOR = 0x00ffff; // Cyan for hover
     
     component.positions.forEach((pos, pinIndex) => {
       const pixels = this.positionToPixels(pos);
@@ -1019,7 +1021,7 @@ export class PixiRenderer {
       // Create a circular hit area for the pin
       const pinHitArea = new Graphics();
       pinHitArea.circle(0, 0, pinHitRadius);
-      pinHitArea.fill({ color: 0xffff00, alpha: 0.0 }); // Transparent but interactive
+      pinHitArea.fill({ color: PIN_HOVER_COLOR, alpha: 0.0 }); // Transparent but interactive
       pinHitArea.position.set(pixels.x, pixels.y);
       
       pinHitArea.eventMode = 'static';
@@ -1038,13 +1040,13 @@ export class PixiRenderer {
       pinHitArea.on('pointerenter', () => {
         pinHitArea.clear();
         pinHitArea.circle(0, 0, pinHitRadius);
-        pinHitArea.fill({ color: 0x00ffff, alpha: 0.3 });
+        pinHitArea.fill({ color: PIN_HOVER_ACTIVE_COLOR, alpha: 0.3 });
       });
       
       pinHitArea.on('pointerleave', () => {
         pinHitArea.clear();
         pinHitArea.circle(0, 0, pinHitRadius);
-        pinHitArea.fill({ color: 0xffff00, alpha: 0.0 });
+        pinHitArea.fill({ color: PIN_HOVER_COLOR, alpha: 0.0 });
       });
       
       container.addChild(pinHitArea);

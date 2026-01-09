@@ -156,7 +156,7 @@ export class BreadboardApp {
   private currentTheme: 'light' | 'dark' = 'dark'; // Current theme
 
   constructor(private container: HTMLElement) {
-    this.state = { components: [], selectedComponentId: null };
+    this.state = { components: [], selectedComponentId: null, selectedPinIndex: null };
     this.extractor = new CircuitExtractor();
     this.simulator = new CircuitSimulator();
     this.pixiRenderer = new PixiRenderer();
@@ -1934,7 +1934,8 @@ export class BreadboardApp {
         maxDist = Math.max(maxDist, dist);
       }
     }
-    return Math.round(maxDist); // Round to nearest hole
+    // Round Euclidean distance to nearest integer for comparison with constraints
+    return Math.round(maxDist);
   }
 
   /**
