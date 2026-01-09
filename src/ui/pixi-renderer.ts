@@ -513,16 +513,14 @@ export class PixiRenderer {
 
   /**
    * Render X-Ray Mode overlay showing internal breadboard connectivity
+   * 
    * Shows power rails (vertical connections) and terminal strips (horizontal connections)
-   * Enhanced to clearly reveal internal connections with high-visibility traces
-   */
-  /**
-   * Render X-Ray Mode overlay showing internal breadboard connectivity
+   * with high-visibility gold traces to reveal internal breadboard connections.
    * 
    * Uses logical grid positions (row, col) to ensure correct rendering at all breadboard orientations.
    * Previously used absolute pixel coordinates which failed at rotated angles (90°, 180°, 270°).
    * 
-   * Fix: Convert rail and strip endpoints to logical positions, then use positionToPixels()
+   * Implementation: Convert rail and strip endpoints to logical positions, then use positionToPixels()
    * for coordinate conversion. This ensures traces rotate naturally with the breadboard.
    */
   private renderInternalConnectivity(): void {
