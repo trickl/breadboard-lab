@@ -3,7 +3,7 @@
 Source Review: `planning/reviews/review-09-01-26-remove-pixijs-react-rete-rendering.md`
 
 ## Status
-In progress - Milestones 0, 1, 2, 3, and 4 complete (5 of 7 milestones, 71% complete)
+In progress - Milestones 0, 1, 2, 3, 4, and 5 complete (6 of 7 milestones, 86% complete)
 
 ## Completed Actions
 
@@ -1156,28 +1156,446 @@ This milestone establishes the Rete graph layer foundation for:
 - **Milestone 6**: Overlays can render on top of aligned Rete layer
 - **Milestone 7**: PixiJS removal unblocked
 
+### PR #495: Implement interactive connection creation in React UI (Milestone 5)
+**Merged:** 2026-01-09  
+**Issue:** #494  
+**Queue artefact:** `planning/issue_queue/processed/review-pixijs-removal-milestone-5-interactive-wiring.md`
+
+#### Review Items Addressed
+This PR fully implements **Milestone 5 — Interactive wiring via Rete** from the source review (lines 336-341).
+
+**Note:** Despite the milestone name referencing "Rete", this PR implements pure SVG connection rendering (not Rete connection objects) per review guidance (lines 212-217: "If Rete connection visuals can't match the breadboard style, render connections ourselves in SVG").
+
+**Specific items completed:**
+
+1. **Connection state management** (lines 336-341, controller requirement)
+   - ✅ Created `Connection` interface with connection metadata:
+     - `id`: Unique connection identifier
+     - `sourceComponentId`: Component the connection originates from
+     - `sourceLegIndex`: Which leg/pin on the source component
+     - `sourcePosition`: Grid position of source leg
+     - `targetPosition`: Grid position of target breadboard hole
+   - ✅ Created `ConnectionDragState` interface with drag tracking:
+     - `sourceComponentId`, `sourceLegIndex`, `sourcePosition`: Connection source
+     - `currentPointerPosition`: Current pointer location in SVG coordinates
+     - `hoveredHolePosition`: Grid position of currently hovered hole (or null)
+     - `isValidTarget`: Whether current hovered hole is valid (not occupied)
+   - ✅ Added `connections` state domain to `AppState`:
+     - `list: Connection[]`: All established connections
+     - `occupiedHoles: Map<string, string>`: Tracks which holes have connections (key: "row,col", value: connectionId)
+     - `selectedConnectionId`: Currently selected connection (for future deletion/editing)
+     - `rerouteDragState`: State for connection rerouting (future feature)
+   - ✅ Added `connectionDrag` state domain to `AppState`:
+     - `dragState: ConnectionDragState | null`: Active connection drag state
+   - Location: `src/ui-controller/types.ts` (lines 29-34, 36-38, 104-119)
+
+2. **Controller actions for connection workflow** (lines 242-270, state machine requirement)
+   - ✅ Implemented 5 new connection-related actions in controller:
+     - `CONNECTION_DRAG_STARTED`: Initiated when user pointer-down on leg circle
+       - Payload: `{ componentId, legIndex, position }`
+       - Creates `ConnectionDragState` with source information
+     - `CONNECTION_DRAG_MOVED`: Dispatched during pointer move
+       - Payload: `{ pointerPosition, hoveredHole, isValid }`
+       - Updates drag state with current pointer and hovered hole
+       - `isValid` computed by checking `isHoleOccupied()` selector
+     - `CONNECTION_DRAG_COMPLETED`: Dispatched on pointer up at valid hole
+       - Payload: `{ targetPosition }`
+       - Creates new `Connection` object and adds to state
+       - Updates `occupiedHoles` map for target hole
+       - Clears `connectionDrag.dragState`
+       - Marks circuit as modified
+     - `CONNECTION_DRAG_CANCELLED`: Dispatched on Escape key or pointer up at invalid location
+       - Clears `connectionDrag.dragState` without creating connection
+     - `CONNECTION_DELETED`: Dispatched when user deletes connection
+       - Payload: `{ connectionId }`
+       - Removes connection from `connections.list`
+       - Removes entry from `occupiedHoles` map
+       - Marks circuit as modified
+   - ✅ All actions implemented in controller reducer with immutable state updates
+   - Location: `src/ui-controller/types.ts` (lines 131-134), `src/ui-controller/breadboard-controller.ts` (lines 191-263)
+
+3. **Hole occupancy tracking** (line 341, one-connector-per-hole constraint)
+   - ✅ Implemented `occupiedHoles: Map<string, string>` in connections state
+   - ✅ Map key format: `"${row},${col}"` for O(1) lookup performance
+   - ✅ Map value: connection ID that occupies the hole
+   - ✅ Map updated atomically with connection creation/deletion
+   - ✅ Created `isHoleOccupied()` selector for validation:
+     ```typescript
+     export function isHoleOccupied(state: AppState, position: Position): boolean {
+       const key = `${position.row},${position.col}`;
+       return state.connections.occupiedHoles.has(key);
+     }
+     ```
+   - ✅ Selector used during drag to validate target holes
+   - Location: `src/ui-controller/types.ts` (line 31), `src/ui-controller/selectors.ts` (lines 70-73)
+
+4. **Connection selectors** (derived data queries)
+   - ✅ Created `getConnections(state)`: Returns all connections
+   - ✅ Created `getConnectionDragState(state)`: Returns active drag state
+   - ✅ Created `isHoleOccupied(state, position)`: Checks if hole is occupied
+   - ✅ All selectors are pure functions (no side effects)
+   - Location: `src/ui-controller/selectors.ts` (lines 70-81)
+
+5. **Interactive leg circles for drag initiation** (lines 242-270, interaction requirement)
+   - ✅ Modified `ComponentsLayer.tsx` to add interactive leg circles
+   - ✅ Each component leg renders transparent circle overlay:
+     - Radius: 8px (slightly larger than visual leg circles for easier targeting)
+     - Fill: transparent (invisible but interactive)
+     - Cursor: crosshair (visual feedback that leg is draggable)
+     - Class: `component-leg` for styling/testing
+   - ✅ `onPointerDown` handler on each leg circle:
+     - Stops event propagation (prevents component drag)
+     - Dispatches `CONNECTION_DRAG_STARTED` with component ID, leg index, and position
+     - Sets `isConnectionDraggingRef.current = true` to prevent component selection
+   - ✅ Leg circles positioned exactly at grid positions using `positionToPixels()`
+   - Location: `src/ui-react/components/ComponentsLayer.tsx` (lines 122-142, 313-331)
+
+6. **Document-level pointer handlers for drag** (follows Milestone 3 pattern)
+   - ✅ Modified `handlePointerMove` in ComponentsLayer to handle connection drag:
+     - Detects active connection drag via `state.connectionDrag.dragState`
+     - Converts screen coordinates to SVG coordinates using `screenToSVG()`
+     - Finds nearest hole using `pixelsToPosition()` from breadboard-layout
+     - Validates hole position using `isValidPosition()`
+     - Checks if hole is occupied using `isHoleOccupied()` selector
+     - Dispatches `CONNECTION_DRAG_MOVED` with pointer position, hovered hole, and validity
+   - ✅ Modified `handlePointerUp` in ComponentsLayer to complete/cancel drag:
+     - If valid target: Dispatches `CONNECTION_DRAG_COMPLETED` with target position
+     - If invalid target: Dispatches `CONNECTION_DRAG_CANCELLED`
+     - Clears `isConnectionDraggingRef.current`
+   - ✅ Escape key handler cancels active connection drag (already existed for component drag)
+   - Location: `src/ui-react/components/ComponentsLayer.tsx` (lines 145-261)
+
+7. **ConnectionDragPreview component** (visual feedback requirement, line 341)
+   - ✅ Created `ConnectionDragPreview.tsx` React component
+   - ✅ Renders dashed preview line from source leg to pointer:
+     - Source: `positionToPixels(dragState.sourcePosition)` (leg position in pixels)
+     - Target: `dragState.currentPointerPosition` (pointer position in SVG coordinates)
+     - Stroke: Green (#00ff00) if valid target, Red (#ff0000) if invalid/occupied
+     - Stroke width: 2px
+     - Stroke dash: "4 4" (dashed line for preview indication)
+     - Opacity: 0.7 (semi-transparent)
+   - ✅ Renders highlight circle on hovered hole:
+     - Only shown when `dragState.hoveredHolePosition` exists
+     - Positioned at hovered hole using `positionToPixels()`
+     - Radius: 10px (slightly larger than hole for visibility)
+     - Fill: Green or Red matching preview line
+     - Opacity: 0.3 (subtle highlight)
+   - ✅ Pointer events disabled on preview (doesn't interfere with drag)
+   - Location: `src/ui-react/components/ConnectionDragPreview.tsx`
+
+8. **ConnectionsLayer component** (established connection rendering)
+   - ✅ Created `ConnectionsLayer.tsx` React component
+   - ✅ Subscribes to controller state via `controller.subscribe(setState)`
+   - ✅ Renders all connections from `state.connections.list`
+   - ✅ Each connection rendered as SVG `<line>`:
+     - Source: `positionToPixels(connection.sourcePosition)` (leg position)
+     - Target: `positionToPixels(connection.targetPosition)` (hole position)
+     - Stroke: Blue (#3399ff) if selected, Gray (#888) if not selected
+     - Stroke width: 3px if selected, 2px if not selected
+     - Opacity: 0.8 (semi-transparent to see underlying substrate)
+     - Pointer events: 'stroke' (enables click selection in future)
+   - ✅ Z-order: Connections render before components (lines 212-217 guidance)
+   - Location: `src/ui-react/components/ConnectionsLayer.tsx`
+
+9. **Integration into BreadboardScene** (layer ordering)
+   - ✅ Modified `BreadboardScene.tsx` to add `<ConnectionsLayer>` component
+   - ✅ Layer order (bottom to top):
+     1. `<BreadboardSvg>` (substrate with holes/rails/labels)
+     2. `<ConnectionsLayer>` (established connections) ← NEW
+     3. `<ComponentsLayer>` (components + connection drag preview)
+     4. `<ReteGraphLayer>` (Rete nodes overlay)
+   - ✅ ConnectionsLayer receives `controller` prop for state subscription
+   - ✅ ConnectionDragPreview rendered inside ComponentsLayer (above connections)
+   - Location: `src/ui-react/BreadboardScene.tsx` (lines 13, 275)
+
+10. **Coordinate system integration** (Decision Record DR-3, lines 110-121)
+    - ✅ All connection rendering uses shared coordinate system helpers:
+      - `positionToPixels()`: Grid position → pixel coordinates (26px spacing)
+      - `pixelsToPosition()`: Pixel coordinates → nearest grid position
+      - `isValidPosition()`: Validates grid position is on breadboard
+    - ✅ Connection endpoints align perfectly with breadboard holes
+    - ✅ Connection source positions align perfectly with component legs
+    - ✅ Preview line follows pointer in SVG coordinate space (via `screenToSVG()`)
+    - ✅ No coordinate drift or misalignment
+    - Location: `src/ui-react/geometry/breadboard-layout.ts` (reused from Milestone 2)
+
+11. **Escape key cancellation** (interaction requirement, lines 242-270)
+    - ✅ Existing Escape key handler in BreadboardScene extended to handle connection drag
+    - ✅ Detects active connection drag via `state.connectionDrag.dragState`
+    - ✅ Dispatches `CONNECTION_DRAG_CANCELLED` to abort drag
+    - ✅ Preview line disappears immediately
+    - ✅ User can restart drag from any leg
+    - Location: `src/ui-react/BreadboardScene.tsx` (lines 162-201, escape handler)
+
+#### Acceptance Criteria Met (lines 336-341)
+
+✅ **Drag leg → hole creates connection** (line 340)
+   - Pointer down on leg circle starts drag
+   - Preview line follows pointer during drag
+   - Hover over hole highlights it with validity feedback
+   - Pointer up on valid hole creates connection
+   - Connection persists in controller state
+   - Connection renders as solid line between leg and hole
+   - Connection visible immediately after creation
+
+✅ **One-connector-per-hole constraint enforced with clear feedback** (line 341)
+   - `occupiedHoles` Map tracks which holes have connections
+   - `isHoleOccupied()` selector checks occupancy during drag
+   - Preview line turns RED when hovering over occupied hole
+   - Highlight circle turns RED when hovering over occupied hole
+   - Cannot complete drag on occupied hole (dispatches `CONNECTION_DRAG_CANCELLED`)
+   - Clear visual distinction between valid (green) and invalid (red) targets
+   - Constraint enforced atomically in controller reducer
+
+#### Supporting Requirements Met
+
+**Connection visual requirements (lines 212-217):**
+- ✅ Pure SVG rendering (no Rete connection objects)
+- ✅ Connection endpoints coordinate in world space (positionToPixels)
+- ✅ Connections align visually with holes and legs
+- ✅ "Render connections ourselves in SVG" approach taken per guidance
+
+**Interaction model requirements (lines 242-270):**
+- ✅ Explicit drag mode: `draggingConnection` (via `connectionDrag.dragState`)
+- ✅ Entry condition: Pointer down on leg circle
+- ✅ Pointer move behavior: Update preview line and validate target
+- ✅ Commit behavior: Create connection if valid hole
+- ✅ Cancel behavior: Abort drag if invalid hole or Escape key
+
+**Coordinate alignment (Decision Record DR-3, lines 110-121):**
+- ✅ Single world space coordinate system used throughout
+- ✅ Connection rendering uses same helpers as substrate and components
+- ✅ 26px hole spacing maintained (HOLE_SPACING constant)
+- ✅ No coordinate transform mismatches
+
+#### Changes Summary
+
+**New files:**
+- `src/ui-react/components/ConnectionsLayer.tsx` (58 lines) - Renders established connections
+- `src/ui-react/components/ConnectionDragPreview.tsx` (46 lines) - Renders drag preview with validity feedback
+
+**Modified files:**
+- `src/ui-controller/types.ts` - Added `Connection`, `ConnectionDragState` interfaces, `connections` and `connectionDrag` state domains, 5 new action types
+- `src/ui-controller/breadboard-controller.ts` - Implemented 5 connection action handlers with hole occupancy tracking
+- `src/ui-controller/selectors.ts` - Added 3 connection-related selectors
+- `src/ui-controller/index.ts` - Added `connections` and `connectionDrag` initialization in `createInitialState()`
+- `src/ui-react/components/ComponentsLayer.tsx` - Added interactive leg circles, connection drag handlers, ConnectionDragPreview integration
+- `src/ui-react/BreadboardScene.tsx` - Added ConnectionsLayer to layer hierarchy
+
+**Files NOT changed (as intended):**
+- All simulation logic preserved (`src/core/**`)
+- All component library preserved (`src/library/**`)
+- All PixiJS rendering preserved (`src/ui/**`)
+- No changes to geometry helpers (`src/ui-react/geometry/**`)
+- No changes to Rete integration (`src/ui-react/rete/**`)
+
+#### Implementation Details
+
+**Connection creation flow:**
+1. User pointer down on component leg circle
+2. ComponentsLayer dispatches `CONNECTION_DRAG_STARTED` → controller updates `connectionDrag.dragState`
+3. React rerenders with ConnectionDragPreview visible
+4. User moves pointer → document pointer move handler dispatches `CONNECTION_DRAG_MOVED`
+5. Controller updates drag state with pointer position and hovered hole
+6. Preview line tracks pointer; highlight circle shows on hovered hole
+7. Color changes to green (valid) or red (invalid/occupied) based on `isValidTarget`
+8. User releases pointer → document pointer up handler checks validity
+9. If valid: Dispatch `CONNECTION_DRAG_COMPLETED` → controller creates Connection, updates occupiedHoles
+10. If invalid: Dispatch `CONNECTION_DRAG_CANCELLED` → controller clears drag state
+11. React rerenders with new connection in ConnectionsLayer (if created)
+
+**Hole occupancy tracking:**
+```typescript
+// On connection creation (CONNECTION_DRAG_COMPLETED):
+const targetKey = `${targetPosition.row},${targetPosition.col}`;
+newOccupiedHoles.set(targetKey, newConnection.id);
+
+// On connection deletion (CONNECTION_DELETED):
+const targetKey = `${connection.targetPosition.row},${connection.targetPosition.col}`;
+newOccupiedHoles.delete(targetKey);
+
+// Validation during drag:
+export function isHoleOccupied(state: AppState, position: Position): boolean {
+  const key = `${position.row},${position.col}`;
+  return state.connections.occupiedHoles.has(key);
+}
+```
+
+**Visual feedback logic:**
+```typescript
+// In ConnectionDragPreview:
+const strokeColor = dragState.isValidTarget ? '#00ff00' : '#ff0000';
+
+// isValidTarget computed in ComponentsLayer pointer move:
+const isValid = hoveredPosition 
+  && isValidPosition(hoveredPosition) 
+  && !isHoleOccupied(state, hoveredPosition);
+```
+
+**Layer z-order rationale:**
+- Connections render below components so component bodies are visible
+- Connection drag preview renders above components for clear visibility during drag
+- This matches review guidance (lines 212-217) about connection rendering
+
+#### Test Coverage
+
+Added 9 comprehensive tests for connection functionality:
+
+1. **Connection drag lifecycle** (lines 469-543):
+   - ✅ `should start connection drag` (lines 469-485)
+     - Verifies `CONNECTION_DRAG_STARTED` creates dragState with source info
+   - ✅ `should update connection drag position` (lines 486-509)
+     - Verifies `CONNECTION_DRAG_MOVED` updates pointer and hovered hole
+   - ✅ `should complete connection drag and create connection` (lines 510-533)
+     - Verifies `CONNECTION_DRAG_COMPLETED` creates Connection and updates occupiedHoles
+   - ✅ `should cancel connection drag` (lines 534-550)
+     - Verifies `CONNECTION_DRAG_CANCELLED` clears dragState without creating connection
+
+2. **Hole occupancy constraint** (lines 551-633):
+   - ✅ `should prevent connection to occupied hole during drag` (lines 551-569)
+     - Verifies drag validation detects occupied holes
+   - ✅ `should delete connection and clear occupied hole` (lines 570-599)
+     - Verifies `CONNECTION_DELETED` removes connection and clears occupiedHoles entry
+   - ✅ `should allow multiple connections from same leg to different holes` (lines 600-634)
+     - Verifies same source leg can connect to multiple different holes
+     - Verifies each target hole is tracked independently in occupiedHoles
+
+3. **Circuit modification tracking** (lines 635-673):
+   - ✅ `should mark circuit as changed when connection is created` (lines 635-653)
+     - Verifies `hasUnsavedChanges` flag set on connection creation
+   - ✅ `should mark circuit as changed when connection is deleted` (lines 654-673)
+     - Verifies `hasUnsavedChanges` flag set on connection deletion
+
+**Total test suite:** 34 tests passing (25 from previous milestones + 9 new connection tests)
+
+All tests run without DOM dependencies (pure controller logic).
+
+Location: `src/ui-controller/__tests__/breadboard-controller.test.ts` (lines 468-673)
+
+#### Visual Examples (from PR description)
+
+**Valid target hover (green feedback):**
+![Valid connection target with green preview line and highlight](https://github.com/user-attachments/assets/7d9c11f2-5942-4960-9454-abebd7069cf5)
+- Dashed green line from LED leg to hovered hole
+- Green highlight circle on target hole
+- Indicates valid drop target
+
+**Completed connection:**
+![Established connection rendered as solid line](https://github.com/user-attachments/assets/a69e6781-a26d-43c2-bf78-284e2cd71add)
+- Solid gray line from LED leg to breadboard hole
+- Connection persists in controller state
+- Clean SVG rendering without Rete objects
+
+**Occupied hole constraint (red feedback):**
+![Invalid target with red preview line indicating occupied hole](https://github.com/user-attachments/assets/59ea1c33-0cba-47fe-a6c6-08366b9ed077)
+- Dashed red line from resistor leg to occupied hole
+- Red highlight circle on target hole
+- Clear visual indication that connection cannot be completed
+- One-connector-per-hole constraint enforced
+
+#### Verification
+
+**Access:** Navigate to `http://localhost:5173/?react=true`
+
+**Functionality verified:**
+- ✅ Component leg circles are interactive (cursor changes to crosshair)
+- ✅ Pointer down on leg circle starts connection drag
+- ✅ Preview line appears and follows pointer during drag
+- ✅ Hover over valid hole shows green preview and highlight
+- ✅ Hover over occupied hole shows red preview and highlight
+- ✅ Hover over non-hole area shows red preview (no highlight circle)
+- ✅ Release on valid hole creates connection (solid line appears)
+- ✅ Release on occupied hole cancels drag (no connection created)
+- ✅ Release on non-hole area cancels drag
+- ✅ Escape key cancels active drag
+- ✅ Multiple connections from same component leg work correctly
+- ✅ Cannot create multiple connections to same hole
+- ✅ Connections persist across component moves (connection endpoints update)
+- ✅ Pan/zoom still works correctly during and after connection creation
+- ✅ No performance issues with connections
+
+#### Architecture Notes
+
+**Design decision: Pure SVG vs Rete connections**
+
+The PR description explicitly states:
+> "Connections use pure SVG rendering (not Rete connection objects) for simplicity and aesthetic consistency per review guidance."
+
+This decision aligns with review lines 212-217:
+> "If Rete connection visuals can't match the breadboard style, render connections ourselves in SVG from `reteManager.getConnections()` as a temporary bridge."
+
+**Rationale:**
+- Rete connection rendering is designed for schematic-style node graphs
+- Breadboard connections need precise pixel-perfect alignment with holes
+- Pure SVG gives full control over styling and positioning
+- Simpler implementation without Rete connection plugin complexity
+- Future migration to Rete connections possible if needed
+
+**State management pattern:**
+
+The implementation follows the same pattern as component drag (Milestone 3):
+1. Local ref tracks drag state for immediate event handling
+2. Controller state stores authoritative drag state
+3. React rerenders on controller state changes
+4. Document-level pointer handlers manage drag lifecycle
+
+This pattern provides:
+- Predictable state updates (single source of truth)
+- Testable drag logic (controller tests don't need DOM)
+- Clean separation of concerns (view vs state)
+
+**Performance considerations:**
+
+Connection rendering is efficient because:
+- SVG `<line>` elements are lightweight
+- No per-connection event listeners (selection deferred to future)
+- Connections memoized via React rendering (only rerender on state change)
+- O(1) hole occupancy lookup via Map
+
+#### Notes on Review Requirements
+
+**Milestone 5 acceptance criteria (lines 336-341):**
+- ✅ Drag leg → hole: Fully implemented with preview and feedback
+- ✅ One-connector-per-hole: Enforced via occupiedHoles Map with O(1) lookup
+- ✅ Clear feedback: Green/red color coding on preview line and highlight circle
+
+**Connection rendering (lines 212-217):**
+- ✅ Pure SVG rendering chosen over Rete connections
+- ✅ Endpoints coordinate in world space (positionToPixels)
+- ✅ Alignment with breadboard verified visually
+
+**Interaction model (lines 242-270):**
+- ✅ Explicit `draggingConnection` mode via connectionDrag.dragState
+- ✅ Entry condition: Pointer down on leg circle
+- ✅ Commit/cancel behavior: Based on hole validity
+- ✅ Escape key cancellation: Implemented
+
+**Coordinate system consistency (lines 110-121):**
+- ✅ Single world space used throughout (26px spacing)
+- ✅ Shared geometry helpers (positionToPixels, pixelsToPosition)
+- ✅ No coordinate misalignment issues
+
+#### Next Steps Enabled
+
+This milestone completes the core interactive breadboard functionality:
+- **Milestone 6**: Overlays can now visualize current flow through connections
+- **Milestone 7**: PixiJS removal unblocked (all core interactions ported)
+
+**Connection features deferred to post-migration:**
+- Connection deletion via UI (click/select/delete)
+- Connection rerouting (drag connection endpoint)
+- Connection selection and multi-select
+- Connection properties (color, label)
+
+These features are planned but not blocking PixiJS removal.
+
 ## Remaining Work
 
-### Milestone 3 — Component rendering and manipulation (lines 321-328)
-**Status:** ✅ Complete (PR #483)  
-**Review items:** Lines 321-328
-
-All tasks completed as documented above.
-
-### Milestone 4 — Rete graph layer visible and aligned (lines 329-335)
-**Status:** ✅ Complete (PR #489)  
-**Review items:** Lines 329-335
-
-All tasks completed as documented below.
-
 ### Milestone 5 — Interactive wiring via Rete (lines 336-341)
-**Status:** Not started  
+**Status:** ✅ Complete (PR #495)  
 **Review items:** Lines 336-341
 
-Tasks:
-- Implement Phase-3-style connection creation (drag leg → hole)
-- Enforce one-connector-per-hole constraint
-- Provide clear visual feedback during connection
+All tasks completed as documented above.
 
 ### Milestone 6 — Overlays and explain panel parity (lines 342-350)
 **Status:** Not started  
@@ -1201,21 +1619,23 @@ Tasks:
 
 ## Notes
 
-- **No simulation changes:** All five PRs (#465, #471, #477, #483, #489) correctly avoided any changes to core simulation logic (`src/core/**`), component library (`src/library/**`), or existing PixiJS rendering (`src/ui/**`)
+- **No simulation changes:** All six PRs (#465, #471, #477, #483, #489, #495) correctly avoided any changes to core simulation logic (`src/core/**`), component library (`src/library/**`), or existing PixiJS rendering (`src/ui/**`)
 - **Backward compatibility:** Feature flag ensures safe incremental migration with ability to compare old and new UIs side-by-side
-- **Clean foundation:** React infrastructure (Milestone 0), controller layer (Milestone 1), breadboard substrate (Milestone 2), component rendering (Milestone 3), and Rete graph layer (Milestone 4) are complete
-- **Migration safety:** Milestones 0-4 of 7 complete (71% progress); the migration plan remains on track
-- **Test coverage:** 25 comprehensive controller tests ensure state management correctness without UI dependencies
+- **Clean foundation:** React infrastructure (Milestone 0), controller layer (Milestone 1), breadboard substrate (Milestone 2), component rendering (Milestone 3), Rete graph layer (Milestone 4), and interactive wiring (Milestone 5) are complete
+- **Migration safety:** Milestones 0-5 of 7 complete (86% progress); the migration plan remains on track
+- **Test coverage:** 34 comprehensive controller tests ensure state management correctness without UI dependencies (25 tests from Milestones 0-4, plus 9 new connection tests from Milestone 5)
 - **Performance validation:** 
   - SVG rendering strategy successfully handles 420 holes with efficient interaction (symbol reuse, single event surface, memoization)
   - Component rendering uses React.memo optimization
   - Coordinate transformations use efficient SVG CTM inverse method
   - Rete layer uses dynamic CSS transform for coordinate alignment
   - No Rete nodes created for breadboard holes (performance optimization per DR-2)
+  - Connection rendering uses lightweight SVG `<line>` elements with O(1) hole occupancy lookup
 - **Coordinate system consistency:** React/SVG implementation matches existing PixiJS coordinate system (26px hole spacing) to ensure future integration compatibility
 - **Coordinate synchronization:** Rete graph layer aligned with breadboard world space via dynamic CSS transform; SVG viewBox currently source of truth (Option B); migration path to Rete as source (Option A per DR-3) preserved via callback infrastructure
 - **Component interactions:** All seven interaction types (select, deselect, drag, snap, rotate via key, rotate via handle, delete) working correctly in React UI
-- **Rete integration:** Official `rete-react-plugin@^2.1.0` (MIT licensed) successfully integrated; component nodes sync with controller state; connections infrastructure ready for Milestone 5
+- **Connection interactions:** Interactive connection creation workflow (drag leg → hole) working with one-connector-per-hole constraint and clear validity feedback
+- **Rete integration:** Official `rete-react-plugin@^2.1.0` (MIT licensed) successfully integrated; component nodes sync with controller state; Rete connection rendering bypassed in favor of pure SVG for breadboard-appropriate styling
 - **Test components:** App.tsx includes test components for immediate verification; these should be removed once component palette is integrated
 
 ## Follow-up Actions
@@ -1224,7 +1644,8 @@ Tasks:
 2. ~~Begin Milestone 2: Render breadboard substrate in React/SVG~~ ✅ Complete (PR #477)
 3. ~~Begin Milestone 3: Component rendering and manipulation~~ ✅ Complete (PR #483)
 4. ~~Begin Milestone 4: Rete graph layer visible and aligned~~ ✅ Complete (PR #489)
-5. Begin Milestone 5: Interactive wiring via Rete (next priority)
-6. Keep feature flag active until Milestone 7 completes
-7. Monitor for any issues with dual-mode operation during migration
-8. Update this file as each subsequent milestone completes
+5. ~~Begin Milestone 5: Interactive wiring via Rete~~ ✅ Complete (PR #495)
+6. Begin Milestone 6: Overlays and explain panel parity (next priority)
+7. Keep feature flag active until Milestone 7 completes
+8. Monitor for any issues with dual-mode operation during migration
+9. Update this file as each subsequent milestone completes
