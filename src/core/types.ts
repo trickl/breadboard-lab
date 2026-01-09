@@ -149,6 +149,7 @@ export type AnyComponent = Resistor | LED | Wire | PowerSupply | Ground | Microp
 export interface BreadboardState {
   components: AnyComponent[];
   selectedComponentId: string | null;
+  selectedPinIndex?: number | null;
 }
 
 /**

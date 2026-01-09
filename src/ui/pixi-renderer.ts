@@ -56,6 +56,7 @@ export interface PixiEventHandlers {
   onConnectionClick?: (connectionId: string, event: FederatedPointerEvent) => void;
   onConnectionEndpointDragStart?: (connectionId: string, endpointType: 'source' | 'target', globalX: number, globalY: number) => void;
   onRotateHandleClick?: (componentId: string, event: FederatedPointerEvent) => void;
+  onPinDragStart?: (componentId: string, pinIndex: number, globalX: number, globalY: number) => void;
 }
 
 /**

@@ -195,3 +195,47 @@ export class EditPropertyCommand implements Command {
     };
   }
 }
+
+/**
+ * Command to reposition a single pin of a component
+ */
+export class RepositionPinCommand implements Command {
+  readonly description: string;
+
+  constructor(
+    private componentId: string,
+    private pinIndex: number,
+    private oldPosition: Position,
+    private newPosition: Position
+  ) {
+    this.description = `Reposition pin ${pinIndex}`;
+  }
+
+  execute(state: BreadboardState): BreadboardState {
+    return {
+      ...state,
+      components: state.components.map((c) => {
+        if (c.id === this.componentId) {
+          const newPositions = [...c.positions];
+          newPositions[this.pinIndex] = this.newPosition;
+          return { ...c, positions: newPositions };
+        }
+        return c;
+      }),
+    };
+  }
+
+  undo(state: BreadboardState): BreadboardState {
+    return {
+      ...state,
+      components: state.components.map((c) => {
+        if (c.id === this.componentId) {
+          const newPositions = [...c.positions];
+          newPositions[this.pinIndex] = this.oldPosition;
+          return { ...c, positions: newPositions };
+        }
+        return c;
+      }),
+    };
+  }
+}
