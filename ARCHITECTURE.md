@@ -4,6 +4,28 @@
 
 Breadboard Lab is a web-based electronics simulator built with clean architecture principles, strong typing, and testable logic. The system is divided into three main layers: Core (domain logic), UI (presentation), and Configuration.
 
+## Technology Stack
+
+**Current Implementation:** Vanilla TypeScript + PixiJS 8.6.6
+
+The application uses **PixiJS** as its rendering engine, **not React + Konva**. This architectural decision was made to:
+- Leverage WebGL acceleration for high-performance breadboard rendering
+- Avoid React framework overhead for a canvas-heavy application
+- Use a mature, well-documented 2D rendering library with excellent TypeScript support
+- Enable fine-grained control over rendering pipeline and hit detection
+
+**Core Technologies:**
+- **Language:** TypeScript 5.3+ (strict mode)
+- **Build Tool:** Vite 7.3+ (fast dev server, optimized production builds)
+- **Rendering:** PixiJS 8.6.6 (WebGL/Canvas with autoDetectRenderer)
+- **UI Framework:** Vanilla TypeScript with DOM manipulation (no React, no Vue)
+- **State Management:** Immutable component array pattern
+- **Testing:** Vitest (unit/integration), Playwright (visual regression)
+
+**Response to Review Feedback (2026-01-08, Section 7):**
+
+A review noted a perceived discrepancy between "intended" technology (React + Konva) and "actual" technology (PixiJS). This was based on outdated or incorrect assumptions. The application has been built with **vanilla TypeScript + PixiJS** from the beginning, and there is no incomplete migration. The current stack is the intended and final architecture for the MVP.
+
 ## Project Structure
 
 ```
@@ -16,7 +38,8 @@ breadboard-lab/
 │   │   ├── circuit-simulator.ts   # Voltage/current simulation
 │   │   └── __tests__/      # Unit tests for core logic
 │   ├── ui/                 # Presentation layer
-│   │   └── breadboard-app.ts      # Main UI application
+│   │   ├── breadboard-app.ts      # Main UI application (vanilla TypeScript)
+│   │   └── pixi-renderer.ts       # PixiJS rendering layer
 │   ├── main.ts             # Application entry point
 │   └── style.css           # Global styles
 ├── index.html              # HTML entry point
@@ -110,11 +133,22 @@ The core layer contains all domain logic and is completely independent of the UI
 
 **breadboard-app.ts**
 - Main application class managing UI state
-- Renders breadboard grid (300 holes)
-- Handles user interactions (component selection, placement)
+- Coordinates between user interactions and rendering layer
+- Handles user interactions (component selection, placement, dragging)
 - Updates circuit information display
 - Calls core layer for circuit extraction and simulation
 - Follows MVC-like pattern: state → render → update
+- Written in vanilla TypeScript (no React, no JSX)
+
+**pixi-renderer.ts**
+- PixiJS rendering layer for breadboard visualization
+- Renders breadboard grid (300 holes with WebGL acceleration)
+- Renders components (resistors, LEDs, wires, microprocessors, etc.)
+- Handles component graphics (resistor color bands, LED colors)
+- Implements voltage heatmap overlays
+- Implements X-ray mode (internal breadboard connections)
+- Custom hit detection for components and breadboard holes
+- All rendering uses PixiJS Graphics API (no HTML/CSS canvas overlay)
 
 ### Configuration
 
