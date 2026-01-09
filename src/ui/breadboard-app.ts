@@ -2221,8 +2221,15 @@ export class BreadboardApp {
     if (!breadboard) return;
 
     const rect = breadboard.getBoundingClientRect();
-    const mouseX = globalX - rect.left;
-    const mouseY = globalY - rect.top;
+    const rawMouseX = globalX - rect.left;
+    const rawMouseY = globalY - rect.top;
+    
+    // Transform coordinates from rotated canvas space to logical breadboard space
+    const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
+      rawMouseX,
+      rawMouseY,
+      this.breadboardOrientation
+    );
 
     // Initialize floating drag state for connection creation
     this.floatingDragState = {
