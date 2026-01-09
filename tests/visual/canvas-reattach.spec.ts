@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// Matches PixiRenderer constants; keep in sync if layout changes.
+// Matches React SVG breadboard layout constants
 const HOLE_SPACING = 20 + 3 * 2; // HOLE_SIZE + HOLE_MARGIN*2
 const LABEL_PADDING_X = 20;
 const LABEL_PADDING_Y = 25;
@@ -12,12 +12,12 @@ function holeCenter(col: number, row: number) {
   };
 }
 
-test('Placing a component does not blank the Pixi breadboard canvas', async ({ page }) => {
+test('Placing a component renders correctly in React SVG breadboard', async ({ page }) => {
   await page.goto('/');
 
-  // Wait for initial Pixi canvas
-  const canvas = page.locator('#breadboard canvas');
-  await expect(canvas).toBeVisible();
+  // Wait for initial React SVG breadboard
+  const svg = page.locator('svg.breadboard-svg');
+  await expect(svg).toBeVisible();
 
   // Select any component from the library (first card is fine)
   await page.click('#component-library-btn');
@@ -30,12 +30,12 @@ test('Placing a component does not blank the Pixi breadboard canvas', async ({ p
   const p1 = holeCenter(0, 0);
   const p2 = holeCenter(5, 0);
 
-  await canvas.click({ position: p1 });
-  await canvas.click({ position: p2 });
+  await svg.click({ position: p1 });
+  await svg.click({ position: p2 });
 
-  // The UI re-renders after placement; ensure the canvas is still present and visible.
-  await expect(page.locator('#breadboard canvas')).toBeVisible();
+  // The UI re-renders after placement; ensure the SVG is still present and visible.
+  await expect(page.locator('svg.breadboard-svg')).toBeVisible();
 
-  // Also ensure there is exactly one canvas attached under #breadboard.
-  await expect(page.locator('#breadboard canvas')).toHaveCount(1);
+  // Also ensure there is exactly one SVG breadboard element.
+  await expect(page.locator('svg.breadboard-svg')).toHaveCount(1);
 });
