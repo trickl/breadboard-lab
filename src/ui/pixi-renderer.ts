@@ -5,6 +5,7 @@ import {
   Text,
   TextStyle,
   FederatedPointerEvent,
+  ColorMatrixFilter,
 } from 'pixi.js';
 import type { AnyComponent, Position, SimulationResult, CircuitError } from '@/core/types';
 import { ComponentType, ErrorType } from '@/core/types';
@@ -508,78 +509,76 @@ export class PixiRenderer {
   /**
    * Render X-Ray Mode overlay showing internal breadboard connectivity
    * Shows power rails (vertical connections) and terminal strips (horizontal connections)
+   * Enhanced to clearly reveal internal connections with high-visibility traces
    */
   private renderInternalConnectivity(): void {
     const overlay = new Graphics();
     
-    // Set transparency for subtle visibility
-    overlay.alpha = 0.25;
+    const traceColor = 0xFFD700;
+    const traceAlpha = 0.8;
     
-    // Render power rails (vertical connectivity)
-    // Left negative rail (column 0) - Blue
-    overlay.fill({ color: 0x4444ff, alpha: 1 });
+    overlay.alpha = traceAlpha;
+    
+    const railWidth = PixiRenderer.HOLE_SPACING * 0.7;
+    const railX = PixiRenderer.HOLE_SPACING / 2;
+    
     overlay.rect(
+      railX - railWidth / 2,
       0,
-      0,
-      PixiRenderer.HOLE_SPACING,
+      railWidth,
       BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING
     );
-    overlay.fill();
+    overlay.fill({ color: traceColor });
     
-    // Left positive rail (column 1) - Red
-    overlay.fill({ color: 0xff4444, alpha: 1 });
     overlay.rect(
-      PixiRenderer.HOLE_SPACING,
+      PixiRenderer.HOLE_SPACING + railX - railWidth / 2,
       0,
-      PixiRenderer.HOLE_SPACING,
+      railWidth,
       BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING
     );
-    overlay.fill();
+    overlay.fill({ color: traceColor });
     
-    // Right positive rail (column 12) - Red
-    overlay.fill({ color: 0xff4444, alpha: 1 });
     overlay.rect(
-      12 * PixiRenderer.HOLE_SPACING,
+      12 * PixiRenderer.HOLE_SPACING + railX - railWidth / 2,
       0,
-      PixiRenderer.HOLE_SPACING,
+      railWidth,
       BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING
     );
-    overlay.fill();
+    overlay.fill({ color: traceColor });
     
-    // Right negative rail (column 13) - Blue
-    overlay.fill({ color: 0x4444ff, alpha: 1 });
     overlay.rect(
-      13 * PixiRenderer.HOLE_SPACING,
+      13 * PixiRenderer.HOLE_SPACING + railX - railWidth / 2,
       0,
-      PixiRenderer.HOLE_SPACING,
+      railWidth,
       BreadboardLayout.ROWS * PixiRenderer.HOLE_SPACING
     );
-    overlay.fill();
+    overlay.fill({ color: traceColor });
     
-    // Render terminal strips (horizontal connectivity)
-    // Use a neutral color for terminal strips
-    overlay.fill({ color: 0xcccc88, alpha: 1 });
-    
-    // Left side terminal strips (columns 2-6)
     for (let row = 0; row < BreadboardLayout.ROWS; row++) {
+      const rowY = row * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
+      const stripHeight = PixiRenderer.HOLE_SPACING * 0.4;
+      
       overlay.rect(
         BreadboardLayout.STRIP_LEFT_START * PixiRenderer.HOLE_SPACING,
-        row * PixiRenderer.HOLE_SPACING,
+        rowY - stripHeight / 2,
         (BreadboardLayout.STRIP_LEFT_END - BreadboardLayout.STRIP_LEFT_START + 1) * PixiRenderer.HOLE_SPACING,
-        PixiRenderer.HOLE_SPACING
+        stripHeight
       );
+      overlay.fill({ color: traceColor });
     }
     
-    // Right side terminal strips (columns 7-11)
     for (let row = 0; row < BreadboardLayout.ROWS; row++) {
+      const rowY = row * PixiRenderer.HOLE_SPACING + PixiRenderer.HOLE_SPACING / 2;
+      const stripHeight = PixiRenderer.HOLE_SPACING * 0.4;
+      
       overlay.rect(
         BreadboardLayout.STRIP_RIGHT_START * PixiRenderer.HOLE_SPACING,
-        row * PixiRenderer.HOLE_SPACING,
+        rowY - stripHeight / 2,
         (BreadboardLayout.STRIP_RIGHT_END - BreadboardLayout.STRIP_RIGHT_START + 1) * PixiRenderer.HOLE_SPACING,
-        PixiRenderer.HOLE_SPACING
+        stripHeight
       );
+      overlay.fill({ color: traceColor });
     }
-    overlay.fill();
     
     this.breadboardContainer.addChild(overlay);
   }
@@ -665,6 +664,28 @@ export class PixiRenderer {
   }
 
   /**
+   * Apply or remove X-Ray Mode visual effects to components and connections
+   * Makes components transparent and desaturated to emphasize internal breadboard connections
+   */
+  private applyXrayEffects(enabled: boolean): void {
+    if (enabled) {
+      this.componentsContainer.alpha = 0.5;
+      this.connectionsContainer.alpha = 0.5;
+      
+      const desaturateFilter = new ColorMatrixFilter();
+      desaturateFilter.desaturate();
+      
+      this.componentsContainer.filters = [desaturateFilter];
+      this.connectionsContainer.filters = [desaturateFilter];
+    } else {
+      this.componentsContainer.alpha = 1.0;
+      this.connectionsContainer.alpha = 1.0;
+      this.componentsContainer.filters = [];
+      this.connectionsContainer.filters = [];
+    }
+  }
+
+  /**
    * Render breadboard grid with voltage overlay
    */
   renderBreadboard(
@@ -682,6 +703,9 @@ export class PixiRenderer {
     if (xrayModeEnabled) {
       this.renderInternalConnectivity();
     }
+
+    // Apply X-Ray effects to components and connections
+    this.applyXrayEffects(xrayModeEnabled);
 
     // Render holes
     for (let row = 0; row < BreadboardLayout.ROWS; row++) {
