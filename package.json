@@ -33,11 +33,14 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "rete": "^2.0.6",
     "rete-area-plugin": "^2.1.5",
     "rete-connection-plugin": "^2.0.5",
-    "rete-react-plugin": "^2.1.0"
+    "rete-react-plugin": "^2.1.0",
+    "theme-ui": "^0.17.4"
   }
 }

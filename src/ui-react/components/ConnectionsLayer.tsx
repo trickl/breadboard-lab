@@ -20,7 +20,7 @@ export const ConnectionsLayer: React.FC<ConnectionsLayerProps> = ({ controller }
   }, [controller]);
 
   return (
-    <g className="connections-layer">
+    <g>
       {state.connections.list.map((connection) => (
         <ConnectionLine
           key={connection.id}
@@ -50,7 +50,6 @@ const ConnectionLine: React.FC<ConnectionLineProps> = ({ connection, isSelected 
       stroke={isSelected ? '#3399ff' : '#888'}
       strokeWidth={isSelected ? 3 : 2}
       opacity={0.8}
-      className="connection-line"
       style={{ pointerEvents: 'stroke' }}
     />
   );

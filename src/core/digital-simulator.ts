@@ -5,7 +5,7 @@
  * Bridges between analog DC solver and digital component logic.
  */
 
-import type { Circuit, Microprocessor, SimulationResult, AnyComponent } from './types';
+import type { Circuit, Microprocessor, AnyComponent } from './types';
 import { ComponentType } from './types';
 import type { DigitalValue } from './digital-signals';
 import {
@@ -16,7 +16,7 @@ import {
 } from './digital-signals';
 import type { EdgeDetectorState } from './edge-detector';
 import { createEdgeDetector, detectRisingEdge } from './edge-detector';
-import { DigitalEventQueue, createClockEdgeEvent } from './digital-event-queue';
+import { DigitalEventQueue } from './digital-event-queue';
 import { handleClockEdge as edu8HandleClockEdge } from './edu8-simulator';
 
 /**

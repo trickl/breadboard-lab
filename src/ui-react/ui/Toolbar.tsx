@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Box, Button, Text } from 'theme-ui';
 import type { BreadboardController } from '@/ui-controller';
 import { ComponentType, type AnyComponent, type Resistor, type LED, type PowerSupply, type Ground, type Wire } from '@/core/types';
 import { deserializeCircuit } from '@/core/circuit-serializer';
@@ -116,72 +117,126 @@ export const Toolbar: React.FC<ToolbarProps> = ({ controller }) => {
   };
 
   return (
-    <aside className="toolbar">
-      <h2>Components</h2>
+    <Box
+      as="aside"
+      className="toolbar"
+      sx={{
+        width: 250,
+        bg: 'sidebarBg',
+        p: 3,
+        overflowY: 'auto',
+        transition: 'background-color 0.3s ease',
+        flexShrink: 0,
+      }}
+    >
+      <Text as="h2" sx={{ m: 0, mb: 3, fontSize: 2, color: 'text' }}>
+        Components
+      </Text>
 
-      <div className="component-list">
-        <button className="component-button" onClick={() => addComponent(ComponentType.RESISTOR)}>
-          Resistor
-        </button>
-        <button className="component-button" onClick={() => addComponent(ComponentType.LED)}>
-          LED
-        </button>
-        <button className="component-button" onClick={() => addComponent(ComponentType.WIRE)}>
-          Wire
-        </button>
-        <button
-          className="component-button"
-          onClick={() => addComponent(ComponentType.POWER_SUPPLY)}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {([
+          ['Resistor', ComponentType.RESISTOR],
+          ['LED', ComponentType.LED],
+          ['Wire', ComponentType.WIRE],
+          ['Power Supply', ComponentType.POWER_SUPPLY],
+          ['Ground', ComponentType.GROUND],
+        ] as const).map(([label, type]) => (
+          <Button
+            key={type}
+            className="component-button"
+            onClick={() => addComponent(type)}
+            sx={{
+              bg: 'panelBg',
+              border: '2px solid',
+              borderColor: 'border',
+              borderRadius: 'sm',
+              color: 'text',
+              px: 3,
+              py: 2,
+              cursor: 'pointer',
+              fontSize: 1,
+              textAlign: 'left',
+              transition: 'transform 0.2s ease, background-color 0.2s ease',
+              ':hover': { bg: 'hoverBg', transform: 'translateY(-1px)' },
+            }}
+          >
+            {label}
+          </Button>
+        ))}
+      </Box>
+
+      <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Button
+          id="examples-btn"
+          onClick={() => setExamplesOpen(true)}
+          sx={{
+            bg: 'panelBg',
+            border: '2px solid',
+            borderColor: 'border',
+            borderRadius: 'sm',
+            color: 'text',
+            px: 3,
+            py: 2,
+            cursor: 'pointer',
+            fontSize: 1,
+            transition: 'transform 0.2s ease, background-color 0.2s ease',
+            ':hover': { bg: 'hoverBg', transform: 'translateY(-1px)' },
+          }}
         >
-          Power Supply
-        </button>
-        <button className="component-button" onClick={() => addComponent(ComponentType.GROUND)}>
-          Ground
-        </button>
-      </div>
-
-      <div className="toolbar-actions">
-        <button id="examples-btn" className="toolbar-btn" onClick={() => setExamplesOpen(true)}>
           Examples
-        </button>
+        </Button>
 
-        <button
-          className="toolbar-btn primary"
-          onClick={() => {
-            simulationRunner.runSimulation();
+        <Button
+          onClick={() => simulationRunner.runSimulation()}
+          sx={{
+            bg: 'primary',
+            border: '2px solid',
+            borderColor: 'primary',
+            borderRadius: 'sm',
+            color: 'white',
+            px: 3,
+            py: 2,
+            cursor: 'pointer',
+            fontSize: 1,
+            transition: 'transform 0.2s ease, filter 0.2s ease',
+            ':hover': { filter: 'brightness(1.05)', transform: 'translateY(-1px)' },
           }}
         >
           Run simulation
-        </button>
+        </Button>
 
-        <button className="toolbar-btn" onClick={() => controller.dispatch({ type: 'XRAY_MODE_TOGGLED' })}>
-          Toggle X-Ray
-        </button>
-
-        <button className="toolbar-btn" onClick={() => controller.dispatch({ type: 'BREADBOARD_ROTATED' })}>
-          Rotate board
-        </button>
-
-        <button className="toolbar-btn" onClick={() => controller.dispatch({ type: 'VOLTAGE_OVERLAY_TOGGLED' })}>
-          Toggle voltage overlay (V)
-        </button>
-
-        <button className="toolbar-btn" onClick={() => controller.dispatch({ type: 'CURRENT_ANIMATION_TOGGLED' })}>
-          Toggle current animation (C)
-        </button>
-
-        <button className="toolbar-btn" onClick={() => controller.dispatch({ type: 'CIRCUIT_CLEARED' })}>
-          Clear circuit
-        </button>
-      </div>
+        {([
+          ['Toggle X-Ray', () => controller.dispatch({ type: 'XRAY_MODE_TOGGLED' })],
+          ['Rotate board', () => controller.dispatch({ type: 'BREADBOARD_ROTATED' })],
+          ['Toggle voltage overlay (V)', () => controller.dispatch({ type: 'VOLTAGE_OVERLAY_TOGGLED' })],
+          ['Toggle current animation (C)', () => controller.dispatch({ type: 'CURRENT_ANIMATION_TOGGLED' })],
+          ['Clear circuit', () => controller.dispatch({ type: 'CIRCUIT_CLEARED' })],
+        ] as const).map(([label, onClick]) => (
+          <Button
+            key={label}
+            onClick={onClick}
+            sx={{
+              bg: 'panelBg',
+              border: '2px solid',
+              borderColor: 'border',
+              borderRadius: 'sm',
+              color: 'text',
+              px: 3,
+              py: 2,
+              cursor: 'pointer',
+              fontSize: 1,
+              transition: 'transform 0.2s ease, background-color 0.2s ease',
+              ':hover': { bg: 'hoverBg', transform: 'translateY(-1px)' },
+            }}
+          >
+            {label}
+          </Button>
+        ))}
+      </Box>
 
       <ClockControls controller={controller} />
 
-      <ExamplesModal
-        visible={examplesOpen}
-        onClose={() => setExamplesOpen(false)}
-        onSelectExample={loadExample}
-      />
-    </aside>
+      <ExamplesModal visible={examplesOpen} onClose={() => setExamplesOpen(false)} onSelectExample={loadExample} />
+    </Box>
   );
 };

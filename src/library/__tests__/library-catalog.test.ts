@@ -12,6 +12,7 @@ import {
   GROUND_LIBRARY,
   SPEAKER_LIBRARY,
   MICROPROCESSOR_LIBRARY,
+  SWITCH_LIBRARY,
 } from '../index';
 
 describe('Component Library Catalog', () => {
@@ -137,7 +138,8 @@ describe('Component Library Catalog', () => {
         WIRE_LIBRARY.length +
         GROUND_LIBRARY.length +
         SPEAKER_LIBRARY.length +
-        MICROPROCESSOR_LIBRARY.length;
+        MICROPROCESSOR_LIBRARY.length +
+        SWITCH_LIBRARY.length;
 
       expect(ALL_LIBRARY_ENTRIES.length).toBe(totalEntries);
     });

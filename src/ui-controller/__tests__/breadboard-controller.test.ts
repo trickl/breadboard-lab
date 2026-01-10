@@ -242,17 +242,19 @@ describe('BreadboardController', () => {
     it('should rotate breadboard through all orientations', () => {
       const controller = new BreadboardController(createTestState());
 
-      controller.dispatch({ type: 'BREADBOARD_ROTATED' });
-      expect(controller.getState().ui.breadboardOrientation).toBe(90);
+      const start = controller.getState().ui.breadboardOrientation;
 
       controller.dispatch({ type: 'BREADBOARD_ROTATED' });
-      expect(controller.getState().ui.breadboardOrientation).toBe(180);
+      expect(controller.getState().ui.breadboardOrientation).toBe(((start + 90) % 360) as any);
 
       controller.dispatch({ type: 'BREADBOARD_ROTATED' });
-      expect(controller.getState().ui.breadboardOrientation).toBe(270);
+      expect(controller.getState().ui.breadboardOrientation).toBe(((start + 180) % 360) as any);
 
       controller.dispatch({ type: 'BREADBOARD_ROTATED' });
-      expect(controller.getState().ui.breadboardOrientation).toBe(0);
+      expect(controller.getState().ui.breadboardOrientation).toBe(((start + 270) % 360) as any);
+
+      controller.dispatch({ type: 'BREADBOARD_ROTATED' });
+      expect(controller.getState().ui.breadboardOrientation).toBe(start);
     });
   });
 

@@ -106,7 +106,6 @@ export class MixedSignalSimulator {
     }
 
     // Run mixed-signal simulation
-    const maxIterations = config.maxIterations ?? 10;
     let iterations = 0;
     let updatedComponents = components;
 

@@ -408,19 +408,21 @@ export class BreadboardController {
         };
 
       case 'FLOATING_COMPONENT_LEG_CONNECTED':
-        if (!state.floatingComponent.component) return state;
-        const updatedConnectedLegs = new Map(state.floatingComponent.component.connectedLegs);
-        updatedConnectedLegs.set(action.legIndex, action.holePosition);
-        return {
-          ...state,
-          floatingComponent: {
-            ...state.floatingComponent,
-            component: {
-              ...state.floatingComponent.component,
-              connectedLegs: updatedConnectedLegs,
+        {
+          if (!state.floatingComponent.component) return state;
+          const updatedConnectedLegs = new Map(state.floatingComponent.component.connectedLegs);
+          updatedConnectedLegs.set(action.legIndex, action.holePosition);
+          return {
+            ...state,
+            floatingComponent: {
+              ...state.floatingComponent,
+              component: {
+                ...state.floatingComponent.component,
+                connectedLegs: updatedConnectedLegs,
+              },
             },
-          },
-        };
+          };
+        }
 
       case 'FLOATING_COMPONENT_PLACED':
       case 'FLOATING_COMPONENT_CANCELLED':
@@ -554,14 +556,16 @@ export class BreadboardController {
         };
 
       case 'BREADBOARD_ROTATED':
-        const nextRotation = ((state.ui.breadboardOrientation + 90) % 360) as 0 | 90 | 180 | 270;
-        return {
-          ...state,
-          ui: {
-            ...state.ui,
-            breadboardOrientation: nextRotation,
-          },
-        };
+        {
+          const nextRotation = ((state.ui.breadboardOrientation + 90) % 360) as 0 | 90 | 180 | 270;
+          return {
+            ...state,
+            ui: {
+              ...state.ui,
+              breadboardOrientation: nextRotation,
+            },
+          };
+        }
 
       case 'THEME_TOGGLED':
         return {

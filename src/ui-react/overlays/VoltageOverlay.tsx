@@ -106,7 +106,7 @@ export const VoltageOverlay: React.FC<VoltageOverlayProps> = ({ controller }) =>
   }, [simulationResult]);
 
   return (
-    <g className="voltage-overlay" style={{ pointerEvents: 'none' }}>
+    <g style={{ pointerEvents: 'none' }}>
       {Array.from(voltagePositions.entries()).map(([posKey, voltage]) => {
         const [row, col] = posKey.split(',').map(Number);
         const pos: Position = { row, col };
@@ -121,7 +121,6 @@ export const VoltageOverlay: React.FC<VoltageOverlayProps> = ({ controller }) =>
             r={11}
             fill={color}
             opacity={0.45}
-            className="voltage-indicator"
           />
         );
       })}

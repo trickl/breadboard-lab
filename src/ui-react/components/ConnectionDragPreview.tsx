@@ -17,7 +17,7 @@ export const ConnectionDragPreview: React.FC<ConnectionDragPreviewProps> = ({ dr
   const strokeColor = dragState.isValidTarget ? '#00ff00' : '#ff0000';
 
   return (
-    <g className="connection-preview" style={{ pointerEvents: 'none' }}>
+    <g style={{ pointerEvents: 'none' }}>
       {/* Preview line from source to pointer */}
       <line
         x1={sourcePixels.x}

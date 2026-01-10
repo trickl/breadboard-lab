@@ -23,8 +23,8 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = React.memo(
   ({ component, isSelected, onPointerDown }) => {
     const handlePointerDown = (e: React.PointerEvent) => {
       // Check if clicking on rotation handle - if so, don't trigger component selection
-      const target = e.target as SVGElement;
-      if (target.classList.contains('rotation-handle')) {
+      const target = e.target as Element;
+      if (target.closest('[data-rotation-handle="true"]')) {
         e.stopPropagation();
         return;
       }
@@ -34,9 +34,15 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = React.memo(
     return (
       <g
         data-component-id={component.id}
-        className={`component component-${component.type.toLowerCase()} ${isSelected ? 'component-selected' : ''}`}
         onPointerDown={handlePointerDown}
-        style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+        style={{
+          cursor: 'pointer',
+          pointerEvents: 'auto',
+          transition: 'opacity 0.2s',
+          filter: isSelected
+            ? 'drop-shadow(0 0 8px rgba(68, 136, 255, 0.8)) drop-shadow(0 0 4px rgba(68, 136, 255, 1))'
+            : undefined,
+        }}
       >
         <ComponentBody component={component} />
         {isSelected && <SelectionOutline component={component} />}
@@ -144,9 +150,9 @@ const ResistorBody: React.FC<{ component: AnyComponent }> = ({ component }) => {
         return (
           <rect
             key={index}
-            x={bandX - 2}
+            x={bandX}
             y={centerY - bodyHeight / 2}
-            width="4"
+            width={8}
             height={bodyHeight}
             fill={COLOR_TO_RGB[band.color]}
             stroke="none"
@@ -513,7 +519,7 @@ const RotationHandle: React.FC<{ component: AnyComponent }> = ({ component }) =>
   const topY = minY - 30;
 
   return (
-    <g className="rotation-handle" style={{ cursor: 'pointer' }}>
+    <g data-rotation-handle="true" style={{ cursor: 'pointer' }}>
       {/* Handle circle */}
       <circle cx={centerX} cy={topY} r="12" fill="#3399ff" stroke="#fff" strokeWidth="2" />
 

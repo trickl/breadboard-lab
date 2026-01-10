@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Box, Flex } from 'theme-ui';
 import { BreadboardController, createInitialState } from '@/ui-controller';
 import { BreadboardScene } from './BreadboardScene';
 import { HeaderBar } from './ui/HeaderBar';
@@ -12,16 +13,26 @@ export default function App() {
   }, []);
 
   return (
-    <>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <HeaderBar controller={controller} />
-      <div className="main-container">
+      <Flex sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <Toolbar controller={controller} />
-        <div className="workspace">
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: 4,
+          }}
+        >
           <BreadboardScene controller={controller} />
-        </div>
+        </Box>
         <InfoPanel controller={controller} />
-      </div>
-    </>
+      </Flex>
+    </Box>
   );
 }
 

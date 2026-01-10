@@ -14,32 +14,32 @@ export const BreadboardSkin = {
    * Avoid pure black/white so it reads like ink and plastic.
    */
   colors: {
-    plasticBase: 'var(--bb-plastic-base)',
-    plasticHighlight: 'var(--bb-plastic-highlight)',
-    plasticShadow: 'var(--bb-plastic-shadow)',
+    plasticBase: 'var(--theme-ui-colors-bb-plasticBase)',
+    plasticHighlight: 'var(--theme-ui-colors-bb-plasticHighlight)',
+    plasticShadow: 'var(--theme-ui-colors-bb-plasticShadow)',
 
-    panelSlightDark: 'var(--bb-panel-slight-dark)',
-    panelSlightLight: 'var(--bb-panel-slight-light)',
+    panelSlightDark: 'var(--theme-ui-colors-bb-panelSlightDark)',
+    panelSlightLight: 'var(--theme-ui-colors-bb-panelSlightLight)',
 
     // Center trench should be visible but subtle (reference photo has a mild recess, not a dark stripe).
-    trenchBase: 'var(--bb-trench-base)',
-    trenchShadow: 'var(--bb-trench-shadow)',
+    trenchBase: 'var(--theme-ui-colors-bb-trenchBase)',
+    trenchShadow: 'var(--theme-ui-colors-bb-trenchShadow)',
 
-    holeBevelLight: 'var(--bb-hole-bevel-light)',
-    holeBevelMid: 'var(--bb-hole-bevel-mid)',
-    holeCavity: 'var(--bb-hole-cavity)',
-    holeCavityEdge: 'var(--bb-hole-cavity-edge)',
+    holeBevelLight: 'var(--theme-ui-colors-bb-holeBevelLight)',
+    holeBevelMid: 'var(--theme-ui-colors-bb-holeBevelMid)',
+    holeCavity: 'var(--theme-ui-colors-bb-holeCavity)',
+    holeCavityEdge: 'var(--theme-ui-colors-bb-holeCavityEdge)',
 
-    printDark: 'var(--bb-print-dark)',
-    printMid: 'var(--bb-print-mid)',
+    printDark: 'var(--theme-ui-colors-bb-printDark)',
+    printMid: 'var(--theme-ui-colors-bb-printMid)',
 
-    railRed: 'var(--bb-rail-red)',
-    railBlue: 'var(--bb-rail-blue)',
+    railRed: 'var(--theme-ui-colors-bb-railRed)',
+    railBlue: 'var(--theme-ui-colors-bb-railBlue)',
 
-    hoverFill: 'var(--bb-hover-fill)',
+    hoverFill: 'var(--theme-ui-colors-bb-hoverFill)',
 
     // Used for subtle outer outline shadow stroke (depth hint)
-    outlineShadow: 'var(--bb-outline-shadow)',
+    outlineShadow: 'var(--theme-ui-colors-bb-outlineShadow)',
   },
 
   geometry: {

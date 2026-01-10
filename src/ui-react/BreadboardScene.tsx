@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Box } from 'theme-ui';
 import type { BreadboardController } from '@/ui-controller';
 import type { AppState } from '@/ui-controller/types';
 import { BreadboardSvg } from './BreadboardSvg';
@@ -258,13 +259,17 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
       : `translate(${LABEL_PADDING_X}, ${LABEL_PADDING_Y}) rotate(${rotation} ${rotationCx} ${rotationCy})`;
 
   return (
-    <div
+    <Box
       className="breadboard-container"
-      style={{
+      sx={{
         width: '100%',
         height: '100%',
         overflow: 'hidden',
         position: 'relative',
+        bg: 'workspaceBg',
+        borderRadius: 'md',
+        p: 3,
+        boxShadow: 'md',
       }}
     >
       <svg
@@ -305,6 +310,6 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
         onTransformChange={handleReteTransformChange}
         rotation={rotation}
       />
-    </div>
+    </Box>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import type { BreadboardController } from '@/ui-controller';
 import { useControllerState } from '@/ui-react/hooks/useControllerState';
+import { Box, Button, Flex, Text, useColorMode } from 'theme-ui';
 
 export interface HeaderBarProps {
   controller: BreadboardController;
@@ -9,38 +10,86 @@ export interface HeaderBarProps {
 export const HeaderBar: React.FC<HeaderBarProps> = ({ controller }) => {
   const state = useControllerState(controller);
 
-  // Keep CSS theme selector in sync with controller state
+  const [colorMode, setColorMode] = useColorMode<'dark' | 'light'>();
+
+  // Keep Theme UI color mode in sync with controller state.
   useEffect(() => {
-    const root = document.documentElement;
-    if (state.ui.currentTheme === 'light') {
-      root.setAttribute('data-theme', 'light');
-    } else {
-      root.removeAttribute('data-theme');
+    if (state.ui.currentTheme !== colorMode) {
+      setColorMode(state.ui.currentTheme);
     }
-  }, [state.ui.currentTheme]);
+  }, [state.ui.currentTheme, colorMode, setColorMode]);
 
   const isLight = state.ui.currentTheme === 'light';
 
   return (
-    <header className="header">
-      <div className="header-content">
-        <h1>Breadboard Lab</h1>
-        <p>
+    <Flex
+      as="header"
+      sx={{
+        bg: 'headerBg',
+        px: 4,
+        py: 3,
+        boxShadow: 'sm',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 3,
+        flexShrink: 0,
+      }}
+    >
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Text as="h1" sx={{ m: 0, fontSize: 4, fontWeight: 600, lineHeight: 'heading' }}>
+          Breadboard Lab
+        </Text>
+        <Text as="p" sx={{ m: 0, mt: 1, fontSize: 1, color: 'secondaryText' }}>
           Web-first breadboard UI with a first-class electrical model
           {state.circuit.hasUnsavedChanges ? ' • Unsaved changes' : ''}
-        </p>
-      </div>
+        </Text>
+      </Box>
 
-      <button
+      <Button
         type="button"
-        className={`theme-toggle ${isLight ? 'light' : ''}`}
         aria-label="Toggle theme"
-        onClick={() => controller.dispatch({ type: 'THEME_TOGGLED' })}
+        onClick={() => {
+          const next = isLight ? 'dark' : 'light';
+          setColorMode(next);
+          controller.dispatch({ type: 'THEME_TOGGLED' });
+        }}
+        sx={{
+          p: 0,
+          width: 60,
+          height: 32,
+          bg: 'panelBg',
+          border: '2px solid',
+          borderColor: 'border',
+          borderRadius: 'pill',
+          cursor: 'pointer',
+          position: 'relative',
+          transition: 'transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease',
+          ':hover': { borderColor: 'primary', transform: 'scale(1.05)' },
+          ':focus-visible': { outline: '2px solid', outlineColor: 'primary', outlineOffset: 2 },
+        }}
       >
-        <div className="theme-toggle-slider" aria-hidden="true">
+        <Box
+          aria-hidden="true"
+          sx={{
+            position: 'absolute',
+            top: 2,
+            left: 2,
+            width: 24,
+            height: 24,
+            borderRadius: 'pill',
+            bg: 'primary',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 1,
+            boxShadow: 'sm',
+            transform: isLight ? 'translateX(28px)' : 'translateX(0px)',
+            transition: 'transform 0.3s ease',
+          }}
+        >
           {isLight ? '☀' : '☾'}
-        </div>
-      </button>
-    </header>
+        </Box>
+      </Button>
+    </Flex>
   );
 };

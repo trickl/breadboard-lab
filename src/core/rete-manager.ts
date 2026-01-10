@@ -71,7 +71,7 @@ export class ComponentNode extends ClassicPreset.Node<
  */
 export class BreadboardHoleNode extends ClassicPreset.Node<
   { [key: string]: ClassicPreset.Socket },
-  { hole: ClassicPreset.Socket }
+  { [key: string]: ClassicPreset.Socket }
 > {
   width = 40;
   height = 40;
@@ -102,9 +102,8 @@ type Schemes = GetSchemes<ComponentNode | BreadboardHoleNode, Connection>;
  */
 export class ReteManager {
   private editor: NodeEditor<Schemes>;
-  private area: AreaPlugin<Schemes, any> | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private connection: any | null = null; // ConnectionPlugin type constraints too strict for Phase 1
+  private area: AreaPlugin<Schemes, unknown> | null = null;
+  private connection: ConnectionPlugin<Schemes, unknown> | null = null;
   private componentNodeMap: Map<string, NodeId> = new Map();
   private holeNodeMap: Map<string, NodeId> = new Map();
   private syncInProgress = false;
@@ -131,11 +130,10 @@ export class ReteManager {
     // Only initialize visual plugins if container provided
     if (this.container) {
       // Initialize area plugin for viewport management
-      this.area = new AreaPlugin<Schemes, any>(this.container);
+      this.area = new AreaPlugin<Schemes, unknown>(this.container);
 
       // Initialize connection plugin
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-      this.connection = new ConnectionPlugin();
+      this.connection = new ConnectionPlugin<Schemes, unknown>();
 
       // Register plugins in correct order
       this.editor.use(this.area);
@@ -161,7 +159,6 @@ export class ReteManager {
     if (!this.connection) return;
 
     // Listen for connection creation events
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     this.editor.addPipe((context) => {
       // Intercept connection add events
       if (context.type === 'connectioncreated') {
@@ -434,7 +431,7 @@ export class ReteManager {
   /**
    * Get the area plugin (for debugging/testing)
    */
-  getArea(): AreaPlugin<Schemes, any> | null {
+  getArea(): AreaPlugin<Schemes, unknown> | null {
     return this.area;
   }
 

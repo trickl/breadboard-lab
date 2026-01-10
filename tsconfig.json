@@ -15,6 +15,7 @@
 
     /* React JSX */
     "jsx": "react-jsx",
+    "jsxImportSource": "theme-ui",
 
     /* Linting */
     "strict": true,
@@ -30,5 +31,10 @@
     }
   },
   "include": ["src"],
+  "exclude": [
+    "src/**/__tests__/**",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

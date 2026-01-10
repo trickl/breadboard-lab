@@ -15,6 +15,7 @@
  */
 
 import React, { useEffect, useRef, useCallback } from 'react';
+import { Box } from 'theme-ui';
 import { createRoot } from 'react-dom/client';
 import { NodeEditor, ClassicPreset } from 'rete';
 import { AreaPlugin } from 'rete-area-plugin';
@@ -121,7 +122,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<NodeEditor<Schemes> | null>(null);
-  const areaRef = useRef<AreaPlugin<Schemes, any> | null>(null);
+  const areaRef = useRef<AreaPlugin<Schemes, unknown> | null>(null);
   const componentNodeMapRef = useRef<Map<string, string>>(new Map());
   const [containerTransform, setContainerTransform] = React.useState<string>('none');
   const [rotationOriginPx, setRotationOriginPx] = React.useState<{ x: number; y: number } | null>(null);
@@ -187,12 +188,9 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     if (!container) return;
 
     const editor = new NodeEditor<Schemes>();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const area = new AreaPlugin<Schemes, any>(container);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const connection = new ConnectionPlugin<Schemes, any>();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const render = new ReactPlugin<Schemes, any>({ createRoot });
+    const area = new AreaPlugin<Schemes, unknown>(container);
+    const connection = new ConnectionPlugin<Schemes, unknown>();
+    const render = new ReactPlugin<Schemes, unknown>({ createRoot });
 
     // Configure React renderer with classic preset
     render.addPreset(ReactPresets.classic.setup());
@@ -263,7 +261,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
 
     // Add or update nodes for current components
     for (const component of components) {
-      let nodeId = componentNodeMap.get(component.id);
+      const nodeId = componentNodeMap.get(component.id);
       let node: ComponentNode;
 
       if (nodeId) {
@@ -323,18 +321,9 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     return unsubscribe;
   }, [controller, syncNodes]);
 
-  const rotateStyle: React.CSSProperties = rotationOriginPx
-    ? {
-        transformOrigin: `${rotationOriginPx.x}px ${rotationOriginPx.y}px`,
-        transform: rotation === 0 ? 'none' : `rotate(${rotation}deg)`,
-        width: '100%',
-        height: '100%',
-      }
-    : { width: '100%', height: '100%' };
-
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         position: 'absolute',
         top: 0,
         left: 0,
@@ -342,28 +331,33 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
         height: '100%',
         pointerEvents: 'none',
         zIndex: 10,
+        '.rete-node': { pointerEvents: 'auto' },
+        '.rete-connection': { pointerEvents: 'auto' },
       }}
     >
-      <div style={rotateStyle}>
-        <div
+      <Box
+        sx={{
+          width: '100%',
+          height: '100%',
+          ...(rotationOriginPx
+            ? {
+                transformOrigin: `${rotationOriginPx.x}px ${rotationOriginPx.y}px`,
+                transform: rotation === 0 ? 'none' : `rotate(${rotation}deg)`,
+              }
+            : {}),
+        }}
+      >
+        <Box
           ref={containerRef}
-          style={{
+          sx={{
             width: '100%',
             height: '100%',
-            pointerEvents: 'none', // Prevent container from intercepting pointer events (nodes handle their own events)
+            pointerEvents: 'none',
             transformOrigin: '0 0',
             transform: containerTransform,
           }}
         />
-      </div>
-      <style>{`
-        .rete-node {
-          pointer-events: auto !important;
-        }
-        .rete-connection {
-          pointer-events: auto !important;
-        }
-      `}</style>
-    </div>
+      </Box>
+    </Box>
   );
 };

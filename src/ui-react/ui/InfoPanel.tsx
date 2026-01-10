@@ -2,6 +2,7 @@ import React from 'react';
 import type { BreadboardController } from '@/ui-controller';
 import { useControllerState } from '@/ui-react/hooks/useControllerState';
 import { ComponentType, type AnyComponent, type Resistor, type LED, type PowerSupply, type Wire, type Switch } from '@/core/types';
+import { Box, Button, Input, Text } from 'theme-ui';
 
 export interface InfoPanelProps {
   controller: BreadboardController;
@@ -32,28 +33,73 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
     : null;
 
   return (
-    <aside className="info-panel">
-      <h2>Inspector</h2>
+    <Box
+      as="aside"
+      className="info-panel"
+      sx={{
+        width: 300,
+        bg: 'sidebarBg',
+        p: 3,
+        overflowY: 'auto',
+        transition: 'background-color 0.3s ease',
+        flexShrink: 0,
+      }}
+    >
+      <Text as="h2" sx={{ m: 0, mb: 3, fontSize: 2, color: 'text' }}>
+        Inspector
+      </Text>
 
       {!selected ? (
-        <div className="empty-state">
-          <div className="empty-state-text">Select a component to edit its properties.</div>
-        </div>
+        <Box sx={{ py: 3 }}>
+          <Text sx={{ fontSize: 1, color: 'secondaryText' }}>
+            Select a component to edit its properties.
+          </Text>
+        </Box>
       ) : (
         <>
-          <div className="info-section">
-            <h3>Selected</h3>
-            <div className="info-value">{formatComponentTitle(selected)}</div>
-            <div className="component-item">id: {selected.id}</div>
-          </div>
+          <Box sx={{ mb: 3 }}>
+            <Text
+              as="h3"
+              sx={{
+                m: 0,
+                mb: 2,
+                fontSize: 0,
+                color: 'secondaryText',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
+              Selected
+            </Text>
+            <Text sx={{ fontSize: 3, color: 'text', fontWeight: 600 }}>
+              {formatComponentTitle(selected)}
+            </Text>
+            <Box sx={{ mt: 2, p: 2, bg: 'panelBg', borderRadius: 4, fontSize: 0 }}>
+              id: {selected.id}
+            </Box>
+          </Box>
 
-          <div className="property-editor">
-            <h3>Properties</h3>
+          <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid', borderTopColor: 'border' }}>
+            <Text as="h3" sx={{ m: 0, mb: 3, fontSize: 1, color: 'text' }}>
+              Properties
+            </Text>
 
             {selected.type === ComponentType.RESISTOR && (
-              <div className="property-field">
-                <label htmlFor="prop-resistance">Resistance (Ω)</label>
-                <input
+              <Box sx={{ mb: 3 }}>
+                <label
+                  htmlFor="prop-resistance"
+                  sx={{
+                    display: 'block',
+                    fontSize: 0,
+                    color: 'secondaryText',
+                    mb: 2,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  Resistance (Ω)
+                </label>
+                <Input
                   id="prop-resistance"
                   type="number"
                   value={(selected as Resistor).resistance}
@@ -67,15 +113,38 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
                       value: Number(e.target.value),
                     })
                   }
+                  sx={{
+                    width: '100%',
+                    p: 2,
+                    bg: 'inputBg',
+                    border: '2px solid',
+                    borderColor: 'border',
+                    borderRadius: 4,
+                    color: 'text',
+                    fontSize: 1,
+                    ':focus': { outline: 'none', borderColor: 'primary' },
+                  }}
                 />
-              </div>
+              </Box>
             )}
 
             {selected.type === ComponentType.LED && (
               <>
-                <div className="property-field">
-                  <label htmlFor="prop-led-vf">Forward Voltage (V)</label>
-                  <input
+                <Box sx={{ mb: 3 }}>
+                  <label
+                    htmlFor="prop-led-vf"
+                    sx={{
+                      display: 'block',
+                      fontSize: 0,
+                      color: 'secondaryText',
+                      mb: 2,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    Forward Voltage (V)
+                  </label>
+                  <Input
                     id="prop-led-vf"
                     type="number"
                     value={(selected as LED).forwardVoltage}
@@ -89,12 +158,35 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
                         value: Number(e.target.value),
                       })
                     }
+                    sx={{
+                      width: '100%',
+                      p: 2,
+                      bg: 'inputBg',
+                      border: '2px solid',
+                      borderColor: 'border',
+                      borderRadius: 4,
+                      color: 'text',
+                      fontSize: 1,
+                      ':focus': { outline: 'none', borderColor: 'primary' },
+                    }}
                   />
-                </div>
+                </Box>
 
-                <div className="property-field">
-                  <label htmlFor="prop-led-imax">Max Current (A)</label>
-                  <input
+                <Box sx={{ mb: 3 }}>
+                  <label
+                    htmlFor="prop-led-imax"
+                    sx={{
+                      display: 'block',
+                      fontSize: 0,
+                      color: 'secondaryText',
+                      mb: 2,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    Max Current (A)
+                  </label>
+                  <Input
                     id="prop-led-imax"
                     type="number"
                     value={(selected as LED).maxCurrent}
@@ -108,15 +200,38 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
                         value: Number(e.target.value),
                       })
                     }
+                    sx={{
+                      width: '100%',
+                      p: 2,
+                      bg: 'inputBg',
+                      border: '2px solid',
+                      borderColor: 'border',
+                      borderRadius: 4,
+                      color: 'text',
+                      fontSize: 1,
+                      ':focus': { outline: 'none', borderColor: 'primary' },
+                    }}
                   />
-                </div>
+                </Box>
               </>
             )}
 
             {selected.type === ComponentType.POWER_SUPPLY && (
-              <div className="property-field">
-                <label htmlFor="prop-voltage">Voltage (V)</label>
-                <input
+              <Box sx={{ mb: 3 }}>
+                <label
+                  htmlFor="prop-voltage"
+                  sx={{
+                    display: 'block',
+                    fontSize: 0,
+                    color: 'secondaryText',
+                    mb: 2,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  Voltage (V)
+                </label>
+                <Input
                   id="prop-voltage"
                   type="number"
                   value={(selected as PowerSupply).voltage}
@@ -130,16 +245,37 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
                       value: Number(e.target.value),
                     })
                   }
+                  sx={{
+                    width: '100%',
+                    p: 2,
+                    bg: 'inputBg',
+                    border: '2px solid',
+                    borderColor: 'border',
+                    borderRadius: 4,
+                    color: 'text',
+                    fontSize: 1,
+                    ':focus': { outline: 'none', borderColor: 'primary' },
+                  }}
                 />
-              </div>
+              </Box>
             )}
 
             {selected.type === ComponentType.SWITCH && (
-              <div className="property-field">
-                <label>State</label>
-                <div className="property-presets">
-                  <button
-                    className="preset-button"
+              <Box sx={{ mb: 3 }}>
+                <Text
+                  as="div"
+                  sx={{
+                    fontSize: 0,
+                    color: 'secondaryText',
+                    mb: 2,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  State
+                </Text>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <Button
                     onClick={() =>
                       controller.dispatch({
                         type: 'COMPONENT_PROPERTY_CHANGED',
@@ -148,11 +284,23 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
                         value: 'open',
                       })
                     }
+                    sx={{
+                      px: 2,
+                      py: 1,
+                      bg: 'panelBg',
+                      border: '1px solid',
+                      borderColor: 'border',
+                      borderRadius: 4,
+                      color: 'text',
+                      fontSize: 0,
+                      cursor: 'pointer',
+                      ':hover': { bg: 'hoverBg' },
+                      ':active': { bg: 'primary', borderColor: 'primary' },
+                    }}
                   >
                     Open
-                  </button>
-                  <button
-                    className="preset-button"
+                  </Button>
+                  <Button
                     onClick={() =>
                       controller.dispatch({
                         type: 'COMPONENT_PROPERTY_CHANGED',
@@ -161,24 +309,49 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
                         value: 'closed',
                       })
                     }
+                    sx={{
+                      px: 2,
+                      py: 1,
+                      bg: 'panelBg',
+                      border: '1px solid',
+                      borderColor: 'border',
+                      borderRadius: 4,
+                      color: 'text',
+                      fontSize: 0,
+                      cursor: 'pointer',
+                      ':hover': { bg: 'hoverBg' },
+                      ':active': { bg: 'primary', borderColor: 'primary' },
+                    }}
                   >
                     Closed
-                  </button>
-                </div>
-              </div>
+                  </Button>
+                </Box>
+              </Box>
             )}
-          </div>
+          </Box>
 
-          <div className="divider" />
+          <Box sx={{ height: 1, bg: 'border', opacity: 0.6, my: 3 }} />
 
-          <div className="info-section">
-            <h3>Simulation</h3>
-            <div className="component-item">
+          <Box sx={{ mb: 3 }}>
+            <Text
+              as="h3"
+              sx={{
+                m: 0,
+                mb: 2,
+                fontSize: 0,
+                color: 'secondaryText',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
+              Simulation
+            </Text>
+            <Box sx={{ p: 2, bg: 'panelBg', borderRadius: 4, fontSize: 0 }}>
               errors: {state.simulation.cachedSimulation?.errors?.length ?? 0}
-            </div>
-          </div>
+            </Box>
+          </Box>
         </>
       )}
-    </aside>
+    </Box>
   );
 };

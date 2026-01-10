@@ -265,7 +265,7 @@ export const ComponentsLayer: React.FC<ComponentsLayerProps> = ({ controller, sv
   const connectionDragState = state.connectionDrag.dragState;
 
   return (
-    <g className="components-layer">
+    <g>
       {/* Render connection drag preview */}
       {connectionDragState && <ConnectionDragPreview dragState={connectionDragState} />}
 
@@ -283,7 +283,7 @@ export const ComponentsLayer: React.FC<ComponentsLayerProps> = ({ controller, sv
 
       {/* Render ghost preview if dragging */}
       {dragState && dragState.previewPositions && (
-        <g className="drag-preview" style={{ opacity: 0.7, pointerEvents: 'none' }}>
+        <g style={{ opacity: 0.7, pointerEvents: 'none' }}>
           {(() => {
             const component = components.find((c) => c.id === dragState.componentId);
             if (!component) return null;
@@ -322,8 +322,7 @@ export const ComponentsLayer: React.FC<ComponentsLayerProps> = ({ controller, sv
                     fill="transparent"
                     stroke="transparent"
                     strokeWidth={2}
-                    className="component-leg"
-                    style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
+                    sx={{ cursor: 'crosshair', pointerEvents: 'auto' }}
                     onPointerDown={(e) => handleLegPointerDown(e, component.id, legIndex)}
                   />
                 );

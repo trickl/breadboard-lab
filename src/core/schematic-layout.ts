@@ -14,6 +14,8 @@ import type {
 import { DEFAULT_LAYOUT_CONFIG } from './schematic-types';
 import { ComponentType } from './types';
 
+type SymbolTerminal = SchematicSymbol['terminals'][number];
+
 /**
  * Internal node for layout algorithm
  */
@@ -122,20 +124,26 @@ export class SchematicLayoutGenerator {
   /**
    * Extract relevant properties from component
    */
-  private extractProperties(component: any): Record<string, number | string> {
+  private extractProperties(component: unknown): Record<string, number | string> {
     const props: Record<string, number | string> = {};
 
-    if ('resistance' in component) {
-      props.resistance = component.resistance;
+    if (!component || typeof component !== 'object') {
+      return props;
     }
-    if ('voltage' in component) {
-      props.voltage = component.voltage;
+
+    const c = component as Record<string, unknown>;
+
+    if ('resistance' in c && typeof c.resistance === 'number') {
+      props.resistance = c.resistance;
     }
-    if ('forwardVoltage' in component) {
-      props.forwardVoltage = component.forwardVoltage;
+    if ('voltage' in c && typeof c.voltage === 'number') {
+      props.voltage = c.voltage;
     }
-    if ('maxCurrent' in component) {
-      props.maxCurrent = component.maxCurrent;
+    if ('forwardVoltage' in c && typeof c.forwardVoltage === 'number') {
+      props.forwardVoltage = c.forwardVoltage;
+    }
+    if ('maxCurrent' in c && typeof c.maxCurrent === 'number') {
+      props.maxCurrent = c.maxCurrent;
     }
 
     return props;
@@ -174,7 +182,7 @@ export class SchematicLayoutGenerator {
       }
 
       // Apply attraction forces (nodes connected by same net attract)
-      for (const [_netId, netNodes] of netToNodes) {
+      for (const netNodes of netToNodes.values()) {
         if (netNodes.length > 1) {
           // Connect all nodes on the same net
           for (let i = 0; i < netNodes.length; i++) {
@@ -275,7 +283,10 @@ export class SchematicLayoutGenerator {
    */
   private createConnections(_circuit: Circuit, symbols: SchematicSymbol[]): SchematicConnection[] {
     const connections: SchematicConnection[] = [];
-    const netToTerminals = new Map<string, Array<{ symbol: SchematicSymbol; terminal: any }>>();
+    const netToTerminals = new Map<
+      string,
+      Array<{ symbol: SchematicSymbol; terminal: SymbolTerminal }>
+    >();
 
     // Group terminals by net
     for (const symbol of symbols) {
@@ -289,7 +300,7 @@ export class SchematicLayoutGenerator {
 
     // Create connections for each net
     let connectionId = 0;
-    for (const [_netId, terminals] of netToTerminals) {
+    for (const terminals of netToTerminals.values()) {
       if (terminals.length > 1) {
         // Calculate center point of all terminals for this net
         const centerX =

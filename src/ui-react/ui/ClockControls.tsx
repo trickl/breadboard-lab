@@ -4,6 +4,7 @@ import { useControllerState } from '@/ui-react/hooks/useControllerState';
 import { ClockController } from '@/core/clock-controller';
 import { ComponentType, type Microprocessor } from '@/core/types';
 import { handleClockEdge, resetEDU8 } from '@/core/edu8-simulator';
+import { Box, Button, Input, Text } from 'theme-ui';
 
 export interface ClockControlsProps {
   controller: BreadboardController;
@@ -77,17 +78,35 @@ export const ClockControls: React.FC<ClockControlsProps> = ({ controller }) => {
   }
 
   return (
-    <div id="clock-controls" className="clock-controls">
-      <h3>Clock Controls</h3>
+    <Box
+      id="clock-controls"
+      sx={{ mt: 3, p: 3, bg: 'panelBg', borderRadius: 'sm', border: '1px solid', borderColor: 'border' }}
+    >
+      <Text as="h3" sx={{ m: 0, mb: 2, fontSize: 2, color: 'text' }}>
+        Clock Controls
+      </Text>
 
-      <div className="clock-buttons">
-        <button id="step-btn" className="clock-btn step" onClick={() => clock.step()}>
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+        <Button
+          id="step-btn"
+          onClick={() => clock.step()}
+          sx={{
+            bg: 'panelBg',
+            border: '2px solid',
+            borderColor: 'border',
+            borderRadius: 'sm',
+            color: 'text',
+            px: 3,
+            py: 2,
+            cursor: 'pointer',
+            ':hover': { bg: 'hoverBg' },
+          }}
+        >
           Step
-        </button>
+        </Button>
 
-        <button
+        <Button
           id="run-btn"
-          className={`clock-btn ${clockState.isRunning ? 'run-active' : ''}`}
           onClick={() => {
             if (clock.getState().isRunning) {
               clock.pause();
@@ -96,21 +115,48 @@ export const ClockControls: React.FC<ClockControlsProps> = ({ controller }) => {
             }
             setClockState(clock.getState());
           }}
+          sx={{
+            bg: clockState.isRunning ? 'primary' : 'panelBg',
+            border: '2px solid',
+            borderColor: clockState.isRunning ? 'primary' : 'border',
+            borderRadius: 'sm',
+            color: clockState.isRunning ? 'white' : 'text',
+            px: 3,
+            py: 2,
+            cursor: 'pointer',
+            ':hover': { filter: 'brightness(1.05)' },
+          }}
         >
           {clockState.isRunning ? 'Pause' : 'Run'}
-        </button>
+        </Button>
 
-        <button id="reset-btn" className="clock-btn" onClick={() => clock.reset()}>
+        <Button
+          id="reset-btn"
+          onClick={() => clock.reset()}
+          sx={{
+            bg: 'panelBg',
+            border: '2px solid',
+            borderColor: 'border',
+            borderRadius: 'sm',
+            color: 'text',
+            px: 3,
+            py: 2,
+            cursor: 'pointer',
+            ':hover': { bg: 'hoverBg' },
+          }}
+        >
           Reset
-        </button>
-      </div>
+        </Button>
+      </Box>
 
-      <div className="clock-frequency">
-        <label htmlFor="freq-slider">
-          <span>Frequency</span>
-          <span className="freq-value">{clockState.frequency.toFixed(1)} Hz</span>
-        </label>
-        <input
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <label htmlFor="freq-slider" sx={{ fontSize: 0, color: 'secondaryText' }}>
+            Frequency
+          </label>
+          <Text sx={{ fontSize: 0, color: 'text', fontWeight: 600 }}>{clockState.frequency.toFixed(1)} Hz</Text>
+        </Box>
+        <Input
           id="freq-slider"
           type="range"
           min={0.1}
@@ -121,15 +167,25 @@ export const ClockControls: React.FC<ClockControlsProps> = ({ controller }) => {
             clock.setFrequency(Number(e.target.value));
             setClockState(clock.getState());
           }}
+          sx={{ width: '100%' }}
         />
-      </div>
+      </Box>
 
-      <div className="clock-state">
-        <span className={`clock-indicator ${clockState.clockState ? 'high' : ''}`} />
-        <span className={`clock-status ${clockState.isRunning ? 'running' : 'halted'}`}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box
+          aria-hidden="true"
+          sx={{
+            width: 10,
+            height: 10,
+            borderRadius: 'pill',
+            bg: clockState.clockState ? '#34c759' : '#888',
+            boxShadow: clockState.clockState ? '0 0 0 3px rgba(52,199,89,0.15)' : 'none',
+          }}
+        />
+        <Text sx={{ fontSize: 1, color: 'secondaryText' }}>
           {clockState.isRunning ? 'running' : 'paused'} • instr: {clockState.instructionCount}
-        </span>
-      </div>
-    </div>
+        </Text>
+      </Box>
+    </Box>
   );
 };

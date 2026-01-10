@@ -92,7 +92,7 @@ export const CurrentAnimation: React.FC<CurrentAnimationProps> = ({ controller }
   }
 
   return (
-    <g className="current-animation" style={{ pointerEvents: 'none' }}>
+    <g style={{ pointerEvents: 'none' }}>
       {animatedConnections.map(({ connection, current }) => {
         const sourcePixels = positionToPixels(connection.sourcePosition);
         const targetPixels = positionToPixels(connection.targetPosition);
@@ -109,7 +109,6 @@ export const CurrentAnimation: React.FC<CurrentAnimationProps> = ({ controller }
               strokeWidth={3}
               strokeDasharray={animParams.dashArray}
               opacity={0.7}
-              className="current-indicator"
             >
               <animate
                 attributeName="stroke-dashoffset"

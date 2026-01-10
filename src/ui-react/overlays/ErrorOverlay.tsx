@@ -133,7 +133,7 @@ export const ErrorOverlay: React.FC<ErrorOverlayProps> = ({ controller, onErrorC
   }
 
   return (
-    <g className="error-overlay">
+    <g>
       {errorBadges.map(({ id, error, pixels, visuals }) => {
         const isHovered = hoveredError === id;
         const radius = isHovered ? 10 : 8;
