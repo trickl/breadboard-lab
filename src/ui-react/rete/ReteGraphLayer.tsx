@@ -21,6 +21,7 @@ import { NodeEditor, ClassicPreset, getUID } from 'rete';
 import { AreaPlugin } from 'rete-area-plugin';
 import { ConnectionPlugin, ClassicFlow, type SocketData } from 'rete-connection-plugin';
 import { ReactPlugin, Presets as ReactPresets, type ClassicScheme, type ReactArea2D } from 'rete-react-plugin';
+import { SmoothZoom } from './SmoothZoom';
 import type { BreadboardController } from '@/ui-controller';
 import type { AppState } from '@/ui-controller/types';
 import type { AnyComponent } from '@/core/types';
@@ -316,6 +317,17 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
 
     const editor = new NodeEditor<Schemes>();
     const area = new AreaPlugin<Schemes, AreaExtra>(container);
+
+    // Replace rete-area-plugin's default quantized wheel zoom with a smooth, animated zoom.
+    // This keeps trackpads continuous and makes mouse-wheel zoom feel much less "steppy".
+    area.area.setZoomHandler(
+      new SmoothZoom(0.1, {
+        wheelZoomSpeed: 0.001,
+        smoothTimeMs: 120,
+        perGestureFactorClamp: { min: 0.25, max: 4 },
+      })
+    );
+
     const connection = new ConnectionPlugin<Schemes, AreaExtra>();
     const render = new ReactPlugin<Schemes, AreaExtra>({ createRoot });
 
