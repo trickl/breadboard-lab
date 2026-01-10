@@ -891,11 +891,13 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
               // Wire styling: layered strokes (dark jacket + inner highlight) to approximate a
               // cylindrical insulated wire. This is robust for axis-aligned paths and reads better
               // than bbox-dependent gradients.
-              const jacket = DEBUG_RENDER_CONNECTIONS ? stroke : mixWithBlack(stroke, 0.18);
-              const highlight = DEBUG_RENDER_CONNECTIONS ? stroke : mixWithWhite(stroke, 0.55);
-              const highlight2 = DEBUG_RENDER_CONNECTIONS ? stroke : mixWithWhite(stroke, 0.8);
-              const highlightWidth = Math.max(2, strokeWidth * 0.55);
-              const highlight2Width = Math.max(1.5, strokeWidth * 0.28);
+              // Tuned for a subtler, less "neon" look (especially for saturated colors like red).
+              // The jacket is only slightly darker; highlights are modest and narrower.
+              const jacket = DEBUG_RENDER_CONNECTIONS ? stroke : mixWithBlack(stroke, 0.1);
+              const highlight = DEBUG_RENDER_CONNECTIONS ? stroke : mixWithWhite(stroke, 0.35);
+              const highlight2 = DEBUG_RENDER_CONNECTIONS ? stroke : mixWithWhite(stroke, 0.55);
+              const highlightWidth = Math.max(1.8, strokeWidth * 0.45);
+              const highlight2Width = Math.max(1.2, strokeWidth * 0.22);
 
               const shadow = isSelected
                 ? 'drop-shadow(0px 1px 2px rgba(0,0,0,0.35)) drop-shadow(0px 0px 2px rgba(255,255,255,0.55))'
@@ -970,7 +972,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                           strokeLinecap: 'round',
                           strokeLinejoin: 'round',
                           pointerEvents: 'none',
-                          opacity: 0.75,
+                          opacity: 0.55,
                         }}
                       />
                       <path
@@ -982,7 +984,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                           strokeLinecap: 'round',
                           strokeLinejoin: 'round',
                           pointerEvents: 'none',
-                          opacity: 0.35,
+                          opacity: 0.22,
                         }}
                       />
                     </>
