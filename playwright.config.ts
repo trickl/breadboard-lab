@@ -5,7 +5,9 @@ import { defineConfig, devices } from '@playwright/test';
  * See https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  testDir: './tests/visual',
+  // Include all Playwright specs (UI + visual regression) under tests/
+  // This allows `tests/clock-control-ui.spec.ts` to run in CI and locally.
+  testDir: './tests',
   
   /* Run tests in files in parallel */
   fullyParallel: true,
@@ -30,7 +32,7 @@ export default defineConfig({
   /* Shared settings for all the projects below */
   use: {
     /* Base URL to use in actions like `await page.goto('/')` */
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:4173',
     
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
@@ -49,8 +51,8 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: 'npm run dev -- --port 4173 --strictPort',
+    url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },

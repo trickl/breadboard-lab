@@ -24,7 +24,7 @@ import type { BreadboardController } from '@/ui-controller';
 import type { AppState } from '@/ui-controller/types';
 import type { AnyComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
-import { positionToPixels, LABEL_PADDING_X, LABEL_PADDING_Y } from '../geometry/breadboard-layout';
+import { getBreadboardDimensions, positionToPixels, LABEL_PADDING_X, LABEL_PADDING_Y } from '../geometry/breadboard-layout';
 
 /**
  * Socket for component legs
@@ -58,6 +58,7 @@ export interface ReteGraphLayerProps {
   controller: BreadboardController;
   svgRef: React.RefObject<SVGSVGElement | null>;
   onTransformChange?: (x: number, y: number, zoom: number) => void;
+  rotation?: 0 | 90 | 180 | 270;
 }
 
 /**
@@ -115,19 +116,42 @@ function getComponentLegCount(type: ComponentType): number {
 export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({ 
   controller,
   svgRef,
-  onTransformChange 
+  onTransformChange,
+  rotation = 0,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<NodeEditor<Schemes> | null>(null);
   const areaRef = useRef<AreaPlugin<Schemes, any> | null>(null);
   const componentNodeMapRef = useRef<Map<string, string>>(new Map());
   const [containerTransform, setContainerTransform] = React.useState<string>('none');
+  const [rotationOriginPx, setRotationOriginPx] = React.useState<{ x: number; y: number } | null>(null);
 
   // Update container transform when SVG changes
   useEffect(() => {
     const updateTransform = () => {
-      const transform = calculateReteContainerTransform(svgRef.current);
+      const svg = svgRef.current;
+      const transform = calculateReteContainerTransform(svg);
       setContainerTransform(transform);
+
+      if (!svg) {
+        setRotationOriginPx(null);
+        return;
+      }
+
+      // Match the same pivot used by the SVG substrate rotation:
+      // translate(LABEL_PADDING_*) then rotate around the breadboard center.
+      const vb = svg.viewBox.baseVal;
+      const clientRect = svg.getBoundingClientRect();
+      const scaleX = clientRect.width / vb.width;
+      const scaleY = clientRect.height / vb.height;
+
+      const dims = getBreadboardDimensions();
+      const pivotWorldX = LABEL_PADDING_X + dims.width / 2;
+      const pivotWorldY = LABEL_PADDING_Y + dims.height / 2;
+
+      const pivotScreenX = (pivotWorldX - vb.x) * scaleX;
+      const pivotScreenY = (pivotWorldY - vb.y) * scaleY;
+      setRotationOriginPx({ x: pivotScreenX, y: pivotScreenY });
     };
     
     // Update on mount and when SVG ref changes
@@ -299,21 +323,39 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     return unsubscribe;
   }, [controller, syncNodes]);
 
+  const rotateStyle: React.CSSProperties = rotationOriginPx
+    ? {
+        transformOrigin: `${rotationOriginPx.x}px ${rotationOriginPx.y}px`,
+        transform: rotation === 0 ? 'none' : `rotate(${rotation}deg)`,
+        width: '100%',
+        height: '100%',
+      }
+    : { width: '100%', height: '100%' };
+
   return (
     <div
-      ref={containerRef}
       style={{
         position: 'absolute',
         top: 0,
         left: 0,
         width: '100%',
         height: '100%',
-        pointerEvents: 'none', // Prevent container from intercepting pointer events (nodes handle their own events)
+        pointerEvents: 'none',
         zIndex: 10,
-        transformOrigin: '0 0',
-        transform: containerTransform,
       }}
     >
+      <div style={rotateStyle}>
+        <div
+          ref={containerRef}
+          style={{
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none', // Prevent container from intercepting pointer events (nodes handle their own events)
+            transformOrigin: '0 0',
+            transform: containerTransform,
+          }}
+        />
+      </div>
       <style>{`
         .rete-node {
           pointer-events: auto !important;

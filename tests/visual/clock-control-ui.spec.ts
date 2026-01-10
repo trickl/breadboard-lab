@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('Clock control UI appears when EDU-8 is loaded', async ({ page }) => {
   // Navigate to the app
-  await page.goto('http://localhost:5173');
+  await page.goto('/');
   await page.waitForTimeout(2000);
 
   // Initially, clock controls should not be visible

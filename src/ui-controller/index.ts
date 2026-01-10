@@ -35,7 +35,7 @@ export function createInitialState(): AppState {
     },
     ui: {
       xrayModeEnabled: false,
-      breadboardOrientation: 0,
+      breadboardOrientation: 90,
       currentTheme: 'dark',
       currentView: 'breadboard',
       showVoltageOverlay: false,

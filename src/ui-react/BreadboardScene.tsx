@@ -6,7 +6,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { BreadboardController } from '@/ui-controller';
 import type { AppState } from '@/ui-controller/types';
-import type { Position } from '@/core/types';
 import { BreadboardSvg } from './BreadboardSvg';
 import { getBreadboardDimensions, LABEL_PADDING_X, LABEL_PADDING_Y } from './geometry/breadboard-layout';
 import { ComponentsLayer } from './components/ComponentsLayer';
@@ -58,55 +57,67 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
     height: totalHeight,
   });
 
+  // Default zoom level.
+  // Scale factor ≈ (CSS pixels per world unit). A value of 3 means the board
+  // appears ~3× larger than a 1:1 world-to-screen mapping.
+  const DEFAULT_VIEW_SCALE = 1.5;
+
+  // Initialize/maintain a reasonable viewBox that keeps the board centered.
+  // (Wheel zoom is disabled; pan is still supported.)
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const fit = () => {
+      const viewportWidth = svg.clientWidth || 1;
+      const viewportHeight = svg.clientHeight || 1;
+
+      // Choose a smaller viewBox to zoom in.
+      // Clamp so we never zoom in past the board's bounds too aggressively.
+      const minWidth = totalWidth / 6;
+      const minHeight = totalHeight / 6;
+
+      const width = Math.max(minWidth, viewportWidth / DEFAULT_VIEW_SCALE);
+      const height = Math.max(minHeight, viewportHeight / DEFAULT_VIEW_SCALE);
+
+      setViewBox((prev) => {
+        // Keep current pan if the user already moved around, but still ensure no upscaling.
+        // If the previous viewBox was already larger than the board, preserve its center.
+        const centerX = prev.x + prev.width / 2;
+        const centerY = prev.y + prev.height / 2;
+
+        // If we haven't panned/zoomed (still at origin), center on the board.
+        const isDefault = prev.x === 0 && prev.y === 0 && prev.width === totalWidth && prev.height === totalHeight;
+        const targetCenterX = isDefault ? totalWidth / 2 : centerX;
+        const targetCenterY = isDefault ? totalHeight / 2 : centerY;
+
+        const next = {
+          x: targetCenterX - width / 2,
+          y: targetCenterY - height / 2,
+          width,
+          height,
+        };
+
+        if (
+          Math.abs(next.x - prev.x) < 0.01 &&
+          Math.abs(next.y - prev.y) < 0.01 &&
+          Math.abs(next.width - prev.width) < 0.01 &&
+          Math.abs(next.height - prev.height) < 0.01
+        ) {
+          return prev;
+        }
+
+        return next;
+      });
+    };
+
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [totalWidth, totalHeight]);
+
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-
-  // Handle mouse wheel zoom
-  const handleWheel = useCallback(
-    (event: React.WheelEvent<SVGSVGElement>) => {
-      event.preventDefault();
-
-      const svg = svgRef.current;
-      if (!svg) return;
-
-      // Get mouse position in SVG coordinates
-      const point = svg.createSVGPoint();
-      point.x = event.clientX;
-      point.y = event.clientY;
-      const ctm = svg.getScreenCTM();
-      if (!ctm) return;
-      const svgPoint = point.matrixTransform(ctm.inverse());
-
-      // Calculate zoom factor
-      const zoomFactor = event.deltaY > 0 ? 1.1 : 0.9;
-
-      // Calculate new viewBox
-      const newWidth = viewBox.width * zoomFactor;
-      const newHeight = viewBox.height * zoomFactor;
-
-      // Clamp zoom
-      const minZoom = 0.1;
-      const maxZoom = 5;
-      const currentZoom = totalWidth / viewBox.width;
-      const newZoom = currentZoom / zoomFactor;
-
-      if (newZoom < minZoom || newZoom > maxZoom) {
-        return;
-      }
-
-      // Calculate new top-left to keep mouse position fixed
-      const newX = svgPoint.x - (svgPoint.x - viewBox.x) * zoomFactor;
-      const newY = svgPoint.y - (svgPoint.y - viewBox.y) * zoomFactor;
-
-      setViewBox({
-        x: newX,
-        y: newY,
-        width: newWidth,
-        height: newHeight,
-      });
-    },
-    [viewBox, totalWidth, totalHeight]
-  );
 
   // Handle pan start
   const handleMouseDown = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
@@ -144,23 +155,6 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
   // Handle pan end
   const handleMouseUp = useCallback(() => {
     setIsPanning(false);
-  }, []);
-
-  // Hole interaction handlers
-  const handleHoleClick = useCallback(
-    (position: Position) => {
-      console.log(`Hole clicked: row ${position.row}, col ${position.col}`);
-      // Future: dispatch appropriate controller action based on interaction mode
-    },
-    []
-  );
-
-  const handleHoleHover = useCallback((_position: Position) => {
-    // Future: update hover state for UI feedback
-  }, []);
-
-  const handleHoleLeave = useCallback(() => {
-    // Future: clear hover state
   }, []);
 
   // Keyboard event handlers for component operations
@@ -255,16 +249,21 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
     []
   );
 
+  const rotation = state.ui.breadboardOrientation;
+  const rotationCx = dimensions.width / 2;
+  const rotationCy = dimensions.height / 2;
+  const substrateTransform =
+    rotation === 0
+      ? `translate(${LABEL_PADDING_X}, ${LABEL_PADDING_Y})`
+      : `translate(${LABEL_PADDING_X}, ${LABEL_PADDING_Y}) rotate(${rotation} ${rotationCx} ${rotationCy})`;
+
   return (
     <div
+      className="breadboard-container"
       style={{
         width: '100%',
-        height: '100vh',
+        height: '100%',
         overflow: 'hidden',
-        backgroundColor: '#2a2a2a',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         position: 'relative',
       }}
     >
@@ -276,7 +275,6 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
           height: '100%',
           cursor: isPanning ? 'grabbing' : 'grab',
         }}
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -284,12 +282,9 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
         onClick={handleBackgroundClick}
       >
         {/* Offset group for label padding */}
-        <g transform={`translate(${LABEL_PADDING_X}, ${LABEL_PADDING_Y})`}>
+        <g transform={substrateTransform}>
           <BreadboardSvg
             orientation={state.ui.breadboardOrientation}
-            onHoleClick={handleHoleClick}
-            onHoleHover={handleHoleHover}
-            onHoleLeave={handleHoleLeave}
           />
           {/* Voltage overlay (above substrate, below connections) */}
           <VoltageOverlay controller={controller} />
@@ -308,6 +303,7 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
         controller={controller} 
         svgRef={svgRef}
         onTransformChange={handleReteTransformChange}
+        rotation={rotation}
       />
     </div>
   );

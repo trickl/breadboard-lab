@@ -49,6 +49,11 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 /* Smooth transitions for theme changes */
 :root {
   transition:
@@ -65,10 +70,12 @@ body {
   transition:
     background-color 0.3s ease,
     color 0.3s ease;
+  /* The app manages its own internal scrolling (side panels); prevent page scroll */
+  overflow: hidden;
 }
 
 #app {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
 }
@@ -151,6 +158,8 @@ body {
   display: flex;
   flex: 1;
   overflow: hidden;
+  /* Allow children (workspace) to shrink without forcing page scroll */
+  min-height: 0;
 }
 
 .toolbar {
@@ -350,7 +359,9 @@ body {
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  overflow: auto;
+  /* Pan is handled inside the SVG; don't create a scrollable page region */
+  overflow: hidden;
+  min-height: 0;
 }
 
 .breadboard-container {
