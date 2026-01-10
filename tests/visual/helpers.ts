@@ -65,6 +65,24 @@ export async function waitForBreadboardReady(page: Page): Promise<void> {
 }
 
 /**
+ * Stabilize visuals for screenshot comparisons.
+ *
+ * Rationale: SVG <text> rendering (metrics/hinting/antialiasing) can differ slightly between
+ * environments (e.g., GitHub Actions runners vs local dev machines), producing flaky diffs.
+ * We hide breadboard labels (row/column/rail markings) for screenshot-based assertions while
+ * keeping the rest of the breadboard (holes, components, wires, overlays) intact.
+ */
+export async function stabilizeForVisualScreenshot(page: Page): Promise<void> {
+  await page.addStyleTag({
+    content: `
+      [data-testid="breadboard-labels"] {
+        display: none !important;
+      }
+    `,
+  });
+}
+
+/**
  * Get the breadboard container element
  * This is the main element we'll screenshot for visual regression tests
  */

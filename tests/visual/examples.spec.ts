@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loadExample, getBreadboardContainer } from './helpers';
+import { loadExample, getBreadboardContainer, stabilizeForVisualScreenshot } from './helpers';
 
 /**
  * Visual Regression Tests for Breadboard Lab
@@ -23,6 +23,8 @@ test.describe('Example Circuit Visual Regression', () => {
     
     // Verify React SVG breadboard is present
     await expect(page.locator('svg.breadboard-svg')).toBeVisible();
+
+    await stabilizeForVisualScreenshot(page);
     
     // Capture screenshot for comparison
     await expect(breadboard).toHaveScreenshot('led-resistor.png', {
@@ -42,6 +44,8 @@ test.describe('Example Circuit Visual Regression', () => {
     
     // Verify React SVG breadboard is present
     await expect(page.locator('svg.breadboard-svg')).toBeVisible();
+
+    await stabilizeForVisualScreenshot(page);
     
     // Capture screenshot for comparison
     await expect(breadboard).toHaveScreenshot('voltage-divider.png', {
@@ -61,6 +65,8 @@ test.describe('Example Circuit Visual Regression', () => {
     
     // Verify React SVG breadboard is present
     await expect(page.locator('svg.breadboard-svg')).toBeVisible();
+
+    await stabilizeForVisualScreenshot(page);
     
     // Capture screenshot for comparison
     await expect(breadboard).toHaveScreenshot('parallel-leds.png', {
@@ -80,6 +86,8 @@ test.describe('Example Circuit Visual Regression', () => {
     
     // Verify React SVG breadboard is present
     await expect(page.locator('svg.breadboard-svg')).toBeVisible();
+
+    await stabilizeForVisualScreenshot(page);
     
     // Note: Error overlay might not be rendered depending on circuit state
     // The important thing is that the circuit loads and renders consistently

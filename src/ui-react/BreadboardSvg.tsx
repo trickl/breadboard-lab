@@ -533,10 +533,13 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
           return <use key={`hole-${pos.row}-${pos.col}`} href="#breadboard-hole" x={x} y={y} />;
         })}
 
-        {/* Labels */}
-        {rowLabels}
-        {columnLabels}
-        {railLabels}
+        {/* Labels (row/column/rail). Kept in a dedicated group so tests can hide/mask them to
+            avoid cross-environment font rendering diffs in screenshots. */}
+        <g data-testid="breadboard-labels">
+          {rowLabels}
+          {columnLabels}
+          {railLabels}
+        </g>
 
         </g>
 
