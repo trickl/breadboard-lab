@@ -20,17 +20,26 @@ import { createRoot } from 'react-dom/client';
 import { NodeEditor, ClassicPreset } from 'rete';
 import { AreaPlugin } from 'rete-area-plugin';
 import { ConnectionPlugin, Presets as ConnectionPresets } from 'rete-connection-plugin';
-import { ReactPlugin, Presets as ReactPresets, type ClassicScheme } from 'rete-react-plugin';
+import { ReactPlugin, Presets as ReactPresets, type ClassicScheme, type ReactArea2D } from 'rete-react-plugin';
 import type { BreadboardController } from '@/ui-controller';
 import type { AppState } from '@/ui-controller/types';
 import type { AnyComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
-import { getBreadboardDimensions, positionToPixels, LABEL_PADDING_X, LABEL_PADDING_Y } from '../geometry/breadboard-layout';
+import { getAllHolePositions } from '../geometry/breadboard-layout';
+import { BreadboardLayout } from '@/core/breadboard-layout';
+import { getBreadboardWorld, positionToWorld, type BoardRotation } from '@/ui-react/world/breadboard-world';
+import { BreadboardSvg } from '@/ui-react/BreadboardSvg';
+import { LABEL_PADDING_X, LABEL_PADDING_Y } from '@/ui-react/geometry/breadboard-layout';
 
 /**
  * Socket for component legs
  */
 const legSocket = new ClassicPreset.Socket('component-leg');
+
+/**
+ * Socket for breadboard holes/ports
+ */
+const holeSocket = new ClassicPreset.Socket('breadboard-hole');
 
 /**
  * Rete node representing a component on the breadboard
@@ -53,38 +62,55 @@ class ComponentNode extends ClassicPreset.Node {
   }
 }
 
-type Schemes = ClassicScheme;
+/**
+ * Rete node representing a breadboard rail (one electrical net with many possible connection points).
+ *
+ * Note: For iteration 1 we keep classic preset layout (sockets stacked) to validate interactions.
+ * Later we'll switch to a custom node renderer that positions sockets exactly over the breadboard holes.
+ */
+class RailNode extends ClassicPreset.Node {
+  // Keep this tiny; we render sockets at absolute positions and don't want a big invisible hitbox.
+  width = 1;
+  height = 1;
 
-export interface ReteGraphLayerProps {
-  controller: BreadboardController;
-  svgRef: React.RefObject<SVGSVGElement | null>;
-  onTransformChange?: (x: number, y: number, zoom: number) => void;
-  rotation?: 0 | 90 | 180 | 270;
+  constructor(
+    public railId: string,
+    public railLabel: string,
+    public holePositions: Array<{ row: number; col: number }>
+  ) {
+    super(railLabel);
+
+    // Each hole gets its own input so each physical hole can have at most one wire.
+    for (let i = 0; i < holePositions.length; i++) {
+      this.addInput(
+        `h${i}`,
+        new ClassicPreset.Input(holeSocket, '')
+      );
+    }
+  }
 }
 
 /**
- * Calculate CSS transform to align Rete container with SVG viewBox
- * The SVG uses a viewBox coordinate system, but Rete renders in DOM screen space.
- * We need to apply the inverse transform to make Rete coordinates match SVG world coordinates.
+ * Rete node representing the breadboard itself (skin/background).
+ * Rendered as an SVG inside the Rete canvas so it pans/zooms with the viewport.
  */
-function calculateReteContainerTransform(svgElement: SVGSVGElement | null): string {
-  if (!svgElement) return 'none';
-  
-  // Get SVG viewBox (world coordinates)
-  const viewBox = svgElement.viewBox.baseVal;
-  
-  // Get SVG client size (screen coordinates)
-  const clientRect = svgElement.getBoundingClientRect();
-  
-  // Calculate scale factors
-  const scaleX = clientRect.width / viewBox.width;
-  const scaleY = clientRect.height / viewBox.height;
-  
-  // Calculate offset (viewBox origin in screen space)
-  const offsetX = -viewBox.x * scaleX;
-  const offsetY = -viewBox.y * scaleY;
-  
-  return `translate(${offsetX}px, ${offsetY}px) scale(${scaleX}, ${scaleY})`;
+class BreadboardNode extends ClassicPreset.Node {
+  constructor(public labelText: string) {
+    super(labelText);
+    // Size the node to the full world extents (including padding)
+    const world = getBreadboardWorld(0);
+    this.width = world.total.width;
+    this.height = world.total.height;
+  }
+}
+
+type Schemes = ClassicScheme;
+
+type AreaExtra = ReactArea2D<Schemes>;
+
+export interface ReteGraphLayerProps {
+  controller: BreadboardController;
+  rotation?: 0 | 90 | 180 | 270;
 }
 
 /**
@@ -116,84 +142,236 @@ function getComponentLegCount(type: ComponentType): number {
  */
 export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({ 
   controller,
-  svgRef,
-  onTransformChange,
   rotation = 0,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<NodeEditor<Schemes> | null>(null);
-  const areaRef = useRef<AreaPlugin<Schemes, unknown> | null>(null);
+  const areaRef = useRef<AreaPlugin<Schemes, AreaExtra> | null>(null);
   const componentNodeMapRef = useRef<Map<string, string>>(new Map());
-  const [containerTransform, setContainerTransform] = React.useState<string>('none');
-  const [rotationOriginPx, setRotationOriginPx] = React.useState<{ x: number; y: number } | null>(null);
+  const railNodeMapRef = useRef<Map<string, string>>(new Map());
+  const breadboardNodeIdRef = useRef<string | null>(null);
 
-  // Update container transform when SVG changes
+  // The ReactPlugin preset customization is registered once; use refs to access live props.
+  const rotationRef = useRef<BoardRotation>(rotation);
   useEffect(() => {
-    const updateTransform = () => {
-      const svg = svgRef.current;
-      const transform = calculateReteContainerTransform(svg);
-      setContainerTransform(transform);
+    rotationRef.current = rotation;
+  }, [rotation]);
 
-      if (!svg) {
-        setRotationOriginPx(null);
-        return;
+  const dimsRef = useRef(getBreadboardWorld(rotation));
+  useEffect(() => {
+    dimsRef.current = getBreadboardWorld(rotation);
+  }, [rotation]);
+
+  // Rotation changes are *not* a native Rete state change, so the React renderer won't re-render
+  // our custom RailNode socket-clouds unless we explicitly request an update.
+  useEffect(() => {
+    const editor = editorRef.current;
+    const area = areaRef.current;
+    if (!editor || !area) return;
+
+    // Keep the breadboard node's size in sync with the rotated world bounds.
+    // (This is what makes the node's bounding box match the rotated graphic.)
+    const bbId = breadboardNodeIdRef.current;
+    if (bbId) {
+      const bbNode = editor.getNode(bbId);
+      if (bbNode && bbNode instanceof BreadboardNode) {
+        const world = getBreadboardWorld(rotationRef.current);
+        bbNode.width = world.total.width;
+        bbNode.height = world.total.height;
       }
-
-      // Match the same pivot used by the SVG substrate rotation:
-      // translate(LABEL_PADDING_*) then rotate around the breadboard center.
-      const vb = svg.viewBox.baseVal;
-      const clientRect = svg.getBoundingClientRect();
-      const scaleX = clientRect.width / vb.width;
-      const scaleY = clientRect.height / vb.height;
-
-      const dims = getBreadboardDimensions();
-      const pivotWorldX = LABEL_PADDING_X + dims.width / 2;
-      const pivotWorldY = LABEL_PADDING_Y + dims.height / 2;
-
-      const pivotScreenX = (pivotWorldX - vb.x) * scaleX;
-      const pivotScreenY = (pivotWorldY - vb.y) * scaleY;
-      setRotationOriginPx({ x: pivotScreenX, y: pivotScreenY });
-    };
-    
-    // Update on mount and when SVG ref changes
-    updateTransform();
-    
-    // Update on window resize (changes SVG client dimensions)
-    window.addEventListener('resize', updateTransform);
-    
-    // Use MutationObserver to track viewBox changes on the SVG
-    const svg = svgRef.current;
-    if (svg) {
-      const observer = new MutationObserver(() => {
-        updateTransform();
-      });
-      
-      observer.observe(svg, {
-        attributes: true,
-        attributeFilter: ['viewBox'],
-      });
-      
-      return () => {
-        window.removeEventListener('resize', updateTransform);
-        observer.disconnect();
-      };
     }
-    
-    return () => window.removeEventListener('resize', updateTransform);
-  }, [svgRef]);
+
+    // Update all nodes (rail sockets + component nodes) and all connections so paths recompute.
+    for (const node of editor.getNodes()) {
+      void area.update('node', node.id);
+    }
+    for (const connection of editor.getConnections()) {
+      void area.update('connection', connection.id);
+    }
+  }, [rotation]);
 
   // Initialize Rete editor
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const editor = new NodeEditor<Schemes>();
-    const area = new AreaPlugin<Schemes, unknown>(container);
-    const connection = new ConnectionPlugin<Schemes, unknown>();
-    const render = new ReactPlugin<Schemes, unknown>({ createRoot });
+    // React StrictMode intentionally mounts/unmounts components twice in development.
+    // If a previous AreaPlugin instance didn't fully remove its DOM, we can end up
+    // with "ghost" content underneath. Clearing the container makes initialization
+    // idempotent and prevents duplicate breadboards.
+    container.innerHTML = '';
 
-    // Configure React renderer with classic preset
-    render.addPreset(ReactPresets.classic.setup());
+    const editor = new NodeEditor<Schemes>();
+    const area = new AreaPlugin<Schemes, AreaExtra>(container);
+    const connection = new ConnectionPlugin<Schemes, AreaExtra>();
+    const render = new ReactPlugin<Schemes, AreaExtra>({ createRoot });
+
+    // Configure React renderer with classic preset.
+    // We customize RailNode rendering so sockets can be placed exactly over breadboard holes.
+    render.addPreset(
+      ReactPresets.classic.setup({
+        customize: {
+          node: (data) => {
+            const payload = data.payload;
+            if (payload instanceof BreadboardNode) {
+              const BreadboardNodeRenderer: ReactPresets.classic.NodeComponent<Schemes> = ({ data }) => {
+                const rot = rotationRef.current;
+                const world = getBreadboardWorld(rot);
+
+                // Render the skin inside the node; pointer events disabled so panning/connecting works.
+                return (
+                  <div
+                    data-testid="node"
+                    style={{
+                      position: 'relative',
+                      width: world.total.width,
+                      height: world.total.height,
+                      overflow: 'visible',
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      margin: 0,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {/* Debug label */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: 8,
+                        top: 8,
+                        padding: '2px 6px',
+                        borderRadius: 4,
+                        background: 'rgba(0,0,0,0.55)',
+                        color: 'white',
+                        fontSize: 12,
+                        fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial',
+                      }}
+                    >
+                      {data.label}
+                    </div>
+
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: LABEL_PADDING_X,
+                        top: LABEL_PADDING_Y,
+                        width: world.dimensions.width,
+                        height: world.dimensions.height,
+                        overflow: 'visible',
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: 0,
+                          width: world.nativeDimensions.width,
+                          height: world.nativeDimensions.height,
+                          transformOrigin: `${world.pivotLocal.x}px ${world.pivotLocal.y}px`,
+                          transform: world.substrateTransform,
+                        }}
+                      >
+                        <BreadboardSvg />
+                      </div>
+                    </div>
+                  </div>
+                );
+              };
+
+              return BreadboardNodeRenderer;
+            }
+            if (payload instanceof RailNode) {
+              const RailNodeRenderer: ReactPresets.classic.NodeComponent<Schemes> = ({ data, emit }) => {
+                const rail = data as unknown as RailNode;
+                const rot = rotationRef.current;
+
+                // Label placement: use the first visible hole as anchor.
+                const anchor = rail.holePositions[0]
+                  ? positionToWorld(rail.holePositions[0], rot)
+                  : { x: 0, y: 0 };
+
+                return (
+                  <div
+                    data-testid="node"
+                    style={{
+                      position: 'relative',
+                      width: 1,
+                      height: 1,
+                      overflow: 'visible',
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      margin: 0,
+                      // Allow sockets to receive pointer events; the node body itself stays inert.
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {/* Debug label */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: anchor.x,
+                        top: Math.max(0, anchor.y - 18),
+                        transform: 'translate(-50%, -50%)',
+                        padding: '2px 6px',
+                        borderRadius: 4,
+                        background: 'rgba(0,0,0,0.55)',
+                        color: 'white',
+                        fontSize: 12,
+                        fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial',
+                        pointerEvents: 'none',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {data.label}
+                    </div>
+                    {Object.entries(rail.inputs).map(([key, input]) => {
+                      if (!input) return null;
+                      const match = /^h(\d+)$/.exec(key);
+                      const idx = match ? Number(match[1]) : -1;
+                      const pos = idx >= 0 ? rail.holePositions[idx] : null;
+                      if (!pos) return null;
+
+                      const rotated = positionToWorld(pos, rot);
+
+                      // Center the socket on the hole center.
+                      return (
+                        <div
+                          key={key}
+                          style={{
+                            position: 'absolute',
+                            left: rotated.x,
+                            top: rotated.y,
+                            transform: 'translate(-50%, -50%)',
+                            pointerEvents: 'auto',
+                          }}
+                        >
+                          <ReactPresets.classic.RefSocket
+                            name="input-socket"
+                            side="input"
+                            socketKey={key}
+                            nodeId={rail.id}
+                            emit={emit}
+                            payload={input.socket}
+                            data-testid="input-socket"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              };
+
+              return RailNodeRenderer;
+            }
+
+            // Default classic renderer for other nodes
+            return ReactPresets.classic.Node;
+          },
+        },
+      })
+    );
 
     // Configure connection renderer with classic preset
     connection.addPreset(ConnectionPresets.classic.setup());
@@ -207,31 +385,31 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     editorRef.current = editor;
     areaRef.current = area;
 
-    // Set initial area transform to match default SVG viewBox
-    // This prevents Rete from using its default (0,0) origin
-    area.area.transform.x = 0;
-    area.area.transform.y = 0;
-    area.area.transform.k = 1;
-
-    // Listen for area transform changes to sync with SVG viewBox
-    // This implements DR-3: Rete as source of truth for pan/zoom
-    area.addPipe((context) => {
-      if (context.type === 'transformed') {
-        const transform = area.area.transform;
-        if (onTransformChange) {
-          onTransformChange(transform.x, transform.y, transform.k);
-        }
-      }
-      return context;
-    });
+    // Initialize viewport to fit the breadboard world.
+    // Rete is the only viewport in this mode.
+    const bounds = container.getBoundingClientRect();
+    const w = bounds.width || 1;
+    const h = bounds.height || 1;
+    const world = getBreadboardWorld(rotationRef.current);
+    const kw = w / (world.total.width || 1);
+    const kh = h / (world.total.height || 1);
+    const k = Math.min(kw, kh) * 0.95;
+    area.area.transform.k = Number.isFinite(k) && k > 0 ? k : 1;
+    // Center the world.
+    area.area.transform.x = (w - world.total.width * area.area.transform.k) / 2;
+    area.area.transform.y = (h - world.total.height * area.area.transform.k) / 2;
+    area.area.update();
 
     // Cleanup on unmount
     return () => {
       if (area) {
         area.destroy();
       }
+
+      // Ensure no leftover DOM from Rete/AreaPlugin remains.
+      container.innerHTML = '';
     };
-  }, [onTransformChange]);
+  }, []);
 
   // Synchronize component nodes with controller state
   const syncNodes = useCallback(async (state: AppState) => {
@@ -240,6 +418,86 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     if (!editor || !area) {
       console.warn('[ReteGraphLayer] Editor or area not initialized, skipping sync');
       return;
+    }
+
+    // --- Breadboard root node (single node) ---
+    if (!breadboardNodeIdRef.current) {
+      const bb = new BreadboardNode('Breadboard');
+      // Give the breadboard node a stable id so we can reliably apply per-node DOM tweaks.
+      // (Also makes debugging easier.)
+      bb.id = 'breadboard';
+      await editor.addNode(bb);
+      breadboardNodeIdRef.current = bb.id;
+      await area.translate(bb.id, { x: 0, y: 0 });
+
+      // The breadboard background should never be draggable as a node.
+      // If it is draggable, it can drift away from the rail socket clouds.
+      // By disabling pointer events on the NodeView element, pointer input falls through
+      // to the area and results in panning (moving everything together).
+      const disableBreadboardNodeInteraction = () => {
+        const view = area.nodeViews.get(bb.id);
+        if (!view) return;
+        view.element.style.pointerEvents = 'none';
+      };
+
+      disableBreadboardNodeInteraction();
+      // Defensive: in case the view is attached after this tick.
+      setTimeout(disableBreadboardNodeInteraction, 0);
+    }
+
+    // --- Breadboard rails (static nodes) ---
+    // We model each rail column as one node with one socket per visible rail hole.
+    // This matches the electrical reality (one net) while preserving per-hole attachment constraints.
+    const railNodeMap = railNodeMapRef.current;
+    if (railNodeMap.size === 0) {
+      const allHoles = getAllHolePositions();
+      // World mapping is handled by the custom rail renderer (socket clouds).
+
+      const railDefs: Array<{ id: string; label: string; col: number; anchorRow: number }>= [
+        {
+          id: 'rail-left-positive',
+          label: 'Rail L +',
+          col: BreadboardLayout.RAIL_LEFT_POSITIVE,
+          anchorRow: 0,
+        },
+        {
+          id: 'rail-left-negative',
+          label: 'Rail L −',
+          col: BreadboardLayout.RAIL_LEFT_NEGATIVE,
+          anchorRow: 0,
+        },
+        {
+          id: 'rail-right-positive',
+          label: 'Rail R +',
+          col: BreadboardLayout.RAIL_RIGHT_POSITIVE,
+          anchorRow: 0,
+        },
+        {
+          id: 'rail-right-negative',
+          label: 'Rail R −',
+          col: BreadboardLayout.RAIL_RIGHT_NEGATIVE,
+          anchorRow: 0,
+        },
+      ];
+
+      for (const def of railDefs) {
+        const holePositions = allHoles
+          .filter((p) => p.col === def.col)
+          .sort((a, b) => {
+            // For stable ordering, compare by world Y at the current rotation.
+            const ay = positionToWorld(a, rotation).y;
+            const by = positionToWorld(b, rotation).y;
+            return ay - by;
+          })
+          .map((p) => ({ row: p.row, col: p.col }));
+
+        const railNode = new RailNode(def.id, def.label, holePositions);
+        await editor.addNode(railNode);
+        railNodeMap.set(def.id, railNode.id);
+
+        // Keep the rail node anchored at (0,0). The custom renderer positions sockets in world space.
+        await area.translate(railNode.id, { x: 0, y: 0 });
+      }
     }
 
     const components = state.breadboard.components;
@@ -283,20 +541,17 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
       // Update node position based on component's first position (world space)
       if (component.positions.length > 0) {
         const firstPos = component.positions[0];
-        const worldCoords = positionToPixels(firstPos);
-        
-        // Apply label padding offset to match SVG coordinate system
-        const x = worldCoords.x + LABEL_PADDING_X;
-        const y = worldCoords.y + LABEL_PADDING_Y;
-        
-        // Position the node at the component's location
+
+        const rotatedAnchor = positionToWorld(firstPos, rotation);
+
+        // Position the node at the component's location (centered)
         await area.translate(node.id, {
-          x: x - node.width / 2,
-          y: y - node.height / 2,
+          x: rotatedAnchor.x - node.width / 2,
+          y: rotatedAnchor.y - node.height / 2,
         });
       }
     }
-  }, []);
+  }, [rotation]);
 
   // Helper to create a component node
   const createComponentNode = async (
@@ -329,35 +584,36 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
         left: 0,
         width: '100%',
         height: '100%',
-        pointerEvents: 'none',
+        // Enable pointer events so Rete sockets can be interacted with.
+        // (This also prevents the underlying SVG from starting a pan when the user is trying to connect.)
+        pointerEvents: 'auto',
         zIndex: 10,
-        '.rete-node': { pointerEvents: 'auto' },
-        '.rete-connection': { pointerEvents: 'auto' },
+        // Make classic node UI much less intrusive.
+        // These attributes exist in the classic preset implementation.
+        '[data-testid="node"]': {
+          background: 'rgba(78, 88, 191, 0.08) !important',
+          border: '1px solid rgba(78, 88, 191, 0.25) !important',
+          boxShadow: 'none !important',
+        },
+        '[data-testid="input-title"], [data-testid="output-title"]': {
+          display: 'none',
+        },
+        // Keep sockets visually prominent and easy to hit.
+        '.input-socket, .output-socket': {
+          transform: 'scale(1.05)',
+          pointerEvents: 'auto',
+          opacity: 0.25,
+        },
       }}
     >
       <Box
+        ref={containerRef}
         sx={{
           width: '100%',
           height: '100%',
-          ...(rotationOriginPx
-            ? {
-                transformOrigin: `${rotationOriginPx.x}px ${rotationOriginPx.y}px`,
-                transform: rotation === 0 ? 'none' : `rotate(${rotation}deg)`,
-              }
-            : {}),
+          pointerEvents: 'auto',
         }}
-      >
-        <Box
-          ref={containerRef}
-          sx={{
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none',
-            transformOrigin: '0 0',
-            transform: containerTransform,
-          }}
-        />
-      </Box>
+      />
     </Box>
   );
 };

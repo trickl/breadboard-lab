@@ -13,9 +13,10 @@
  * - ReteManager coordinates state synchronization
  */
 
-import { NodeEditor, ClassicPreset, GetSchemes, NodeId } from 'rete';
+import { NodeEditor, ClassicPreset, NodeId } from 'rete';
 import { AreaPlugin, AreaExtensions } from 'rete-area-plugin';
 import { ConnectionPlugin } from 'rete-connection-plugin';
+import type { ClassicScheme } from 'rete-react-plugin';
 import type { Position, BreadboardState } from './types';
 import { ComponentType } from './types';
 
@@ -94,8 +95,12 @@ export type Connection = ClassicPreset.Connection<
 
 /**
  * Type definitions for Rete schemes
+ *
+ * The connection/area plugins expect a ClassicScheme-typed editor.
+ * We keep our concrete node/connection classes, but type the editor in a way
+ * that satisfies the plugin constraints.
  */
-type Schemes = GetSchemes<ComponentNode | BreadboardHoleNode, Connection>;
+type Schemes = ClassicScheme;
 
 /**
  * ReteManager: Manages Rete.js editor and synchronization with BreadboardState
@@ -287,7 +292,9 @@ export class ReteManager {
                 `leg${i}` // input socket
               ) as Connection;
 
-              await this.editor.addConnection(connection);
+              // NodeEditor is typed with ClassicScheme; connection generic parameters are invariant,
+              // so we cast here to the scheme connection type expected by addConnection.
+              await this.editor.addConnection(connection as unknown as Schemes['Connection']);
             }
           }
         }
@@ -566,7 +573,7 @@ export class ReteManager {
         }
       }
 
-      await this.editor.addConnection(connection);
+      await this.editor.addConnection(connection as unknown as Schemes['Connection']);
       return true;
     } catch (error) {
       console.error('Error creating connection:', error);
