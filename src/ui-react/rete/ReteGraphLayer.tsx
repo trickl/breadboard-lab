@@ -20,7 +20,13 @@ import { createRoot } from 'react-dom/client';
 import { NodeEditor, ClassicPreset, getUID } from 'rete';
 import { AreaPlugin, type Area2D } from 'rete-area-plugin';
 import { ConnectionPlugin, ClassicFlow, type SocketData } from 'rete-connection-plugin';
-import { ReactPlugin, Presets as ReactPresets, type ClassicScheme, type ReactArea2D } from 'rete-react-plugin';
+import {
+  ReactPlugin,
+  Presets as ReactPresets,
+  type ClassicScheme,
+  type ReactArea2D,
+  type RenderEmit,
+} from 'rete-react-plugin';
 import { getDOMSocketPosition } from 'rete-render-utils';
 import { ReroutePlugin, type RerouteExtra } from 'rete-connection-reroute-plugin';
 import { ConnectionPathPlugin } from 'rete-connection-path-plugin';
@@ -152,6 +158,18 @@ type Schemes = ClassicScheme;
 // The official docs recommend including Area2D + renderer extras + plugin extras in one union.
 type AreaExtra = Area2D<Schemes> | ReactArea2D<Schemes> | RerouteExtra;
 
+type PortLike = { multipleConnections?: boolean };
+type NodeWithPorts = {
+  id: string;
+  inputs?: Record<string, PortLike>;
+  outputs?: Record<string, PortLike>;
+};
+
+type NodeRendererProps = {
+  data: ClassicPreset.Node;
+  emit: RenderEmit<Schemes>;
+};
+
 function isRailNodePayload(payload: unknown): payload is RailNode {
   // NOTE: Avoid relying on `instanceof RailNode`.
   // In dev, React Fast Refresh / HMR can replace the RailNode class identity while keeping
@@ -186,7 +204,7 @@ function findConnectionsForSocket(socket: SocketData, editor: NodeEditor<Schemes
 export function portAllowsMultiple(socket: SocketData, editor: NodeEditor<Schemes>): boolean {
   if (ALLOW_MULTI_CONNECTIONS_PER_PORT) return true;
 
-  const node = editor.getNode(socket.nodeId) as any;
+  const node = editor.getNode(socket.nodeId) as unknown as NodeWithPorts | undefined;
   if (!node) return true;
 
   const port = socket.side === 'input' ? node.inputs?.[socket.key] : node.outputs?.[socket.key];
@@ -247,7 +265,7 @@ export function resolveSourceTarget(
 
       // Back-compat: older sessions (or hot-reload) may have rails whose inputs are still keyed as `hN`.
       // Prefer the new `in-hN` key when present; otherwise fall back to `hN`.
-      const railNode = editor.getNode(rawTarget.nodeId) as any;
+      const railNode = editor.getNode(rawTarget.nodeId) as unknown as NodeWithPorts | undefined;
       const preferredKey = `in-h${match[1]}`;
       const legacyKey = `h${match[1]}`;
       const resolvedKey = railNode?.inputs?.[preferredKey] ? preferredKey : legacyKey;
@@ -525,7 +543,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
 
       area.area.transform.x = (w - world.total.width * area.area.transform.k) / 2;
       area.area.transform.y = (h - world.total.height * area.area.transform.k) / 2;
-      (area.area as any).update();
+      (area.area as unknown as { update: () => void }).update();
     }
 
     // Keep the breadboard node's size in sync with the rotated world bounds.
@@ -594,7 +612,6 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
         const t = (context as { type?: string }).type;
         if (t === 'connectioncreated' || t === 'connectionremoved') {
           const c = asConnLike((context as { data?: unknown }).data);
-          // eslint-disable-next-line no-console
           console.log(`[ReteGraphLayer] ${t}`, {
             id: c?.id,
             source: c?.source,
@@ -629,7 +646,8 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
       // For a plain connection (2 endpoints), add auxiliary control points to create a pleasing curve.
       // For rerouted connections (N>2 points), keep points as-is and let the curve interpolate.
       transformer: (conn) => (points) => {
-        const appearance = connectionUiRef.current.appearanceById[(conn as any).id] ??
+        const appearance =
+          connectionUiRef.current.appearanceById[(conn as unknown as { id: string }).id] ??
           getDefaultConnectionAppearance();
 
         if (appearance.style === 'straight') return points;
@@ -644,7 +662,8 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
       },
       // Smooth, realistic-looking wire curves (or straight polyline, depending on style).
       curve: (conn) => {
-        const appearance = connectionUiRef.current.appearanceById[(conn as any).id] ??
+        const appearance =
+          connectionUiRef.current.appearanceById[(conn as unknown as { id: string }).id] ??
           getDefaultConnectionAppearance();
         return appearance.style === 'straight' ? curveLinear : curveBundle.beta(0.9);
       },
@@ -671,7 +690,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
           node: (data) => {
             const payload = data.payload;
             if (isBreadboardNodePayload(payload)) {
-              const BreadboardNodeRenderer = ({ data }: any) => {
+              const BreadboardNodeRenderer = ({ data }: NodeRendererProps) => {
                 const rot = rotationRef.current;
                 const world = getBreadboardWorld(rot);
 
@@ -741,7 +760,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
               return BreadboardNodeRenderer;
             }
             if (isRailNodePayload(payload)) {
-              const RailNodeRenderer = ({ data, emit }: any) => {
+              const RailNodeRenderer = ({ data, emit }: NodeRendererProps) => {
                 const rail = data as unknown as RailNode;
                 const rot = rotationRef.current;
                 const socketOuterSize =
@@ -986,7 +1005,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
             // Gesture separation:
             // - Click selects the wire (and highlights it)
             // - Shift-click is reserved for the reroute plugin (add point)
-            const SelectableConnection = ({ data }: any) => {
+            const SelectableConnection = ({ data }: { data: { id: string } }) => {
               const ctx = ReactPresets.classic.useConnection();
               const path = ctx.path;
               if (!path) return null;
@@ -1130,7 +1149,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     // Render reroute pins on top of connections.
     // We only show pins when the corresponding wire is selected.
     render.addPreset({
-      render: (context: any) => {
+      render: (context: { data: { type: string; data: unknown } }) => {
         const data = context.data;
         if (data.type !== 'reroute-pins') return;
 
@@ -1207,7 +1226,6 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
 
           const resolved = resolveSourceTarget(initial, socket, editor);
           if (logEnabled) {
-            // eslint-disable-next-line no-console
             console.log('[ReteGraphLayer] canMakeConnection', {
               initial: { nodeId: initial.nodeId, side: initial.side, key: initial.key },
               socket: { nodeId: socket.nodeId, side: socket.side, key: socket.key },
@@ -1228,7 +1246,6 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
             String(import.meta.env.VITE_CONNECTION_LOGS ?? '').toLowerCase() === 'true' ||
             String(import.meta.env.VITE_CONNECTION_LOGS ?? '') === '1';
           if (logEnabled) {
-            // eslint-disable-next-line no-console
             console.log('[ReteGraphLayer] makeConnection attempt', {
               initial: { nodeId: initial.nodeId, side: initial.side, key: initial.key },
               socket: { nodeId: socket.nodeId, side: socket.side, key: socket.key },
@@ -1238,7 +1255,6 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
           const resolved = resolveSourceTarget(initial, socket, context.editor);
           if (!resolved) {
             if (logEnabled) {
-              // eslint-disable-next-line no-console
               console.log('[ReteGraphLayer] makeConnection rejected: resolveSourceTarget returned null');
             }
             return false;
@@ -1247,7 +1263,6 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
           const { source, target } = resolved;
 
           if (logEnabled) {
-            // eslint-disable-next-line no-console
             console.log('[ReteGraphLayer] makeConnection resolved', {
               source: { nodeId: source.nodeId, side: source.side, key: source.key },
               target: { nodeId: target.nodeId, side: target.side, key: target.key },
@@ -1255,11 +1270,10 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
           }
 
           // Ensure the corresponding ports exist.
-          const sourceNode = context.editor.getNode(source.nodeId) as any;
-          const targetNode = context.editor.getNode(target.nodeId) as any;
+          const sourceNode = context.editor.getNode(source.nodeId) as unknown as NodeWithPorts | undefined;
+          const targetNode = context.editor.getNode(target.nodeId) as unknown as NodeWithPorts | undefined;
           if (!sourceNode?.outputs?.[source.key]) {
             if (logEnabled) {
-              // eslint-disable-next-line no-console
               console.log('[ReteGraphLayer] makeConnection rejected: missing source output', {
                 sourceNodeId: source.nodeId,
                 sourceKey: source.key,
@@ -1270,7 +1284,6 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
           }
           if (!targetNode?.inputs?.[target.key]) {
             if (logEnabled) {
-              // eslint-disable-next-line no-console
               console.log('[ReteGraphLayer] makeConnection rejected: missing target input', {
                 targetNodeId: target.nodeId,
                 targetKey: target.key,
@@ -1294,16 +1307,13 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
           });
 
           if (logEnabled) {
-            // eslint-disable-next-line no-console
             console.log('[ReteGraphLayer] makeConnection addConnection called', { connectionId });
 
             void addPromise
               .then((ok) => {
-                // eslint-disable-next-line no-console
                 console.log('[ReteGraphLayer] addConnection result', { connectionId, ok });
               })
               .catch((err) => {
-                // eslint-disable-next-line no-console
                 console.log('[ReteGraphLayer] addConnection error', { connectionId, err });
               });
 
@@ -1349,7 +1359,6 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                 // ignore (e.g. SVG not fully measurable yet)
               }
 
-              // eslint-disable-next-line no-console
               console.log('[ReteGraphLayer] connections after create (next tick)', {
                 model: conns,
                 renderedCount,
@@ -1415,7 +1424,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     area.area.transform.y = (h - world.total.height * area.area.transform.k) / 2;
     // rete-area-plugin's internal Area.update() is typed as private.
     // At runtime this is the correct way to apply the transform.
-    (area.area as any).update();
+    (area.area as unknown as { update: () => void }).update();
 
     // Cleanup on unmount
     return () => {
