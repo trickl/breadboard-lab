@@ -623,6 +623,15 @@ export class BreadboardController {
           },
         };
 
+      case 'DEBUG_OVERLAYS_TOGGLED':
+        return {
+          ...state,
+          ui: {
+            ...state.ui,
+            showDebugOverlays: !state.ui.showDebugOverlays,
+          },
+        };
+
       case 'BREADBOARD_ROTATED':
         {
           const nextRotation = ((state.ui.breadboardOrientation + 90) % 360) as 0 | 90 | 180 | 270;

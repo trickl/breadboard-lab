@@ -30,6 +30,8 @@ function formatComponentTitle(c: AnyComponent): string {
 export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
   const state = useControllerState(controller);
 
+  const debugOverlaysOn = Boolean(state.ui.showDebugOverlays);
+
   const selectedConnectionId = state.connections.selectedConnectionId;
   const selectedConnectionAppearance: ConnectionAppearance | null =
     selectedConnectionId ? state.connections.appearanceById[selectedConnectionId] ?? null : null;
@@ -56,6 +58,33 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
       <Text as="h2" sx={{ m: 0, mb: 3, fontSize: 2, color: 'text' }}>
         Inspector
       </Text>
+
+      <Box sx={{ mb: 3, pb: 3, borderBottom: '1px solid', borderBottomColor: 'border' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+          <Text sx={{ fontSize: 1, color: 'secondaryText' }}>Debug overlays</Text>
+          <Button
+            onClick={() => controller.dispatch({ type: 'DEBUG_OVERLAYS_TOGGLED' })}
+            sx={{
+              px: 2,
+              py: 1,
+              bg: debugOverlaysOn ? 'primary' : 'panelBg',
+              border: '1px solid',
+              borderColor: debugOverlaysOn ? 'primary' : 'border',
+              borderRadius: 4,
+              color: 'text',
+              fontSize: 0,
+              cursor: 'pointer',
+              ':hover': { bg: 'hoverBg' },
+            }}
+            title="Toggle debug overlays (Ctrl+Shift+D)"
+          >
+            {debugOverlaysOn ? 'On' : 'Off'}
+          </Button>
+        </Box>
+        <Text sx={{ mt: 2, fontSize: 0, color: 'secondaryText' }}>
+          Shortcut: Ctrl+Shift+D
+        </Text>
+      </Box>
 
       {showWireInspector ? (
         (() => {

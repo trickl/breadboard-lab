@@ -1,5 +1,22 @@
 import type { AppState } from './types';
 
+function parseBooleanEnv(value: unknown): boolean | null {
+  if (typeof value !== 'string') return null;
+  const v = value.trim().toLowerCase();
+  if (v === '1' || v === 'true' || v === 'yes' || v === 'on') return true;
+  if (v === '0' || v === 'false' || v === 'no' || v === 'off') return false;
+  return null;
+}
+
+function getDefaultDebugOverlaysEnabled(): boolean {
+  // Vite env vars are always strings.
+  const raw = parseBooleanEnv(import.meta.env.VITE_DEBUG_OVERLAYS);
+  if (raw !== null) return raw;
+
+  // Sensible default: on in dev, off in production.
+  return Boolean(import.meta.env.DEV);
+}
+
 export function createInitialState(): AppState {
   return {
     breadboard: {
@@ -46,6 +63,7 @@ export function createInitialState(): AppState {
       currentView: 'breadboard',
       showVoltageOverlay: false,
       showCurrentAnimation: false,
+      showDebugOverlays: getDefaultDebugOverlaysEnabled(),
     },
     circuit: {
       metadata: null,

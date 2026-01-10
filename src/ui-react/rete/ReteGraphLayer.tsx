@@ -344,6 +344,12 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
   const railNodeMapRef = useRef<Map<string, string>>(new Map());
   const breadboardNodeIdRef = useRef<string | null>(null);
 
+  const layerRef = useRef<HTMLDivElement | null>(null);
+
+  const debugUiRef = useRef<{ showDebugOverlays: boolean }>({
+    showDebugOverlays: Boolean(controller.getState().ui.showDebugOverlays),
+  });
+
   // Selection + appearance are owned by the UI controller, but wire rendering happens inside Rete.
   // We keep them in a ref so Rete-rendered React components can consult the current values.
   const connectionUiRef = useRef<{
@@ -515,22 +521,24 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                       pointerEvents: 'none',
                     }}
                   >
-                    {/* Debug label */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        left: 8,
-                        top: 8,
-                        padding: '2px 6px',
-                        borderRadius: 4,
-                        background: 'rgba(0,0,0,0.55)',
-                        color: 'white',
-                        fontSize: 12,
-                        fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial',
-                      }}
-                    >
-                      {data.label}
-                    </div>
+                    {debugUiRef.current.showDebugOverlays && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: 8,
+                          top: 8,
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          background: 'rgba(0,0,0,0.55)',
+                          color: 'white',
+                          fontSize: 12,
+                          fontFamily:
+                            'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial',
+                        }}
+                      >
+                        {data.label}
+                      </div>
+                    )}
 
                     <div
                       style={{
@@ -591,25 +599,27 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                       pointerEvents: 'none',
                     }}
                   >
-                    {/* Debug label */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        left: anchor.x,
-                        top: Math.max(0, anchor.y - 18),
-                        transform: 'translate(-50%, -50%)',
-                        padding: '2px 6px',
-                        borderRadius: 4,
-                        background: 'rgba(0,0,0,0.55)',
-                        color: 'white',
-                        fontSize: 12,
-                        fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial',
-                        pointerEvents: 'none',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {data.label}
-                    </div>
+                    {debugUiRef.current.showDebugOverlays && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: anchor.x,
+                          top: Math.max(0, anchor.y - 18),
+                          transform: 'translate(-50%, -50%)',
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          background: 'rgba(0,0,0,0.55)',
+                          color: 'white',
+                          fontSize: 12,
+                          fontFamily:
+                            'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial',
+                          pointerEvents: 'none',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {data.label}
+                      </div>
+                    )}
                     {Object.entries(rail.outputs).map(([key, output]) => {
                       if (!output) return null;
                       const match = /^h(\d+)$/.exec(key);
@@ -1079,9 +1089,19 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
   useEffect(() => {
     let previousSelectedId = connectionUiRef.current.selectedConnectionId;
     let previousAppearanceById = connectionUiRef.current.appearanceById;
+    let previousShowDebugOverlays = debugUiRef.current.showDebugOverlays;
 
     const unsubscribe = controller.subscribe((state) => {
       void syncNodes(state);
+
+      const nextShowDebugOverlays = Boolean(state.ui.showDebugOverlays);
+      debugUiRef.current.showDebugOverlays = nextShowDebugOverlays;
+
+      // Apply socket visibility without requiring React re-render.
+      if (layerRef.current) {
+        layerRef.current.setAttribute('data-debug-overlays', nextShowDebugOverlays ? 'on' : 'off');
+        layerRef.current.style.setProperty('--debug-socket-opacity', nextShowDebugOverlays ? '0.25' : '0');
+      }
 
       const nextSelectedId = state.connections.selectedConnectionId;
       const nextAppearanceById = state.connections.appearanceById;
@@ -1092,6 +1112,17 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
       const editor = editorRef.current;
       const area = areaRef.current;
       if (!editor || !area) return;
+
+      // Debug overlay visibility affects custom node renderers (Breadboard/Rails), so we need to
+      // explicitly request node updates when the flag changes.
+      if (nextShowDebugOverlays !== previousShowDebugOverlays) {
+        const bbId = breadboardNodeIdRef.current;
+        if (bbId) void area.update('node', bbId);
+        for (const nodeId of railNodeMapRef.current.values()) {
+          void area.update('node', nodeId);
+        }
+        previousShowDebugOverlays = nextShowDebugOverlays;
+      }
 
       // Process one-shot Rete commands (e.g. delete connection).
       const cmd = state.connections.reteCommand;
@@ -1136,11 +1167,49 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     connectionUiRef.current.appearanceById = state.connections.appearanceById;
     connectionUiRef.current.lastProcessedReteCommandNonce = state.connections.reteCommandNonce;
 
+    debugUiRef.current.showDebugOverlays = Boolean(state.ui.showDebugOverlays);
+
+    // Initialize debug overlay DOM attributes.
+    if (layerRef.current) {
+      layerRef.current.setAttribute(
+        'data-debug-overlays',
+        debugUiRef.current.showDebugOverlays ? 'on' : 'off'
+      );
+      layerRef.current.style.setProperty(
+        '--debug-socket-opacity',
+        debugUiRef.current.showDebugOverlays ? '0.25' : '0'
+      );
+    }
+
     return unsubscribe;
   }, [controller, syncNodes]);
 
+  // Keyboard shortcut: Ctrl+Shift+D toggles debug overlays (labels + socket markers).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || !e.shiftKey) return;
+      if (e.key.toLowerCase() !== 'd') return;
+
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      const isTypingTarget =
+        tag === 'input' ||
+        tag === 'textarea' ||
+        tag === 'select' ||
+        Boolean(target?.isContentEditable);
+      if (isTypingTarget) return;
+
+      e.preventDefault();
+      controller.dispatch({ type: 'DEBUG_OVERLAYS_TOGGLED' });
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [controller]);
+
   return (
     <Box
+      ref={layerRef}
       sx={{
         position: 'absolute',
         top: 0,
@@ -1166,7 +1235,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
           display: 'block',
           transform: 'scale(1.05)',
           pointerEvents: 'auto',
-          opacity: 0.25,
+          opacity: 'var(--debug-socket-opacity, 0.25)',
         },
       }}
     >

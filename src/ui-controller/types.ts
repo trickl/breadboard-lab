@@ -57,6 +57,11 @@ export interface AppState {
     currentView: 'breadboard' | 'schematic';
     showVoltageOverlay: boolean;
     showCurrentAnimation: boolean;
+    /**
+     * Debug-only UI overlays (Rete node labels, socket markers, etc.).
+     * Intended to be easy to toggle at runtime.
+     */
+    showDebugOverlays: boolean;
   };
 
   circuit: {
@@ -200,6 +205,7 @@ export type Action =
   | { type: 'VIEW_SWITCHED'; view: 'breadboard' | 'schematic' }
   | { type: 'VOLTAGE_OVERLAY_TOGGLED' }
   | { type: 'CURRENT_ANIMATION_TOGGLED' }
+  | { type: 'DEBUG_OVERLAYS_TOGGLED' }
   | { type: 'CIRCUIT_LOADED'; components: AnyComponent[]; metadata: CircuitMetadata | null }
   | { type: 'CIRCUIT_CLEARED' }
   | { type: 'CIRCUIT_SAVED'; metadata: CircuitMetadata }
