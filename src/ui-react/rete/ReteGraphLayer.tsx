@@ -844,7 +844,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                           y1={firstPos.y}
                           x2={lastPos.x}
                           y2={lastPos.y}
-                          stroke={'rgba(255, 215, 0, 0.28)'}
+                          stroke={'rgba(148, 163, 184, 0.28)'}
                           strokeWidth={6}
                           strokeLinecap="round"
                         />
@@ -1463,57 +1463,112 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     }
 
     // --- Breadboard rails (static nodes) ---
-    // We model each rail column as one node with one socket per visible rail hole.
+    // We model each connected breadboard "net cloud" as one node with one socket per physical hole.
+    // - Outer power rails: 4 nodes (vertical columns)
+    // - Inner terminal-strip rails: 60 nodes (30 rows × 2 sides), each with 5 holes
     // This matches the electrical reality (one net) while preserving per-hole attachment constraints.
     const railNodeMap = railNodeMapRef.current;
-    if (railNodeMap.size === 0) {
-      const allHoles = getAllHolePositions();
-      // World mapping is handled by the custom rail renderer (socket clouds).
+    const allHoles = getAllHolePositions();
 
-      const railDefs: Array<{ id: string; label: string; col: number; anchorRow: number }> = [
-        {
-          id: 'rail-left-positive',
-          label: 'Rail L +',
-          col: BreadboardLayout.RAIL_LEFT_POSITIVE,
-          anchorRow: 0,
-        },
-        {
-          id: 'rail-left-negative',
-          label: 'Rail L −',
-          col: BreadboardLayout.RAIL_LEFT_NEGATIVE,
-          anchorRow: 0,
-        },
-        {
-          id: 'rail-right-positive',
-          label: 'Rail R +',
-          col: BreadboardLayout.RAIL_RIGHT_POSITIVE,
-          anchorRow: 0,
-        },
-        {
-          id: 'rail-right-negative',
-          label: 'Rail R −',
-          col: BreadboardLayout.RAIL_RIGHT_NEGATIVE,
-          anchorRow: 0,
-        },
-      ];
+    const ensureRailNode = async (def: {
+      id: string;
+      label: string;
+      holePositions: Array<{ row: number; col: number }>;
+    }) => {
+      // Fast path: already tracked.
+      const existingId = railNodeMap.get(def.id);
+      if (existingId && editor.getNode(existingId)) return;
 
-      for (const def of railDefs) {
-        const holePositions = allHoles
-          .filter((p) => p.col === def.col)
-          .sort((a, b) => {
-            // For stable ordering, compare by world Y at the current rotation.
-            const ay = positionToWorld(a, rotation).y;
-            const by = positionToWorld(b, rotation).y;
-            return ay - by;
-          })
-          .map((p) => ({ row: p.row, col: p.col }));
+      // Defensive: across HMR/dev remounts we may have nodes in the editor but an empty map.
+      const byPayload = editor
+        .getNodes()
+        .find((n) => isRailNodePayload(n) && (n as unknown as RailNode).railId === def.id);
+      if (byPayload) {
+        railNodeMap.set(def.id, byPayload.id);
+        // Keep anchored.
+        await area.translate(byPayload.id, { x: 0, y: 0 });
+        return;
+      }
 
-        const railNode = new RailNode(def.id, def.label, holePositions);
-        await editor.addNode(railNode);
-        railNodeMap.set(def.id, railNode.id);
+      const railNode = new RailNode(def.id, def.label, def.holePositions);
+      await editor.addNode(railNode);
+      railNodeMap.set(def.id, railNode.id);
+      // Keep anchored at (0,0). The custom renderer positions sockets in world space.
+      await area.translate(railNode.id, { x: 0, y: 0 });
+    };
 
-        // Keep the rail node anchored at (0,0). The custom renderer positions sockets in world space.
-        await area.translate(railNode.id, { x: 0, y: 0 });
+    // Outer power rails (columns).
+    const outerRailDefs: Array<{ id: string; label: string; col: number }> = [
+      {
+        id: 'rail-left-positive',
+        label: 'Rail L +',
+        col: BreadboardLayout.RAIL_LEFT_POSITIVE,
+      },
+      {
+        id: 'rail-left-negative',
+        label: 'Rail L −',
+        col: BreadboardLayout.RAIL_LEFT_NEGATIVE,
+      },
+      {
+        id: 'rail-right-positive',
+        label: 'Rail R +',
+        col: BreadboardLayout.RAIL_RIGHT_POSITIVE,
+      },
+      {
+        id: 'rail-right-negative',
+        label: 'Rail R −',
+        col: BreadboardLayout.RAIL_RIGHT_NEGATIVE,
+      },
+    ];
+
+    for (const def of outerRailDefs) {
+      const holePositions = allHoles
+        .filter((p) => p.col === def.col)
+        // Stable ordering: rails are conceptually indexed by row.
+        .sort((a, b) => a.row - b.row)
+        .map((p) => ({ row: p.row, col: p.col }));
+
+      await ensureRailNode({ id: def.id, label: def.label, holePositions });
+    }
+
+    // Inner rails (terminal strips): 30 rows × 2 sides = 60 rails.
+    // Each rail is a row-connected group of 5 holes.
+    for (let row = 0; row < BreadboardLayout.ROWS; row++) {
+      const left = allHoles
+        .filter(
+          (p) =>
+            p.row === row &&
+            p.col >= BreadboardLayout.STRIP_LEFT_START &&
+            p.col <= BreadboardLayout.STRIP_LEFT_END
+        )
+        .sort((a, b) => a.col - b.col)
+        .map((p) => ({ row: p.row, col: p.col }));
+
+      const right = allHoles
+        .filter(
+          (p) =>
+            p.row === row &&
+            p.col >= BreadboardLayout.STRIP_RIGHT_START &&
+            p.col <= BreadboardLayout.STRIP_RIGHT_END
+        )
+        .sort((a, b) => a.col - b.col)
+        .map((p) => ({ row: p.row, col: p.col }));
+
+      // Only create the rail if holes are present in the skin.
+      if (left.length > 0) {
+        await ensureRailNode({
+          id: `inner-rail-left-${row}`,
+          label: `Inner L ${row + 1}`,
+          holePositions: left,
+        });
+      }
+
+      if (right.length > 0) {
+        await ensureRailNode({
+          id: `inner-rail-right-${row}`,
+          label: `Inner R ${row + 1}`,
+          holePositions: right,
+        });
       }
     }
 
@@ -1743,14 +1798,14 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
           width: '50%',
           height: '50%',
           borderRadius: 999,
-          background: 'rgba(255, 215, 0, 0.22)',
-          boxShadow: '0 0 0 1px rgba(255, 215, 0, 0.45)',
+          background: 'rgba(148, 163, 184, 0.22)',
+          boxShadow: '0 0 0 1px rgba(148, 163, 184, 0.55)',
           pointerEvents: 'none',
           zIndex: 1,
         },
         '[data-rail-hole="1"][data-rail-hovered-primary="1"]::after': {
-          background: 'rgba(255, 215, 0, 0.5)',
-          boxShadow: '0 0 0 2px rgba(255, 215, 0, 1), 0 2px 6px rgba(0,0,0,0.35)',
+          background: 'rgba(148, 163, 184, 0.5)',
+          boxShadow: '0 0 0 2px rgba(148, 163, 184, 1), 0 2px 6px rgba(0,0,0,0.35)',
         },
       }}
     >
