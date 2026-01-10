@@ -17,9 +17,9 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Box } from 'theme-ui';
 import { createRoot } from 'react-dom/client';
-import { NodeEditor, ClassicPreset } from 'rete';
+import { NodeEditor, ClassicPreset, getUID } from 'rete';
 import { AreaPlugin } from 'rete-area-plugin';
-import { ConnectionPlugin, Presets as ConnectionPresets } from 'rete-connection-plugin';
+import { ConnectionPlugin, ClassicFlow, type SocketData } from 'rete-connection-plugin';
 import { ReactPlugin, Presets as ReactPresets, type ClassicScheme, type ReactArea2D } from 'rete-react-plugin';
 import type { BreadboardController } from '@/ui-controller';
 import type { AppState } from '@/ui-controller/types';
@@ -81,10 +81,21 @@ class RailNode extends ClassicPreset.Node {
     super(railLabel);
 
     // Each hole gets its own input so each physical hole can have at most one wire.
+    // We also add a matching output for each hole so the user can *start* a connection
+    // from a rail hole (rail-to-rail wiring). The connection flow will map “drop on rail output”
+    // into “connect to the corresponding rail input”, so the connection endpoints remain
+    // well-defined (output→input) for Rete's connection model.
     for (let i = 0; i < holePositions.length; i++) {
       this.addInput(
         `h${i}`,
         new ClassicPreset.Input(holeSocket, '')
+      );
+
+      // Important: output ports default to multiple connections. For breadboard holes we want
+      // at most one wire per physical hole.
+      this.addOutput(
+        `h${i}`,
+        new ClassicPreset.Output(holeSocket, '', false)
       );
     }
   }
@@ -95,6 +106,9 @@ class RailNode extends ClassicPreset.Node {
  * Rendered as an SVG inside the Rete canvas so it pans/zooms with the viewport.
  */
 class BreadboardNode extends ClassicPreset.Node {
+  width = 0;
+  height = 0;
+
   constructor(public labelText: string) {
     super(labelText);
     // Size the node to the full world extents (including padding)
@@ -107,6 +121,82 @@ class BreadboardNode extends ClassicPreset.Node {
 type Schemes = ClassicScheme;
 
 type AreaExtra = ReactArea2D<Schemes>;
+
+function isRailNode(editor: NodeEditor<Schemes>, nodeId: string): boolean {
+  const node = editor.getNode(nodeId);
+  return Boolean(node && node instanceof RailNode);
+}
+
+function findConnectionsForSocket(socket: SocketData, editor: NodeEditor<Schemes>) {
+  const { nodeId, side, key } = socket;
+  return editor.getConnections().filter((connection) => {
+    if (side === 'input') {
+      return connection.target === nodeId && connection.targetInput === key;
+    }
+    return connection.source === nodeId && connection.sourceOutput === key;
+  });
+}
+
+function portAllowsMultiple(socket: SocketData, editor: NodeEditor<Schemes>): boolean {
+  const node = editor.getNode(socket.nodeId) as any;
+  if (!node) return true;
+
+  const port = socket.side === 'input' ? node.inputs?.[socket.key] : node.outputs?.[socket.key];
+  // Undefined means “use preset default”; for our purposes, treat it as allowing multiple.
+  return Boolean(port?.multipleConnections);
+}
+
+function removeConflictingConnections(socket: SocketData, editor: NodeEditor<Schemes>) {
+  if (portAllowsMultiple(socket, editor)) return;
+
+  const existing = findConnectionsForSocket(socket, editor);
+  for (const c of existing) {
+    void editor.removeConnection(c.id);
+  }
+}
+
+function resolveSourceTarget(
+  initial: SocketData,
+  socket: SocketData,
+  editor: NodeEditor<Schemes>
+): { source: SocketData; target: SocketData } | null {
+  // Disallow self-connection to the same exact port.
+  if (initial.nodeId === socket.nodeId && initial.side === socket.side && initial.key === socket.key) {
+    return null;
+  }
+
+  const initialIsRail = isRailNode(editor, initial.nodeId);
+  const socketIsRail = isRailNode(editor, socket.nodeId);
+
+  // Standard output→input or input→output (Rete classic semantics).
+  if (initial.side === 'output' && socket.side === 'input') {
+    return { source: initial, target: socket };
+  }
+  if (initial.side === 'input' && socket.side === 'output') {
+    return { source: socket, target: initial };
+  }
+
+  // Special case: user drops on a *rail output socket* (we render rails as outputs so they are
+  // interactive). We translate the rail output to its paired rail input for the actual connection.
+  if (initial.side === 'output' && socket.side === 'output') {
+    // Only allow output→output if at least one side is a rail. Otherwise it's component→component,
+    // which doesn't make sense in this model.
+    if (!initialIsRail && !socketIsRail) return null;
+
+    // Prefer the non-rail socket as the source when exactly one side is a rail.
+    const source = initialIsRail && !socketIsRail ? socket : initial;
+    const rawTarget = initialIsRail && !socketIsRail ? initial : socket;
+
+    // If the chosen target is a rail output, map it to the rail input of the same key.
+    if (isRailNode(editor, rawTarget.nodeId)) {
+      const target: SocketData = { ...rawTarget, side: 'input' };
+      return { source, target };
+    }
+    return null;
+  }
+
+  return null;
+}
 
 export interface ReteGraphLayerProps {
   controller: BreadboardController;
@@ -214,7 +304,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
           node: (data) => {
             const payload = data.payload;
             if (payload instanceof BreadboardNode) {
-              const BreadboardNodeRenderer: ReactPresets.classic.NodeComponent<Schemes> = ({ data }) => {
+              const BreadboardNodeRenderer = ({ data }: any) => {
                 const rot = rotationRef.current;
                 const world = getBreadboardWorld(rot);
 
@@ -282,7 +372,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
               return BreadboardNodeRenderer;
             }
             if (payload instanceof RailNode) {
-              const RailNodeRenderer: ReactPresets.classic.NodeComponent<Schemes> = ({ data, emit }) => {
+              const RailNodeRenderer = ({ data, emit }: any) => {
                 const rail = data as unknown as RailNode;
                 const rot = rotationRef.current;
 
@@ -326,16 +416,21 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                     >
                       {data.label}
                     </div>
-                    {Object.entries(rail.inputs).map(([key, input]) => {
-                      if (!input) return null;
+                    {Object.entries(rail.outputs).map(([key, output]) => {
+                      if (!output) return null;
                       const match = /^h(\d+)$/.exec(key);
                       const idx = match ? Number(match[1]) : -1;
                       const pos = idx >= 0 ? rail.holePositions[idx] : null;
                       if (!pos) return null;
 
                       const rotated = positionToWorld(pos, rot);
+                      const input = rail.inputs[key];
+                      if (!input) return null;
 
-                      // Center the socket on the hole center.
+                      // We render BOTH:
+                      // - a hidden input socket (so connections can terminate visually on the correct endpoint)
+                      // - a visible output socket (so the user can start wires from rails and drop onto rails)
+                      // The connection flow maps “drop on rail output” → “connect to rail input”.
                       return (
                         <div
                           key={key}
@@ -347,15 +442,31 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                             pointerEvents: 'auto',
                           }}
                         >
-                          <ReactPresets.classic.RefSocket
-                            name="input-socket"
-                            side="input"
-                            socketKey={key}
-                            nodeId={rail.id}
-                            emit={emit}
-                            payload={input.socket}
-                            data-testid="input-socket"
-                          />
+                          {/* Hidden input endpoint */}
+                          <div style={{ opacity: 0, pointerEvents: 'none' }}>
+                            <ReactPresets.classic.RefSocket
+                              name="input-socket"
+                              side="input"
+                              socketKey={key}
+                              nodeId={rail.id}
+                              emit={emit}
+                              payload={input.socket}
+                              data-testid="input-socket"
+                            />
+                          </div>
+
+                          {/* Visible/interactive rail socket */}
+                          <div style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'auto' }}>
+                            <ReactPresets.classic.RefSocket
+                              name="output-socket"
+                              side="output"
+                              socketKey={key}
+                              nodeId={rail.id}
+                              emit={emit}
+                              payload={output.socket}
+                              data-testid="output-socket"
+                            />
+                          </div>
                         </div>
                       );
                     })}
@@ -374,7 +485,44 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     );
 
     // Configure connection renderer with classic preset
-    connection.addPreset(ConnectionPresets.classic.setup());
+    // Custom connection flow:
+    // - Rails are rendered as *output* sockets (so the user can start a wire from a rail hole).
+    // - When the user drops onto a rail output socket, we map it to the corresponding rail *input*
+    //   so that the editor still creates a classic output→input connection.
+    // - We also enforce “one wire per hole” by removing conflicting connections on the actual
+    //   source/target ports involved.
+    connection.addPreset(() => {
+      return new ClassicFlow({
+        canMakeConnection: (initial: SocketData, socket: SocketData) => {
+          return Boolean(resolveSourceTarget(initial, socket, editor));
+        },
+        makeConnection: (initial: SocketData, socket: SocketData, context: { editor: NodeEditor<Schemes> }) => {
+          const resolved = resolveSourceTarget(initial, socket, context.editor);
+          if (!resolved) return false;
+
+          const { source, target } = resolved;
+
+          // Ensure the corresponding ports exist.
+          const sourceNode = context.editor.getNode(source.nodeId) as any;
+          const targetNode = context.editor.getNode(target.nodeId) as any;
+          if (!sourceNode?.outputs?.[source.key]) return false;
+          if (!targetNode?.inputs?.[target.key]) return false;
+
+          // Enforce per-hole single-connection constraints on the *actual* ports used.
+          removeConflictingConnections(source, context.editor);
+          removeConflictingConnections(target, context.editor);
+
+          void context.editor.addConnection({
+            id: getUID(),
+            source: source.nodeId,
+            sourceOutput: source.key,
+            target: target.nodeId,
+            targetInput: target.key,
+          });
+          return true;
+        },
+      });
+    });
 
     // Register plugins in correct order
     editor.use(area);
@@ -398,7 +546,9 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     // Center the world.
     area.area.transform.x = (w - world.total.width * area.area.transform.k) / 2;
     area.area.transform.y = (h - world.total.height * area.area.transform.k) / 2;
-    area.area.update();
+    // rete-area-plugin's internal Area.update() is typed as private.
+    // At runtime this is the correct way to apply the transform.
+    (area.area as any).update();
 
     // Cleanup on unmount
     return () => {
@@ -453,7 +603,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
       const allHoles = getAllHolePositions();
       // World mapping is handled by the custom rail renderer (socket clouds).
 
-      const railDefs: Array<{ id: string; label: string; col: number; anchorRow: number }>= [
+      const railDefs: Array<{ id: string; label: string; col: number; anchorRow: number }> = [
         {
           id: 'rail-left-positive',
           label: 'Rail L +',
@@ -541,7 +691,6 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
       // Update node position based on component's first position (world space)
       if (component.positions.length > 0) {
         const firstPos = component.positions[0];
-
         const rotatedAnchor = positionToWorld(firstPos, rotation);
 
         // Position the node at the component's location (centered)
