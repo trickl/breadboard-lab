@@ -46,6 +46,19 @@ const legSocket = new ClassicPreset.Socket('component-leg');
  */
 const holeSocket = new ClassicPreset.Socket('breadboard-hole');
 
+// Debug/diagnostics switch:
+// When enabled, we stop enforcing the single-wire-per-hole constraint and allow multiple
+// connections on rail ports. This is useful for isolating whether conflict-deletion is the
+// cause of a wiring issue.
+const ALLOW_MULTI_CONNECTIONS_PER_PORT = ['1', 'true', 'yes', 'on'].includes(
+  String(import.meta.env.VITE_ALLOW_MULTI_CONNECTIONS_PER_PORT ?? '').toLowerCase()
+);
+
+// Render debugging: force very obvious wires + endpoint markers.
+const DEBUG_RENDER_CONNECTIONS = ['1', 'true', 'yes', 'on'].includes(
+  String(import.meta.env.VITE_CONNECTION_DEBUG_RENDER ?? '').toLowerCase()
+);
+
 /**
  * Rete node representing a component on the breadboard
  */
@@ -73,7 +86,7 @@ class ComponentNode extends ClassicPreset.Node {
  * Note: For iteration 1 we keep classic preset layout (sockets stacked) to validate interactions.
  * Later we'll switch to a custom node renderer that positions sockets exactly over the breadboard holes.
  */
-class RailNode extends ClassicPreset.Node {
+export class RailNode extends ClassicPreset.Node {
   // Keep this tiny; we render sockets at absolute positions and don't want a big invisible hitbox.
   width = 1;
   height = 1;
@@ -91,16 +104,25 @@ class RailNode extends ClassicPreset.Node {
     // into “connect to the corresponding rail input”, so the connection endpoints remain
     // well-defined (output→input) for Rete's connection model.
     for (let i = 0; i < holePositions.length; i++) {
+      // IMPORTANT:
+      // Keep rail OUTPUT keys as `hN` (these are the interactive sockets users click/drag from).
+      // Use distinct INPUT keys `in-hN` so output/output rail connections can be mapped cleanly
+      // to output/input without any accidental key-equality edge cases.
       this.addInput(
-        `h${i}`,
-        new ClassicPreset.Input(holeSocket, '')
+        `in-h${i}`,
+        // ClassicPreset.Input defaults to single-connection. For debugging we can optionally
+        // allow multiple connections per input.
+        new ClassicPreset.Input(holeSocket, '', ALLOW_MULTI_CONNECTIONS_PER_PORT)
       );
 
       // Important: output ports default to multiple connections. For breadboard holes we want
       // at most one wire per physical hole.
+      // Important: output ports default to multiple connections. For breadboard holes we usually
+      // want at most one wire per physical hole, so this is normally `false`.
+      // For debugging we can optionally allow multiple connections.
       this.addOutput(
         `h${i}`,
-        new ClassicPreset.Output(holeSocket, '', false)
+        new ClassicPreset.Output(holeSocket, '', ALLOW_MULTI_CONNECTIONS_PER_PORT)
       );
     }
   }
@@ -130,9 +152,25 @@ type Schemes = ClassicScheme;
 // The official docs recommend including Area2D + renderer extras + plugin extras in one union.
 type AreaExtra = Area2D<Schemes> | ReactArea2D<Schemes> | RerouteExtra;
 
-function isRailNode(editor: NodeEditor<Schemes>, nodeId: string): boolean {
+function isRailNodePayload(payload: unknown): payload is RailNode {
+  // NOTE: Avoid relying on `instanceof RailNode`.
+  // In dev, React Fast Refresh / HMR can replace the RailNode class identity while keeping
+  // existing node instances alive, making `instanceof` fail and breaking rail logic.
+  if (!payload || typeof payload !== 'object') return false;
+  const p = payload as Record<string, unknown>;
+  return typeof p.railId === 'string' && Array.isArray(p.holePositions);
+}
+
+function isBreadboardNodePayload(payload: unknown): payload is BreadboardNode {
+  // Similar rationale: avoid `instanceof BreadboardNode` across HMR.
+  if (!payload || typeof payload !== 'object') return false;
+  const p = payload as Record<string, unknown>;
+  return p.id === 'breadboard' || p.labelText === 'Breadboard';
+}
+
+export function isRailNode(editor: NodeEditor<Schemes>, nodeId: string): boolean {
   const node = editor.getNode(nodeId);
-  return Boolean(node && node instanceof RailNode);
+  return Boolean(node && isRailNodePayload(node));
 }
 
 function findConnectionsForSocket(socket: SocketData, editor: NodeEditor<Schemes>) {
@@ -145,16 +183,23 @@ function findConnectionsForSocket(socket: SocketData, editor: NodeEditor<Schemes
   });
 }
 
-function portAllowsMultiple(socket: SocketData, editor: NodeEditor<Schemes>): boolean {
+export function portAllowsMultiple(socket: SocketData, editor: NodeEditor<Schemes>): boolean {
+  if (ALLOW_MULTI_CONNECTIONS_PER_PORT) return true;
+
   const node = editor.getNode(socket.nodeId) as any;
   if (!node) return true;
 
   const port = socket.side === 'input' ? node.inputs?.[socket.key] : node.outputs?.[socket.key];
-  // Undefined means “use preset default”; for our purposes, treat it as allowing multiple.
-  return Boolean(port?.multipleConnections);
+  // ClassicPreset defaults:
+  // - Input: single connection (multipleConnections defaults to false)
+  // - Output: multiple connections (multipleConnections defaults to true)
+  const mc = port?.multipleConnections as boolean | undefined;
+  if (typeof mc === 'boolean') return mc;
+  return socket.side === 'output';
 }
 
-function removeConflictingConnections(socket: SocketData, editor: NodeEditor<Schemes>) {
+export function removeConflictingConnections(socket: SocketData, editor: NodeEditor<Schemes>) {
+  if (ALLOW_MULTI_CONNECTIONS_PER_PORT) return;
   if (portAllowsMultiple(socket, editor)) return;
 
   const existing = findConnectionsForSocket(socket, editor);
@@ -163,7 +208,7 @@ function removeConflictingConnections(socket: SocketData, editor: NodeEditor<Sch
   }
 }
 
-function resolveSourceTarget(
+export function resolveSourceTarget(
   initial: SocketData,
   socket: SocketData,
   editor: NodeEditor<Schemes>
@@ -195,9 +240,23 @@ function resolveSourceTarget(
     const source = initialIsRail && !socketIsRail ? socket : initial;
     const rawTarget = initialIsRail && !socketIsRail ? initial : socket;
 
-    // If the chosen target is a rail output, map it to the rail input of the same key.
+    // If the chosen target is a rail output, map it to the paired rail input key.
     if (isRailNode(editor, rawTarget.nodeId)) {
-      const target: SocketData = { ...rawTarget, side: 'input' };
+      const match = /^h(\d+)$/.exec(rawTarget.key);
+      if (!match) return null;
+
+      // Back-compat: older sessions (or hot-reload) may have rails whose inputs are still keyed as `hN`.
+      // Prefer the new `in-hN` key when present; otherwise fall back to `hN`.
+      const railNode = editor.getNode(rawTarget.nodeId) as any;
+      const preferredKey = `in-h${match[1]}`;
+      const legacyKey = `h${match[1]}`;
+      const resolvedKey = railNode?.inputs?.[preferredKey] ? preferredKey : legacyKey;
+
+      const target: SocketData = {
+        ...rawTarget,
+        side: 'input',
+        key: resolvedKey,
+      };
       return { source, target };
     }
     return null;
@@ -215,6 +274,72 @@ function getDefaultConnectionAppearance(): ConnectionAppearance {
       endOrientation: 'auto',
     },
   };
+}
+
+function parseHexColor(color: string): { r: number; g: number; b: number } | null {
+  const c = color.trim();
+  const m3 = /^#([0-9a-f]{3})$/i.exec(c);
+  if (m3) {
+    const r = parseInt(m3[1][0] + m3[1][0], 16);
+    const g = parseInt(m3[1][1] + m3[1][1], 16);
+    const b = parseInt(m3[1][2] + m3[1][2], 16);
+    return { r, g, b };
+  }
+  const m6 = /^#([0-9a-f]{6})$/i.exec(c);
+  if (m6) {
+    const r = parseInt(m6[1].slice(0, 2), 16);
+    const g = parseInt(m6[1].slice(2, 4), 16);
+    const b = parseInt(m6[1].slice(4, 6), 16);
+    return { r, g, b };
+  }
+  return null;
+}
+
+function parsePathEndpoints(path: string):
+  | { start: { x: number; y: number }; end: { x: number; y: number } }
+  | null {
+  // This is a pragmatic parser for typical SVG path strings Rete emits.
+  // We only need the start (M x y) and the final coordinate pair.
+  const startMatch = /^\s*M\s*([-0-9.]+)[,\s]+([-0-9.]+)/i.exec(path);
+  if (!startMatch) return null;
+  const startX = Number(startMatch[1]);
+  const startY = Number(startMatch[2]);
+  if (!Number.isFinite(startX) || !Number.isFinite(startY)) return null;
+
+  // Grab the last two numbers in the string as end x/y.
+  // (Works for C/Q/L style paths where the final segment ends in the endpoint.)
+  const nums = path.match(/[-0-9.]+/g);
+  if (!nums || nums.length < 4) return null;
+  const endX = Number(nums[nums.length - 2]);
+  const endY = Number(nums[nums.length - 1]);
+  if (!Number.isFinite(endX) || !Number.isFinite(endY)) return null;
+
+  return { start: { x: startX, y: startY }, end: { x: endX, y: endY } };
+}
+
+function toHex2(n: number): string {
+  const v = Math.max(0, Math.min(255, Math.round(n)));
+  return v.toString(16).padStart(2, '0');
+}
+
+function mixWithWhite(hex: string, t: number): string {
+  const rgb = parseHexColor(hex);
+  if (!rgb) return hex;
+  const clamped = Math.max(0, Math.min(1, t));
+  const r = rgb.r + (255 - rgb.r) * clamped;
+  const g = rgb.g + (255 - rgb.g) * clamped;
+  const b = rgb.b + (255 - rgb.b) * clamped;
+  return `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`;
+}
+
+function mixWithBlack(hex: string, t: number): string {
+  const rgb = parseHexColor(hex);
+  if (!rgb) return hex;
+  const clamped = Math.max(0, Math.min(1, t));
+  const r = rgb.r * (1 - clamped);
+  const g = rgb.g * (1 - clamped);
+  const b = rgb.b * (1 - clamped);
+  return `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`;
 }
 
 function signOrOne(v: number) {
@@ -438,6 +563,51 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     const editor = new NodeEditor<Schemes>();
     const area = new AreaPlugin<Schemes, AreaExtra>(container);
 
+    // Diagnostics: log connection lifecycle events (created/removed) so we can tell whether
+    // a connection is created and then immediately removed by some other pipe/plugin.
+    // Enabled when debug overlays are on, or when VITE_CONNECTION_LOGS=1/true.
+    editor.addPipe((context) => {
+      const logEnabled =
+        Boolean(debugUiRef.current.showDebugOverlays) ||
+        String(import.meta.env.VITE_CONNECTION_LOGS ?? '').toLowerCase() === 'true' ||
+        String(import.meta.env.VITE_CONNECTION_LOGS ?? '') === '1';
+      if (!logEnabled) return context;
+
+      const asConnLike = (data: unknown): {
+        id?: unknown;
+        source?: unknown;
+        sourceOutput?: unknown;
+        target?: unknown;
+        targetInput?: unknown;
+      } | null => {
+        if (!data || typeof data !== 'object') return null;
+        return data as {
+          id?: unknown;
+          source?: unknown;
+          sourceOutput?: unknown;
+          target?: unknown;
+          targetInput?: unknown;
+        };
+      };
+
+      if (context && typeof context === 'object' && 'type' in context) {
+        const t = (context as { type?: string }).type;
+        if (t === 'connectioncreated' || t === 'connectionremoved') {
+          const c = asConnLike((context as { data?: unknown }).data);
+          // eslint-disable-next-line no-console
+          console.log(`[ReteGraphLayer] ${t}`, {
+            id: c?.id,
+            source: c?.source,
+            sourceOutput: c?.sourceOutput,
+            target: c?.target,
+            targetInput: c?.targetInput,
+            total: editor.getConnections().length,
+          });
+        }
+      }
+      return context;
+    });
+
     // Replace rete-area-plugin's default quantized wheel zoom with a smooth, animated zoom.
     // This keeps trackpads continuous and makes mouse-wheel zoom feel much less "steppy".
     area.area.setZoomHandler(
@@ -500,7 +670,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
         customize: {
           node: (data) => {
             const payload = data.payload;
-            if (payload instanceof BreadboardNode) {
+            if (isBreadboardNodePayload(payload)) {
               const BreadboardNodeRenderer = ({ data }: any) => {
                 const rot = rotationRef.current;
                 const world = getBreadboardWorld(rot);
@@ -570,7 +740,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
 
               return BreadboardNodeRenderer;
             }
-            if (payload instanceof RailNode) {
+            if (isRailNodePayload(payload)) {
               const RailNodeRenderer = ({ data, emit }: any) => {
                 const rail = data as unknown as RailNode;
                 const rot = rotationRef.current;
@@ -628,7 +798,9 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                       if (!pos) return null;
 
                       const rotated = positionToWorld(pos, rot);
-                      const input = rail.inputs[key];
+                      const preferredInputKey = `in-h${idx}`;
+                      const inputKey = rail.inputs[preferredInputKey] ? preferredInputKey : key;
+                      const input = rail.inputs[inputKey];
                       if (!input) return null;
 
                       // We render BOTH:
@@ -638,6 +810,11 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                       return (
                         <div
                           key={key}
+                          data-rail-id={rail.railId}
+                          data-rail-label={rail.railLabel}
+                          data-hole-index={idx}
+                          data-hole-row={pos.row}
+                          data-hole-col={pos.col}
                           style={{
                             position: 'absolute',
                             // Important: do NOT use CSS transforms for centering.
@@ -657,7 +834,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                             <ReactPresets.classic.RefSocket
                               name="input-socket"
                               side="input"
-                              socketKey={key}
+                              socketKey={inputKey}
                               nodeId={rail.id}
                               emit={emit}
                               payload={input.socket}
@@ -705,9 +882,26 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
               const appearance = connectionUiRef.current.appearanceById[id] ?? getDefaultConnectionAppearance();
               const isSelected = connectionUiRef.current.selectedConnectionId === id;
 
-              const stroke = appearance.color || '#3b82f6';
-              const strokeWidth = isSelected ? 8 : 5;
-              const hitWidth = isSelected ? 14 : 10;
+              const endpoints = DEBUG_RENDER_CONNECTIONS ? parsePathEndpoints(path) : null;
+
+              const stroke = DEBUG_RENDER_CONNECTIONS ? '#ff00ff' : appearance.color || '#3b82f6';
+              const strokeWidth = DEBUG_RENDER_CONNECTIONS ? 14 : isSelected ? 8 : 5;
+              const hitWidth = DEBUG_RENDER_CONNECTIONS ? 18 : isSelected ? 14 : 10;
+
+              // Wire styling: layered strokes (dark jacket + inner highlight) to approximate a
+              // cylindrical insulated wire. This is robust for axis-aligned paths and reads better
+              // than bbox-dependent gradients.
+              const jacket = DEBUG_RENDER_CONNECTIONS ? stroke : mixWithBlack(stroke, 0.18);
+              const highlight = DEBUG_RENDER_CONNECTIONS ? stroke : mixWithWhite(stroke, 0.55);
+              const highlight2 = DEBUG_RENDER_CONNECTIONS ? stroke : mixWithWhite(stroke, 0.8);
+              const highlightWidth = Math.max(2, strokeWidth * 0.55);
+              const highlight2Width = Math.max(1.5, strokeWidth * 0.28);
+
+              const shadow = isSelected
+                ? 'drop-shadow(0px 1px 2px rgba(0,0,0,0.35)) drop-shadow(0px 0px 2px rgba(255,255,255,0.55))'
+                : 'drop-shadow(0px 1px 2px rgba(0,0,0,0.28))';
+
+              const debugShadow = 'drop-shadow(0px 2px 4px rgba(0,0,0,0.65))';
 
               const onPointerDown = (e: React.PointerEvent<SVGPathElement>) => {
                 // Shift-click: select the wire AND allow reroute plugin to add a point.
@@ -727,9 +921,11 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
               return (
                 <svg
                   data-testid="connection"
+                  data-connection-id={id}
                   style={{
                     overflow: 'visible',
                     position: 'absolute',
+                    zIndex: DEBUG_RENDER_CONNECTIONS ? 9999 : undefined,
                     pointerEvents: 'none',
                     width: 9999,
                     height: 9999,
@@ -748,20 +944,56 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                     }}
                   />
 
-                  {/* Visible wire stroke */}
+                  {/* Visible wire strokes (jacket + highlights) */}
                   <path
                     d={path}
                     style={{
                       fill: 'none',
-                      stroke,
+                      stroke: jacket,
                       strokeWidth,
+                      strokeLinecap: 'round',
+                      strokeLinejoin: 'round',
                       pointerEvents: 'none',
-                      opacity: isSelected ? 1 : 0.9,
-                      filter: isSelected
-                        ? 'drop-shadow(0px 0px 2px rgba(255,255,255,0.55))'
-                        : undefined,
+                      opacity: isSelected ? 1 : 0.95,
+                      filter: DEBUG_RENDER_CONNECTIONS ? debugShadow : shadow,
                     }}
                   />
+
+                  {!DEBUG_RENDER_CONNECTIONS ? (
+                    <>
+                      <path
+                        d={path}
+                        style={{
+                          fill: 'none',
+                          stroke: highlight,
+                          strokeWidth: highlightWidth,
+                          strokeLinecap: 'round',
+                          strokeLinejoin: 'round',
+                          pointerEvents: 'none',
+                          opacity: 0.75,
+                        }}
+                      />
+                      <path
+                        d={path}
+                        style={{
+                          fill: 'none',
+                          stroke: highlight2,
+                          strokeWidth: highlight2Width,
+                          strokeLinecap: 'round',
+                          strokeLinejoin: 'round',
+                          pointerEvents: 'none',
+                          opacity: 0.35,
+                        }}
+                      />
+                    </>
+                  ) : null}
+
+                  {DEBUG_RENDER_CONNECTIONS && endpoints ? (
+                    <>
+                      <circle cx={endpoints.start.x} cy={endpoints.start.y} r={8} fill="#00ff00" />
+                      <circle cx={endpoints.end.x} cy={endpoints.end.y} r={8} fill="#ff0000" />
+                    </>
+                  ) : null}
                 </svg>
               );
             };
@@ -845,31 +1077,171 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     connection.addPreset(() => {
       return new ClassicFlow({
         canMakeConnection: (initial: SocketData, socket: SocketData) => {
-          return Boolean(resolveSourceTarget(initial, socket, editor));
+          const logEnabled =
+            Boolean(debugUiRef.current.showDebugOverlays) ||
+            String(import.meta.env.VITE_CONNECTION_LOGS ?? '').toLowerCase() === 'true' ||
+            String(import.meta.env.VITE_CONNECTION_LOGS ?? '') === '1';
+
+          const resolved = resolveSourceTarget(initial, socket, editor);
+          if (logEnabled) {
+            // eslint-disable-next-line no-console
+            console.log('[ReteGraphLayer] canMakeConnection', {
+              initial: { nodeId: initial.nodeId, side: initial.side, key: initial.key },
+              socket: { nodeId: socket.nodeId, side: socket.side, key: socket.key },
+              resolved: resolved
+                ? {
+                    source: { nodeId: resolved.source.nodeId, side: resolved.source.side, key: resolved.source.key },
+                    target: { nodeId: resolved.target.nodeId, side: resolved.target.side, key: resolved.target.key },
+                  }
+                : null,
+            });
+          }
+
+          return Boolean(resolved);
         },
         makeConnection: (initial: SocketData, socket: SocketData, context: { editor: NodeEditor<Schemes> }) => {
+          const logEnabled =
+            Boolean(debugUiRef.current.showDebugOverlays) ||
+            String(import.meta.env.VITE_CONNECTION_LOGS ?? '').toLowerCase() === 'true' ||
+            String(import.meta.env.VITE_CONNECTION_LOGS ?? '') === '1';
+          if (logEnabled) {
+            // eslint-disable-next-line no-console
+            console.log('[ReteGraphLayer] makeConnection attempt', {
+              initial: { nodeId: initial.nodeId, side: initial.side, key: initial.key },
+              socket: { nodeId: socket.nodeId, side: socket.side, key: socket.key },
+            });
+          }
+
           const resolved = resolveSourceTarget(initial, socket, context.editor);
-          if (!resolved) return false;
+          if (!resolved) {
+            if (logEnabled) {
+              // eslint-disable-next-line no-console
+              console.log('[ReteGraphLayer] makeConnection rejected: resolveSourceTarget returned null');
+            }
+            return false;
+          }
 
           const { source, target } = resolved;
+
+          if (logEnabled) {
+            // eslint-disable-next-line no-console
+            console.log('[ReteGraphLayer] makeConnection resolved', {
+              source: { nodeId: source.nodeId, side: source.side, key: source.key },
+              target: { nodeId: target.nodeId, side: target.side, key: target.key },
+            });
+          }
 
           // Ensure the corresponding ports exist.
           const sourceNode = context.editor.getNode(source.nodeId) as any;
           const targetNode = context.editor.getNode(target.nodeId) as any;
-          if (!sourceNode?.outputs?.[source.key]) return false;
-          if (!targetNode?.inputs?.[target.key]) return false;
+          if (!sourceNode?.outputs?.[source.key]) {
+            if (logEnabled) {
+              // eslint-disable-next-line no-console
+              console.log('[ReteGraphLayer] makeConnection rejected: missing source output', {
+                sourceNodeId: source.nodeId,
+                sourceKey: source.key,
+                outputKeys: Object.keys(sourceNode?.outputs ?? {}),
+              });
+            }
+            return false;
+          }
+          if (!targetNode?.inputs?.[target.key]) {
+            if (logEnabled) {
+              // eslint-disable-next-line no-console
+              console.log('[ReteGraphLayer] makeConnection rejected: missing target input', {
+                targetNodeId: target.nodeId,
+                targetKey: target.key,
+                inputKeys: Object.keys(targetNode?.inputs ?? {}),
+              });
+            }
+            return false;
+          }
 
           // Enforce per-hole single-connection constraints on the *actual* ports used.
           removeConflictingConnections(source, context.editor);
           removeConflictingConnections(target, context.editor);
 
-          void context.editor.addConnection({
-            id: getUID(),
+          const connectionId = getUID();
+          const addPromise = context.editor.addConnection({
+            id: connectionId,
             source: source.nodeId,
             sourceOutput: source.key,
             target: target.nodeId,
             targetInput: target.key,
           });
+
+          if (logEnabled) {
+            // eslint-disable-next-line no-console
+            console.log('[ReteGraphLayer] makeConnection addConnection called', { connectionId });
+
+            void addPromise
+              .then((ok) => {
+                // eslint-disable-next-line no-console
+                console.log('[ReteGraphLayer] addConnection result', { connectionId, ok });
+              })
+              .catch((err) => {
+                // eslint-disable-next-line no-console
+                console.log('[ReteGraphLayer] addConnection error', { connectionId, err });
+              });
+
+            // Sample state on next tick to detect any immediate removal and/or rendering issues.
+            setTimeout(() => {
+              const conns = context.editor.getConnections().map((c) => ({
+                id: c.id,
+                source: c.source,
+                sourceOutput: c.sourceOutput,
+                target: c.target,
+                targetInput: c.targetInput,
+              }));
+              const renderedCount = layerRef.current
+                ? layerRef.current.querySelectorAll('[data-testid="connection"]').length
+                : null;
+
+              // Try to locate the rendered DOM element for this connection and report its bounds.
+              const connectionEl = layerRef.current
+                ? (layerRef.current.querySelector(
+                    `[data-testid="connection"][data-connection-id="${connectionId}"]`
+                  ) as SVGSVGElement | null)
+                : null;
+
+              let domRect: { x: number; y: number; width: number; height: number } | null = null;
+              let pathBox: { x: number; y: number; width: number; height: number } | null = null;
+              let computed: { display: string; opacity: string; visibility: string } | null = null;
+
+              try {
+                if (connectionEl) {
+                  const r = connectionEl.getBoundingClientRect();
+                  domRect = { x: r.x, y: r.y, width: r.width, height: r.height };
+                  const s = window.getComputedStyle(connectionEl);
+                  computed = { display: s.display, opacity: s.opacity, visibility: s.visibility };
+
+                  const paths = connectionEl.querySelectorAll('path');
+                  const visiblePath = paths.length >= 2 ? (paths[1] as SVGPathElement) : null;
+                  if (visiblePath) {
+                    const b = visiblePath.getBBox();
+                    pathBox = { x: b.x, y: b.y, width: b.width, height: b.height };
+                  }
+                }
+              } catch {
+                // ignore (e.g. SVG not fully measurable yet)
+              }
+
+              // eslint-disable-next-line no-console
+              console.log('[ReteGraphLayer] connections after create (next tick)', {
+                model: conns,
+                renderedCount,
+                domRect,
+                pathBox,
+                computed,
+                env: {
+                  allowMultiConnectionsPerPort: ALLOW_MULTI_CONNECTIONS_PER_PORT,
+                  connectionLogs:
+                    String(import.meta.env.VITE_CONNECTION_LOGS ?? '').toLowerCase() === 'true' ||
+                    String(import.meta.env.VITE_CONNECTION_LOGS ?? '') === '1',
+                },
+              });
+            }, 0);
+          }
           return true;
         },
       });
