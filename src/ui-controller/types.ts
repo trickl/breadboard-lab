@@ -31,6 +31,9 @@ export interface AppState {
     occupiedHoles: Map<string, string>;
     selectedConnectionId: string | null;
     rerouteDragState: ConnectionRerouteDragState | null;
+    appearanceById: Record<string, ConnectionAppearance>;
+    reteCommand: ConnectionCommand | null;
+    reteCommandNonce: number;
   };
 
   connectionDrag: {
@@ -65,6 +68,29 @@ export interface AppState {
     componentIdCounter: number;
   };
 }
+
+export type ConnectionStyle = 'curved' | 'straight';
+
+/**
+ * Curved wire endpoint orientation hint.
+ *
+ * - auto: choose based on endpoint delta (mostly-horizontal vs mostly-vertical)
+ * - horizontal: curve leaves/arrives horizontally
+ * - vertical: curve leaves/arrives vertically
+ */
+export type ConnectionEndpointOrientation = 'auto' | 'horizontal' | 'vertical';
+
+export interface ConnectionAppearance {
+  style: ConnectionStyle;
+  color: string;
+  curved: {
+    startOrientation: ConnectionEndpointOrientation;
+    endOrientation: ConnectionEndpointOrientation;
+  };
+}
+
+export type ConnectionCommand =
+  | { type: 'delete-connection'; connectionId: string; nonce: number };
 
 export interface DragState {
   componentId: string;
@@ -130,6 +156,13 @@ export type Action =
   | { type: 'PIN_SELECTED'; componentId: string; pinIndex: number | null }
   | { type: 'CONNECTION_DELETED'; connectionId: string }
   | { type: 'CONNECTION_SELECTED'; connectionId: string | null }
+  | {
+      type: 'CONNECTION_APPEARANCE_UPDATED';
+      connectionId: string;
+      appearance: Partial<Omit<ConnectionAppearance, 'curved'>> & {
+        curved?: Partial<ConnectionAppearance['curved']>;
+      };
+    }
   | { type: 'CONNECTION_DRAG_STARTED'; componentId: string; legIndex: number; position: Position }
   | { type: 'CONNECTION_DRAG_MOVED'; pointerPosition: { x: number; y: number }; hoveredHole: Position | null; isValid: boolean }
   | { type: 'CONNECTION_DRAG_COMPLETED'; targetPosition: Position }

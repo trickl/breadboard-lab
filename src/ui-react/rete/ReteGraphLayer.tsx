@@ -18,12 +18,16 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import { Box } from 'theme-ui';
 import { createRoot } from 'react-dom/client';
 import { NodeEditor, ClassicPreset, getUID } from 'rete';
-import { AreaPlugin } from 'rete-area-plugin';
+import { AreaPlugin, type Area2D } from 'rete-area-plugin';
 import { ConnectionPlugin, ClassicFlow, type SocketData } from 'rete-connection-plugin';
 import { ReactPlugin, Presets as ReactPresets, type ClassicScheme, type ReactArea2D } from 'rete-react-plugin';
+import { getDOMSocketPosition } from 'rete-render-utils';
+import { ReroutePlugin, type RerouteExtra } from 'rete-connection-reroute-plugin';
+import { ConnectionPathPlugin } from 'rete-connection-path-plugin';
+import { curveBundle, curveLinear } from 'd3-shape';
 import { SmoothZoom } from './SmoothZoom';
 import type { BreadboardController } from '@/ui-controller';
-import type { AppState } from '@/ui-controller/types';
+import type { AppState, ConnectionAppearance, ConnectionEndpointOrientation } from '@/ui-controller/types';
 import type { AnyComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
 import { getAllHolePositions } from '../geometry/breadboard-layout';
@@ -121,7 +125,10 @@ class BreadboardNode extends ClassicPreset.Node {
 
 type Schemes = ClassicScheme;
 
-type AreaExtra = ReactArea2D<Schemes>;
+// Rete plugin typing note:
+// Some plugins (e.g. reroute/path) are typed against a parent scope that includes Area2D signals.
+// The official docs recommend including Area2D + renderer extras + plugin extras in one union.
+type AreaExtra = Area2D<Schemes> | ReactArea2D<Schemes> | RerouteExtra;
 
 function isRailNode(editor: NodeEditor<Schemes>, nodeId: string): boolean {
   const node = editor.getNode(nodeId);
@@ -199,6 +206,101 @@ function resolveSourceTarget(
   return null;
 }
 
+function getDefaultConnectionAppearance(): ConnectionAppearance {
+  return {
+    style: 'curved',
+    color: '#3b82f6',
+    curved: {
+      startOrientation: 'auto',
+      endOrientation: 'auto',
+    },
+  };
+}
+
+function signOrOne(v: number) {
+  if (v === 0) return 1;
+  return v > 0 ? 1 : -1;
+}
+
+function pickOrientation(
+  preference: ConnectionEndpointOrientation,
+  dx: number,
+  dy: number
+): Exclude<ConnectionEndpointOrientation, 'auto'> {
+  if (preference !== 'auto') return preference;
+  return Math.abs(dx) >= Math.abs(dy) ? 'horizontal' : 'vertical';
+}
+
+function makeEndpointCurvedTransformer(options: {
+  start: ConnectionEndpointOrientation;
+  end: ConnectionEndpointOrientation;
+  curvature: number;
+}) {
+  const { start, end, curvature } = options;
+
+  return (points: Array<{ x: number; y: number }>) => {
+    if (points.length !== 2) throw new Error('number of points should be equal to 2');
+    const [p0, p1] = points;
+    const dx = p1.x - p0.x;
+    const dy = p1.y - p0.y;
+    const sx = signOrOne(dx);
+    const sy = signOrOne(dy);
+
+    const startOri = pickOrientation(start, dx, dy);
+    const endOri = pickOrientation(end, dx, dy);
+
+    const xDistance = Math.abs(dx);
+    const yDistance = Math.abs(dy);
+
+    // Match the classic transformer scaling, but per-endpoint.
+    const startCross = startOri === 'vertical' ? xDistance : yDistance;
+    const startAlong = startOri === 'vertical' ? yDistance : xDistance;
+    const endCross = endOri === 'vertical' ? xDistance : yDistance;
+    const endAlong = endOri === 'vertical' ? yDistance : xDistance;
+
+    const startOffset = Math.max(startCross / 2, startAlong) * curvature;
+    const endOffset = Math.max(endCross / 2, endAlong) * curvature;
+
+    const p0a =
+      startOri === 'vertical'
+        ? { x: p0.x, y: p0.y + sy * startOffset }
+        : { x: p0.x + sx * startOffset, y: p0.y };
+    const p1a =
+      endOri === 'vertical'
+        ? { x: p1.x, y: p1.y - sy * endOffset }
+        : { x: p1.x - sx * endOffset, y: p1.y };
+
+    return [p0, p0a, p1a, p1];
+  };
+}
+
+type Pointer = { x: number; y: number };
+
+function startPointerDrag(options: {
+  pointer: () => Pointer;
+  onMove: (dx: number, dy: number) => void;
+}) {
+  let previous = { ...options.pointer() };
+
+  function move() {
+    const current = { ...options.pointer() };
+    const dx = current.x - previous.x;
+    const dy = current.y - previous.y;
+    previous = current;
+    options.onMove(dx, dy);
+  }
+
+  function up() {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', up);
+  }
+
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
+}
+
 export interface ReteGraphLayerProps {
   controller: BreadboardController;
   rotation?: 0 | 90 | 180 | 270;
@@ -241,6 +343,18 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
   const componentNodeMapRef = useRef<Map<string, string>>(new Map());
   const railNodeMapRef = useRef<Map<string, string>>(new Map());
   const breadboardNodeIdRef = useRef<string | null>(null);
+
+  // Selection + appearance are owned by the UI controller, but wire rendering happens inside Rete.
+  // We keep them in a ref so Rete-rendered React components can consult the current values.
+  const connectionUiRef = useRef<{
+    selectedConnectionId: string | null;
+    appearanceById: Record<string, ConnectionAppearance>;
+    lastProcessedReteCommandNonce: number;
+  }>({
+    selectedConnectionId: null,
+    appearanceById: {},
+    lastProcessedReteCommandNonce: 0,
+  });
 
   // The ReactPlugin preset customization is registered once; use refs to access live props.
   const rotationRef = useRef<BoardRotation>(rotation);
@@ -331,10 +445,52 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     const connection = new ConnectionPlugin<Schemes, AreaExtra>();
     const render = new ReactPlugin<Schemes, AreaExtra>({ createRoot });
 
+    // --- Plugins: reroute + path ---
+    // Reroute: lets users add draggable points on a connection (click to add, right-click to remove).
+    // Path: draws straight (polyline) connection segments and supports multi-point paths.
+    const reroutePlugin = new ReroutePlugin<Schemes>();
+    const pathPlugin = new ConnectionPathPlugin<Schemes, AreaExtra>({
+      // For a plain connection (2 endpoints), add auxiliary control points to create a pleasing curve.
+      // For rerouted connections (N>2 points), keep points as-is and let the curve interpolate.
+      transformer: (conn) => (points) => {
+        const appearance = connectionUiRef.current.appearanceById[(conn as any).id] ??
+          getDefaultConnectionAppearance();
+
+        if (appearance.style === 'straight') return points;
+        if (points.length !== 2) return points;
+
+        // Curved: allow independent start/end orientation.
+        return makeEndpointCurvedTransformer({
+          start: appearance.curved.startOrientation,
+          end: appearance.curved.endOrientation,
+          curvature: 0.3,
+        })(points);
+      },
+      // Smooth, realistic-looking wire curves (or straight polyline, depending on style).
+      curve: (conn) => {
+        const appearance = connectionUiRef.current.appearanceById[(conn as any).id] ??
+          getDefaultConnectionAppearance();
+        return appearance.style === 'straight' ? curveLinear : curveBundle.beta(0.9);
+      },
+      // Breadboard wires are undirected.
+      arrow: () => false,
+    });
+
+    render.use(reroutePlugin);
+    render.use(pathPlugin);
+
     // Configure React renderer with classic preset.
     // We customize RailNode rendering so sockets can be placed exactly over breadboard holes.
     render.addPreset(
       ReactPresets.classic.setup({
+        // By default, classic connections start on the *right edge* of output sockets and end on the
+        // *left edge* of input sockets. For breadboard wiring we want endpoints to be visually
+        // centered on the socket (matching the hole/connector circle center).
+        socketPositionWatcher: getDOMSocketPosition({
+          offset({ x, y }) {
+            return { x, y };
+          },
+        }),
         customize: {
           node: (data) => {
             const payload = data.payload;
@@ -410,6 +566,9 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
               const RailNodeRenderer = ({ data, emit }: any) => {
                 const rail = data as unknown as RailNode;
                 const rot = rotationRef.current;
+                const socketOuterSize =
+                  ReactPresets.classic.vars.$socketsize + 2 * ReactPresets.classic.vars.$socketmargin;
+                const socketOuterHalf = socketOuterSize / 2;
 
                 // Label placement: use the first visible hole as anchor.
                 const anchor = rail.holePositions[0]
@@ -471,10 +630,16 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                           key={key}
                           style={{
                             position: 'absolute',
-                            left: rotated.x,
-                            top: rotated.y,
-                            transform: 'translate(-50%, -50%)',
+                            // Important: do NOT use CSS transforms for centering.
+                            // Socket position calculation (DOMSocketPosition) relies on offsetLeft/offsetTop,
+                            // which ignores transforms. If we center with translate(-50%,-50%), the computed
+                            // socket center will be shifted down-right.
+                            left: rotated.x - socketOuterHalf,
+                            top: rotated.y - socketOuterHalf,
                             pointerEvents: 'auto',
+                            // Prevent inline baseline metrics from shifting the socket anchor.
+                            lineHeight: 0,
+                            fontSize: 0,
                           }}
                         >
                           {/* Hidden input endpoint */}
@@ -515,9 +680,150 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
             // Default classic renderer for other nodes
             return ReactPresets.classic.Node;
           },
+
+          connection: () => {
+            // Render a selectable connection path.
+            // Gesture separation:
+            // - Click selects the wire (and highlights it)
+            // - Shift-click is reserved for the reroute plugin (add point)
+            const SelectableConnection = ({ data }: any) => {
+              const ctx = ReactPresets.classic.useConnection();
+              const path = ctx.path;
+              if (!path) return null;
+
+              const id = String(data.id);
+              const appearance = connectionUiRef.current.appearanceById[id] ?? getDefaultConnectionAppearance();
+              const isSelected = connectionUiRef.current.selectedConnectionId === id;
+
+              const stroke = appearance.color || '#3b82f6';
+              const strokeWidth = isSelected ? 8 : 5;
+              const hitWidth = isSelected ? 14 : 10;
+
+              const onPointerDown = (e: React.PointerEvent<SVGPathElement>) => {
+                // Shift-click: select the wire AND allow reroute plugin to add a point.
+                // We intentionally do not stop propagation in this case.
+                if (e.shiftKey && e.button === 0) {
+                  controller.dispatch({ type: 'CONNECTION_SELECTED', connectionId: id });
+                  return;
+                }
+                if (e.button !== 0) return;
+                e.stopPropagation();
+                controller.dispatch({
+                  type: 'CONNECTION_SELECTED',
+                  connectionId: isSelected ? null : id,
+                });
+              };
+
+              return (
+                <svg
+                  data-testid="connection"
+                  style={{
+                    overflow: 'visible',
+                    position: 'absolute',
+                    pointerEvents: 'none',
+                    width: 9999,
+                    height: 9999,
+                  }}
+                >
+                  {/* Wide invisible hit target */}
+                  <path
+                    d={path}
+                    onPointerDown={onPointerDown}
+                    style={{
+                      fill: 'none',
+                      stroke: 'transparent',
+                      strokeWidth: hitWidth,
+                      pointerEvents: 'auto',
+                      cursor: 'pointer',
+                    }}
+                  />
+
+                  {/* Visible wire stroke */}
+                  <path
+                    d={path}
+                    style={{
+                      fill: 'none',
+                      stroke,
+                      strokeWidth,
+                      pointerEvents: 'none',
+                      opacity: isSelected ? 1 : 0.9,
+                      filter: isSelected
+                        ? 'drop-shadow(0px 0px 2px rgba(255,255,255,0.55))'
+                        : undefined,
+                    }}
+                  />
+                </svg>
+              );
+            };
+
+            return SelectableConnection;
+          },
         },
       })
     );
+
+    // Render reroute pins on top of connections.
+    // We only show pins when the corresponding wire is selected.
+    render.addPreset({
+      render: (context: any) => {
+        const data = context.data;
+        if (data.type !== 'reroute-pins') return;
+
+        const pinData = data.data as {
+          id: string;
+          pins: Array<{ id: string; position: Pointer; selected?: boolean }>;
+        };
+
+        const connectionId = String(pinData.id);
+        // Important: returning null here would cause the React renderer to NOT update this
+        // container (leaving previously rendered pins visible). Instead, render an empty
+        // fragment to actively clear the pin container for unselected connections.
+        if (connectionUiRef.current.selectedConnectionId !== connectionId) return <></>;
+
+        const pointer = () => area.area.pointer as unknown as Pointer;
+
+        return (
+          <>
+            {pinData.pins.map((pin) => (
+              <div
+                key={pin.id}
+                data-testid="pin"
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  startPointerDrag({
+                    pointer,
+                    onMove: (dx, dy) => {
+                      void reroutePlugin.translate(pin.id, dx, dy);
+                    },
+                  });
+                  void reroutePlugin.select(pin.id);
+                }}
+                onContextMenu={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  void reroutePlugin.remove(pin.id);
+                }}
+                style={{
+                  position: 'absolute',
+                  top: `${pin.position.y - 10}px`,
+                  left: `${pin.position.x - 10}px`,
+                  width: 20,
+                  height: 20,
+                  boxSizing: 'border-box',
+                  background: pin.selected ? '#ffd92c' : 'steelblue',
+                  border: '2px solid white',
+                  borderRadius: 20,
+                  cursor: 'grab',
+                  zIndex: 50,
+                  boxShadow: pin.selected ? '0 0 0 2px rgba(0,0,0,0.25)' : undefined,
+                }}
+              />
+            ))}
+          </>
+        );
+      },
+    });
 
     // Configure connection renderer with classic preset
     // Custom connection flow:
@@ -563,6 +869,27 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     editor.use(area);
     area.use(connection);
     area.use(render);
+
+    // Deselect wire when clicking on empty space.
+    // (We avoid clearing when the click starts an interaction on sockets/wires/pins.)
+    area.addPipe((context) => {
+      if (context.type === 'pointerdown') {
+        const evt = context.data.event;
+        const target = evt.target as HTMLElement | null;
+        if (target) {
+          const isInteractive =
+            Boolean(target.closest('[data-testid="connection"]')) ||
+            Boolean(target.closest('[data-testid="pin"]')) ||
+            Boolean(target.closest('.input-socket')) ||
+            Boolean(target.closest('.output-socket'));
+
+          if (!isInteractive) {
+            controller.dispatch({ type: 'CONNECTION_SELECTED', connectionId: null });
+          }
+        }
+      }
+      return context;
+    });
 
     // Store references
     editorRef.current = editor;
@@ -750,12 +1077,64 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
 
   // Subscribe to controller state changes
   useEffect(() => {
+    let previousSelectedId = connectionUiRef.current.selectedConnectionId;
+    let previousAppearanceById = connectionUiRef.current.appearanceById;
+
     const unsubscribe = controller.subscribe((state) => {
       void syncNodes(state);
+
+      const nextSelectedId = state.connections.selectedConnectionId;
+      const nextAppearanceById = state.connections.appearanceById;
+
+      connectionUiRef.current.selectedConnectionId = nextSelectedId;
+      connectionUiRef.current.appearanceById = nextAppearanceById;
+
+      const editor = editorRef.current;
+      const area = areaRef.current;
+      if (!editor || !area) return;
+
+      // Process one-shot Rete commands (e.g. delete connection).
+      const cmd = state.connections.reteCommand;
+      if (cmd && cmd.nonce !== connectionUiRef.current.lastProcessedReteCommandNonce) {
+        connectionUiRef.current.lastProcessedReteCommandNonce = cmd.nonce;
+        if (cmd.type === 'delete-connection') {
+          const existing = editor.getConnections().find((c) => c.id === cmd.connectionId);
+          if (existing) {
+            void editor.removeConnection(cmd.connectionId);
+          }
+        }
+      }
+
+      // Re-render the affected connections when selection/appearance changes.
+      if (nextSelectedId !== previousSelectedId) {
+        if (previousSelectedId) void area.update('connection', previousSelectedId);
+        if (nextSelectedId) void area.update('connection', nextSelectedId);
+
+        // Reroute pins are rendered via a separate render signal ('reroute-pins'),
+        // so we also need to update that layer when selection changes.
+        if (previousSelectedId) void area.update('reroute-pins', previousSelectedId);
+        if (nextSelectedId) void area.update('reroute-pins', nextSelectedId);
+
+        previousSelectedId = nextSelectedId;
+      }
+
+      if (nextAppearanceById !== previousAppearanceById) {
+        // Appearance changes can affect both stroke and computed path.
+        for (const c of editor.getConnections()) {
+          void area.update('connection', c.id);
+        }
+        previousAppearanceById = nextAppearanceById;
+      }
     });
 
     // Initial sync
     void syncNodes(controller.getState());
+
+    // Initial UI cache
+    const state = controller.getState();
+    connectionUiRef.current.selectedConnectionId = state.connections.selectedConnectionId;
+    connectionUiRef.current.appearanceById = state.connections.appearanceById;
+    connectionUiRef.current.lastProcessedReteCommandNonce = state.connections.reteCommandNonce;
 
     return unsubscribe;
   }, [controller, syncNodes]);
@@ -784,6 +1163,7 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
         },
         // Keep sockets visually prominent and easy to hit.
         '.input-socket, .output-socket': {
+          display: 'block',
           transform: 'scale(1.05)',
           pointerEvents: 'auto',
           opacity: 0.25,

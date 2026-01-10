@@ -1,5 +1,16 @@
 import type { AppState, Action } from './types';
 
+function getDefaultConnectionAppearance() {
+  return {
+    style: 'curved' as const,
+    color: '#3b82f6',
+    curved: {
+      startOrientation: 'auto' as const,
+      endOrientation: 'auto' as const,
+    },
+  };
+}
+
 export class BreadboardController {
   private state: AppState;
   private listeners: Set<(state: AppState) => void>;
@@ -141,6 +152,13 @@ export class BreadboardController {
           connections: {
             ...state.connections,
             selectedConnectionId: action.connectionId,
+            appearanceById:
+              action.connectionId && !state.connections.appearanceById[action.connectionId]
+                ? {
+                    ...state.connections.appearanceById,
+                    [action.connectionId]: getDefaultConnectionAppearance(),
+                  }
+                : state.connections.appearanceById,
           },
           breadboard: {
             ...state.breadboard,
@@ -148,12 +166,46 @@ export class BreadboardController {
           },
         };
 
+      case 'CONNECTION_APPEARANCE_UPDATED': {
+        const existing = state.connections.appearanceById[action.connectionId] ??
+          getDefaultConnectionAppearance();
+
+        return {
+          ...state,
+          connections: {
+            ...state.connections,
+            appearanceById: {
+              ...state.connections.appearanceById,
+              [action.connectionId]: {
+                ...existing,
+                ...action.appearance,
+                curved: {
+                  ...existing.curved,
+                  ...(action.appearance.curved ?? {}),
+                },
+              },
+            },
+          },
+          circuit: {
+            ...state.circuit,
+            hasUnsavedChanges: true,
+          },
+        };
+      }
+
       case 'CONNECTION_REROUTE_STARTED':
         return {
           ...state,
           connections: {
             ...state.connections,
             selectedConnectionId: action.connectionId,
+            appearanceById:
+              !state.connections.appearanceById[action.connectionId]
+                ? {
+                    ...state.connections.appearanceById,
+                    [action.connectionId]: getDefaultConnectionAppearance(),
+                  }
+                : state.connections.appearanceById,
             rerouteDragState: {
               type: 'connection-reroute',
               connectionId: action.connectionId,
@@ -262,22 +314,38 @@ export class BreadboardController {
         };
 
       case 'CONNECTION_DELETED': {
-        const connection = state.connections.list.find((c) => c.id === action.connectionId);
-        if (!connection) return state;
-        
-        const holeKey = `${connection.targetPosition.row},${connection.targetPosition.col}`;
+        const connection = state.connections.list.find((c) => c.id === action.connectionId) ?? null;
+
+        const nextNonce = state.connections.reteCommandNonce + 1;
+
+        // Legacy occupied-holes bookkeeping (only if this connection exists in the legacy list)
         const newOccupiedHoles = new Map(state.connections.occupiedHoles);
-        newOccupiedHoles.delete(holeKey);
-        
+        if (connection) {
+          const holeKey = `${connection.targetPosition.row},${connection.targetPosition.col}`;
+          newOccupiedHoles.delete(holeKey);
+        }
+
         return {
           ...state,
           connections: {
             ...state.connections,
-            list: state.connections.list.filter((c) => c.id !== action.connectionId),
+            list: connection
+              ? state.connections.list.filter((c) => c.id !== action.connectionId)
+              : state.connections.list,
             occupiedHoles: newOccupiedHoles,
-            selectedConnectionId: state.connections.selectedConnectionId === action.connectionId
-              ? null
-              : state.connections.selectedConnectionId,
+            appearanceById: Object.fromEntries(
+              Object.entries(state.connections.appearanceById).filter(([id]) => id !== action.connectionId)
+            ),
+            selectedConnectionId:
+              state.connections.selectedConnectionId === action.connectionId
+                ? null
+                : state.connections.selectedConnectionId,
+            reteCommand: {
+              type: 'delete-connection',
+              connectionId: action.connectionId,
+              nonce: nextNonce,
+            },
+            reteCommandNonce: nextNonce,
           },
           circuit: {
             ...state.circuit,

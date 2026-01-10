@@ -21,6 +21,9 @@ export function createInitialState(): AppState {
       occupiedHoles: new Map(),
       selectedConnectionId: null,
       rerouteDragState: null,
+      appearanceById: {},
+      reteCommand: null,
+      reteCommandNonce: 0,
     },
     connectionDrag: {
       dragState: null,
