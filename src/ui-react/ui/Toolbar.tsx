@@ -207,7 +207,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ controller }) => {
 
         {([
           ['Toggle X-Ray', () => controller.dispatch({ type: 'XRAY_MODE_TOGGLED' })],
-          ['Rotate board', () => controller.dispatch({ type: 'BREADBOARD_ROTATED' })],
           ['Toggle voltage overlay (V)', () => controller.dispatch({ type: 'VOLTAGE_OVERLAY_TOGGLED' })],
           ['Toggle current animation (C)', () => controller.dispatch({ type: 'CURRENT_ANIMATION_TOGGLED' })],
           ['Clear circuit', () => controller.dispatch({ type: 'CIRCUIT_CLEARED' })],

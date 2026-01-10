@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Box } from 'theme-ui';
+import { Box, Button } from 'theme-ui';
 import type { BreadboardController } from '@/ui-controller';
 import type { AppState } from '@/ui-controller/types';
 import { ReteGraphLayer } from './rete/ReteGraphLayer';
@@ -109,6 +109,36 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
         boxShadow: 'md',
       }}
     >
+      <Button
+        onClick={() => controller.dispatch({ type: 'BREADBOARD_ROTATED' })}
+        title="Rotate view (90°)"
+        aria-label="Rotate view (90 degrees)"
+        sx={{
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          width: 36,
+          height: 36,
+          p: 0,
+          borderRadius: 8,
+          bg: 'panelBg',
+          color: 'text',
+          border: '2px solid',
+          borderColor: 'border',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 20,
+          ':hover': { bg: 'hoverBg', transform: 'translateY(-1px)' },
+        }}
+      >
+        {/* Simple rotate icon */}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12a9 9 0 1 1-3.3-6.9" />
+          <path d="M21 3v7h-7" />
+        </svg>
+      </Button>
       <ReteGraphLayer controller={controller} rotation={rotation} />
     </Box>
   );

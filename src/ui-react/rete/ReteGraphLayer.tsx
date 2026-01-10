@@ -259,6 +259,29 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
     const area = areaRef.current;
     if (!editor || !area) return;
 
+    // Keep the rotated board centered in the visible viewport.
+    // This makes rotation feel like it happens around the screen center.
+    const container = containerRef.current;
+    if (container) {
+      const bounds = container.getBoundingClientRect();
+      const w = bounds.width || 1;
+      const h = bounds.height || 1;
+      const world = getBreadboardWorld(rotationRef.current);
+
+      // Don't unexpectedly zoom *in* on rotate; only clamp down if we're currently zoomed in beyond fit.
+      const kw = w / (world.total.width || 1);
+      const kh = h / (world.total.height || 1);
+      const fitK = Math.min(kw, kh) * 0.95;
+      if (Number.isFinite(fitK) && fitK > 0) {
+        const currentK = area.area.transform.k;
+        area.area.transform.k = Math.min(currentK, fitK);
+      }
+
+      area.area.transform.x = (w - world.total.width * area.area.transform.k) / 2;
+      area.area.transform.y = (h - world.total.height * area.area.transform.k) / 2;
+      (area.area as any).update();
+    }
+
     // Keep the breadboard node's size in sync with the rotated world bounds.
     // (This is what makes the node's bounding box match the rotated graphic.)
     const bbId = breadboardNodeIdRef.current;

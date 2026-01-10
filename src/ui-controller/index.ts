@@ -35,7 +35,10 @@ export function createInitialState(): AppState {
     },
     ui: {
       xrayModeEnabled: false,
-      breadboardOrientation: 90,
+      // Default to a horizontal (landscape) board.
+      // The renderer also applies an intrinsic 90° rotation to the substrate,
+      // so userRotation=0 corresponds to the expected initial orientation.
+      breadboardOrientation: 0,
       currentTheme: 'dark',
       currentView: 'breadboard',
       showVoltageOverlay: false,
