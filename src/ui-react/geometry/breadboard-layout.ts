@@ -6,7 +6,7 @@
 import { BreadboardLayout } from '@/core/breadboard-layout';
 import type { Position } from '@/core/types';
 
-import { isHoleVisible } from '../skins/breadboard-skin';
+import { BreadboardSkin, isHoleVisible } from '../skins/breadboard-skin';
 
 /**
  * Geometry constants matching the original renderer specifications
@@ -31,6 +31,33 @@ export const LABEL_PADDING_Y = 25;
 
 const GRID_OFFSET_X = OUTER_PADDING_X;
 const GRID_OFFSET_Y = HEADER_HEIGHT;
+
+function getGridHeightPx(): number {
+  return BreadboardLayout.ROWS * HOLE_SPACING;
+}
+
+function railRowToCenterY(railRow: number): number {
+  const railRows = BreadboardSkin.geometry.railHoleRows;
+  const clusterSize = BreadboardSkin.geometry.railClusterSize;
+  const clusterCount = Math.ceil(railRows / clusterSize);
+  const clusterGapPx = Math.round(HOLE_SPACING * BreadboardSkin.geometry.railClusterGapRatio);
+
+  const totalRailHeight = railRows * HOLE_SPACING + (clusterCount - 1) * clusterGapPx;
+  const topMargin = Math.max(0, (getGridHeightPx() - totalRailHeight) / 2);
+
+  const clusterIndex = Math.floor(railRow / clusterSize);
+  const yWithin = railRow * HOLE_SPACING + clusterIndex * clusterGapPx;
+
+  return GRID_OFFSET_Y + topMargin + yWithin + HOLE_SPACING / 2;
+}
+
+function getRailRowCentersY(): number[] {
+  const centers: number[] = [];
+  for (let r = 0; r < BreadboardSkin.geometry.railHoleRows; r++) {
+    centers.push(railRowToCenterY(r));
+  }
+  return centers;
+}
 
 function colExtraOffset(col: number): number {
   // Add a gutter between left rails (cols 0–1) and terminal strips (col 2+)
@@ -65,6 +92,13 @@ function getColumnCenters(): number[] {
  * Convert grid position to world coordinates (pixel position)
  */
 export function positionToPixels(pos: Position): { x: number; y: number } {
+  if (BreadboardLayout.isPositionInRail(pos)) {
+    return {
+      x: colToCenterX(pos.col),
+      y: railRowToCenterY(pos.row),
+    };
+  }
+
   return {
     x: colToCenterX(pos.col),
     y: GRID_OFFSET_Y + pos.row * HOLE_SPACING + HOLE_SPACING / 2,
@@ -75,8 +109,6 @@ export function positionToPixels(pos: Position): { x: number; y: number } {
  * Convert world coordinates (pixels) to nearest grid position
  */
 export function pixelsToPosition(x: number, y: number): Position {
-  const row = Math.round((y - GRID_OFFSET_Y - HOLE_SPACING / 2) / HOLE_SPACING);
-
   // Columns have non-uniform spacing due to gutters; find nearest center.
   const centers = getColumnCenters();
   let bestCol = 0;
@@ -89,6 +121,27 @@ export function pixelsToPosition(x: number, y: number): Position {
     }
   }
 
+  // Rows differ for rails (25 clustered holes) vs terminal grid (30 uniform rows).
+  if (
+    bestCol === BreadboardLayout.RAIL_LEFT_NEGATIVE ||
+    bestCol === BreadboardLayout.RAIL_LEFT_POSITIVE ||
+    bestCol === BreadboardLayout.RAIL_RIGHT_POSITIVE ||
+    bestCol === BreadboardLayout.RAIL_RIGHT_NEGATIVE
+  ) {
+    const railCentersY = getRailRowCentersY();
+    let bestRow = 0;
+    let bestY = Infinity;
+    for (let r = 0; r < railCentersY.length; r++) {
+      const d = Math.abs(y - railCentersY[r]);
+      if (d < bestY) {
+        bestY = d;
+        bestRow = r;
+      }
+    }
+    return { col: bestCol, row: bestRow };
+  }
+
+  const row = Math.round((y - GRID_OFFSET_Y - HOLE_SPACING / 2) / HOLE_SPACING);
   return { col: bestCol, row };
 }
 
@@ -128,21 +181,19 @@ export function getConnectedRegionBounds(
 
   // Rails: highlight only the contiguous visible segment (rails are split by physical gaps).
   if (BreadboardLayout.isPositionInRail(pos)) {
-    let minRow = pos.row;
-    let maxRow = pos.row;
-
-    while (minRow - 1 >= 0 && isHoleVisible({ row: minRow - 1, col: pos.col })) {
-      minRow--;
-    }
-    while (maxRow + 1 < BreadboardLayout.ROWS && isHoleVisible({ row: maxRow + 1, col: pos.col })) {
-      maxRow++;
-    }
-
     const padding = 4;
+
+    // Default: highlight the full visible rail column (25 holes), even though they are clustered.
+    const minRow = 0;
+    const maxRow = BreadboardSkin.geometry.railHoleRows - 1;
+
+    const top = railRowToCenterY(minRow) - HOLE_SPACING / 2;
+    const bottom = railRowToCenterY(maxRow) + HOLE_SPACING / 2;
+
     const x = colToLeftX(pos.col) - padding;
-    const y = GRID_OFFSET_Y + minRow * HOLE_SPACING - padding;
+    const y = top - padding;
     const width = HOLE_SPACING + padding * 2;
-    const height = (maxRow - minRow + 1) * HOLE_SPACING + padding * 2;
+    const height = bottom - top + padding * 2;
 
     return { x, y, width, height };
   }

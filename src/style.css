@@ -10,7 +10,34 @@
   --input-bg: #3c3c3c;
   --modal-bg: #2c2c2c;
   --secondary-text: #999;
-  --breadboard-bg: #f5e6d3;
+
+  /* Workspace canvas behind the breadboard */
+  --workspace-bg: #2c2c2c;
+
+  /* Breadboard substrate (SVG skin) — dark mode */
+  --bb-plastic-base: #2c3137;
+  --bb-plastic-highlight: #3a4149;
+  --bb-plastic-shadow: #171b20;
+
+  --bb-panel-slight-dark: #242a31;
+  --bb-panel-slight-light: #323943;
+
+  --bb-trench-base: #232a31;
+  --bb-trench-shadow: #161b20;
+
+  --bb-hole-bevel-light: #454c55;
+  --bb-hole-bevel-mid: #232a31;
+  --bb-hole-cavity: #0b0d10;
+  --bb-hole-cavity-edge: #07090b;
+
+  --bb-print-dark: #e6e9ee;
+  --bb-print-mid: #b3bcc6;
+
+  --bb-rail-red: #ff5c5c;
+  --bb-rail-blue: #4b83ff;
+
+  --bb-hover-fill: #4aa3ff;
+  --bb-outline-shadow: #000000;
   --hole-color: #2c2c2c;
   --grid-color: #d4c5b0;
   --component-resistor: #d4a574;
@@ -32,8 +59,36 @@
   --input-bg: #ffffff;
   --modal-bg: #ffffff;
   --secondary-text: #666;
-  /* Breadboard and components remain the same */
-  --breadboard-bg: #f5e6d3;
+
+  /* Workspace canvas behind the breadboard */
+  --workspace-bg: #f3f4f6;
+
+  /* Breadboard substrate (SVG skin) — light mode */
+  --bb-plastic-base: #f2f3f5;
+  --bb-plastic-highlight: #ffffff;
+  --bb-plastic-shadow: #d9dde2;
+
+  --bb-panel-slight-dark: #e7eaee;
+  --bb-panel-slight-light: #f7f8fa;
+
+  --bb-trench-base: #e8edf2;
+  --bb-trench-shadow: #d6dde5;
+
+  --bb-hole-bevel-light: #f7f7f7;
+  --bb-hole-bevel-mid: #c7ccd2;
+  --bb-hole-cavity: #2a2f35;
+  --bb-hole-cavity-edge: #1f2328;
+
+  --bb-print-dark: #2f343a;
+  --bb-print-mid: #555c64;
+
+  --bb-rail-red: #d23b3b;
+  --bb-rail-blue: #1f5fbf;
+
+  --bb-hover-fill: #3399ff;
+  --bb-outline-shadow: #000000;
+
+  /* Legacy DOM breadboard variables (still used in old styles below) */
   --hole-color: #2c2c2c;
   --grid-color: #d4c5b0;
   --component-resistor: #d4a574;
@@ -365,7 +420,7 @@ body {
 }
 
 .breadboard-container {
-  background-color: var(--breadboard-bg);
+  background-color: var(--workspace-bg);
   border-radius: 12px;
   padding: 2rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -1331,6 +1386,7 @@ body {
   border-radius: 3px;
   outline: none;
   -webkit-appearance: none;
+  appearance: none;
 }
 
 .clock-frequency input[type='range']::-webkit-slider-thumb {
@@ -1769,6 +1825,6 @@ body {
   align-items: center;
   justify-content: center;
   position: relative;
-  background-color: #2c2c2c;
+  background-color: var(--workspace-bg);
   overflow: auto;
 }

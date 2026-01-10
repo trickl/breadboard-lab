@@ -14,29 +14,32 @@ export const BreadboardSkin = {
    * Avoid pure black/white so it reads like ink and plastic.
    */
   colors: {
-    plasticBase: '#f2f3f5',
-    plasticHighlight: '#ffffff',
-    plasticShadow: '#d9dde2',
+    plasticBase: 'var(--bb-plastic-base)',
+    plasticHighlight: 'var(--bb-plastic-highlight)',
+    plasticShadow: 'var(--bb-plastic-shadow)',
 
-    panelSlightDark: '#e7eaee',
-    panelSlightLight: '#f7f8fa',
+    panelSlightDark: 'var(--bb-panel-slight-dark)',
+    panelSlightLight: 'var(--bb-panel-slight-light)',
 
     // Center trench should be visible but subtle (reference photo has a mild recess, not a dark stripe).
-    trenchBase: '#e8edf2',
-    trenchShadow: '#d6dde5',
+    trenchBase: 'var(--bb-trench-base)',
+    trenchShadow: 'var(--bb-trench-shadow)',
 
-    holeBevelLight: '#f7f7f7',
-    holeBevelMid: '#c7ccd2',
-    holeCavity: '#2a2f35',
-    holeCavityEdge: '#1f2328',
+    holeBevelLight: 'var(--bb-hole-bevel-light)',
+    holeBevelMid: 'var(--bb-hole-bevel-mid)',
+    holeCavity: 'var(--bb-hole-cavity)',
+    holeCavityEdge: 'var(--bb-hole-cavity-edge)',
 
-    printDark: '#2f343a',
-    printMid: '#555c64',
+    printDark: 'var(--bb-print-dark)',
+    printMid: 'var(--bb-print-mid)',
 
-    railRed: '#d23b3b',
-    railBlue: '#1f5fbf',
+    railRed: 'var(--bb-rail-red)',
+    railBlue: 'var(--bb-rail-blue)',
 
-    hoverFill: '#3399ff',
+    hoverFill: 'var(--bb-hover-fill)',
+
+    // Used for subtle outer outline shadow stroke (depth hint)
+    outlineShadow: 'var(--bb-outline-shadow)',
   },
 
   geometry: {
@@ -63,6 +66,15 @@ export const BreadboardSkin = {
     // Labels
     labelFontFamily:
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"',
+
+    /**
+     * Rail hole layout (photo-style):
+     * - rails do NOT align to the 30-row terminal grid
+     * - rails have 25 holes arranged as 5 clusters of 5, with extra spacing between clusters
+     */
+    railHoleRows: 25,
+    railClusterSize: 5,
+    railClusterGapRatio: 0.9,
   },
 
   /**
@@ -73,10 +85,9 @@ export const BreadboardSkin = {
    * - a small mid split,
    * - a larger lower interruption.
    */
-  railGapRanges: [
-    { startRow: 12, endRow: 13 }, // rows 13–14 in 1-based labeling
-    { startRow: 22, endRow: 25 }, // rows 23–26 in 1-based labeling
-  ],
+  // Optional: additional "missing hole" ranges for rail columns (using rail row indices).
+  // Leave empty for the clustered 25-hole rail layout.
+  railGapRanges: [] as Array<{ startRow: number; endRow: number }>,
 } as const;
 
 export function isRailGapRow(row: number): boolean {
@@ -94,6 +105,9 @@ export function isHoleVisible(pos: Position): boolean {
   }
 
   if (BreadboardLayout.isPositionInRail(pos)) {
+    if (pos.row < 0 || pos.row >= BreadboardSkin.geometry.railHoleRows) {
+      return false;
+    }
     return !isRailGapRow(pos.row);
   }
 

@@ -47,6 +47,9 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
   ({ interactive = false, onHoleClick, onHoleHover, onHoleLeave }) => {
     const [hoveredPosition, setHoveredPosition] = useState<Position | null>(null);
 
+    const COLUMN_LABEL_FONT_SIZE = 13.2; // 11 * 1.2
+    const RAIL_SYMBOL_FONT_SIZE = 16.8; // 14 * 1.2
+
     const dimensions = useMemo(() => getBreadboardDimensions(), []);
     const holePositions = useMemo(() => getAllHolePositions(), []);
 
@@ -123,7 +126,8 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
       const rowLabelInset = 2;
 
       for (let row = 0; row < BreadboardLayout.ROWS; row++) {
-        const pos = positionToPixels({ row, col: 0 });
+        // Use a terminal-strip column so Y aligns to the 30-row terminal grid (rails use a different Y grid).
+        const pos = positionToPixels({ row, col: BreadboardLayout.STRIP_LEFT_START });
 
         // Match reference: numbers printed adjacent to the terminal strip area,
         // not at the extreme outer edges.
@@ -183,7 +187,7 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
               dominantBaseline="middle"
               fill={BreadboardSkin.colors.printDark}
               fontFamily={BreadboardSkin.geometry.labelFontFamily}
-              fontSize="11"
+              fontSize={COLUMN_LABEL_FONT_SIZE}
               fontWeight="600"
             >
               {label.toLowerCase()}
@@ -198,7 +202,7 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
               dominantBaseline="middle"
               fill={BreadboardSkin.colors.printDark}
               fontFamily={BreadboardSkin.geometry.labelFontFamily}
-              fontSize="11"
+              fontSize={COLUMN_LABEL_FONT_SIZE}
               fontWeight="600"
             >
               {label.toLowerCase()}
@@ -207,7 +211,7 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
         }
       }
       return labels;
-    }, [dimensions.height]);
+    }, [dimensions.height, COLUMN_LABEL_FONT_SIZE]);
 
     // Render rail labels
     const railLabels = useMemo(() => {
@@ -223,7 +227,7 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
       const commonProps = {
         textAnchor: 'middle' as const,
         dominantBaseline: 'middle' as const,
-        fontSize: 14,
+        fontSize: RAIL_SYMBOL_FONT_SIZE,
         fontWeight: 700,
         fontFamily: BreadboardSkin.geometry.labelFontFamily,
       };
@@ -259,7 +263,7 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
           </text>
         </>
       );
-    }, [dimensions.height]);
+    }, [dimensions.height, RAIL_SYMBOL_FONT_SIZE]);
 
     // Render center trench (recessed channel)
     const centerDivider = useMemo(() => {
@@ -319,6 +323,17 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
             <stop offset="55%" stopColor={BreadboardSkin.colors.holeBevelMid} />
             <stop offset="100%" stopColor={BreadboardSkin.colors.holeCavityEdge} />
           </linearGradient>
+
+          {/* Clip interior artwork to the rounded body so stripes/panels don't protrude into corners */}
+          <clipPath id="bb-body-clip">
+            <rect
+              x={BreadboardSkin.geometry.bodyInset}
+              y={BreadboardSkin.geometry.bodyInset}
+              width={dimensions.width - BreadboardSkin.geometry.bodyInset * 2}
+              height={dimensions.height - BreadboardSkin.geometry.bodyInset * 2}
+              rx={BreadboardSkin.geometry.bodyCornerRadius}
+            />
+          </clipPath>
 
           {/* Define hole symbol for reuse (centered at 0,0; <use x/y> places at hole center) */}
           <g id="breadboard-hole">
@@ -381,6 +396,19 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
           </g>
         </defs>
 
+        {/* Subtle body border / depth hint */}
+        <rect
+          x={BreadboardSkin.geometry.bodyInset + 0.8}
+          y={BreadboardSkin.geometry.bodyInset + 1.0}
+          width={dimensions.width - BreadboardSkin.geometry.bodyInset * 2}
+          height={dimensions.height - BreadboardSkin.geometry.bodyInset * 2}
+          rx={BreadboardSkin.geometry.bodyCornerRadius}
+          fill="none"
+          stroke={BreadboardSkin.colors.outlineShadow}
+          strokeWidth={2}
+          opacity={0.07}
+        />
+
         {/* Plastic body */}
         <rect
           x={BreadboardSkin.geometry.bodyInset}
@@ -389,7 +417,25 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
           height={dimensions.height - BreadboardSkin.geometry.bodyInset * 2}
           rx={BreadboardSkin.geometry.bodyCornerRadius}
           fill="url(#bb-plastic)"
+          stroke={BreadboardSkin.colors.plasticShadow}
+          strokeWidth={1}
+          opacity={0.98}
         />
+
+        {/* faint inner highlight to imply bevel */}
+        <rect
+          x={BreadboardSkin.geometry.bodyInset + 0.8}
+          y={BreadboardSkin.geometry.bodyInset + 0.8}
+          width={dimensions.width - BreadboardSkin.geometry.bodyInset * 2 - 1.6}
+          height={dimensions.height - BreadboardSkin.geometry.bodyInset * 2 - 1.6}
+          rx={Math.max(0, BreadboardSkin.geometry.bodyCornerRadius - 1)}
+          fill="none"
+          stroke={BreadboardSkin.colors.plasticHighlight}
+          strokeWidth={1}
+          opacity={0.18}
+        />
+
+        <g clipPath="url(#bb-body-clip)">
 
         {/* Sub-panels: rail blocks and terminal region (very subtle) */}
         {(() => {
@@ -491,6 +537,8 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
         {rowLabels}
         {columnLabels}
         {railLabels}
+
+        </g>
 
         {/* Single transparent overlay for event handling (only when interactive) */}
         {interactive && (
