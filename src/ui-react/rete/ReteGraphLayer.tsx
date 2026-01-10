@@ -753,6 +753,54 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                   ? positionToWorld(rail.holePositions[0], rot)
                   : { x: 0, y: 0 };
 
+                // Compute an educational "net line" along the rail when hovered.
+                const firstPos = rail.holePositions[0]
+                  ? positionToWorld(rail.holePositions[0], rot)
+                  : null;
+                const lastPos = rail.holePositions[rail.holePositions.length - 1]
+                  ? positionToWorld(rail.holePositions[rail.holePositions.length - 1], rot)
+                  : null;
+
+                // Hover feedback uses DOM attributes rather than React state.
+                // Rationale: Rete may remount custom node renderers, which would reset React state
+                // and cause a "flash". DOM markers are stable across those remounts.
+                const setRailHover = (options: {
+                  railId: string;
+                  primaryEl: HTMLElement | null;
+                  enabled: boolean;
+                }) => {
+                  const root = layerRef.current;
+                  if (!root) return;
+
+                  // Clear previous hover markers.
+                  for (const el of root.querySelectorAll('[data-rail-hovered="1"]')) {
+                    (el as HTMLElement).removeAttribute('data-rail-hovered');
+                  }
+                  for (const el of root.querySelectorAll('[data-rail-hovered-primary="1"]')) {
+                    (el as HTMLElement).removeAttribute('data-rail-hovered-primary');
+                  }
+                  for (const el of root.querySelectorAll('[data-rail-net-line="1"]')) {
+                    (el as HTMLElement).style.opacity = '0';
+                  }
+
+                  if (!options.enabled) return;
+
+                  for (const el of root.querySelectorAll(
+                    `[data-rail-hole="1"][data-rail-id="${options.railId}"]`
+                  )) {
+                    (el as HTMLElement).setAttribute('data-rail-hovered', '1');
+                  }
+
+                  if (options.primaryEl) {
+                    options.primaryEl.setAttribute('data-rail-hovered-primary', '1');
+                  }
+
+                  const line = root.querySelector(
+                    `[data-rail-net-line="1"][data-rail-id="${options.railId}"]`
+                  ) as HTMLElement | null;
+                  if (line) line.style.opacity = '1';
+                };
+
                 return (
                   <div
                     data-testid="node"
@@ -769,6 +817,40 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                       pointerEvents: 'none',
                     }}
                   >
+                    {/*
+                      Hover "net" line (always present; shown by DOM marker when debug overlays are off).
+                      This helps teach that all rail holes are connected.
+                    */}
+                    {firstPos && lastPos ? (
+                      <svg
+                        aria-hidden="true"
+                        data-rail-net-line="1"
+                        data-rail-id={rail.railId}
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: 0,
+                          width: 9999,
+                          height: 9999,
+                          overflow: 'visible',
+                          pointerEvents: 'none',
+                          zIndex: 50,
+                          opacity: 0,
+                          transition: 'opacity 80ms ease-out',
+                        }}
+                      >
+                        <line
+                          x1={firstPos.x}
+                          y1={firstPos.y}
+                          x2={lastPos.x}
+                          y2={lastPos.y}
+                          stroke={'rgba(255, 215, 0, 0.28)'}
+                          strokeWidth={6}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    ) : null}
+
                     {debugUiRef.current.showDebugOverlays && (
                       <div
                         style={{
@@ -810,11 +892,34 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                       return (
                         <div
                           key={key}
+                          data-rail-hole="1"
                           data-rail-id={rail.railId}
                           data-rail-label={rail.railLabel}
                           data-hole-index={idx}
                           data-hole-row={pos.row}
                           data-hole-col={pos.col}
+                          onPointerEnter={() => {
+                            if (debugUiRef.current.showDebugOverlays) return;
+                            setRailHover({ railId: rail.railId, primaryEl: null, enabled: true });
+                          }}
+                          onPointerOver={(e) => {
+                            if (debugUiRef.current.showDebugOverlays) return;
+                            setRailHover({
+                              railId: rail.railId,
+                              primaryEl: e.currentTarget as unknown as HTMLElement,
+                              enabled: true,
+                            });
+                          }}
+                          onPointerLeave={(e) => {
+                            if (debugUiRef.current.showDebugOverlays) return;
+                            const next = e.relatedTarget as HTMLElement | null;
+                            const nextRail = next?.closest?.('[data-rail-hole="1"][data-rail-id]') as
+                              | HTMLElement
+                              | null;
+                            // If moving between holes on the same rail, keep the highlight.
+                            if (nextRail && nextRail.getAttribute('data-rail-id') === rail.railId) return;
+                            setRailHover({ railId: rail.railId, primaryEl: null, enabled: false });
+                          }}
                           style={{
                             position: 'absolute',
                             // Important: do NOT use CSS transforms for centering.
@@ -843,7 +948,15 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                           </div>
 
                           {/* Visible/interactive rail socket */}
-                          <div style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'auto' }}>
+                          <div
+                            style={{
+                              position: 'absolute',
+                              left: 0,
+                              top: 0,
+                              pointerEvents: 'auto',
+                              zIndex: 2,
+                            }}
+                          >
                             <ReactPresets.classic.RefSocket
                               name="output-socket"
                               side="output"
@@ -879,6 +992,11 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
               if (!path) return null;
 
               const id = String(data.id);
+              const isInModel = Boolean(
+                editorRef
+                  .current?.getConnections()
+                  .some((c) => String((c as { id: string }).id) === id)
+              );
               const appearance = connectionUiRef.current.appearanceById[id] ?? getDefaultConnectionAppearance();
               const isSelected = connectionUiRef.current.selectedConnectionId === id;
 
@@ -941,8 +1059,11 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                       fill: 'none',
                       stroke: 'transparent',
                       strokeWidth: hitWidth,
-                      pointerEvents: 'auto',
-                      cursor: 'pointer',
+                      // Only allow selecting existing wires. During wire-creation, Rete renders a
+                      // temporary connection preview; giving it a wide hit target can block hover
+                      // events on sockets/holes (especially when dragging across the board).
+                      pointerEvents: isInModel ? 'auto' : 'none',
+                      cursor: isInModel ? 'pointer' : 'default',
                     }}
                   />
 
@@ -1610,6 +1731,26 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
           transform: 'scale(1.05)',
           pointerEvents: 'auto',
           opacity: 'var(--debug-socket-opacity, 0.25)',
+        },
+
+        // Rail hover educational highlights (production mode): driven by DOM attributes set
+        // on the rail hole wrappers.
+        '[data-rail-hole="1"][data-rail-hovered="1"]::after': {
+          content: '""',
+          position: 'absolute',
+          left: '25%',
+          top: '25%',
+          width: '50%',
+          height: '50%',
+          borderRadius: 999,
+          background: 'rgba(255, 215, 0, 0.22)',
+          boxShadow: '0 0 0 1px rgba(255, 215, 0, 0.45)',
+          pointerEvents: 'none',
+          zIndex: 1,
+        },
+        '[data-rail-hole="1"][data-rail-hovered-primary="1"]::after': {
+          background: 'rgba(255, 215, 0, 0.5)',
+          boxShadow: '0 0 0 2px rgba(255, 215, 0, 1), 0 2px 6px rgba(0,0,0,0.35)',
         },
       }}
     >
