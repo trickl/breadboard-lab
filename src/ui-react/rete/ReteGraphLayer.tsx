@@ -32,11 +32,14 @@ import { ReroutePlugin, type RerouteExtra } from 'rete-connection-reroute-plugin
 import { ConnectionPathPlugin } from 'rete-connection-path-plugin';
 import { curveBundle, curveLinear } from 'd3-shape';
 import { SmoothZoom } from './SmoothZoom';
+import { mixWithBlack, mixWithWhite } from '@/ui-react/rete/graph/color';
+import { parsePathEndpoints } from '@/ui-react/rete/graph/pathGeometry';
+import { makeEndpointCurvedTransformer } from '@/ui-react/rete/graph/endpointCurves';
+import { startPointerDrag, type Pointer } from '@/ui-react/rete/graph/pointerDrag';
 import type { BreadboardController } from '@/ui-controller';
 import type {
   AppState,
   ConnectionAppearance,
-  ConnectionEndpointOrientation,
 } from '@/ui-controller/types';
 import type { AnyComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
@@ -304,156 +307,6 @@ function getDefaultConnectionAppearance(): ConnectionAppearance {
       endOrientation: 'auto',
     },
   };
-}
-
-function parseHexColor(color: string): { r: number; g: number; b: number } | null {
-  const c = color.trim();
-  const m3 = /^#([0-9a-f]{3})$/i.exec(c);
-  if (m3) {
-    const r = parseInt(m3[1][0] + m3[1][0], 16);
-    const g = parseInt(m3[1][1] + m3[1][1], 16);
-    const b = parseInt(m3[1][2] + m3[1][2], 16);
-    return { r, g, b };
-  }
-  const m6 = /^#([0-9a-f]{6})$/i.exec(c);
-  if (m6) {
-    const r = parseInt(m6[1].slice(0, 2), 16);
-    const g = parseInt(m6[1].slice(2, 4), 16);
-    const b = parseInt(m6[1].slice(4, 6), 16);
-    return { r, g, b };
-  }
-  return null;
-}
-
-function parsePathEndpoints(
-  path: string
-): { start: { x: number; y: number }; end: { x: number; y: number } } | null {
-  // This is a pragmatic parser for typical SVG path strings Rete emits.
-  // We only need the start (M x y) and the final coordinate pair.
-  const startMatch = /^\s*M\s*([-0-9.]+)[,\s]+([-0-9.]+)/i.exec(path);
-  if (!startMatch) return null;
-  const startX = Number(startMatch[1]);
-  const startY = Number(startMatch[2]);
-  if (!Number.isFinite(startX) || !Number.isFinite(startY)) return null;
-
-  // Grab the last two numbers in the string as end x/y.
-  // (Works for C/Q/L style paths where the final segment ends in the endpoint.)
-  const nums = path.match(/[-0-9.]+/g);
-  if (!nums || nums.length < 4) return null;
-  const endX = Number(nums[nums.length - 2]);
-  const endY = Number(nums[nums.length - 1]);
-  if (!Number.isFinite(endX) || !Number.isFinite(endY)) return null;
-
-  return { start: { x: startX, y: startY }, end: { x: endX, y: endY } };
-}
-
-function toHex2(n: number): string {
-  const v = Math.max(0, Math.min(255, Math.round(n)));
-  return v.toString(16).padStart(2, '0');
-}
-
-function mixWithWhite(hex: string, t: number): string {
-  const rgb = parseHexColor(hex);
-  if (!rgb) return hex;
-  const clamped = Math.max(0, Math.min(1, t));
-  const r = rgb.r + (255 - rgb.r) * clamped;
-  const g = rgb.g + (255 - rgb.g) * clamped;
-  const b = rgb.b + (255 - rgb.b) * clamped;
-  return `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`;
-}
-
-function mixWithBlack(hex: string, t: number): string {
-  const rgb = parseHexColor(hex);
-  if (!rgb) return hex;
-  const clamped = Math.max(0, Math.min(1, t));
-  const r = rgb.r * (1 - clamped);
-  const g = rgb.g * (1 - clamped);
-  const b = rgb.b * (1 - clamped);
-  return `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`;
-}
-
-function signOrOne(v: number) {
-  if (v === 0) return 1;
-  return v > 0 ? 1 : -1;
-}
-
-function pickOrientation(
-  preference: ConnectionEndpointOrientation,
-  dx: number,
-  dy: number
-): Exclude<ConnectionEndpointOrientation, 'auto'> {
-  if (preference !== 'auto') return preference;
-  return Math.abs(dx) >= Math.abs(dy) ? 'horizontal' : 'vertical';
-}
-
-function makeEndpointCurvedTransformer(options: {
-  start: ConnectionEndpointOrientation;
-  end: ConnectionEndpointOrientation;
-  curvature: number;
-}) {
-  const { start, end, curvature } = options;
-
-  return (points: Array<{ x: number; y: number }>) => {
-    if (points.length !== 2) throw new Error('number of points should be equal to 2');
-    const [p0, p1] = points;
-    const dx = p1.x - p0.x;
-    const dy = p1.y - p0.y;
-    const sx = signOrOne(dx);
-    const sy = signOrOne(dy);
-
-    const startOri = pickOrientation(start, dx, dy);
-    const endOri = pickOrientation(end, dx, dy);
-
-    const xDistance = Math.abs(dx);
-    const yDistance = Math.abs(dy);
-
-    // Match the classic transformer scaling, but per-endpoint.
-    const startCross = startOri === 'vertical' ? xDistance : yDistance;
-    const startAlong = startOri === 'vertical' ? yDistance : xDistance;
-    const endCross = endOri === 'vertical' ? xDistance : yDistance;
-    const endAlong = endOri === 'vertical' ? yDistance : xDistance;
-
-    const startOffset = Math.max(startCross / 2, startAlong) * curvature;
-    const endOffset = Math.max(endCross / 2, endAlong) * curvature;
-
-    const p0a =
-      startOri === 'vertical'
-        ? { x: p0.x, y: p0.y + sy * startOffset }
-        : { x: p0.x + sx * startOffset, y: p0.y };
-    const p1a =
-      endOri === 'vertical'
-        ? { x: p1.x, y: p1.y - sy * endOffset }
-        : { x: p1.x - sx * endOffset, y: p1.y };
-
-    return [p0, p0a, p1a, p1];
-  };
-}
-
-type Pointer = { x: number; y: number };
-
-function startPointerDrag(options: {
-  pointer: () => Pointer;
-  onMove: (dx: number, dy: number) => void;
-}) {
-  let previous = { ...options.pointer() };
-
-  function move() {
-    const current = { ...options.pointer() };
-    const dx = current.x - previous.x;
-    const dy = current.y - previous.y;
-    previous = current;
-    options.onMove(dx, dy);
-  }
-
-  function up() {
-    window.removeEventListener('pointermove', move);
-    window.removeEventListener('pointerup', up);
-    window.removeEventListener('pointercancel', up);
-  }
-
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up);
-  window.addEventListener('pointercancel', up);
 }
 
 export interface ReteGraphLayerProps {
