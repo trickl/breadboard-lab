@@ -217,8 +217,8 @@ class UnionFind {
     }
 
     // Union by rank
-    const rankX = this.rank.get(rootX) || 0;
-    const rankY = this.rank.get(rootY) || 0;
+    const rankX = this.rank.get(rootX) ?? 0;
+    const rankY = this.rank.get(rootY) ?? 0;
 
     if (rankX < rankY) {
       this.parent.set(rootX, rootY);

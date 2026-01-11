@@ -66,10 +66,10 @@ export function serializeCircuit(
   const circuitData: CircuitData = {
     version: '1.0',
     metadata: {
-      name: metadata.name || 'Untitled Circuit',
+      name: metadata.name ?? 'Untitled Circuit',
       description: metadata.description,
       author: metadata.author,
-      created: metadata.created || new Date().toISOString(),
+      created: metadata.created ?? new Date().toISOString(),
       modified: new Date().toISOString(),
     },
     components: state.components.map(serializeComponent),
@@ -194,86 +194,103 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
     throw new Error('Invalid rotation value');
   }
 
+  const readNumber = (key: keyof typeof metadata, defaultValue: number): number => {
+    const value = metadata[key];
+    return typeof value === 'number' ? value : defaultValue;
+  };
+
+  const deserializeResistor = (): AnyComponent => ({
+    id,
+    type: ComponentType.RESISTOR,
+    positions,
+    rotation,
+    resistance: readNumber('resistance', DEFAULT_RESISTANCE),
+  });
+
+  const deserializeLed = (): AnyComponent => ({
+    id,
+    type: ComponentType.LED,
+    positions,
+    rotation,
+    forwardVoltage: readNumber('forwardVoltage', DEFAULT_LED_FORWARD_VOLTAGE),
+    maxCurrent: readNumber('maxCurrent', DEFAULT_LED_MAX_CURRENT),
+  });
+
+  const deserializeWire = (): AnyComponent => ({
+    id,
+    type: ComponentType.WIRE,
+    positions,
+    rotation,
+    resistance: readNumber('resistance', DEFAULT_WIRE_RESISTANCE),
+  });
+
+  const deserializePowerSupply = (): AnyComponent => ({
+    id,
+    type: ComponentType.POWER_SUPPLY,
+    positions,
+    rotation,
+    voltage: readNumber('voltage', DEFAULT_POWER_SUPPLY_VOLTAGE),
+  });
+
+  const deserializeGround = (): AnyComponent => ({
+    id,
+    type: ComponentType.GROUND,
+    positions,
+    rotation,
+  });
+
+  const deserializeMicroprocessor = (): AnyComponent => {
+    const state = createInitialEDU8State();
+    // Load ROM if provided
+    if (metadata.rom && Array.isArray(metadata.rom)) {
+      state.rom = new Uint8Array(metadata.rom.slice(0, 16));
+    }
+    return {
+      id,
+      type: ComponentType.MICROPROCESSOR,
+      positions,
+      rotation,
+      state,
+    };
+  };
+
+  const deserializeSwitch = (): AnyComponent => {
+    const switchState =
+      metadata.switchState === 'open' || metadata.switchState === 'closed'
+        ? metadata.switchState
+        : 'open';
+
+    return {
+      id,
+      type: ComponentType.SWITCH,
+      positions,
+      rotation,
+      switchState,
+    };
+  };
+
   // Deserialize based on type
   switch (type) {
     case ComponentType.RESISTOR:
-      return {
-        id,
-        type: ComponentType.RESISTOR,
-        positions,
-        rotation,
-        resistance:
-          typeof metadata.resistance === 'number' ? metadata.resistance : DEFAULT_RESISTANCE,
-      };
+      return deserializeResistor();
 
     case ComponentType.LED:
-      return {
-        id,
-        type: ComponentType.LED,
-        positions,
-        rotation,
-        forwardVoltage:
-          typeof metadata.forwardVoltage === 'number'
-            ? metadata.forwardVoltage
-            : DEFAULT_LED_FORWARD_VOLTAGE,
-        maxCurrent:
-          typeof metadata.maxCurrent === 'number' ? metadata.maxCurrent : DEFAULT_LED_MAX_CURRENT,
-      };
+      return deserializeLed();
 
     case ComponentType.WIRE:
-      return {
-        id,
-        type: ComponentType.WIRE,
-        positions,
-        rotation,
-        resistance:
-          typeof metadata.resistance === 'number' ? metadata.resistance : DEFAULT_WIRE_RESISTANCE,
-      };
+      return deserializeWire();
 
     case ComponentType.POWER_SUPPLY:
-      return {
-        id,
-        type: ComponentType.POWER_SUPPLY,
-        positions,
-        rotation,
-        voltage:
-          typeof metadata.voltage === 'number' ? metadata.voltage : DEFAULT_POWER_SUPPLY_VOLTAGE,
-      };
+      return deserializePowerSupply();
 
     case ComponentType.GROUND:
-      return {
-        id,
-        type: ComponentType.GROUND,
-        positions,
-        rotation,
-      };
+      return deserializeGround();
 
-    case ComponentType.MICROPROCESSOR: {
-      const state = createInitialEDU8State();
-      // Load ROM if provided
-      if (metadata.rom && Array.isArray(metadata.rom)) {
-        state.rom = new Uint8Array(metadata.rom.slice(0, 16));
-      }
-      return {
-        id,
-        type: ComponentType.MICROPROCESSOR,
-        positions,
-        rotation,
-        state,
-      };
-    }
+    case ComponentType.MICROPROCESSOR:
+      return deserializeMicroprocessor();
 
     case ComponentType.SWITCH:
-      return {
-        id,
-        type: ComponentType.SWITCH,
-        positions,
-        rotation,
-        switchState:
-          metadata.switchState === 'open' || metadata.switchState === 'closed'
-            ? metadata.switchState
-            : 'open', // Default to open for backward compatibility
-      };
+      return deserializeSwitch();
 
     default:
       throw new Error(`Unknown component type: ${type}`);

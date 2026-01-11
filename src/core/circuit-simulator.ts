@@ -405,8 +405,8 @@ export class CircuitSimulator {
     }
 
     for (const edge of circuit.edges) {
-      const voltageA = nodeVoltages.get(edge.nodeA) || 0;
-      const voltageB = nodeVoltages.get(edge.nodeB) || 0;
+      const voltageA = nodeVoltages.get(edge.nodeA) ?? 0;
+      const voltageB = nodeVoltages.get(edge.nodeB) ?? 0;
       const voltageDiff = voltageA - voltageB;
 
       let current = 0;
@@ -427,7 +427,7 @@ export class CircuitSimulator {
         current = voltageDiff / resistance;
       } else if (component.type === ComponentType.POWER_SUPPLY) {
         // Extract current from MNA solution vector
-        current = voltageSourceCurrents.get(edge.id) || 0;
+        current = voltageSourceCurrents.get(edge.id) ?? 0;
       }
 
       edgeCurrents.set(edge.id, current);
@@ -472,7 +472,7 @@ export class CircuitSimulator {
   ): CircuitError[] {
     const errors: CircuitError[] = [];
     for (const vs of voltageSources) {
-      const current = Math.abs(edgeCurrents.get(vs.edge.id) || 0);
+      const current = Math.abs(edgeCurrents.get(vs.edge.id) ?? 0);
       if (current <= 10) {
         continue;
       }
@@ -483,7 +483,7 @@ export class CircuitSimulator {
         severity: 'error',
         componentId: vs.edge.component.id,
         nodeId: vs.positiveNode,
-        positions: node?.positions || [],
+        positions: node?.positions ?? [],
         message: 'Short circuit detected',
         explanation:
           'The power supply is delivering excessive current (>10A), which indicates a direct or near-direct connection to ground with very little resistance. This would damage a real power supply.',
@@ -510,7 +510,7 @@ export class CircuitSimulator {
         continue;
       }
 
-      const voltage = nodeVoltages.get(nodeId) || 0;
+      const voltage = nodeVoltages.get(nodeId) ?? 0;
       const connectedEdges = circuit.edges.filter(
         (edge) => edge.nodeA === nodeId || edge.nodeB === nodeId
       );
@@ -519,7 +519,7 @@ export class CircuitSimulator {
       }
 
       const hasActiveCurrent = connectedEdges.some(
-        (edge) => Math.abs(edgeCurrents.get(edge.id) || 0) > 1e-6
+        (edge) => Math.abs(edgeCurrents.get(edge.id) ?? 0) > 1e-6
       );
       if (Math.abs(voltage) >= 0.1 || hasActiveCurrent) {
         continue;
@@ -561,7 +561,7 @@ export class CircuitSimulator {
         continue;
       }
 
-      const current = edgeCurrents.get(edge.id) || 0;
+      const current = edgeCurrents.get(edge.id) ?? 0;
       if (current >= -1e-6) {
         continue;
       }
@@ -595,9 +595,9 @@ export class CircuitSimulator {
         continue;
       }
 
-      const current = Math.abs(edgeCurrents.get(edge.id) || 0);
-      const voltageA = nodeVoltages.get(edge.nodeA) || 0;
-      const voltageB = nodeVoltages.get(edge.nodeB) || 0;
+      const current = Math.abs(edgeCurrents.get(edge.id) ?? 0);
+      const voltageA = nodeVoltages.get(edge.nodeA) ?? 0;
+      const voltageB = nodeVoltages.get(edge.nodeB) ?? 0;
       const voltageDiff = Math.abs(voltageA - voltageB);
 
       if (voltageDiff <= 1.0 || current >= 1e-6) {
@@ -632,7 +632,7 @@ export class CircuitSimulator {
         continue;
       }
 
-      const current = Math.abs(edgeCurrents.get(edge.id) || 0);
+      const current = Math.abs(edgeCurrents.get(edge.id) ?? 0);
       const maxCurrent = edge.component.maxCurrent;
       if (current <= maxCurrent * 1.5) {
         continue;

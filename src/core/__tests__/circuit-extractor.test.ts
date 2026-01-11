@@ -242,8 +242,10 @@ describe('CircuitExtractor', () => {
       expect(circuitFromRete.edges.length).toBe(circuitFromPosition.edges.length);
 
       // Edge IDs should match
-      const reteEdgeIds = circuitFromRete.edges.map((e) => e.id).sort();
-      const positionEdgeIds = circuitFromPosition.edges.map((e) => e.id).sort();
+      const reteEdgeIds = circuitFromRete.edges.map((e) => e.id).sort((a, b) => a.localeCompare(b));
+      const positionEdgeIds = circuitFromPosition.edges
+        .map((e) => e.id)
+        .sort((a, b) => a.localeCompare(b));
       expect(reteEdgeIds).toEqual(positionEdgeIds);
     });
 

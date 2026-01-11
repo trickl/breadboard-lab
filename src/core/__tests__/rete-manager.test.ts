@@ -235,8 +235,11 @@ describe('ReteManager', () => {
 
       const componentNode = manager.getComponentNode('r1');
       expect(componentNode).toBeDefined();
-      expect(componentNode!.componentId).toBe('r1');
-      expect(componentNode!.componentType).toBe(ComponentType.RESISTOR);
+      if (!componentNode) {
+        throw new Error('Expected component node r1 to be defined');
+      }
+      expect(componentNode.componentId).toBe('r1');
+      expect(componentNode.componentType).toBe(ComponentType.RESISTOR);
     });
 
     it('should retrieve hole node by position', async () => {
@@ -261,8 +264,11 @@ describe('ReteManager', () => {
 
       const holeNode = manager.getHoleNode({ row: 5, col: 10 });
       expect(holeNode).toBeDefined();
-      expect(holeNode!.position.row).toBe(5);
-      expect(holeNode!.position.col).toBe(10);
+      if (!holeNode) {
+        throw new Error('Expected hole node (5,10) to be defined');
+      }
+      expect(holeNode.position.row).toBe(5);
+      expect(holeNode.position.col).toBe(10);
     });
 
     it('should retrieve all hole nodes', async () => {
@@ -506,7 +512,10 @@ describe('ReteManager', () => {
       // Should be retrievable
       const retrieved = manager.getComponentNode('led1');
       expect(retrieved).toBeDefined();
-      expect(retrieved!.componentId).toBe('led1');
+      if (!retrieved) {
+        throw new Error('Expected component node led1 to be defined');
+      }
+      expect(retrieved.componentId).toBe('led1');
     });
 
     it('should set connection validator', () => {

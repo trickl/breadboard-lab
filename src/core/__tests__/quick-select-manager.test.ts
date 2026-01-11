@@ -152,7 +152,11 @@ describe('QuickSelectManager', () => {
       const stored = localStorage.getItem('quickSelectComponents');
       expect(stored).not.toBeNull();
 
-      const state = JSON.parse(stored!);
+      if (stored === null) {
+        throw new Error('Expected quickSelectComponents to be stored');
+      }
+
+      const state = JSON.parse(stored);
       expect(state.components).toHaveLength(6);
     });
 
@@ -163,7 +167,11 @@ describe('QuickSelectManager', () => {
       const stored = localStorage.getItem('quickSelectComponents');
       expect(stored).not.toBeNull();
 
-      const state = JSON.parse(stored!);
+      if (stored === null) {
+        throw new Error('Expected quickSelectComponents to be stored');
+      }
+
+      const state = JSON.parse(stored);
       expect(state.components).toHaveLength(5);
     });
 

@@ -183,7 +183,7 @@ export class ReteManager {
     if (this.connectionValidatorHandler) {
       const validation = this.connectionValidatorHandler(connection);
       if (!validation.valid) {
-        console.warn(`Connection rejected: ${validation.reason || 'Unknown reason'}`);
+        console.warn(`Connection rejected: ${validation.reason ?? 'Unknown reason'}`);
         this.editor.removeConnection(connection.id).catch((err) => {
           console.warn('Failed to remove rejected connection', err);
         });

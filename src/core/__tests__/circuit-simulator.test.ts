@@ -89,7 +89,10 @@ describe('CircuitSimulator - MNA Implementation', () => {
       // Current through resistor should be I = V/R = 5V/1000Ω = 5mA
       const current = result.edgeCurrents.get('resistor1');
       expect(current).toBeDefined();
-      expect(Math.abs(current!)).toBeCloseTo(0.005, 5);
+      if (current === undefined) {
+        throw new Error('Expected current for resistor1 to be defined');
+      }
+      expect(Math.abs(current)).toBeCloseTo(0.005, 5);
     });
 
     it('should handle voltage divider: Power -> R1 -> R2 -> Ground', () => {
@@ -210,8 +213,8 @@ describe('CircuitSimulator - MNA Implementation', () => {
       expect(result.nodeVoltages.get('gnd')).toBe(0);
 
       // Each resistor should carry current: I = V/R = 5V / 1000Ω = 5mA
-      const current1 = Math.abs(result.edgeCurrents.get('resistor1') || 0);
-      const current2 = Math.abs(result.edgeCurrents.get('resistor2') || 0);
+      const current1 = Math.abs(result.edgeCurrents.get('resistor1') ?? 0);
+      const current2 = Math.abs(result.edgeCurrents.get('resistor2') ?? 0);
       expect(current1).toBeCloseTo(0.005, 5); // 5mA
       expect(current2).toBeCloseTo(0.005, 5); // 5mA
     });
@@ -293,7 +296,10 @@ describe('CircuitSimulator - MNA Implementation', () => {
       // Current through R1 should be I = (5V - 1.67V) / 1000Ω = 3.33mA
       const current1 = result.edgeCurrents.get('resistor1');
       expect(current1).toBeDefined();
-      expect(Math.abs(current1!)).toBeCloseTo(0.00333, 4); // 3.33mA in amperes
+      if (current1 === undefined) {
+        throw new Error('Expected current for resistor1 to be defined');
+      }
+      expect(Math.abs(current1)).toBeCloseTo(0.00333, 4); // 3.33mA in amperes
     });
 
     it('should handle complex parallel network', () => {
@@ -427,8 +433,8 @@ describe('CircuitSimulator - MNA Implementation', () => {
 
       expect(result.success).toBe(true);
       // Wire should have negligible voltage drop
-      const voltageVcc = result.nodeVoltages.get('vcc') || 0;
-      const voltageNode2 = result.nodeVoltages.get('node2') || 0;
+      const voltageVcc = result.nodeVoltages.get('vcc') ?? 0;
+      const voltageNode2 = result.nodeVoltages.get('node2') ?? 0;
       expect(Math.abs(voltageVcc - voltageNode2)).toBeLessThan(0.1);
     });
   });
@@ -489,7 +495,7 @@ describe('CircuitSimulator - MNA Implementation', () => {
       // LED is simplified as 100Ω resistor in current implementation
       // So we have voltage divider: 1000Ω and 100Ω
       // Vmiddle = 5V * (100 / 1100) = 0.45V approximately
-      const middle = result.nodeVoltages.get('middle') || 0;
+      const middle = result.nodeVoltages.get('middle') ?? 0;
       expect(middle).toBeGreaterThan(0);
       expect(middle).toBeLessThan(1);
     });
@@ -562,7 +568,7 @@ describe('CircuitSimulator - MNA Implementation', () => {
       expect(result.nodeVoltages.get('gnd')).toBe(0);
 
       // Current through wire should be very high: I = V/R = 5V/0.01Ω = 500A (unrealistic but mathematically correct)
-      const wireCurrent = Math.abs(result.edgeCurrents.get('wire1') || 0);
+      const wireCurrent = Math.abs(result.edgeCurrents.get('wire1') ?? 0);
       expect(wireCurrent).toBeGreaterThan(100); // Very high current
     });
   });
@@ -626,7 +632,7 @@ describe('CircuitSimulator - MNA Implementation', () => {
       expect(result.nodeVoltages.get('gnd')).toBe(0);
 
       // Current through resistor should be (5V - 3V) / 1kΩ = 2mA
-      const current = Math.abs(result.edgeCurrents.get('resistor1') || 0);
+      const current = Math.abs(result.edgeCurrents.get('resistor1') ?? 0);
       expect(current).toBeCloseTo(0.002, 5);
     });
   });
@@ -690,8 +696,8 @@ describe('CircuitSimulator - MNA Implementation', () => {
       expect(result.nodeVoltages.get('vcc')).toBeCloseTo(6.0, 2);
       expect(result.nodeVoltages.get('gnd')).toBe(0);
 
-      const current1 = Math.abs(result.edgeCurrents.get('resistor1') || 0);
-      const current2 = Math.abs(result.edgeCurrents.get('resistor2') || 0);
+      const current1 = Math.abs(result.edgeCurrents.get('resistor1') ?? 0);
+      const current2 = Math.abs(result.edgeCurrents.get('resistor2') ?? 0);
 
       expect(current1).toBeDefined();
       expect(current2).toBeDefined();
