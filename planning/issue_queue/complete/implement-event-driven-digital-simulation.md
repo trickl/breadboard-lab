@@ -8,7 +8,8 @@ Breadboard Lab currently includes an EDU-8 microprocessor component (PR #173) wi
 
 **Long-term goal**: The system must support "Digital/event simulation" with event-driven/clocked logic simulation using values {0,1,Z,X}, with explicit analog/digital bridges (planning/vision/goal.md, lines 347-352). The EDU-8 microprocessor should execute one instruction per rising clock edge, with observable state changes that demonstrate fetch-decode-execute cycles (planning/vision/goal.md, lines 369-394).
 
-**Current state**: 
+**Current state**:
+
 - DC-only circuit simulation using Modified Nodal Analysis (MNA)
 - EDU-8 microprocessor component exists with full instruction set and state machine
 - No clock edge detection capability
@@ -17,6 +18,7 @@ Breadboard Lab currently includes an EDU-8 microprocessor component (PR #173) wi
 - Microprocessor cannot respond to clock signals (planning/state/system_capabilities.md, lines 143-147)
 
 **Gap**: The most critical missing capability is an event-driven digital simulation layer that can:
+
 1. Detect digital transitions (rising/falling edges) from analog voltage levels
 2. Schedule and execute digital component updates in response to events
 3. Integrate with the existing DC solver for mixed-signal circuits
@@ -29,6 +31,7 @@ Breadboard Lab currently includes an EDU-8 microprocessor component (PR #173) wi
 ### Scope
 
 Create a digital simulation layer that:
+
 1. Abstracts digital signals from analog voltages using threshold detection (TTL-compatible: 0.8V low, 2.0V high)
 2. Detects rising and falling edges on designated clock pins
 3. Maintains a digital event queue with timestamped events
@@ -39,6 +42,7 @@ Create a digital simulation layer that:
 ### Technical Approach
 
 **Architecture** (new layer between extraction and rendering):
+
 ```
 Breadboard → Circuit Extraction → DC Solver
                                     ↓
@@ -123,6 +127,7 @@ Breadboard → Circuit Extraction → DC Solver
 ### Educational Impact
 
 This feature unlocks the full educational potential of the EDU-8 microprocessor:
+
 - **Visible computation**: Students see program execution step-by-step with each clock pulse
 - **Sequential logic**: Enables teaching of state machines, counters, timers
 - **Real-world correspondence**: Matches how actual digital ICs respond to clock signals
@@ -132,6 +137,7 @@ This feature unlocks the full educational potential of the EDU-8 microprocessor:
 ### Constraints and Simplifications (for MVP)
 
 **Simplifications to keep scope manageable**:
+
 - **Synchronous only**: All digital logic updates on same clock edge (no component propagation delays)
 - **Single clock domain**: All digital components share one global clock (no independent clocks)
 - **No AC waveform generation**: Clock source is abstracted (not a circuit component); user triggers clock pulses via UI button
@@ -140,6 +146,7 @@ This feature unlocks the full educational potential of the EDU-8 microprocessor:
 - **No asynchronous inputs**: Digital inputs (IN0-3) are sampled synchronously (not edge-triggered)
 
 **Out of scope for this task**:
+
 - General-purpose SPICE transient analysis (remains deferred)
 - Complex digital component library (focus on EDU-8 only)
 - Analog-to-digital converters or PWM
@@ -153,11 +160,12 @@ This feature unlocks the full educational potential of the EDU-8 microprocessor:
 **Phase 2**: Digital simulator integration with DC solver  
 **Phase 3**: EDU-8 clock-driven execution  
 **Phase 4**: UI controls (clock step button, run/pause, reset)  
-**Phase 5**: Testing and documentation  
+**Phase 5**: Testing and documentation
 
 ### Alignment with Roadmap
 
 This task addresses a **required capability** in the target state specification:
+
 - 🎯 "Digital/event simulation" (planning/vision/goal.md, lines 347-352)
 - 🎯 "Simple microprocessor component" with clock input and instruction execution (planning/vision/goal.md, lines 366-394)
 - 🎯 Acceptance criterion: "A canonical program toggles outputs deterministically under a clock" (planning/vision/goal.md, line 391)
@@ -167,24 +175,27 @@ This is a **prerequisite** for making the EDU-8 microprocessor fully functional 
 ### Risk Assessment
 
 **Technical risks**:
+
 - **Convergence**: Mixed analog/digital simulation may not converge if digital outputs create feedback loops
-  - *Mitigation*: Limit iteration count; detect oscillations; warn user
+  - _Mitigation_: Limit iteration count; detect oscillations; warn user
 - **Performance**: Event processing may add noticeable latency
-  - *Mitigation*: Profile and optimize; consider WebWorker for simulation
+  - _Mitigation_: Profile and optimize; consider WebWorker for simulation
 - **Complexity**: Digital/analog bridge adds significant architectural complexity
-  - *Mitigation*: Start simple (synchronous, single clock); iterate
+  - _Mitigation_: Start simple (synchronous, single clock); iterate
 
 **Scope risks**:
+
 - **Scope creep**: Digital simulation is a large domain; easy to over-engineer
-  - *Mitigation*: Strict focus on EDU-8 only; defer general digital library
+  - _Mitigation_: Strict focus on EDU-8 only; defer general digital library
 - **UI complexity**: Clock control UI adds new interaction patterns
-  - *Mitigation*: Start with simple "Step Clock" button; defer continuous run
+  - _Mitigation_: Start with simple "Step Clock" button; defer continuous run
 
 ### Dependencies
 
 **No external dependencies** required (pure TypeScript implementation).
 
 **Internal dependencies**:
+
 - Requires access to existing DC solver results (already available)
 - Requires EDU-8 simulator (already implemented in PR #173)
 - Requires extension to component model to mark digital pins (minor change)
@@ -192,6 +203,7 @@ This is a **prerequisite** for making the EDU-8 microprocessor fully functional 
 ### Success Metrics
 
 After implementation, the system should demonstrate:
+
 1. **Functional EDU-8**: "Blink" program visibly toggles output LED with each clock step
 2. **Educational value**: Users can step through instructions and observe state changes
 3. **Test coverage**: >90% coverage for new digital simulation code

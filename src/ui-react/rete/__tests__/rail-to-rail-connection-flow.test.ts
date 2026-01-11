@@ -4,7 +4,9 @@ import type { SocketData } from 'rete-connection-plugin';
 
 import { RailNode, resolveSourceTarget, removeConflictingConnections } from '../ReteGraphLayer';
 
-function makeSocketData(params: Omit<SocketData, 'type' | 'element'> & { element?: HTMLElement }): SocketData {
+function makeSocketData(
+  params: Omit<SocketData, 'type' | 'element'> & { element?: HTMLElement }
+): SocketData {
   return {
     type: 'socket',
     element: params.element ?? document.createElement('div'),

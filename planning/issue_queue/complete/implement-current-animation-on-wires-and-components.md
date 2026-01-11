@@ -8,7 +8,8 @@ Breadboard Lab successfully visualizes voltage distribution through color-coded 
 
 **Long-term goal**: Real-time visual feedback showing both voltage levels (via heatmap) and current flow (via animated particles) to teach electronics (planning/vision/goal.md, lines 792-815, 1052).
 
-**Current state**: 
+**Current state**:
+
 - Voltage heatmap displays successfully with color-coded overlays
 - Circuit simulator computes accurate branch currents via MNA solver (planning/state/system_capabilities.md, lines 162-165)
 - Current values stored in `SimulationResult.edgeCurrents` map
@@ -24,6 +25,7 @@ Breadboard Lab successfully visualizes voltage distribution through color-coded 
 ### Scope
 
 Create an animation system that:
+
 1. Reads solved current values from simulation results for each circuit edge
 2. Renders animated particles flowing along wires and through components
 3. Shows current direction (positive to negative terminal)
@@ -34,6 +36,7 @@ Create an animation system that:
 ### Technical Approach
 
 **Animation strategy** (per planning/vision/goal.md, lines 796-815):
+
 - Render animated particles moving from higher to lower voltage
 - Particle speed proportional to current magnitude
 - Particle density proportional to current magnitude
@@ -43,6 +46,7 @@ Create an animation system that:
   - > 10mA: Fast, bright particles
 
 **Implementation approach**:
+
 - Extend `BreadboardApp` or `ComponentRenderer` with animation layer
 - Use Canvas API or SVG animations for particle rendering
 - Calculate particle positions based on elapsed time and current magnitude
@@ -51,6 +55,7 @@ Create an animation system that:
 - Show particles only on edges with current > threshold (e.g., 1µA)
 
 **Visual design**:
+
 - Particles: small circles (2-4px diameter)
 - Particles wrap around (reappear at start when reaching end)
 - Optional: Use different colors for different current ranges
@@ -70,6 +75,7 @@ Create an animation system that:
 ### Educational Impact
 
 This feature is critical for learning:
+
 - **Direction understanding**: Students see which way current flows (a common misconception point)
 - **Magnitude visualization**: Speed/density conveys "how much" current, not just voltage
 - **Series vs parallel**: Visualizes how current divides at junctions vs. stays constant in series
@@ -81,6 +87,7 @@ Together with voltage heatmaps, current animation delivers on the core USP: "vis
 ### Alignment with Roadmap
 
 This task is explicitly part of MVP (planning/vision/goal.md, lines 1041-1069):
+
 - 🎯 "Current animation overlay" listed as MVP requirement (line 1052)
 - Completes the "Electricity Flow Visualisation" feature set (lines 756-830)
 - Delivers on core objective: "Real electricity-flow visualisation" (line 50)
@@ -89,6 +96,7 @@ This task is explicitly part of MVP (planning/vision/goal.md, lines 1041-1069):
 ### Estimated Effort
 
 3-5 days of focused development
+
 - Day 1: Design animation system architecture and particle lifecycle
 - Day 2: Implement animation loop with requestAnimationFrame
 - Day 3: Map circuit edges to visual paths, compute particle positions
@@ -104,13 +112,13 @@ This task is explicitly part of MVP (planning/vision/goal.md, lines 1041-1069):
 ### Risks
 
 - **Performance**: Animating many particles at 60fps may impact performance
-  - *Mitigation*: Limit particle count per wire, use efficient Canvas rendering, profile performance
+  - _Mitigation_: Limit particle count per wire, use efficient Canvas rendering, profile performance
 - **Visual clutter**: Particles plus voltage heatmap plus components may be overwhelming
-  - *Mitigation*: Make animation optional (toggle on/off), use subtle particle design
+  - _Mitigation_: Make animation optional (toggle on/off), use subtle particle design
 - **Direction correctness**: Must ensure particles flow in physically correct direction
-  - *Mitigation*: Extensive testing with known circuits, validate against Ohm's law
+  - _Mitigation_: Extensive testing with known circuits, validate against Ohm's law
 - **Zero/negative current**: Need to handle edge cases (open circuits, numerical errors)
-  - *Mitigation*: Apply threshold to filter negligible currents, test edge cases
+  - _Mitigation_: Apply threshold to filter negligible currents, test edge cases
 
 ## Why This Task Now
 
@@ -132,22 +140,22 @@ The tool has accurate simulation and voltage visualization. Adding current anima
 
 ```typescript
 interface Particle {
-  edgeId: string;           // Which circuit edge this particle belongs to
-  progress: number;         // Position along path (0.0 to 1.0)
-  speed: number;           // Movement speed (proportional to current)
-  brightness: number;      // Visual intensity (proportional to current)
+  edgeId: string; // Which circuit edge this particle belongs to
+  progress: number; // Position along path (0.0 to 1.0)
+  speed: number; // Movement speed (proportional to current)
+  brightness: number; // Visual intensity (proportional to current)
 }
 
 class CurrentAnimator {
   private particles: Particle[] = [];
   private animationFrame: number | null = null;
-  
+
   start(simulationResult: SimulationResult, components: AnyComponent[]): void {
     // Create particles for each edge with current > threshold
     // Map edges to visual paths (wire coordinates, component pins)
     // Start animation loop
   }
-  
+
   animate(timestamp: number): void {
     // Update particle positions based on elapsed time
     // Wrap particles that reach the end
@@ -160,8 +168,9 @@ class CurrentAnimator {
 ### Visual Parameters
 
 Based on planning document specifications (lines 798-815):
+
 - **Particle size**: 2-4px diameter circles
-- **Speed scaling**: 
+- **Speed scaling**:
   - 0-1mA: 0.5 units/second (slow)
   - 1-10mA: 1.0 units/second (medium)
   - 10mA+: 2.0 units/second (fast)
@@ -177,6 +186,7 @@ Based on planning document specifications (lines 798-815):
 ## Next Steps After This Task
 
 Once current animation works:
+
 1. Implement error detection overlays (short circuits, floating nodes, reversed polarity)
 2. Create "Explain" panel with circuit analysis insights (can now explain both voltage and current)
 3. Add component value customization (user-adjustable resistance, voltage)

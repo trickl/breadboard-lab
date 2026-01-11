@@ -7,6 +7,7 @@ The target system specification (goal.md v0.2) requires "photorealistic" 2D brea
 ## Gap Analysis
 
 **What the goal requires:**
+
 - Photorealistic 2D (top-down) breadboard rendering
 - Real physical structure: grouped holes, center gap, rail separations
 - Subtle non-uniform spacing and physical cues (plastic ridges/troughs, labeling)
@@ -16,6 +17,7 @@ The target system specification (goal.md v0.2) requires "photorealistic" 2D brea
 - Active LEDs emit a subtle glow derived from solver output
 
 **What the system currently has:**
+
 - PixiJS WebGL renderer with functional breadboard grid
 - Basic geometric shapes for holes, wires, and components
 - Voltage color overlays and current animation working
@@ -96,6 +98,7 @@ Improve the visual rendering quality of the breadboard to meet the photorealisti
 ## Educational Value
 
 Photorealistic breadboard rendering directly supports the project's educational mission by:
+
 - Helping students recognize and work with physical breadboards after using the simulator
 - Building confidence through realistic visual feedback
 - Reducing the gap between simulation and real-world prototyping
@@ -104,6 +107,7 @@ Photorealistic breadboard rendering directly supports the project's educational 
 ## Alignment with Goal
 
 This task directly addresses acceptance criteria from goal.md:
+
 - "Breadboard rendering is 2D (top-down) and photorealistic" ✓
 - "Breadboard geometry reflects real physical structure" ✓
 - "Overlapping wires are visually unambiguous" ✓
@@ -112,6 +116,7 @@ This task directly addresses acceptance criteria from goal.md:
 ## Priority Rationale
 
 This is the most important development gap because:
+
 1. Visual quality is a foundational aspect that affects all user interactions
 2. The gap is explicitly called out in goal.md as a required capability
 3. PixiJS infrastructure is already in place (PR #167), making implementation feasible

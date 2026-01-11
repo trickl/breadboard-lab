@@ -9,7 +9,7 @@ import type { ComponentLibraryEntry, ComponentCategory } from './types';
  * Component library registry
  */
 class ComponentLibrary {
-  private entries: Map<string, ComponentLibraryEntry> = new Map();
+  private readonly entries: Map<string, ComponentLibraryEntry> = new Map();
 
   /**
    * Register a component in the library

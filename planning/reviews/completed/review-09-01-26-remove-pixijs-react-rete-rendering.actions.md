@@ -3,16 +3,19 @@
 Source Review: `planning/reviews/review-09-01-26-remove-pixijs-react-rete-rendering.md`
 
 ## Status
+
 ✅ **Complete** - All 7 milestones complete (100% migration complete; PixiJS fully removed)
 
 ## Completed Actions
 
 ### PR #465: Set up React infrastructure with feature flag for PixiJS migration (Milestone 0)
+
 **Merged:** 2026-01-09  
 **Issue:** #464  
 **Queue artefact:** `planning/issue_queue/processed/review-pixijs-removal-milestone-0-react-setup.md`
 
 #### Review Items Addressed
+
 This PR fully implements **Milestone 0 — Project setup for React** from the source review (lines 290-302).
 
 **Specific items completed:**
@@ -60,34 +63,41 @@ This PR fully implements **Milestone 0 — Project setup for React** from the so
 #### Acceptance Criteria Met (lines 299-301)
 
 ✅ **`npm run dev` shows a React-rendered page**
-   - With `?react=true`: Shows React UI with "Breadboard Lab (React UI)" heading
-   - Without flag: Shows existing PixiJS breadboard interface
+
+- With `?react=true`: Shows React UI with "Breadboard Lab (React UI)" heading
+- Without flag: Shows existing PixiJS breadboard interface
 
 ✅ **Existing unit tests still pass**
-   - No simulation or core logic was modified
-   - Tests remain compatible
+
+- No simulation or core logic was modified
+- Tests remain compatible
 
 ✅ **Feature flag allows toggling between old (PixiJS) and new (React) UI**
-   - Query parameter `?react=true` enables React UI
-   - Query parameter `?react=false` or absence defaults to PixiJS UI
-   - Toggle link provided in React UI
+
+- Query parameter `?react=true` enables React UI
+- Query parameter `?react=false` or absence defaults to PixiJS UI
+- Toggle link provided in React UI
 
 #### Changes Summary
 
 **New files:**
+
 - `src/main.tsx` (React entry point with feature flag)
 - `src/ui-react/App.tsx` (minimal React placeholder component)
 
 **Modified files:**
+
 - `package.json` (added React dependencies)
 - `tsconfig.json` (added JSX configuration)
 - `vite.config.ts` (added React plugin)
 - `index.html` (updated script reference to main.tsx)
 
 **Renamed files:**
+
 - `src/main.ts` → `src/main-legacy.ts` (preserved PixiJS entry point)
 
 **Files NOT changed (as intended):**
+
 - All simulation logic preserved (`src/core/**`)
 - All component library preserved (`src/library/**`)
 - All PixiJS rendering preserved (`src/ui/**`)
@@ -111,21 +121,25 @@ if (USE_REACT_UI) {
 #### Verification
 
 **React UI** (`http://localhost:5173/?react=true`):
+
 - Displays heading: "Breadboard Lab (React UI)"
 - Shows message: "React infrastructure is ready. PixiJS migration in progress."
 - Provides link to switch back to legacy UI
 
 **Legacy PixiJS UI** (`http://localhost:5173/` or `?react=false`):
+
 - Full existing breadboard interface functional
 - Components palette, breadboard canvas, controls all work
 - No regression in existing functionality
 
 ### PR #471: Extract renderer-agnostic controller from BreadboardApp (Milestone 1)
+
 **Merged:** 2026-01-09  
 **Issue:** #470  
 **Queue artefact:** `planning/issue_queue/complete/review-pixijs-removal-milestone-1-extract-controller.md`
 
 #### Review Items Addressed
+
 This PR fully implements **Milestone 1 — Extract a renderer-agnostic controller** from the source review (lines 303-314).
 
 **Specific items completed:**
@@ -209,29 +223,34 @@ This PR fully implements **Milestone 1 — Extract a renderer-agnostic controlle
 #### Acceptance Criteria Met (lines 311-313)
 
 ✅ **Controller can run extraction + simulation given a state**
-   - `SimulationRunner` extracts circuit from `AppState.breadboard.components`
-   - Supports both Rete-based and position-based extraction
-   - Dispatches `SIMULATION_COMPLETED` action with results
-   - No DOM or rendering dependencies
+
+- `SimulationRunner` extracts circuit from `AppState.breadboard.components`
+- Supports both Rete-based and position-based extraction
+- Dispatches `SIMULATION_COMPLETED` action with results
+- No DOM or rendering dependencies
 
 ✅ **Unit tests can drive controller without DOM/canvas**
-   - All 25 tests run in pure Node.js environment
-   - No PixiJS, canvas, or DOM APIs used in controller code
-   - Tests instantiate controller, dispatch actions, verify state
-   - Complete test coverage of core functionality
+
+- All 25 tests run in pure Node.js environment
+- No PixiJS, canvas, or DOM APIs used in controller code
+- Tests instantiate controller, dispatch actions, verify state
+- Complete test coverage of core functionality
 
 ✅ **AppState and Action types are explicitly defined**
-   - `AppState` interface: 9 domains with full type safety
-   - `Action` discriminated union: 47 action types
-   - All drag states explicitly typed
-   - TypeScript enforces correctness at compile time
+
+- `AppState` interface: 9 domains with full type safety
+- `Action` discriminated union: 47 action types
+- All drag states explicitly typed
+- TypeScript enforces correctness at compile time
 
 #### Changes Summary
 
 **New directory:**
+
 - `src/ui-controller/` (complete new module, 873 lines total)
 
 **New files:**
+
 - `src/ui-controller/types.ts` (145 lines) - State and action type definitions
 - `src/ui-controller/breadboard-controller.ts` (544 lines) - Pure state reducer with observable pattern
 - `src/ui-controller/simulation-runner.ts` (66 lines) - Debounced simulation orchestration
@@ -240,9 +259,11 @@ This PR fully implements **Milestone 1 — Extract a renderer-agnostic controlle
 - `src/ui-controller/__tests__/breadboard-controller.test.ts` (test file with 25 test cases)
 
 **Modified files:**
+
 - None (this is a pure addition milestone; integration comes later)
 
 **Files NOT changed (as intended):**
+
 - All simulation logic preserved (`src/core/**`)
 - All component library preserved (`src/library/**`)
 - All PixiJS rendering preserved (`src/ui/**`)
@@ -265,6 +286,7 @@ User Interaction → Action → Controller.dispatch(action)
 ```
 
 **Key principles followed:**
+
 - **Immutability**: Every state update creates a new state object
 - **Pure functions**: Reducer has no side effects
 - **Observable**: Subscribers notified on every state change
@@ -292,6 +314,7 @@ controller.dispatch({
 #### Testing Evidence
 
 All 25 tests pass without DOM:
+
 - ✅ Controller initialization and state setup
 - ✅ Component CRUD operations (add, move, rotate, delete, select)
 - ✅ UI state management (xray mode, orientation, theme)
@@ -304,16 +327,19 @@ All 25 tests pass without DOM:
 #### Next Steps Enabled
 
 This milestone establishes the foundation for:
+
 - **Milestone 2**: React components can subscribe to controller state
 - **Milestone 3**: React components can dispatch actions for user interactions
 - **Milestone 4-7**: All subsequent milestones depend on this renderer-agnostic state layer
 
 ### PR #477: Implement SVG breadboard substrate with interactive hole highlighting (Milestone 2)
+
 **Merged:** 2026-01-09  
 **Issue:** #476  
 **Queue artefact:** `planning/issue_queue/processed/review-pixijs-removal-milestone-2-breadboard-substrate-svg.md`
 
 #### Review Items Addressed
+
 This PR fully implements **Milestone 2 — Breadboard substrate in SVG** from the source review (lines 315-320).
 
 **Specific items completed:**
@@ -381,52 +407,61 @@ This PR fully implements **Milestone 2 — Breadboard substrate in SVG** from th
 #### Acceptance Criteria Met (lines 318-320)
 
 ✅ **Hover a hole highlights its row/rail net region**
-   - Terminal strip holes: Highlights 5-hole horizontal group
-   - Rail holes: Highlights entire rail strip (30+ holes)
-   - Highlight renders as semi-transparent blue rectangle with stroke
-   - Math-based hit detection finds nearest hole from pointer position
+
+- Terminal strip holes: Highlights 5-hole horizontal group
+- Rail holes: Highlights entire rail strip (30+ holes)
+- Highlight renders as semi-transparent blue rectangle with stroke
+- Math-based hit detection finds nearest hole from pointer position
 
 ✅ **Click hole triggers the same action logic as today**
-   - Click handler uses same math-based hit detection as hover
-   - Validates position before triggering `onHoleClick` callback
-   - Handler structure ready for controller action dispatch (currently logs to console)
-   - Event propagation handled correctly via transparent overlay
+
+- Click handler uses same math-based hit detection as hover
+- Validates position before triggering `onHoleClick` callback
+- Handler structure ready for controller action dispatch (currently logs to console)
+- Event propagation handled correctly via transparent overlay
 
 #### Performance Strategy Validation (lines 274-285)
 
 The implementation successfully addresses the performance concerns identified in the review:
 
 ✅ **SVG symbol reuse** (line 280)
-   - Single `<circle id="breadboard-hole">` definition
-   - 420 `<use href="#breadboard-hole">` instances
-   - Minimal DOM overhead
+
+- Single `<circle id="breadboard-hole">` definition
+- 420 `<use href="#breadboard-hole">` instances
+- Minimal DOM overhead
 
 ✅ **Single event surface** (line 281)
-   - One transparent `<rect>` covering entire breadboard
-   - All pointer events handled by single element
-   - No per-hole listeners (avoids 420 event listener registrations)
+
+- One transparent `<rect>` covering entire breadboard
+- All pointer events handled by single element
+- No per-hole listeners (avoids 420 event listener registrations)
 
 ✅ **Memoized derived geometry** (line 283)
-   - `getAllHolePositions()` called once via `useMemo`
-   - `getBreadboardDimensions()` called once via `useMemo`
-   - Highlight bounds recalculated only when hovered position changes
+
+- `getAllHolePositions()` called once via `useMemo`
+- `getBreadboardDimensions()` called once via `useMemo`
+- Highlight bounds recalculated only when hovered position changes
 
 ✅ **Minimize rerenders** (line 284)
-   - `React.memo` wrapper on `BreadboardSvg` component
-   - Controller state subscription in parent scene component
-   - Orientation changes trigger rerender appropriately
+
+- `React.memo` wrapper on `BreadboardSvg` component
+- Controller state subscription in parent scene component
+- Orientation changes trigger rerender appropriately
 
 #### Changes Summary
 
 **New files:**
+
 - `src/ui-react/BreadboardSvg.tsx` (351 lines) - SVG substrate renderer with efficient interaction
 - `src/ui-react/BreadboardScene.tsx` (198 lines) - Viewport container with pan/zoom
 - `src/ui-react/geometry/breadboard-layout.ts` (125 lines) - Pure geometry helper functions
 
 **Modified files:**
+
 - `src/ui-react/App.tsx` (7 additions, 9 deletions) - Integrated scene and controller
 
 **Files NOT changed (as intended):**
+
 - All simulation logic preserved (`src/core/**`)
 - All component library preserved (`src/library/**`)
 - All PixiJS rendering preserved (`src/ui/**`)
@@ -435,40 +470,43 @@ The implementation successfully addresses the performance concerns identified in
 #### Implementation Details
 
 **SVG Structure:**
+
 ```typescript
 <svg viewBox="...">
   <defs>
     <circle id="breadboard-hole" r={7} fill="#222" />
   </defs>
-  
+
   <!-- Background layers with subtle color variations -->
   <rect fill="#2a2a2a" /> <!-- Rails -->
   <rect fill="#2c2c2c" /> <!-- Terminal strips -->
-  
+
   <!-- Center divider -->
   <rect fill="#1a1a1a" opacity={0.8} />
-  
+
   <!-- Highlight overlay (when hovering) -->
   {highlightBounds && <rect fill="#3399ff" opacity={0.2} />}
-  
+
   <!-- 420 hole instances -->
   {holePositions.map(pos => <use href="#breadboard-hole" x={x} y={y} />)}
-  
+
   <!-- Labels (rows, columns, rails) -->
   <text>...</text>
-  
+
   <!-- Single transparent event surface -->
   <rect fill="transparent" onPointerMove={...} onClick={...} />
 </svg>
 ```
 
 **Coordinate System:**
+
 - World space: 26px per hole (HOLE_SPACING constant)
 - Hole visual radius: 7px
 - Total dimensions: 364px × 780px (14 columns × 30 rows)
 - Labels positioned with padding: 20px horizontal, 25px vertical
 
 **Event Flow:**
+
 1. User pointer moves over breadboard
 2. Transparent overlay `<rect>` receives event
 3. `handlePointerMove` transforms client coordinates to SVG space
@@ -491,6 +529,7 @@ The implementation successfully addresses the performance concerns identified in
 **Access:** Navigate to `http://localhost:5173/?react=true`
 
 **Functionality verified:**
+
 - ✅ Breadboard renders with correct hole grid (14×30)
 - ✅ Power rail labels (+/-) visible on left and right rails
 - ✅ Terminal strip labels (A-J) visible on columns
@@ -506,17 +545,20 @@ The implementation successfully addresses the performance concerns identified in
 #### Next Steps Enabled
 
 This milestone establishes the breadboard substrate foundation for:
+
 - **Milestone 3**: Component rendering can now be layered on top of substrate
 - **Milestone 4**: Rete graph layer can align with substrate coordinate system
 - **Milestone 5**: Interactive wiring can use hole positions for snap points
 - **Milestone 6**: Overlays can render on top of substrate using same coordinate system
 
 ### PR #483: Implement component rendering and manipulation in React/SVG UI (Milestone 3)
+
 **Merged:** 2026-01-09  
 **Issue:** #482  
 **Queue artefact:** `planning/issue_queue/complete/review-pixijs-removal-milestone-3-component-rendering.md`
 
 #### Review Items Addressed
+
 This PR fully implements **Milestone 3 — Component rendering and manipulation** from the source review (lines 321-328).
 
 **Specific items completed:**
@@ -645,39 +687,45 @@ This PR fully implements **Milestone 3 — Component rendering and manipulation*
 #### Acceptance Criteria Met (lines 325-328)
 
 ✅ **Drag-to-move works with snap-to-hole insertion** (line 326)
-   - Drag shows ghost preview at pointer position
-   - Preview snaps to nearest valid hole positions
-   - All pins validated for valid hole connections
-   - Component moves to snapped position on release
-   - Invalid positions rejected (no preview shown)
+
+- Drag shows ghost preview at pointer position
+- Preview snaps to nearest valid hole positions
+- All pins validated for valid hole connections
+- Component moves to snapped position on release
+- Invalid positions rejected (no preview shown)
 
 ✅ **Rotation works with correct pin mapping** (line 327)
-   - R key rotates selected component
-   - Rotation handle click rotates selected component
-   - Rotation increments by 90° in correct direction
-   - Pin positions update correctly (visual rotation around center)
-   - Rotation persists in component state
+
+- R key rotates selected component
+- Rotation handle click rotates selected component
+- Rotation increments by 90° in correct direction
+- Pin positions update correctly (visual rotation around center)
+- Rotation persists in component state
 
 ✅ **Undo/redo works** (line 328)
-   - Controller actions are compatible with undo/redo system
-   - All component mutations (add, move, rotate, delete) are action-based
-   - Note: Full undo/redo testing deferred to integration testing (undo/redo system exists from Milestone 1)
+
+- Controller actions are compatible with undo/redo system
+- All component mutations (add, move, rotate, delete) are action-based
+- Note: Full undo/redo testing deferred to integration testing (undo/redo system exists from Milestone 1)
 
 #### Implementation Details
 
 **Coordinate transformation strategy:**
+
 - Screen coordinates → SVG coordinates: `svg.createSVGPoint()` + `getScreenCTM().inverse()`
 - SVG coordinates → grid position: `pixelsToPosition()` from geometry module
 - Grid position → SVG coordinates: `positionToPixels()` from geometry module
 - All coordinate functions from `src/ui-react/geometry/breadboard-layout.ts`
 
 **Event flow for drag:**
+
 1. Pointer down on component → `COMPONENT_SELECTED` + `DRAG_STARTED`
 2. Document pointer move → Calculate preview positions → `DRAG_MOVED`
 3. Document pointer up → If valid preview: `COMPONENT_MOVED`, then `DRAG_COMPLETED`
 4. Ghost preview renders from `state.componentDrag.dragState.previewPositions`
 
 **Visual feedback:**
+
 - Selected component: Blue dashed outline (#3399ff) with rotation handle above
 - Dragging component: Original at 30% opacity, ghost preview at 70% opacity
 - Valid drag position: Preview visible with validated positions
@@ -685,6 +733,7 @@ This PR fully implements **Milestone 3 — Component rendering and manipulation*
 - Rotation handle: Blue circle with circular arrow icon, positioned 30px above component top
 
 **Performance optimizations:**
+
 - `React.memo` on ComponentRenderer prevents rerenders when props unchanged
 - Single event listener per interaction type (document-level for drag/keyboard)
 - Z-ordering strategy: Wires render first, then other components (minimizes overdraw)
@@ -692,14 +741,17 @@ This PR fully implements **Milestone 3 — Component rendering and manipulation*
 #### Changes Summary
 
 **New files:**
+
 - `src/ui-react/components/ComponentRenderer.tsx` (553 lines) - SVG renderer for all component types
 - `src/ui-react/components/ComponentsLayer.tsx` (250 lines) - Interaction layer and container
 
 **Modified files:**
+
 - `src/ui-react/BreadboardScene.tsx` - Added ComponentsLayer integration, keyboard handlers, background click handler
 - `src/ui-react/App.tsx` - Added test components to initial state
 
 **Files NOT changed (as intended):**
+
 - All simulation logic preserved (`src/core/**`)
 - All component library preserved (`src/library/**`)
 - All PixiJS rendering preserved (`src/ui/**`)
@@ -708,18 +760,20 @@ This PR fully implements **Milestone 3 — Component rendering and manipulation*
 #### Technical Notes
 
 **Controller action types used:**
+
 ```typescript
-COMPONENT_SELECTED   // Select/deselect component
-COMPONENT_MOVED      // Move component to new positions
-COMPONENT_ROTATED    // Rotate component by 90°
-COMPONENT_DELETED    // Remove component
-DRAG_STARTED         // Begin drag operation
-DRAG_MOVED           // Update drag preview positions
-DRAG_COMPLETED       // End drag (success or cancel)
-DRAG_CANCELLED       // Cancel drag (Escape key)
+COMPONENT_SELECTED; // Select/deselect component
+COMPONENT_MOVED; // Move component to new positions
+COMPONENT_ROTATED; // Rotate component by 90°
+COMPONENT_DELETED; // Remove component
+DRAG_STARTED; // Begin drag operation
+DRAG_MOVED; // Update drag preview positions
+DRAG_COMPLETED; // End drag (success or cancel)
+DRAG_CANCELLED; // Cancel drag (Escape key)
 ```
 
 **Drag state structure:**
+
 ```typescript
 {
   componentId: string;
@@ -731,6 +785,7 @@ DRAG_CANCELLED       // Cancel drag (Escape key)
 ```
 
 **Component types fully supported:**
+
 - `ComponentType.RESISTOR` - With accurate color bands
 - `ComponentType.LED` - With polarity visualization
 - `ComponentType.POWER_SUPPLY` - With voltage display
@@ -761,6 +816,7 @@ DRAG_CANCELLED       // Cancel drag (Escape key)
 **Access:** Navigate to `http://localhost:5173/?react=true`
 
 **Functionality verified:**
+
 - ✅ Four test components render on breadboard (resistor, LED, power supply, ground)
 - ✅ Resistor shows color bands (brown-red-brown = 220Ω)
 - ✅ LED shows polarity marker and + symbol
@@ -783,6 +839,7 @@ DRAG_CANCELLED       // Cancel drag (Escape key)
 #### Notes on Review Requirements
 
 **Interaction model (lines 242-270):**
+
 - ✅ Explicit state machine implemented: `idle` / `dragging` tracked via `state.componentDrag.dragState`
 - ✅ Click component → select: Implemented
 - ✅ Drag component → move with snapping: Implemented with validation
@@ -791,6 +848,7 @@ DRAG_CANCELLED       // Cancel drag (Escape key)
 - ⚠️ Undo/redo: Controller-compatible but not manually tested in this PR (deferred to integration testing)
 
 **Component rendering requirements (lines 201-210):**
+
 - ✅ Component body as SVG shape: All component types use appropriate SVG primitives
 - ✅ Pins/legs as ports: Rendered as small circles at grid positions
 - ✅ Selection outline: Blue dashed rectangle
@@ -798,6 +856,7 @@ DRAG_CANCELLED       // Cancel drag (Escape key)
 - ✅ Clean SVG styles first: No gradients, glow, or photorealistic effects (matches requirement)
 
 **Performance strategy (lines 274-285):**
+
 - ✅ Minimize rerenders: `React.memo` on ComponentRenderer
 - ✅ Single event surface: Document-level event listeners for drag/keyboard
 - ✅ Memoize derived geometry: Geometry functions are pure and called once per render
@@ -806,17 +865,20 @@ DRAG_CANCELLED       // Cancel drag (Escape key)
 #### Next Steps Enabled
 
 This milestone establishes component manipulation foundation for:
+
 - **Milestone 4**: Rete graph layer can now layer on top of components
 - **Milestone 5**: Interactive wiring can use component pins as connection endpoints
 - **Milestone 6**: Overlays can render on top of components using same coordinate system
 - **Component palette integration**: Test components can be replaced with palette-created components
 
 ### PR #489: Integrate Rete editor in React UI with breadboard coordinate alignment (Milestone 4)
+
 **Merged:** 2026-01-09  
 **Issue:** #488  
 **Queue artefact:** `planning/issue_queue/complete/review-pixijs-removal-milestone-4-rete-graph-layer.md`
 
 #### Review Items Addressed
+
 This PR fully implements **Milestone 4 — Rete graph layer visible and aligned** from the source review (lines 329-335).
 
 **Specific items completed:**
@@ -945,27 +1007,31 @@ This PR fully implements **Milestone 4 — Rete graph layer visible and aligned*
 #### Acceptance Criteria Met (lines 333-335)
 
 ✅ **Connections exist and render visually** (line 334)
-   - Rete editor initialized with ConnectionPlugin
-   - React renderer configured to display connections
-   - Connection rendering infrastructure ready (visual verification with test connections deferred to Milestone 5)
+
+- Rete editor initialized with ConnectionPlugin
+- React renderer configured to display connections
+- Connection rendering infrastructure ready (visual verification with test connections deferred to Milestone 5)
 
 ✅ **Pan/zoom keeps all layers aligned** (line 335)
-   - SVG viewBox controls pan/zoom
-   - Rete container transform syncs automatically
-   - MutationObserver tracks viewBox changes
-   - Window resize updates transform
-   - No coordinate drift between layers
-   - Visual alignment verified across pan/zoom operations
+
+- SVG viewBox controls pan/zoom
+- Rete container transform syncs automatically
+- MutationObserver tracks viewBox changes
+- Window resize updates transform
+- No coordinate drift between layers
+- Visual alignment verified across pan/zoom operations
 
 #### Architecture Decisions Implemented
 
 **Decision Record DR-2: Rete renders the graph layer, not the entire breadboard** (lines 98-108)
+
 - ✅ Rete renders component nodes with ports/legs
 - ✅ Rete renders connections between nodes
 - ✅ Breadboard substrate remains pure SVG (no Rete nodes for holes)
 - ✅ Performance optimized by avoiding hundreds of hole nodes
 
 **Decision Record DR-3: One shared coordinate system** (lines 110-121)
+
 - ✅ Single world space coordinate system defined:
   - 26px hole spacing (HOLE_SPACING constant)
   - Origin at top-left of breadboard
@@ -977,6 +1043,7 @@ This PR fully implements **Milestone 4 — Rete graph layer visible and aligned*
 - ✅ Coordinate drift eliminated via dynamic transform recalculation
 
 **Target Architecture** (lines 135-186)
+
 - ✅ Created `src/ui-react/rete/ReteGraphLayer.tsx` (as suggested)
 - ✅ Used official Rete React renderer (verified MIT-compatible)
 - ✅ Integrated into React component hierarchy
@@ -984,15 +1051,18 @@ This PR fully implements **Milestone 4 — Rete graph layer visible and aligned*
 #### Changes Summary
 
 **New files:**
+
 - `src/ui-react/rete/ReteGraphLayer.tsx` (328 lines) - Rete editor integration with coordinate alignment
 
 **Modified files:**
+
 - `package.json` - Added `rete-react-plugin@^2.1.0` dependency
 - `package-lock.json` - Updated with new dependency
 - `src/ui-react/BreadboardScene.tsx` - Integrated ReteGraphLayer as overlay
 - No changes to test components setup (components from Milestone 3 serve as test data)
 
 **Files NOT changed (as intended):**
+
 - All simulation logic preserved (`src/core/**`)
 - All component library preserved (`src/library/**`)
 - All PixiJS rendering preserved (`src/ui/**`)
@@ -1059,15 +1129,18 @@ await area.translate(node.id, {
 The PR description includes three screenshots demonstrating the implementation:
 
 **Initial state - nodes positioned incorrectly:**
+
 - Rete nodes render but not aligned with SVG components
 - Demonstrates the coordinate space mismatch problem
 
 **After transform - nodes aligned with components:**
+
 - Rete nodes positioned correctly over corresponding SVG components
 - Transform successfully bridges coordinate spaces
 - Visual alignment achieved
 
 **Pan/zoom test - layers stay synchronized:**
+
 - User pans/zooms viewport
 - SVG substrate, SVG components, and Rete nodes move together
 - No coordinate drift observed
@@ -1080,6 +1153,7 @@ The PR description includes three screenshots demonstrating the implementation:
 **Access:** Navigate to `http://localhost:5173/?react=true`
 
 **Functionality verified:**
+
 - ✅ Rete editor initializes without errors
 - ✅ Component nodes render in Rete layer (visible in browser dev tools)
 - ✅ Nodes positioned at correct world coordinates
@@ -1093,6 +1167,7 @@ The PR description includes three screenshots demonstrating the implementation:
 - ✅ No performance degradation
 
 **Browser dev tools verification:**
+
 - Rete container element exists with computed transform style
 - Rete nodes exist as DOM elements within container
 - Transform recalculates on viewBox mutations (observable in Elements panel)
@@ -1100,28 +1175,32 @@ The PR description includes three screenshots demonstrating the implementation:
 #### Technical Notes
 
 **Rete plugin initialization order:**
+
 ```typescript
-editor.use(area);           // AreaPlugin registered to editor
-area.use(connection);       // ConnectionPlugin registered to area
-area.use(render);           // ReactPlugin registered to area
+editor.use(area); // AreaPlugin registered to editor
+area.use(connection); // ConnectionPlugin registered to area
+area.use(render); // ReactPlugin registered to area
 ```
 
 **Transform update triggers:**
+
 - SVG viewBox attribute mutation (MutationObserver)
 - Window resize event
 - Initial mount
 
 **Component-to-node mapping:**
+
 ```typescript
-componentNodeMap: Map<componentId, nodeId>
+componentNodeMap: Map<componentId, nodeId>;
 // Enables O(1) lookup for sync operations
 ```
 
 **Async Rete API:**
+
 ```typescript
-await editor.addNode(node);      // Must await
-await editor.removeNode(id);     // Must await
-await area.translate(id, pos);   // Must await
+await editor.addNode(node); // Must await
+await editor.removeNode(id); // Must await
+await area.translate(id, pos); // Must await
 ```
 
 **Future extension point:**
@@ -1130,6 +1209,7 @@ The `onTransformChange` callback is wired but currently disabled (line 217-228 i
 #### Notes on Review Requirements
 
 **Coordinate synchronization (critical requirement, lines 110-121):**
+
 - ✅ Single coordinate system established (26px hole spacing)
 - ✅ Transform bridge eliminates drift
 - ✅ Verified across pan/zoom operations
@@ -1138,12 +1218,14 @@ The `onTransformChange` callback is wired but currently disabled (line 217-228 i
 - 📝 Rationale for Option B: Existing SVG controls work well; migration path preserved
 
 **Connection rendering (lines 212-217):**
+
 - ✅ ConnectionPlugin initialized
 - ✅ React renderer configured to render connections
 - ✅ Infrastructure ready for connections
 - ⚠️ Test connections deferred to Milestone 5 (interactive wiring focus)
 
 **Performance (lines 274-285):**
+
 - ✅ No Rete nodes for breadboard holes (only for components)
 - ✅ Node updates debounced via React subscription pattern
 - ✅ Transform recalculation efficient (MutationObserver + event listeners)
@@ -1152,16 +1234,19 @@ The `onTransformChange` callback is wired but currently disabled (line 217-228 i
 #### Next Steps Enabled
 
 This milestone establishes the Rete graph layer foundation for:
+
 - **Milestone 5**: Interactive wiring can now use Rete nodes/ports for connection creation
 - **Milestone 6**: Overlays can render on top of aligned Rete layer
 - **Milestone 7**: PixiJS removal unblocked
 
 ### PR #495: Implement interactive connection creation in React UI (Milestone 5)
+
 **Merged:** 2026-01-09  
 **Issue:** #494  
 **Queue artefact:** `planning/issue_queue/processed/review-pixijs-removal-milestone-5-interactive-wiring.md`
 
 #### Review Items Addressed
+
 This PR fully implements **Milestone 5 — Interactive wiring via Rete** from the source review (lines 336-341).
 
 **Note:** Despite the milestone name referencing "Rete", this PR implements pure SVG connection rendering (not Rete connection objects) per review guidance (lines 212-217: "If Rete connection visuals can't match the breadboard style, render connections ourselves in SVG").
@@ -1330,32 +1415,36 @@ This PR fully implements **Milestone 5 — Interactive wiring via Rete** from th
 #### Acceptance Criteria Met (lines 336-341)
 
 ✅ **Drag leg → hole creates connection** (line 340)
-   - Pointer down on leg circle starts drag
-   - Preview line follows pointer during drag
-   - Hover over hole highlights it with validity feedback
-   - Pointer up on valid hole creates connection
-   - Connection persists in controller state
-   - Connection renders as solid line between leg and hole
-   - Connection visible immediately after creation
+
+- Pointer down on leg circle starts drag
+- Preview line follows pointer during drag
+- Hover over hole highlights it with validity feedback
+- Pointer up on valid hole creates connection
+- Connection persists in controller state
+- Connection renders as solid line between leg and hole
+- Connection visible immediately after creation
 
 ✅ **One-connector-per-hole constraint enforced with clear feedback** (line 341)
-   - `occupiedHoles` Map tracks which holes have connections
-   - `isHoleOccupied()` selector checks occupancy during drag
-   - Preview line turns RED when hovering over occupied hole
-   - Highlight circle turns RED when hovering over occupied hole
-   - Cannot complete drag on occupied hole (dispatches `CONNECTION_DRAG_CANCELLED`)
-   - Clear visual distinction between valid (green) and invalid (red) targets
-   - Constraint enforced atomically in controller reducer
+
+- `occupiedHoles` Map tracks which holes have connections
+- `isHoleOccupied()` selector checks occupancy during drag
+- Preview line turns RED when hovering over occupied hole
+- Highlight circle turns RED when hovering over occupied hole
+- Cannot complete drag on occupied hole (dispatches `CONNECTION_DRAG_CANCELLED`)
+- Clear visual distinction between valid (green) and invalid (red) targets
+- Constraint enforced atomically in controller reducer
 
 #### Supporting Requirements Met
 
 **Connection visual requirements (lines 212-217):**
+
 - ✅ Pure SVG rendering (no Rete connection objects)
 - ✅ Connection endpoints coordinate in world space (positionToPixels)
 - ✅ Connections align visually with holes and legs
 - ✅ "Render connections ourselves in SVG" approach taken per guidance
 
 **Interaction model requirements (lines 242-270):**
+
 - ✅ Explicit drag mode: `draggingConnection` (via `connectionDrag.dragState`)
 - ✅ Entry condition: Pointer down on leg circle
 - ✅ Pointer move behavior: Update preview line and validate target
@@ -1363,6 +1452,7 @@ This PR fully implements **Milestone 5 — Interactive wiring via Rete** from th
 - ✅ Cancel behavior: Abort drag if invalid hole or Escape key
 
 **Coordinate alignment (Decision Record DR-3, lines 110-121):**
+
 - ✅ Single world space coordinate system used throughout
 - ✅ Connection rendering uses same helpers as substrate and components
 - ✅ 26px hole spacing maintained (HOLE_SPACING constant)
@@ -1371,10 +1461,12 @@ This PR fully implements **Milestone 5 — Interactive wiring via Rete** from th
 #### Changes Summary
 
 **New files:**
+
 - `src/ui-react/components/ConnectionsLayer.tsx` (58 lines) - Renders established connections
 - `src/ui-react/components/ConnectionDragPreview.tsx` (46 lines) - Renders drag preview with validity feedback
 
 **Modified files:**
+
 - `src/ui-controller/types.ts` - Added `Connection`, `ConnectionDragState` interfaces, `connections` and `connectionDrag` state domains, 5 new action types
 - `src/ui-controller/breadboard-controller.ts` - Implemented 5 connection action handlers with hole occupancy tracking
 - `src/ui-controller/selectors.ts` - Added 3 connection-related selectors
@@ -1383,6 +1475,7 @@ This PR fully implements **Milestone 5 — Interactive wiring via Rete** from th
 - `src/ui-react/BreadboardScene.tsx` - Added ConnectionsLayer to layer hierarchy
 
 **Files NOT changed (as intended):**
+
 - All simulation logic preserved (`src/core/**`)
 - All component library preserved (`src/library/**`)
 - All PixiJS rendering preserved (`src/ui/**`)
@@ -1392,6 +1485,7 @@ This PR fully implements **Milestone 5 — Interactive wiring via Rete** from th
 #### Implementation Details
 
 **Connection creation flow:**
+
 1. User pointer down on component leg circle
 2. ComponentsLayer dispatches `CONNECTION_DRAG_STARTED` → controller updates `connectionDrag.dragState`
 3. React rerenders with ConnectionDragPreview visible
@@ -1405,6 +1499,7 @@ This PR fully implements **Milestone 5 — Interactive wiring via Rete** from th
 11. React rerenders with new connection in ConnectionsLayer (if created)
 
 **Hole occupancy tracking:**
+
 ```typescript
 // On connection creation (CONNECTION_DRAG_COMPLETED):
 const targetKey = `${targetPosition.row},${targetPosition.col}`;
@@ -1422,17 +1517,18 @@ export function isHoleOccupied(state: AppState, position: Position): boolean {
 ```
 
 **Visual feedback logic:**
+
 ```typescript
 // In ConnectionDragPreview:
 const strokeColor = dragState.isValidTarget ? '#00ff00' : '#ff0000';
 
 // isValidTarget computed in ComponentsLayer pointer move:
-const isValid = hoveredPosition 
-  && isValidPosition(hoveredPosition) 
-  && !isHoleOccupied(state, hoveredPosition);
+const isValid =
+  hoveredPosition && isValidPosition(hoveredPosition) && !isHoleOccupied(state, hoveredPosition);
 ```
 
 **Layer z-order rationale:**
+
 - Connections render below components so component bodies are visible
 - Connection drag preview renders above components for clear visibility during drag
 - This matches review guidance (lines 212-217) about connection rendering
@@ -1476,18 +1572,21 @@ Location: `src/ui-controller/__tests__/breadboard-controller.test.ts` (lines 468
 
 **Valid target hover (green feedback):**
 ![Valid connection target with green preview line and highlight](https://github.com/user-attachments/assets/7d9c11f2-5942-4960-9454-abebd7069cf5)
+
 - Dashed green line from LED leg to hovered hole
 - Green highlight circle on target hole
 - Indicates valid drop target
 
 **Completed connection:**
 ![Established connection rendered as solid line](https://github.com/user-attachments/assets/a69e6781-a26d-43c2-bf78-284e2cd71add)
+
 - Solid gray line from LED leg to breadboard hole
 - Connection persists in controller state
 - Clean SVG rendering without Rete objects
 
 **Occupied hole constraint (red feedback):**
 ![Invalid target with red preview line indicating occupied hole](https://github.com/user-attachments/assets/59ea1c33-0cba-47fe-a6c6-08366b9ed077)
+
 - Dashed red line from resistor leg to occupied hole
 - Red highlight circle on target hole
 - Clear visual indication that connection cannot be completed
@@ -1498,6 +1597,7 @@ Location: `src/ui-controller/__tests__/breadboard-controller.test.ts` (lines 468
 **Access:** Navigate to `http://localhost:5173/?react=true`
 
 **Functionality verified:**
+
 - ✅ Component leg circles are interactive (cursor changes to crosshair)
 - ✅ Pointer down on leg circle starts connection drag
 - ✅ Preview line appears and follows pointer during drag
@@ -1519,12 +1619,15 @@ Location: `src/ui-controller/__tests__/breadboard-controller.test.ts` (lines 468
 **Design decision: Pure SVG vs Rete connections**
 
 The PR description explicitly states:
+
 > "Connections use pure SVG rendering (not Rete connection objects) for simplicity and aesthetic consistency per review guidance."
 
 This decision aligns with review lines 212-217:
+
 > "If Rete connection visuals can't match the breadboard style, render connections ourselves in SVG from `reteManager.getConnections()` as a temporary bridge."
 
 **Rationale:**
+
 - Rete connection rendering is designed for schematic-style node graphs
 - Breadboard connections need precise pixel-perfect alignment with holes
 - Pure SVG gives full control over styling and positioning
@@ -1534,12 +1637,14 @@ This decision aligns with review lines 212-217:
 **State management pattern:**
 
 The implementation follows the same pattern as component drag (Milestone 3):
+
 1. Local ref tracks drag state for immediate event handling
 2. Controller state stores authoritative drag state
 3. React rerenders on controller state changes
 4. Document-level pointer handlers manage drag lifecycle
 
 This pattern provides:
+
 - Predictable state updates (single source of truth)
 - Testable drag logic (controller tests don't need DOM)
 - Clean separation of concerns (view vs state)
@@ -1547,6 +1652,7 @@ This pattern provides:
 **Performance considerations:**
 
 Connection rendering is efficient because:
+
 - SVG `<line>` elements are lightweight
 - No per-connection event listeners (selection deferred to future)
 - Connections memoized via React rendering (only rerender on state change)
@@ -1555,22 +1661,26 @@ Connection rendering is efficient because:
 #### Notes on Review Requirements
 
 **Milestone 5 acceptance criteria (lines 336-341):**
+
 - ✅ Drag leg → hole: Fully implemented with preview and feedback
 - ✅ One-connector-per-hole: Enforced via occupiedHoles Map with O(1) lookup
 - ✅ Clear feedback: Green/red color coding on preview line and highlight circle
 
 **Connection rendering (lines 212-217):**
+
 - ✅ Pure SVG rendering chosen over Rete connections
 - ✅ Endpoints coordinate in world space (positionToPixels)
 - ✅ Alignment with breadboard verified visually
 
 **Interaction model (lines 242-270):**
+
 - ✅ Explicit `draggingConnection` mode via connectionDrag.dragState
 - ✅ Entry condition: Pointer down on leg circle
 - ✅ Commit/cancel behavior: Based on hole validity
 - ✅ Escape key cancellation: Implemented
 
 **Coordinate system consistency (lines 110-121):**
+
 - ✅ Single world space used throughout (26px spacing)
 - ✅ Shared geometry helpers (positionToPixels, pixelsToPosition)
 - ✅ No coordinate misalignment issues
@@ -1578,10 +1688,12 @@ Connection rendering is efficient because:
 #### Next Steps Enabled
 
 This milestone completes the core interactive breadboard functionality:
+
 - **Milestone 6**: Overlays can now visualize current flow through connections
 - **Milestone 7**: PixiJS removal unblocked (all core interactions ported)
 
 **Connection features deferred to post-migration:**
+
 - Connection deletion via UI (click/select/delete)
 - Connection rerouting (drag connection endpoint)
 - Connection selection and multi-select
@@ -1590,11 +1702,13 @@ This milestone completes the core interactive breadboard functionality:
 These features are planned but not blocking PixiJS removal.
 
 ### PR #501: Implement voltage overlay, current animation, and error badges in React/SVG UI (Milestone 6)
+
 **Merged:** 2026-01-09  
 **Issue:** #500  
 **Queue artefact:** `planning/issue_queue/processed/review-pixijs-removal-milestone-6-overlays.md`
 
 #### Review Items Addressed
+
 This PR fully implements **Milestone 6 — Overlays and explain panel parity** from the source review (lines 342-350).
 
 **Specific items completed:**
@@ -1724,115 +1838,135 @@ This PR fully implements **Milestone 6 — Overlays and explain panel parity** f
 #### Acceptance Criteria Met (lines 342-350)
 
 ✅ **Voltage overlay matches simulation node voltages** (line 346)
-   - Voltage overlay queries circuit node structure from `state.simulation.cachedCircuit`
-   - Maps node voltages to hole positions using node.positions array
-   - All holes in a net display the same voltage (correct electrical behavior)
-   - Color interpolation accurately reflects voltage magnitude and polarity
-   - Updates automatically when simulation runs (controller subscription)
+
+- Voltage overlay queries circuit node structure from `state.simulation.cachedCircuit`
+- Maps node voltages to hole positions using node.positions array
+- All holes in a net display the same voltage (correct electrical behavior)
+- Color interpolation accurately reflects voltage magnitude and polarity
+- Updates automatically when simulation runs (controller subscription)
 
 ✅ **Current animation reflects edgeCurrents direction/magnitude** (line 347)
-   - Current animation queries `simulationResult.edgeCurrents` Map
-   - Animation direction determined by current sign (positive vs negative)
-   - Animation speed scales inversely with current magnitude
-   - Only animates connections with current above 1mA threshold
-   - Updates automatically when simulation runs
+
+- Current animation queries `simulationResult.edgeCurrents` Map
+- Animation direction determined by current sign (positive vs negative)
+- Animation speed scales inversely with current magnitude
+- Only animates connections with current above 1mA threshold
+- Updates automatically when simulation runs
 
 ✅ **Error badges clickable → explain panel** (line 350)
-   - Error badges are fully clickable with pointer cursor
-   - Click handler exposes error details via optional `onErrorClick` callback
-   - Fallback behavior: Alert dialog with full error information
-   - Error details include: type, message, explanation, suggestions
-   - TODO note for future modal/toast integration
-   - Hover provides immediate feedback (size increase, shadow, tooltip)
+
+- Error badges are fully clickable with pointer cursor
+- Click handler exposes error details via optional `onErrorClick` callback
+- Fallback behavior: Alert dialog with full error information
+- Error details include: type, message, explanation, suggestions
+- TODO note for future modal/toast integration
+- Hover provides immediate feedback (size increase, shadow, tooltip)
 
 #### Voltage Overlay Requirements Met (lines 219-224)
 
 ✅ **MVP overlay: per-hole colored halo for connected holes** (line 222)
-   - Implemented per-hole colored circles (11px radius, 0.45 opacity)
-   - Circles render at each hole in a connected net
-   - Circuit node structure maps voltages to multiple positions
-   - Semi-transparent to see underlying substrate
+
+- Implemented per-hole colored circles (11px radius, 0.45 opacity)
+- Circles render at each hole in a connected net
+- Circuit node structure maps voltages to multiple positions
+- Semi-transparent to see underlying substrate
 
 ✅ **Voltage overlay renders when simulation completes successfully**
-   - Conditional rendering: `if (!isEnabled || !simulationResult || !simulationResult.success) return null`
-   - Gracefully degrades when simulation data unavailable
+
+- Conditional rendering: `if (!isEnabled || !simulationResult || !simulationResult.success) return null`
+- Gracefully degrades when simulation data unavailable
 
 ✅ **Hole colors reflect actual node voltages from simulation**
-   - Direct query: `simulationResult.nodeVoltages.get(nodeId)`
-   - Color interpolation: `voltageToColor(voltage, maxVoltage)`
-   - Dynamic max voltage scaling based on actual circuit voltages
+
+- Direct query: `simulationResult.nodeVoltages.get(nodeId)`
+- Color interpolation: `voltageToColor(voltage, maxVoltage)`
+- Dynamic max voltage scaling based on actual circuit voltages
 
 ✅ **Overlay is semi-transparent**
-   - Opacity: 0.45 (substrate and components visible underneath)
+
+- Opacity: 0.45 (substrate and components visible underneath)
 
 ✅ **Overlay can be toggled on/off**
-   - V key toggles via `VOLTAGE_OVERLAY_TOGGLED` action
-   - State persists in `state.ui.showVoltageOverlay`
+
+- V key toggles via `VOLTAGE_OVERLAY_TOGGLED` action
+- State persists in `state.ui.showVoltageOverlay`
 
 ✅ **Overlay updates when circuit changes trigger new simulation**
-   - Controller subscription: `controller.subscribe(setState)`
-   - useMemo dependencies: `[isEnabled, simulationResult, state]`
-   - Automatic rerender on state changes
+
+- Controller subscription: `controller.subscribe(setState)`
+- useMemo dependencies: `[isEnabled, simulationResult, state]`
+- Automatic rerender on state changes
 
 #### Current Flow Animation Requirements Met (lines 225-232)
 
 ✅ **Simple MVP: animate stroke dash offset on wires** (line 230)
-   - Implemented SVG `<animate>` on `stroke-dashoffset` attribute
-   - Filters connections: `Math.abs(current) > CURRENT_THRESHOLD` (1mA)
+
+- Implemented SVG `<animate>` on `stroke-dashoffset` attribute
+- Filters connections: `Math.abs(current) > CURRENT_THRESHOLD` (1mA)
 
 ✅ **Animation direction reflects current direction**
-   - Direction determined by current sign: `current >= 0 ? 1 : -1`
-   - SVG animate `from/to` values adjust based on direction
-   - Positive current: animates 0 → 12
-   - Negative current: animates 12 → 0
+
+- Direction determined by current sign: `current >= 0 ? 1 : -1`
+- SVG animate `from/to` values adjust based on direction
+- Positive current: animates 0 → 12
+- Negative current: animates 12 → 0
 
 ✅ **Animation speed proportional to current magnitude**
-   - Dynamic duration calculation: `baseDuration / Math.max(magnitude / 0.1, 0.5)`
-   - Higher current = faster animation (shorter duration)
-   - Minimum duration: 0.5s (prevents excessive speed)
+
+- Dynamic duration calculation: `baseDuration / Math.max(magnitude / 0.1, 0.5)`
+- Higher current = faster animation (shorter duration)
+- Minimum duration: 0.5s (prevents excessive speed)
 
 ✅ **Animation visual styling**
-   - Color: Yellow (#ffff00) - distinct from connection gray
-   - Stroke width: 3px - slightly thicker than 2px connections
-   - Opacity: 0.7 - semi-transparent
-   - Dash pattern: "8 4" - visible and pleasant
+
+- Color: Yellow (#ffff00) - distinct from connection gray
+- Stroke width: 3px - slightly thicker than 2px connections
+- Opacity: 0.7 - semi-transparent
+- Dash pattern: "8 4" - visible and pleasant
 
 ✅ **Current animation updates when simulation runs**
-   - Controller subscription: `controller.subscribe(setState)`
-   - useMemo dependencies: `[isEnabled, simulationResult, connections]`
-   - Automatic rerender on state changes
+
+- Controller subscription: `controller.subscribe(setState)`
+- useMemo dependencies: `[isEnabled, simulationResult, connections]`
+- Automatic rerender on state changes
 
 #### Error Overlay Requirements Met (lines 233-239)
 
 ✅ **Error badges positioned at component centroid** (line 238)
-   - Implements `getErrorPosition()` helper with centroid calculation
-   - Component-related errors: Uses component.positions centroid
-   - Position-based errors: Uses error.positions centroid
-   - Supports fractional coordinates via averaging
+
+- Implements `getErrorPosition()` helper with centroid calculation
+- Component-related errors: Uses component.positions centroid
+- Position-based errors: Uses error.positions centroid
+- Supports fractional coordinates via averaging
 
 ✅ **Type-specific icons and colors**
-   - Implements `getErrorVisuals()` helper mapping error types to visual properties
-   - Five error types supported with distinct colors and icons
-   - Consistent visual language (red = critical, orange = warning, yellow = caution)
+
+- Implements `getErrorVisuals()` helper mapping error types to visual properties
+- Five error types supported with distinct colors and icons
+- Consistent visual language (red = critical, orange = warning, yellow = caution)
 
 ✅ **Clickable badges with error details**
-   - Full click handler implementation
-   - Optional callback prop for custom handling
-   - Fallback behavior: Console log + alert dialog
-   - Alert includes all error details (type, message, explanation, suggestions)
+
+- Full click handler implementation
+- Optional callback prop for custom handling
+- Fallback behavior: Console log + alert dialog
+- Alert includes all error details (type, message, explanation, suggestions)
 
 ✅ **Error badges render when errors exist**
-   - Conditional rendering: `if (errorBadges.length === 0) return null`
-   - Gracefully degrades when no errors
+
+- Conditional rendering: `if (errorBadges.length === 0) return null`
+- Gracefully degrades when no errors
 
 #### Changes Summary
 
 **New files:**
+
 - `src/ui-react/overlays/VoltageOverlay.tsx` (130 lines) - Voltage heatmap overlay
 - `src/ui-react/overlays/CurrentAnimation.tsx` (127 lines) - Current flow animation
 - `src/ui-react/overlays/ErrorOverlay.tsx` (189 lines) - Clickable error badges
 
 **Modified files:**
+
 - `src/ui-controller/types.ts` - Added `showVoltageOverlay`, `showCurrentAnimation` state fields and action types (4 additions)
 - `src/ui-controller/index.ts` - Initialized overlay state fields to false (2 additions)
 - `src/ui-controller/breadboard-controller.ts` - Implemented action handlers for overlay toggles (18 additions)
@@ -1842,6 +1976,7 @@ This PR fully implements **Milestone 6 — Overlays and explain panel parity** f
 **Total changes:** 505 additions, 0 deletions, 8 files changed
 
 **Files NOT changed (as intended):**
+
 - All simulation logic preserved (`src/core/**`)
 - All component library preserved (`src/library/**`)
 - All PixiJS rendering preserved (`src/ui/**`)
@@ -1852,6 +1987,7 @@ This PR fully implements **Milestone 6 — Overlays and explain panel parity** f
 #### Implementation Details
 
 **Voltage overlay architecture:**
+
 ```typescript
 // Circuit node structure provides position-to-voltage mapping
 for (const [nodeId, node] of circuit.nodes.entries()) {
@@ -1872,6 +2008,7 @@ for (const [nodeId, node] of circuit.nodes.entries()) {
 ```
 
 **Current animation architecture:**
+
 ```typescript
 // SVG animate element provides declarative animation
 <line stroke="#ffff00" strokeDasharray="8 4">
@@ -1886,6 +2023,7 @@ for (const [nodeId, node] of circuit.nodes.entries()) {
 ```
 
 **Error badge architecture:**
+
 ```typescript
 // Centroid calculation supports fractional coordinates
 const sumRow = positions.reduce((sum, pos) => sum + pos.row, 0);
@@ -1900,12 +2038,14 @@ const pixels = positionToPixels(centroid);
 ```
 
 **Layer z-order rationale:**
+
 - **Voltage overlay below connections:** Connections need to be visible over voltage colors
 - **Current animation above connections:** Animated overlay must be visible on top of static connections
 - **Error overlay as top layer:** Errors must be visible above all other elements for maximum visibility and clickability
 - All overlays use `pointerEvents: 'none'` except ErrorOverlay for click handling
 
 **Performance considerations:**
+
 - All overlays use `useMemo` to prevent unnecessary recalculations
 - Voltage overlay: Memoizes position-to-voltage map
 - Current animation: Filters and maps connections only when simulation changes
@@ -1914,6 +2054,7 @@ const pixels = positionToPixels(centroid);
 
 **Graceful degradation strategy:**
 All three overlays implement consistent degradation pattern:
+
 ```typescript
 if (!isEnabled || !simulationResult || !simulationResult.success) {
   return null;
@@ -1921,6 +2062,7 @@ if (!isEnabled || !simulationResult || !simulationResult.success) {
 ```
 
 This ensures:
+
 - No render errors when simulation data missing
 - Clean UI when overlays disabled
 - Automatic recovery when simulation completes
@@ -1930,6 +2072,7 @@ This ensures:
 **Access:** Navigate to `http://localhost:5173/?react=true`
 
 **Functionality verified:**
+
 - ✅ V key toggles voltage overlay on/off
 - ✅ Voltage overlay renders colored circles at connected holes
 - ✅ Voltage colors reflect actual node voltages from simulation
@@ -1949,27 +2092,32 @@ This ensures:
 #### Notes on Review Requirements
 
 **Milestone 6 acceptance criteria (lines 342-350):**
+
 - ✅ Voltage overlay matches simulation node voltages (line 346)
 - ✅ Current animation reflects edgeCurrents direction/magnitude (line 347)
 - ✅ Error badges clickable → explain panel (line 350)
 
 **Voltage overlay implementation (lines 219-224):**
+
 - ✅ MVP overlay chosen: Per-hole colored halo (line 222)
 - 📝 "Better overlay" (per-net region shading) deferred as future enhancement
 - ✅ Implementation uses circuit node structure for accurate net mapping
 
 **Current animation implementation (lines 225-232):**
+
 - ✅ Simple MVP chosen: Animate stroke dash offset (line 230)
 - 📝 "Better" implementation (particles with requestAnimationFrame) deferred as future enhancement
 - ✅ SVG `<animate>` provides smooth browser-native animation without JavaScript loop
 
 **Error overlay implementation (lines 233-239):**
+
 - ✅ Error badges positioned at component centroids
 - ✅ Fractional coordinate support enables accurate positioning
 - ✅ Click handler with fallback alert provides explain functionality
 - 📝 Proper modal/toast notification system marked as TODO for future enhancement
 
 **Layer ordering (review guidance):**
+
 - ✅ Follows architectural principle: overlays render as separate layers
 - ✅ Z-order ensures visibility and interactivity (voltage < connections < current < components < errors)
 - ✅ All overlays gracefully degrade when simulation data unavailable
@@ -1977,6 +2125,7 @@ This ensures:
 #### Next Steps Enabled
 
 This milestone completes the overlay visualization functionality:
+
 - **Milestone 7**: All React UI feature parity achieved; PixiJS removal unblocked
 - **Post-migration enhancements:**
   - "Better" voltage overlay: Per-net region shading with alpha blending
@@ -1984,11 +2133,13 @@ This milestone completes the overlay visualization functionality:
   - Error explain panel: Modal/toast notification system to replace alert()
 
 ### PR #507: Remove PixiJS and legacy rendering infrastructure (Milestone 7)
+
 **Merged:** 2026-01-09  
 **Issue:** #506  
 **Queue artefact:** `planning/issue_queue/processed/review-remove-pixijs-milestone-7-cleanup.md`
 
 #### Review Items Addressed
+
 This PR fully implements **Milestone 7 — Remove PixiJS** from the source review (lines 351-364).
 
 **Milestone status:** Complete (final cleanup milestone; 7 of 7 milestones complete, 100% migration complete)
@@ -2022,12 +2173,13 @@ This PR fully implements **Milestone 7 — Remove PixiJS** from the source revie
    - ✅ Removed dynamic import of `./main-legacy`
    - ✅ React UI now always loads (no query parameter required)
    - ✅ Simplified implementation:
+
      ```typescript
      // After (lines 1-14):
      import { StrictMode } from 'react';
      import { createRoot } from 'react-dom/client';
      import App from './ui-react/App';
-     
+
      const rootElement = document.getElementById('app');
      if (rootElement) {
        createRoot(rootElement).render(
@@ -2037,6 +2189,7 @@ This PR fully implements **Milestone 7 — Remove PixiJS** from the source revie
        );
      }
      ```
+
    - Verification: Application always loads React UI; no query parameters checked
 
 5. **Remove pixi.js from dependencies** (line 358)
@@ -2044,7 +2197,7 @@ This PR fully implements **Milestone 7 — Remove PixiJS** from the source revie
    - ✅ Updated `package-lock.json` (9 transitive packages removed)
    - ✅ Build verified to succeed without PixiJS
    - ✅ Dev server verified to work without PixiJS
-   - Verification: 
+   - Verification:
      - `pixi.js` not present in `package.json`
      - `pixi.js` not present in `package-lock.json`
      - `npm run build` succeeds
@@ -2072,27 +2225,32 @@ This PR fully implements **Milestone 7 — Remove PixiJS** from the source revie
 #### Acceptance Criteria Met (lines 361-364)
 
 ✅ **`npm run build` succeeds** (line 362)
-   - Build completes successfully without PixiJS
-   - Bundle size reduced significantly (see below)
+
+- Build completes successfully without PixiJS
+- Bundle size reduced significantly (see below)
 
 ✅ **All unit tests pass** (line 363)
-   - Test result: 438/439 pass
-   - 1 pre-existing failure unrelated to PR changes
-   - No regressions introduced by PixiJS removal
+
+- Test result: 438/439 pass
+- 1 pre-existing failure unrelated to PR changes
+- No regressions introduced by PixiJS removal
 
 ✅ **Visual regression suite updated and passing** (line 364)
-   - Playwright helpers updated for SVG selectors
-   - Test infrastructure ready for baseline updates
-   - Note: Baselines require update in CI with browser installed (noted in PR)
+
+- Playwright helpers updated for SVG selectors
+- Test infrastructure ready for baseline updates
+- Note: Baselines require update in CI with browser installed (noted in PR)
 
 #### Bundle Size Impact
 
 **Significant bundle size reduction achieved:**
+
 - Before: ~744 KB (with PixiJS)
 - After: 343.86 KB (without PixiJS)
 - **Reduction: -53.8%** (~400 KB saved)
 
 This confirms removal of `pixi.js` and 9 transitive packages:
+
 - Main PixiJS library removed
 - WebGL and canvas rendering dependencies removed
 - Unused graphics utilities removed
@@ -2100,11 +2258,13 @@ This confirms removal of `pixi.js` and 9 transitive packages:
 #### Architecture Impact
 
 **Controller layer remains renderer-agnostic:**
+
 - `ui-controller/` directory unchanged (no dependencies on rendering technology)
 - State management, actions, and selectors work with any UI implementation
 - Simulation orchestration independent of presentation layer
 
 **React/SVG is now the sole presentation layer:**
+
 - `ui-react/` directory is the only UI implementation
 - All rendering uses React DOM and SVG (no canvas, no WebGL)
 - Feature flag removed; React UI always loads
@@ -2113,6 +2273,7 @@ This confirms removal of `pixi.js` and 9 transitive packages:
 #### Changes Summary
 
 **Deleted files and directories:**
+
 - `src/ui/` (entire directory with all PixiJS rendering code)
   - `pixi-renderer.ts`
   - `breadboard-app.ts`
@@ -2122,6 +2283,7 @@ This confirms removal of `pixi.js` and 9 transitive packages:
 - **Total deletion: ~13,262 lines**
 
 **Modified files:**
+
 - `src/main.tsx` - Removed feature flag logic; simplified to always load React app
 - `package.json` - Removed `pixi.js` dependency
 - `package-lock.json` - Updated to remove PixiJS and transitive dependencies
@@ -2130,6 +2292,7 @@ This confirms removal of `pixi.js` and 9 transitive packages:
 - Test comments - Updated to reflect React/SVG approach
 
 **Files NOT changed (as intended):**
+
 - All simulation logic preserved (`src/core/**`)
 - All component library preserved (`src/library/**`)
 - No changes to React UI implementation (`src/ui-react/**`)
@@ -2139,17 +2302,20 @@ This confirms removal of `pixi.js` and 9 transitive packages:
 #### Verification
 
 **Build verification:**
+
 - ✅ `npm run build` succeeds
 - ✅ Bundle size reduced by 53.8% (400 KB)
 - ✅ No PixiJS references in build output
 - ✅ Production build verified functional
 
 **Test verification:**
+
 - ✅ Unit tests: 438/439 pass (1 pre-existing failure)
 - ✅ No test regressions from PixiJS removal
 - ✅ Test infrastructure updated for React/SVG
 
 **Code verification:**
+
 - ✅ `src/ui/` directory deleted
 - ✅ `src/main-legacy.ts` deleted
 - ✅ No PixiJS imports remain in source code
@@ -2157,6 +2323,7 @@ This confirms removal of `pixi.js` and 9 transitive packages:
 - ✅ `pixi.js` removed from dependencies
 
 **Application verification:**
+
 - ✅ Application loads at `http://localhost:5173/` (no query parameter needed)
 - ✅ React UI is the only UI (no feature flag)
 - ✅ All features functional (verified in Milestones 0-6)
@@ -2165,6 +2332,7 @@ This confirms removal of `pixi.js` and 9 transitive packages:
 #### Migration Completion
 
 **All seven milestones complete:**
+
 - ✅ Milestone 0: React infrastructure with feature flag
 - ✅ Milestone 1: Renderer-agnostic controller
 - ✅ Milestone 2: SVG breadboard substrate
@@ -2177,6 +2345,7 @@ This confirms removal of `pixi.js` and 9 transitive packages:
 **Feature parity: 100%**
 
 The React UI now provides all functionality previously available in the PixiJS UI:
+
 - Breadboard substrate with interactive holes and hole highlighting
 - Component rendering with drag/drop, rotate, and delete operations
 - Interactive connection creation with one-connector-per-hole constraint
@@ -2187,6 +2356,7 @@ The React UI now provides all functionality previously available in the PixiJS U
 - Pan and zoom controls
 
 **Migration benefits:**
+
 - 53.8% bundle size reduction (better performance and load times)
 - Simplified codebase (single UI implementation)
 - DOM-based rendering (inspectable, testable, accessible)
@@ -2201,8 +2371,9 @@ The React UI now provides all functionality previously available in the PixiJS U
 **Status:** ✅ 7 of 7 milestones complete (100%)
 
 The PixiJS to React/SVG migration is now complete. All review items from lines 290-364 have been addressed across seven PRs:
+
 1. PR #465: Milestone 0 — React infrastructure
-2. PR #471: Milestone 1 — Controller extraction  
+2. PR #471: Milestone 1 — Controller extraction
 3. PR #477: Milestone 2 — SVG breadboard substrate
 4. PR #483: Milestone 3 — Component rendering
 5. PR #489: Milestone 4 — Rete graph layer
@@ -2217,7 +2388,7 @@ The PixiJS to React/SVG migration is now complete. All review items from lines 2
 - **Clean foundation:** React infrastructure (Milestone 0), controller layer (Milestone 1), breadboard substrate (Milestone 2), component rendering (Milestone 3), Rete graph layer (Milestone 4), interactive wiring (Milestone 5), and visualization overlays (Milestone 6) provided complete feature parity before cleanup
 - **Migration complete:** All 7 of 7 milestones complete; PixiJS fully removed; React/SVG is the sole rendering implementation
 - **Test coverage:** 34 comprehensive controller tests ensure state management correctness without UI dependencies (25 tests from Milestones 0-4, plus 9 connection tests from Milestone 5); final PR reports 438/439 unit tests passing
-- **Performance validation:** 
+- **Performance validation:**
   - SVG rendering strategy successfully handles 420 holes with efficient interaction (symbol reuse, single event surface, memoization)
   - Component rendering uses React.memo optimization
   - Coordinate transformations use efficient SVG CTM inverse method
@@ -2242,6 +2413,7 @@ The PixiJS to React/SVG migration is now complete. All review items from lines 2
 **All milestones complete. Migration successful.**
 
 Post-migration enhancements (not blocking, future work):
+
 1. Better voltage overlay (per-net region shading instead of per-hole circles)
 2. Better current animation (particle system with requestAnimationFrame instead of stroke dash)
 3. Error explain panel (modal/toast notification system instead of alert())

@@ -1,10 +1,22 @@
 import React from 'react';
 import type { BreadboardController } from '@/ui-controller';
 import { useControllerState } from '@/ui-react/hooks/useControllerState';
-import { ComponentType, type AnyComponent, type Resistor, type LED, type PowerSupply, type Wire, type Switch } from '@/core/types';
+import {
+  ComponentType,
+  type AnyComponent,
+  type Resistor,
+  type LED,
+  type PowerSupply,
+  type Wire,
+  type Switch,
+} from '@/core/types';
 import { Box, Button, Input, Select, Text } from 'theme-ui';
 
-import type { ConnectionAppearance, ConnectionEndpointOrientation, ConnectionStyle } from '@/ui-controller/types';
+import type {
+  ConnectionAppearance,
+  ConnectionEndpointOrientation,
+  ConnectionStyle,
+} from '@/ui-controller/types';
 
 export interface InfoPanelProps {
   controller: BreadboardController;
@@ -33,11 +45,13 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
   const debugOverlaysOn = Boolean(state.ui.showDebugOverlays);
 
   const selectedConnectionId = state.connections.selectedConnectionId;
-  const selectedConnectionAppearance: ConnectionAppearance | null =
-    selectedConnectionId ? state.connections.appearanceById[selectedConnectionId] ?? null : null;
+  const selectedConnectionAppearance: ConnectionAppearance | null = selectedConnectionId
+    ? (state.connections.appearanceById[selectedConnectionId] ?? null)
+    : null;
 
   const selected = state.breadboard.selectedComponentId
-    ? state.breadboard.components.find((c) => c.id === state.breadboard.selectedComponentId) ?? null
+    ? (state.breadboard.components.find((c) => c.id === state.breadboard.selectedComponentId) ??
+      null)
     : null;
 
   const showWireInspector = Boolean(selectedConnectionId);
@@ -60,7 +74,9 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
       </Text>
 
       <Box sx={{ mb: 3, pb: 3, borderBottom: '1px solid', borderBottomColor: 'border' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}
+        >
           <Text sx={{ fontSize: 1, color: 'secondaryText' }}>Debug overlays</Text>
           <Button
             onClick={() => controller.dispatch({ type: 'DEBUG_OVERLAYS_TOGGLED' })}
@@ -81,20 +97,17 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
             {debugOverlaysOn ? 'On' : 'Off'}
           </Button>
         </Box>
-        <Text sx={{ mt: 2, fontSize: 0, color: 'secondaryText' }}>
-          Shortcut: Ctrl+Shift+D
-        </Text>
+        <Text sx={{ mt: 2, fontSize: 0, color: 'secondaryText' }}>Shortcut: Ctrl+Shift+D</Text>
       </Box>
 
       {showWireInspector ? (
         (() => {
           const id = selectedConnectionId!;
-          const appearance: ConnectionAppearance =
-            selectedConnectionAppearance ?? {
-              style: 'curved',
-              color: '#3b82f6',
-              curved: { startOrientation: 'auto', endOrientation: 'auto' },
-            };
+          const appearance: ConnectionAppearance = selectedConnectionAppearance ?? {
+            style: 'curved',
+            color: '#3b82f6',
+            curved: { startOrientation: 'auto', endOrientation: 'auto' },
+          };
 
           const setStyle = (style: ConnectionStyle) =>
             controller.dispatch({
@@ -110,11 +123,16 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
               appearance: { color },
             });
 
-          const setEndpoint = (endpoint: 'startOrientation' | 'endOrientation', value: ConnectionEndpointOrientation) =>
+          const setEndpoint = (
+            endpoint: 'startOrientation' | 'endOrientation',
+            value: ConnectionEndpointOrientation
+          ) =>
             controller.dispatch({
               type: 'CONNECTION_APPEARANCE_UPDATED',
               connectionId: id,
-              appearance: { curved: { [endpoint]: value } as Partial<ConnectionAppearance['curved']> },
+              appearance: {
+                curved: { [endpoint]: value } as Partial<ConnectionAppearance['curved']>,
+              },
             });
 
           return (
@@ -133,7 +151,14 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
                 >
                   Selected
                 </Text>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 2,
+                  }}
+                >
                   <Text sx={{ fontSize: 3, color: 'text', fontWeight: 600 }}>Wire</Text>
                   <Button
                     onClick={() =>
@@ -153,7 +178,10 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
                       fontSize: 0,
                       cursor: 'pointer',
                       ':hover': { bg: 'hoverBg' },
-                      ':active': { bg: 'rgba(239, 68, 68, 0.25)', borderColor: 'rgba(239, 68, 68, 0.7)' },
+                      ':active': {
+                        bg: 'rgba(239, 68, 68, 0.25)',
+                        borderColor: 'rgba(239, 68, 68, 0.7)',
+                      },
                     }}
                   >
                     Delete
@@ -272,7 +300,10 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
                         <Select
                           value={appearance.curved.startOrientation}
                           onChange={(e) =>
-                            setEndpoint('startOrientation', e.target.value as ConnectionEndpointOrientation)
+                            setEndpoint(
+                              'startOrientation',
+                              e.target.value as ConnectionEndpointOrientation
+                            )
                           }
                           sx={{
                             width: '100%',
@@ -297,7 +328,10 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
                         <Select
                           value={appearance.curved.endOrientation}
                           onChange={(e) =>
-                            setEndpoint('endOrientation', e.target.value as ConnectionEndpointOrientation)
+                            setEndpoint(
+                              'endOrientation',
+                              e.target.value as ConnectionEndpointOrientation
+                            )
                           }
                           sx={{
                             width: '100%',
@@ -318,7 +352,16 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
                       </Box>
                     </Box>
 
-                    <Box sx={{ mt: 2, p: 2, bg: 'panelBg', borderRadius: 4, fontSize: 0, color: 'secondaryText' }}>
+                    <Box
+                      sx={{
+                        mt: 2,
+                        p: 2,
+                        bg: 'panelBg',
+                        borderRadius: 4,
+                        fontSize: 0,
+                        color: 'secondaryText',
+                      }}
+                    >
                       Tip: Shift-click a wire to add a reroute point. Click normally to select.
                     </Box>
                   </Box>

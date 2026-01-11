@@ -44,6 +44,7 @@ const USE_RETE_INTERACTIVE = false; // Default off for staged rollout
 ```
 
 This flag:
+
 - Enables/disables interactive connection features independently from `USE_RETE` (data extraction)
 - Allows testing and validation before production deployment
 - Provides rollback mechanism if issues are discovered
@@ -56,6 +57,7 @@ This flag:
 New event handling infrastructure:
 
 **Handler Registration Methods:**
+
 ```typescript
 onConnectionCreated(handler: ConnectionEventHandler): void
 onConnectionRemoved(handler: ConnectionEventHandler): void
@@ -63,6 +65,7 @@ setConnectionValidator(validator: (connection: Connection) => ConnectionValidati
 ```
 
 **Event Pipeline:**
+
 ```typescript
 setupConnectionHandlers(): void
 ```
@@ -73,6 +76,7 @@ setupConnectionHandlers(): void
 - Rejects invalid connections with reason messages
 
 **Key Types:**
+
 ```typescript
 export type ConnectionEventHandler = (connection: Connection) => void | Promise<void>;
 
@@ -92,17 +96,20 @@ export type Connection = ClassicPreset.Connection<
 **Implementation: `validateOneConnectorPerHole()`**
 
 Core constraint enforcement:
+
 - Checks if a hole already has a connection before allowing new one
 - Returns `{ valid: false, reason: "Hole at (row, col) is already occupied" }` if occupied
 - Prevents multiple connections to same hole at interaction time
 - Validates regardless of connection direction (hole→component or component→hole)
 
 **Helper Method:**
+
 ```typescript
 isHoleOccupied(pos: Position): boolean
 ```
 
 Provides efficient lookup for UI rendering:
+
 - Checks if a breadboard hole has any connections
 - Used for visual state indication (occupied vs empty)
 - O(n) complexity where n = number of connections
@@ -112,6 +119,7 @@ Provides efficient lookup for UI rendering:
 **Implementation: `createFloatingComponent()`**
 
 New workflow support:
+
 ```typescript
 async createFloatingComponent(
   componentId: string,
@@ -130,6 +138,7 @@ async createFloatingComponent(
 **Implementation: `createConnection()`**
 
 Controlled connection API:
+
 ```typescript
 async createConnection(
   sourceNodeId: NodeId,
@@ -149,6 +158,7 @@ async createConnection(
 **Implementation: `src/ui/breadboard-app.ts`**
 
 New initialization flow:
+
 ```typescript
 private setupReteInteractiveHandlers(): void
 ```
@@ -159,6 +169,7 @@ private setupReteInteractiveHandlers(): void
 - Placeholder for full BreadboardState sync (Phase 3b)
 
 **Current Behavior (Logging Only):**
+
 - Connection events are logged but not yet synced to BreadboardState
 - Full sync implementation deferred to Phase 3b to avoid complexity
 - Maintains backward compatibility with existing two-click placement
@@ -190,6 +201,7 @@ Duration:   ~10.3 seconds
 ```
 
 **Coverage:**
+
 - Handler registration (smoke tests)
 - Validation logic (one-connector-per-hole)
 - Occupancy detection
@@ -197,6 +209,7 @@ Duration:   ~10.3 seconds
 - Validator registration
 
 **Not Yet Tested:**
+
 - Event handler invocation (requires UI interaction simulation)
 - Connection rejection flow (requires Rete event system)
 - BreadboardState sync (deferred to Phase 3b)
@@ -283,16 +296,19 @@ ReteManager.createConnection()
 ```typescript
 onConnectionCreated(handler: ConnectionEventHandler): void
 ```
+
 Registers callback for connection creation events.
 
 ```typescript
 onConnectionRemoved(handler: ConnectionEventHandler): void
 ```
+
 Registers callback for connection removal events.
 
 ```typescript
 setConnectionValidator(validator: (connection: Connection) => ConnectionValidation): void
 ```
+
 Registers validation function that runs before connections are added.
 
 #### Validation
@@ -300,11 +316,13 @@ Registers validation function that runs before connections are added.
 ```typescript
 validateOneConnectorPerHole(connection: Connection): ConnectionValidation
 ```
+
 Validates that a hole doesn't already have a connection.
 
 ```typescript
 isHoleOccupied(pos: Position): boolean
 ```
+
 Checks if a breadboard hole is currently connected.
 
 #### Component Management
@@ -316,6 +334,7 @@ async createFloatingComponent(
   position: { x: number; y: number }
 ): Promise<ComponentNode>
 ```
+
 Creates a floating component node (not grid-constrained).
 
 #### Connection Management
@@ -328,6 +347,7 @@ async createConnection(
   targetSocket: string
 ): Promise<boolean>
 ```
+
 Programmatically creates a validated connection.
 
 ---
@@ -339,12 +359,14 @@ Programmatically creates a validated connection.
 **Decision:** Separate `USE_RETE_INTERACTIVE` flag from `USE_RETE`
 
 **Rationale:**
+
 - `USE_RETE` controls data extraction (Phase 2 — already active)
 - `USE_RETE_INTERACTIVE` controls UI interaction (Phase 3 — not yet active)
 - Allows independent rollback if Phase 3 has issues
 - Supports hybrid operation during validation period
 
 **Implications:**
+
 - Users can test Phase 3 features without affecting production circuits
 - Staged rollout: internal → beta → production
 - Rollback procedure: set flag to `false`, restart app
@@ -354,12 +376,14 @@ Programmatically creates a validated connection.
 **Decision:** Run validation synchronously during connection creation, not after
 
 **Rationale:**
+
 - Prevents invalid connections from entering the graph
 - Provides immediate user feedback (Phase 3b will show visual rejection)
 - Avoids "undo" complexity for invalid connections
 - Matches Rete.js event pipeline model
 
 **Implications:**
+
 - Validation must be fast (< 16ms for 60fps)
 - Validator has access to full graph state for complex rules
 - Future validators can check socket type compatibility, circuit rules, etc.
@@ -369,12 +393,14 @@ Programmatically creates a validated connection.
 **Decision:** Use callback registration pattern instead of inheritance
 
 **Rationale:**
+
 - Follows JavaScript event listener conventions
 - Allows multiple consumers (e.g., UI feedback, state sync, analytics)
 - Easy to add/remove handlers dynamically
 - TypeScript-friendly (type-safe callbacks)
 
 **Implications:**
+
 - BreadboardApp owns handler logic, ReteManager is agnostic
 - Testable: can mock handlers in unit tests
 - Extensible: future phases can add more handlers
@@ -384,12 +410,14 @@ Programmatically creates a validated connection.
 **Decision:** Implement `isHoleOccupied()` as O(n) search, not cached state
 
 **Rationale:**
+
 - Simple, correct implementation
 - No cache invalidation complexity
 - Connection count typically small (< 100 in most circuits)
 - Can optimize later if profiling shows bottleneck
 
 **Implications:**
+
 - Acceptable for Phase 3a
 - May need optimization for large circuits (100+ connections)
 - Future: maintain `Set<Position>` of occupied holes
@@ -399,12 +427,14 @@ Programmatically creates a validated connection.
 **Decision:** Log connection events in Phase 3a, defer full sync to Phase 3b
 
 **Rationale:**
+
 - Phase 3a focuses on event infrastructure
 - Full sync requires BreadboardState schema changes
 - Avoids scope creep and reduces risk
 - Validates event pipeline works correctly
 
 **Implications:**
+
 - Connection events are observable but not yet actionable
 - Phase 3b will implement sync logic
 - Maintains backward compatibility during Phase 3a
@@ -461,6 +491,7 @@ Programmatically creates a validated connection.
 **Objective:** Make holes interactive and provide real-time connection feedback
 
 **Key Tasks:**
+
 1. Render BreadboardHoleNodes as interactive PixiJS sprites
 2. Implement hover states:
    - Empty hole: default appearance
@@ -478,6 +509,7 @@ Programmatically creates a validated connection.
 **Objective:** Implement floating component model from goal.md Section 5.3.1
 
 **Key Tasks:**
+
 1. Modify `selectComponentFromLibrary()`:
    - Create floating ComponentNode instead of setting placement mode
    - Position near cursor or in staging area
@@ -493,6 +525,7 @@ Programmatically creates a validated connection.
 **Objective:** Enable drag-from-leg-to-hole connection creation
 
 **Key Tasks:**
+
 1. Make component legs draggable connection sources
 2. Implement connection creation on drag release over valid hole
 3. Add connection deletion (select + Delete key)
@@ -506,6 +539,7 @@ Programmatically creates a validated connection.
 **Objective:** Validate, document, and deploy Phase 3
 
 **Key Tasks:**
+
 1. Add 20+ integration tests for Phase 3 features
 2. Update visual regression baselines
 3. Performance validation (60fps with 20+ components)
@@ -526,6 +560,7 @@ Programmatically creates a validated connection.
 **Impact:** High — visual glitches, event conflicts, performance issues
 
 **Mitigation:**
+
 - Rete container has `pointerEvents: 'none'` to avoid conflicts
 - Clear ownership: Rete for logic, PixiJS for rendering
 - Early prototype in Phase 3b to validate approach
@@ -539,6 +574,7 @@ Programmatically creates a validated connection.
 **Impact:** Medium — poor UX if laggy
 
 **Mitigation:**
+
 - Profile early (Phase 3b)
 - Optimize rendering pipeline (viewport culling, lazy updates)
 - Limit connection validation complexity
@@ -552,6 +588,7 @@ Programmatically creates a validated connection.
 **Impact:** High — user data loss
 
 **Mitigation:**
+
 - `USE_RETE_INTERACTIVE = false` by default
 - Backward compatibility maintained (two-click still works)
 - Circuit serializer supports both models
@@ -565,6 +602,7 @@ Programmatically creates a validated connection.
 **Impact:** Medium — users don't understand new workflow
 
 **Mitigation:**
+
 - In-app tutorial or tooltip
 - Clear visual feedback (Phase 3b)
 - User testing before production deployment
@@ -578,16 +616,19 @@ Programmatically creates a validated connection.
 ### Phase 3a Performance Characteristics
 
 **Connection Validation:**
+
 - `validateOneConnectorPerHole()`: O(n) where n = number of connections
 - Acceptable for typical circuits (< 100 connections)
 - Runs synchronously during connection creation
 
 **Occupancy Detection:**
+
 - `isHoleOccupied()`: O(n) where n = number of connections
 - Called per-hole during hover (Phase 3b)
 - May need optimization for large circuits
 
 **Future Optimizations:**
+
 - Maintain `Map<string, boolean>` of occupied holes
 - Update on connection create/remove
 - O(1) lookup instead of O(n)
@@ -622,6 +663,7 @@ Programmatically creates a validated connection.
 **Phase 3a successfully establishes the event handling and validation infrastructure** needed for interactive connection creation. The system is now ready for visual feedback integration (Phase 3b) and user-facing interaction (Phase 3c-3d).
 
 **Key Achievements:**
+
 - ✅ Feature flag system for safe rollback
 - ✅ Connection event handler API
 - ✅ One-connector-per-hole validation

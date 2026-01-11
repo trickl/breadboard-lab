@@ -98,7 +98,7 @@ npm run lint
 
 1. **Open Component Library**: Click the 📦 (Component Library) button to see available components
 2. **Select a Component**: Click on a component from the library (Wire, Resistor, LED, Switch, Power Supply, Ground, or Speaker)
-3. **Place Component Interactively**: 
+3. **Place Component Interactively**:
    - The selected component appears floating next to the breadboard
    - **Drag** the component body to position it (optional)
    - **Click a component leg** (highlighted in yellow), then **click a breadboard hole** to connect that leg
@@ -110,7 +110,7 @@ npm run lint
    - Visual indicator shows current state (orange = open, green = closed)
    - Circuit updates in real-time when switch state changes
 5. **View Circuit Info**: The right panel shows component count, circuit nodes, connections, and simulation status
-6. **Observe Visualization**: 
+6. **Observe Visualization**:
    - Voltage levels shown as color-coded overlays on breadboard holes (hover for exact values)
    - Current flow shown as animated blue particles moving along wires and components
    - Particle speed and density indicate current magnitude
@@ -133,11 +133,13 @@ The interactive placement workflow (goal.md Section 5.3.1) provides precise cont
 - **Flexibility**: Drag the component body to position it before making connections
 
 This workflow is especially helpful for:
+
 - Dense circuits with many components
 - Components with specific orientation requirements (LEDs, power supplies)
 - Learning which pin connects where (educational value)
 
 **Keyboard Shortcuts:**
+
 - **R** - Rotate selected component 90° clockwise
 - **X** - Toggle X-Ray Mode to reveal internal breadboard connectivity
 - **M** - Toggle audio on/off
@@ -151,6 +153,7 @@ This workflow is especially helpful for:
 ### Audio Output
 
 When audio is enabled and a speaker component is connected to a circuit:
+
 - **Frequency**: Derived from voltage across speaker terminals (0-5V maps to 200-2000Hz logarithmically)
 - **Amplitude**: Derived from current through speaker (0-20mA range)
 - **Real-time Updates**: Audio adjusts automatically when circuit values change
@@ -158,12 +161,14 @@ When audio is enabled and a speaker component is connected to a circuit:
 - **Smooth Transitions**: Parameter changes use 50ms ramp to avoid clicks and pops
 
 **Example circuits to try:**
+
 - Simple buzzer: Connect power supply → speaker → ground (constant tone)
 - Variable tone: Power supply → resistor → speaker → ground (change resistor value to change pitch)
 
 ### Clock Control (EDU-8 Microprocessor)
 
 When an EDU-8 microprocessor is on the breadboard, the Clock Control panel appears allowing you to:
+
 - **Step**: Execute one instruction at a time (Space key) to observe the fetch-decode-execute cycle
 - **Run**: Automatically execute instructions at adjustable frequencies (0.5-10 Hz)
 - **Pause**: Stop automatic execution while preserving CPU state
@@ -171,6 +176,7 @@ When an EDU-8 microprocessor is on the breadboard, the Clock Control panel appea
 - **Frequency Control**: Adjust clock speed with slider (lower for instruction-by-instruction learning, higher for observing program flow)
 
 The Clock Control UI makes computational electronics tangible by showing:
+
 - Real-time CPU state updates in the Explain panel (program counter, accumulator, flags)
 - Output changes reflected immediately on connected LEDs
 - The connection between software (instructions) and hardware (voltages)
@@ -182,6 +188,7 @@ See [docs/CLOCK_CONTROL_GUIDE.md](docs/CLOCK_CONTROL_GUIDE.md) for detailed docu
 ### Current Flow Animation
 
 When a circuit simulation succeeds, animated particles automatically appear showing:
+
 - **Direction**: Particles flow from higher voltage to lower voltage (positive to negative)
 - **Magnitude**: Faster/more particles = higher current
 - **Color coding**:
@@ -256,6 +263,7 @@ See [COMPONENT_LIBRARY.md](COMPONENT_LIBRARY.md) for detailed library documentat
 ## Contributing
 
 This is an educational project. Contributions are welcome! Please ensure:
+
 - Code is properly typed with TypeScript
 - Tests are added for new functionality
 - Code passes linting (npm run lint)

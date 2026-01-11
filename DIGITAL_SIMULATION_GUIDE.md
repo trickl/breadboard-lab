@@ -31,7 +31,13 @@ const circuit = {
     },
     {
       id: 'clkpwr',
-      component: { id: 'clkpwr', type: ComponentType.POWER_SUPPLY, voltage: 0, positions: [], rotation: 0 },
+      component: {
+        id: 'clkpwr',
+        type: ComponentType.POWER_SUPPLY,
+        voltage: 0,
+        positions: [],
+        rotation: 0,
+      },
       nodeA: 'clk',
       nodeB: 'gnd',
     },
@@ -89,6 +95,7 @@ for (let i = 0; i < 4; i++) {
 The EDU-8 is a simple educational 8-bit microprocessor designed for teaching digital logic and programming concepts.
 
 **Features**:
+
 - 8-bit accumulator
 - 4-bit program counter (16 instructions max)
 - 4-bit input and output ports (IN0-IN3, OUT0-OUT3)
@@ -97,19 +104,20 @@ The EDU-8 is a simple educational 8-bit microprocessor designed for teaching dig
 
 ### Instruction Set
 
-| Opcode | Mnemonic | Description | Example |
-|--------|----------|-------------|---------|
-| 0x0 | LDA imm4 | Load accumulator with immediate 4-bit value | LDA #5 |
-| 0x1 | ADD imm4 | Add immediate 4-bit value to accumulator | ADD #3 |
-| 0x2 | IN | Load accumulator from input port | IN |
-| 0x3 | OUT | Output accumulator to output port (lower 4 bits) | OUT |
-| 0x4 | JZ addr4 | Jump if zero flag set | JZ 10 |
-| 0x5 | JMP addr4 | Unconditional jump to address | JMP 0 |
-| 0xF | HALT | Stop execution | HALT |
+| Opcode | Mnemonic  | Description                                      | Example |
+| ------ | --------- | ------------------------------------------------ | ------- |
+| 0x0    | LDA imm4  | Load accumulator with immediate 4-bit value      | LDA #5  |
+| 0x1    | ADD imm4  | Add immediate 4-bit value to accumulator         | ADD #3  |
+| 0x2    | IN        | Load accumulator from input port                 | IN      |
+| 0x3    | OUT       | Output accumulator to output port (lower 4 bits) | OUT     |
+| 0x4    | JZ addr4  | Jump if zero flag set                            | JZ 10   |
+| 0x5    | JMP addr4 | Unconditional jump to address                    | JMP 0   |
+| 0xF    | HALT      | Stop execution                                   | HALT    |
 
 ### Preset Programs
 
 **Blink** - Toggles OUT0 on each cycle:
+
 ```
 0: LDA #1    ; Load 1
 1: OUT       ; Output (OUT0 = 1)
@@ -119,6 +127,7 @@ The EDU-8 is a simple educational 8-bit microprocessor designed for teaching dig
 ```
 
 **Counter** - Counts up 0-15:
+
 ```
 0: LDA #0    ; Start at 0
 1: OUT       ; Output current value
@@ -127,6 +136,7 @@ The EDU-8 is a simple educational 8-bit microprocessor designed for teaching dig
 ```
 
 **Echo** - Copies inputs to outputs:
+
 ```
 0: IN        ; Read inputs
 1: OUT       ; Write to outputs
@@ -134,6 +144,7 @@ The EDU-8 is a simple educational 8-bit microprocessor designed for teaching dig
 ```
 
 **Pattern** - Outputs alternating pattern (0xA, 0x5):
+
 ```
 0: LDA #10   ; Load 0xA
 1: OUT       ; Output
@@ -148,9 +159,9 @@ The EDU-8 is a simple educational 8-bit microprocessor designed for teaching dig
 
 ```typescript
 interface MixedSignalConfig {
-  enableDigitalSimulation: boolean;  // Enable digital simulation
-  clockNodeId?: string;              // Node ID of clock signal (required if digital enabled)
-  maxIterations?: number;            // Max convergence iterations (default: 10)
+  enableDigitalSimulation: boolean; // Enable digital simulation
+  clockNodeId?: string; // Node ID of clock signal (required if digital enabled)
+  maxIterations?: number; // Max convergence iterations (default: 10)
 }
 ```
 
@@ -161,13 +172,14 @@ simulate(
   circuit: Circuit,
   components: AnyComponent[],
   config: MixedSignalConfig
-): { 
-  result: MixedSignalResult; 
+): {
+  result: MixedSignalResult;
   updatedComponents: AnyComponent[];
 }
 ```
 
 **Returns**:
+
 - `result`: Simulation result with voltages, currents, errors, and digital state
 - `updatedComponents`: Updated component array with new digital component states
 
@@ -180,6 +192,7 @@ resetDigitalState(): void
 ```
 
 Resets all digital simulation state (edge detectors, event queue). Call this when:
+
 - Starting a new circuit
 - Resetting the microprocessor
 - Changing the circuit topology
@@ -261,7 +274,7 @@ Don't set `node.voltage` directly. Instead, update the power supply component's 
 circuit.nodes.get('clk').voltage = 5.0;
 
 // ✓ Right - DC solver respects power supply
-const clkPwr = circuit.edges.find(e => e.component.type === ComponentType.POWER_SUPPLY);
+const clkPwr = circuit.edges.find((e) => e.component.type === ComponentType.POWER_SUPPLY);
 clkPwr.component.voltage = 5.0;
 ```
 
@@ -312,6 +325,7 @@ if (!result.success) {
 **Problem**: Program counter stays at 0, instructions don't execute.
 
 **Solutions**:
+
 1. Ensure `enableDigitalSimulation: true` in config
 2. Provide valid `clockNodeId` in config
 3. Check that clock node has power supply driving it
@@ -323,6 +337,7 @@ if (!result.success) {
 **Problem**: Clock changes but no instruction executes.
 
 **Solutions**:
+
 1. Make sure clock transitions from low (< 0.8V) to high (> 2.0V)
 2. Ensure you're using the same `MixedSignalSimulator` instance (maintains edge detector state)
 3. Don't call `resetDigitalState()` between clock pulses
@@ -333,6 +348,7 @@ if (!result.success) {
 **Problem**: EDU-8 executes but outputs remain 0.
 
 **Solutions**:
+
 1. Check that program includes `OUT` instructions
 2. Verify program is loaded correctly with `loadProgram()`
 3. Confirm accumulator has non-zero value before `OUT`
@@ -341,12 +357,14 @@ if (!result.success) {
 ## Testing
 
 See `src/core/__tests__/` for comprehensive test examples:
+
 - `digital-signals.test.ts` - Signal conversion tests
 - `edge-detector.test.ts` - Edge detection tests
 - `digital-simulator.test.ts` - EDU-8 execution tests
 - `mixed-signal-simulator.test.ts` - Full integration tests
 
 Run tests:
+
 ```bash
 npm test                    # Run all tests
 npm test -- digital-        # Run only digital simulation tests

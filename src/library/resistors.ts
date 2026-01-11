@@ -20,7 +20,7 @@ function createResistorEntry(resistance: number, tolerance: number): ComponentLi
   const isHighPrecision = tolerance <= 2;
   const id = `resistor-${resistance}-${tolerance}pct`;
   const resistanceStr = formatResistance(resistance);
-  const toleranceStr = tolerance === 5 ? '5%' : tolerance === 1 ? '1%' : `${tolerance}%`;
+  const toleranceStr = formatTolerance(tolerance);
   const bandCount = isHighPrecision ? 5 : 4;
 
   return {
@@ -78,6 +78,17 @@ function formatResistance(ohms: number): string {
     return kiloOhms % 1 === 0 ? `${kiloOhms}kΩ` : `${kiloOhms.toFixed(1)}kΩ`;
   } else {
     return `${ohms}Ω`;
+  }
+}
+
+function formatTolerance(tolerance: number): string {
+  switch (tolerance) {
+    case 5:
+      return '5%';
+    case 1:
+      return '1%';
+    default:
+      return `${tolerance}%`;
   }
 }
 

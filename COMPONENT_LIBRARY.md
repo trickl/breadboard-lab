@@ -51,12 +51,14 @@ The system maintains 100% backward compatibility with existing circuits:
 ### Resistors (23 entries)
 
 **5% Tolerance (16 entries):**
+
 - E12 series: 100Ω, 120Ω, 150Ω, 180Ω, 220Ω, 270Ω, 330Ω, 390Ω, 470Ω, 560Ω, 680Ω, 820Ω, 1kΩ, 2.2kΩ, 4.7kΩ, 10kΩ
 - Package: Axial, 1/4W
 - Physical: 6.5mm body, 10mm lead spacing
 - Color code: 4-band
 
 **1% Tolerance (7 entries):**
+
 - Values: 100Ω, 220Ω, 470Ω, 1kΩ, 2.2kΩ, 4.7kΩ, 10kΩ
 - Package: Axial, 1/4W
 - Physical: Same as 5% tolerance
@@ -64,7 +66,7 @@ The system maintains 100% backward compatibility with existing circuits:
 
 ### LEDs (4 entries)
 
-1. **3mm Ultra-Bright Yellow LED** *(required by goal.md)*
+1. **3mm Ultra-Bright Yellow LED** _(required by goal.md)_
    - Forward voltage: 2.1V
    - Max current: 20mA
    - Package: T1 (3mm)
@@ -90,7 +92,8 @@ The system maintains 100% backward compatibility with existing circuits:
 
 ### Switches (1 entry)
 
-**SPST Toggle Switch** *(required by goal.md Section 12.2)*
+**SPST Toggle Switch** _(required by goal.md Section 12.2)_
+
 - Type: Single-pole single-throw (SPST)
 - Contact resistance: 0.01Ω (closed), 1GΩ (open)
 - Voltage rating: 250V AC
@@ -109,7 +112,8 @@ The system maintains 100% backward compatibility with existing circuits:
 
 ### Speaker (1 entry)
 
-**8Ω Breadboard Speaker Module** *(required by goal.md)*
+**8Ω Breadboard Speaker Module** _(required by goal.md)_
+
 - Impedance: 8Ω
 - Power rating: 0.5W
 - Frequency response: 300Hz-5kHz
@@ -140,7 +144,7 @@ import { componentLibrary } from '@/core/component-library';
 import { ALL_LIBRARY_ENTRIES } from '@/library';
 
 // Initialize library (typically at app startup)
-ALL_LIBRARY_ENTRIES.forEach(entry => {
+ALL_LIBRARY_ENTRIES.forEach((entry) => {
   componentLibrary.register(entry);
 });
 
@@ -190,7 +194,10 @@ import { ComponentType } from '@/core/types';
 const resistor: Resistor = {
   id: 'comp-1',
   type: ComponentType.RESISTOR,
-  positions: [{ row: 0, col: 2 }, { row: 0, col: 6 }],
+  positions: [
+    { row: 0, col: 2 },
+    { row: 0, col: 6 },
+  ],
   rotation: 0,
   resistance: 220,
   libraryId: 'resistor-220-5pct', // Links to library entry
@@ -209,12 +216,14 @@ const props = getComponentPropertiesFromLibrary(resistor);
 **Current:** Abstract type buttons (Wire, Resistor, LED, Power, Ground)
 
 **Future:** Component browser showing library entries
+
 - Display by category (passive, diode, power, etc.)
 - Show specifications (resistance, voltage, package size)
 - Search and filter capabilities
 - Visual previews
 
 **Integration approach:**
+
 - Replace component type buttons with "Browse Components" button
 - Create modal/panel with library entries
 - On selection, create component with `libraryId` set
@@ -224,11 +233,13 @@ const props = getComponentPropertiesFromLibrary(resistor);
 **Current:** Generic rendering based on component type
 
 **Future:** Library-aware rendering
+
 - Scale visuals based on package dimensions (3mm vs 5mm LEDs)
 - Use library tolerance for resistor color bands (4-band vs 5-band)
 - Display manufacturer info in tooltips
 
 **Integration approach:**
+
 - Update `ComponentRenderer` to check for `libraryId`
 - Look up library entry for rendering parameters
 - Fall back to component properties if no library entry
@@ -238,12 +249,14 @@ const props = getComponentPropertiesFromLibrary(resistor);
 **Current:** Editable numeric values (resistance, voltage)
 
 **Future:** Library-aware editing
+
 - Show part name and specifications
 - Display manufacturer/part number
 - Link to datasheet (future)
 - Option to switch to different library part
 
 **Integration approach:**
+
 - Update property editor to show library metadata
 - Add "Change Part" button to swap library entry
 - Update `libraryId` and electrical properties together
@@ -253,12 +266,14 @@ const props = getComponentPropertiesFromLibrary(resistor);
 **Current:** Shows component type and electrical properties
 
 **Future:** Enhanced with library metadata
+
 - Display part name and manufacturer
 - Show physical specifications
 - List typical uses
 - Educational context from library entry
 
 **Integration approach:**
+
 - Update explain panel content generation
 - Include library entry data when available
 - Maintain fallback to generic descriptions
@@ -268,11 +283,13 @@ const props = getComponentPropertiesFromLibrary(resistor);
 **Current:** Saves component type and electrical properties
 
 **Future:** Save library references
+
 - Include `libraryId` in serialized format
 - Library entry provides all specifications on load
 - Enables consistent behavior across saves
 
 **Integration approach:**
+
 - `libraryId` field already supported in serialization
 - No schema changes required
 - Backward compatible with old circuits
@@ -295,6 +312,7 @@ const props = getComponentPropertiesFromLibrary(resistor);
 ## Migration Strategy
 
 ### Phase 1: Foundation ✅ (This PR)
+
 - Data model and infrastructure
 - Library catalog with 35 real-world parts
 - Utility functions for lookups and mapping
@@ -302,17 +320,20 @@ const props = getComponentPropertiesFromLibrary(resistor);
 - 100% backward compatibility
 
 ### Phase 2: UI Integration (Future PR)
+
 - Component library browser modal
 - Update component selection workflow
 - Library-aware rendering
 - Update property editor and explain panel
 
 ### Phase 3: Migration Tools (Future PR)
+
 - Automatic migration of old circuits to library parts
 - Update example circuits
 - Conversion utilities for bulk updates
 
 ### Phase 4: Enhanced Features (Future)
+
 - User-defined custom components
 - Import/export library entries
 - Component marketplace/sharing
@@ -323,6 +344,7 @@ const props = getComponentPropertiesFromLibrary(resistor);
 ### 1. Minimal Changes
 
 This PR focuses on infrastructure without modifying existing UI/UX. This ensures:
+
 - Zero risk of breaking existing functionality
 - Clear separation of concerns
 - Easier code review
@@ -331,6 +353,7 @@ This PR focuses on infrastructure without modifying existing UI/UX. This ensures
 ### 2. Backward Compatibility
 
 The `libraryId` field is optional, allowing:
+
 - Old circuits to load and work perfectly
 - Gradual migration to library-based components
 - Coexistence of abstract and library components
@@ -339,6 +362,7 @@ The `libraryId` field is optional, allowing:
 ### 3. Catalog Scope
 
 Started with essential components as specified in goal.md:
+
 - 3mm yellow LED (explicitly required)
 - Standard resistors (explicitly required)
 - 8Ω speaker (explicitly required)
@@ -349,6 +373,7 @@ More components can be added incrementally without architectural changes.
 ### 4. Testing First
 
 Comprehensive tests ensure:
+
 - Library registry works correctly
 - Catalog is valid and complete
 - Utility functions behave as expected
@@ -389,6 +414,7 @@ Comprehensive tests ensure:
 ### Long-Term Vision
 
 Transform Breadboard Lab from an abstract circuit simulator into a **practical electronics education tool** that directly connects simulation to real-world prototyping. Students learn:
+
 - Which specific parts to purchase
 - How to read datasheets
 - Physical component characteristics
@@ -397,6 +423,7 @@ Transform Breadboard Lab from an abstract circuit simulator into a **practical e
 ## Questions and Support
 
 For questions about the component library system:
+
 - Review the test files for usage examples
 - See `src/library/` for component definitions
 - Check utility functions in `component-library-utils.ts`
@@ -412,6 +439,7 @@ To add new components to the library:
 5. Verify with `npm test -- --run library-catalog`
 
 Example:
+
 ```typescript
 {
   id: 'resistor-47k-5pct',
@@ -499,6 +527,7 @@ Educational virtual microprocessor for teaching computational electronics.
 ```
 
 **EDU-8 Architecture:**
+
 - **Accumulator:** 8-bit register for arithmetic and logic operations
 - **Program Counter:** 4-bit counter (0-15) pointing to current instruction
 - **ROM:** 16-byte program memory (programmable via property editor)
@@ -507,6 +536,7 @@ Educational virtual microprocessor for teaching computational electronics.
 - **Execution:** One instruction per rising clock edge
 
 **Instruction Set:**
+
 1. `LDA imm4` - Load accumulator with 4-bit immediate value
 2. `ADD imm4` - Add 4-bit immediate value to accumulator
 3. `IN` - Load accumulator from input port (IN0-3)
@@ -516,6 +546,7 @@ Educational virtual microprocessor for teaching computational electronics.
 7. `HALT` - Stop execution until reset
 
 **Example Programs:**
+
 - **Blink:** Toggle OUT0 on each clock cycle
 - **Counter:** Count up from 0-15 on outputs
 - **Echo:** Copy input port to output port
@@ -523,6 +554,7 @@ Educational virtual microprocessor for teaching computational electronics.
 
 **Educational Value:**
 The EDU-8 is intentionally simplified to be understandable by inspection. Students can:
+
 - See exact internal state in Explain panel (PC, instruction, accumulator, flags)
 - Step through programs one instruction at a time
 - Understand connection between software (program) and hardware (I/O pins)

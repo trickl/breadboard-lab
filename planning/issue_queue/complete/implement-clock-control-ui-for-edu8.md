@@ -9,7 +9,9 @@ Without clock control UI, the EDU-8 microprocessor is a hidden feature: it can b
 ## Gap Analysis
 
 **Long-term goal** (`planning/vision/goal.md`, lines 367-394):
+
 > "Simple microprocessor component — required"
+>
 > - Simulated internal behavior (not stubbed)
 > - Operates on a clock input and reset
 > - Scope is intentionally bounded to avoid general firmware emulation complexity
@@ -19,6 +21,7 @@ Without clock control UI, the EDU-8 microprocessor is a hidden feature: it can b
 The goal emphasizes that the microprocessor must "operate on a clock input" and produce observable, deterministic behavior. The educational value proposition requires students to see the fetch-decode-execute cycle in action.
 
 **Current state** (`planning/state/system_capabilities.md`, lines 86-159):
+
 - ✅ EDU-8 simulator fully implemented with 7 instructions, 4-bit I/O, accumulator, PC, zero flag
 - ✅ Clock-driven execution via `handleClockEdge()` method (one instruction per rising edge)
 - ✅ Digital simulation infrastructure (analog↔digital conversion, edge detection, mixed-signal coordination)
@@ -30,7 +33,9 @@ The goal emphasizes that the microprocessor must "operate on a clock input" and 
 - ❌ **No visual feedback for clock state** (students can't see if clock is high or low)
 
 From `planning/state/system_capabilities.md` lines 144-150:
+
 > "**Deferred Features** (require UI or additional architectural work):
+>
 > - ❌ Clock control UI (step button, run/pause, reset)
 > - ❌ Property editor UI for ROM programming
 > - ❌ Example circuits with clock generators
@@ -45,6 +50,7 @@ From `planning/state/system_capabilities.md` lines 144-150:
 ### Scope
 
 Create a clock control panel UI that enables students to:
+
 1. **Step**: Execute one clock cycle (low→high→low pulse) to run one instruction
 2. **Run**: Automatically execute clock pulses at configurable frequency (e.g., 1 Hz, 2 Hz, 5 Hz, 10 Hz)
 3. **Pause**: Stop automatic clock pulsing
@@ -54,12 +60,14 @@ Create a clock control panel UI that enables students to:
 ### Technical Approach
 
 **Phase 1: Clock Signal Abstraction**
+
 - Introduce `ClockController` class to manage clock state and pulsing logic
 - Abstract clock signal generation from power supply manipulation
 - Support both manual stepping (one pulse on demand) and automatic pulsing (periodic timer)
 - Maintain clock high/low state and expose it for UI visualization
 
 **Phase 2: UI Components**
+
 - Add clock control panel to left toolbar (below audio controls, above view switcher)
 - **Step button** (⏯ icon): Trigger single clock pulse when paused
 - **Run/Pause button** (▶️/⏸ icon): Start/stop automatic clock pulsing
@@ -69,18 +77,21 @@ Create a clock control panel UI that enables students to:
 - **Execution status text**: "Running at 2 Hz" / "Paused" / "Halted (program ended)"
 
 **Phase 3: Digital Simulation Integration**
+
 - Modify `MixedSignalSimulator` integration in `BreadboardApp` to accept clock pulses from `ClockController`
 - Update circuit on each clock pulse (step or automatic)
 - Re-run simulation and update overlays after each instruction execution
 - Display updated CPU state in Explain panel in real-time
 
 **Phase 4: Visual Feedback**
+
 - Highlight EDU-8 component during clock pulse (brief flash on instruction execution)
 - Animate clock state indicator (smooth transition between high/low)
 - Show instruction count and execution time in control panel
 - Disable step/run buttons when no EDU-8 component present
 
 **Phase 5: Example Circuit**
+
 - Create canonical example: "EDU-8 Blink Program"
   - EDU-8 microprocessor with Blink preset program loaded
   - OUT0 connected to LED through resistor
@@ -106,12 +117,14 @@ Create a clock control panel UI that enables students to:
 ### Educational Impact
 
 **Enables observational learning:**
+
 - Students can **step through programs instruction-by-instruction**, observing how PC increments, accumulator changes, and outputs update
 - Students can **see the fetch-decode-execute cycle** in slow motion (1 Hz clock makes each step visible)
 - Students can **experiment with different clock frequencies** to understand timing relationships
 - Students can **debug programs** by stepping through and inspecting state at each instruction
 
 **Demonstrates computational electronics:**
+
 - Clock-driven circuits become accessible (currently require programmatic API usage)
 - Sequential logic concepts (state machines, counters) become experimentally verifiable
 - Connection between software (instructions) and hardware (I/O pins) becomes tangible
@@ -119,6 +132,7 @@ Create a clock control panel UI that enables students to:
 
 **Unlocks preset programs:**
 The four preset programs (Blink, Counter, Echo, Pattern) become **usable** rather than just testable:
+
 - **Blink**: Toggle LED on/off each instruction → shows output control
 - **Counter**: Count 0-15 on output pins → shows arithmetic and display
 - **Echo**: Copy input switches to output LEDs → shows I/O interaction
@@ -129,11 +143,15 @@ The four preset programs (Blink, Counter, Echo, Pattern) become **usable** rathe
 This task directly implements deferred features identified in the EDU-8 implementation (PR #173):
 
 From `planning/state/system_capabilities.md` lines 144-150:
+
 > "**Deferred Features** (require UI or additional architectural work):
+>
 > - ❌ Clock control UI (step button, run/pause, reset) ← **THIS TASK**"
 
 The task also fulfills acceptance criteria from `planning/vision/goal.md` lines 391-394:
+
 > "Acceptance criteria:
+>
 > - [ ] A canonical program toggles outputs deterministically under a clock ← **Enabled by this UI**
 > - [ ] Reset produces a defined initial state ← **Reset button**
 > - [ ] Explain panel shows PC/opcode/output ← **Already implemented, made interactive by clock control**"
@@ -150,7 +168,7 @@ This is the most important next task because:
 
 4. **Explicitly required by goal**: The acceptance criteria state "a canonical program toggles outputs deterministically under a clock"—this requires manual clock control to demonstrate
 
-5. **High impact, low risk**: 
+5. **High impact, low risk**:
    - Digital simulation API is complete and tested (101 tests, 100% coverage)
    - UI integration is well-understood (similar to existing audio controls)
    - No new core algorithms required—only UI layer
@@ -182,13 +200,14 @@ These can be added incrementally after the foundational clock control exists.
 ### Step 1: ClockController Class
 
 Create `src/core/clock-controller.ts`:
+
 ```typescript
 export class ClockController {
   private clockState: boolean = false; // false = low, true = high
   private isRunning: boolean = false;
   private frequency: number = 1; // Hz
   private intervalId: number | null = null;
-  
+
   step(): void {
     // Execute one full clock pulse: low→high→low
     this.clockState = true;
@@ -198,14 +217,14 @@ export class ClockController {
       this.onClockChange?.(false);
     }, 50); // 50ms high pulse
   }
-  
+
   run(): void {
     if (this.isRunning) return;
     this.isRunning = true;
     const period = 1000 / this.frequency;
     this.intervalId = setInterval(() => this.step(), period);
   }
-  
+
   pause(): void {
     this.isRunning = false;
     if (this.intervalId !== null) {
@@ -213,13 +232,13 @@ export class ClockController {
       this.intervalId = null;
     }
   }
-  
+
   reset(): void {
     this.pause();
     this.clockState = false;
     this.onReset?.();
   }
-  
+
   setFrequency(hz: number): void {
     this.frequency = hz;
     if (this.isRunning) {
@@ -227,11 +246,11 @@ export class ClockController {
       this.run();
     }
   }
-  
+
   getState(): { clockState: boolean; isRunning: boolean; frequency: number } {
     return { clockState: this.clockState, isRunning: this.isRunning, frequency: this.frequency };
   }
-  
+
   onClockChange?: (state: boolean) => void;
   onReset?: () => void;
 }
@@ -240,16 +259,17 @@ export class ClockController {
 ### Step 2: UI Components
 
 Add to `src/ui/breadboard-app.ts`:
+
 ```typescript
 private renderClockControls(): void {
   const hasMicroprocessor = this.state.components.some(c => c.type === 'MICROPROCESSOR');
   const controlPanel = document.getElementById('clock-controls');
-  
+
   if (!hasMicroprocessor) {
     controlPanel.style.display = 'none';
     return;
   }
-  
+
   controlPanel.style.display = 'block';
   // Render step, run/pause, reset buttons
   // Render frequency selector
@@ -259,6 +279,7 @@ private renderClockControls(): void {
 ```
 
 Add to `index.html` and `style.css`:
+
 ```html
 <div id="clock-controls" class="clock-panel">
   <h3>Clock Control</h3>
@@ -270,7 +291,7 @@ Add to `index.html` and `style.css`:
   </div>
   <div class="clock-frequency">
     <label>Frequency: <span id="freq-value">1 Hz</span></label>
-    <input type="range" id="freq-slider" min="0.5" max="10" step="0.5" value="1">
+    <input type="range" id="freq-slider" min="0.5" max="10" step="0.5" value="1" />
   </div>
   <div class="clock-state">
     <span class="clock-indicator" id="clock-led"></span>
@@ -282,6 +303,7 @@ Add to `index.html` and `style.css`:
 ### Step 3: Integration with Digital Simulation
 
 Modify `BreadboardApp.handleClockPulse()`:
+
 ```typescript
 private handleClockPulse(clockHigh: boolean): void {
   // Find power supply controlling clock node
@@ -289,10 +311,10 @@ private handleClockPulse(clockHigh: boolean): void {
   if (clockEdge && clockEdge.component.type === 'POWER_SUPPLY') {
     clockEdge.component.voltage = clockHigh ? 5.0 : 0.0;
   }
-  
+
   // Re-extract and re-simulate
   this.extractAndSimulate();
-  
+
   // Update overlays and explain panel
   this.render();
 }
@@ -301,6 +323,7 @@ private handleClockPulse(clockHigh: boolean): void {
 ### Step 4: Example Circuit
 
 Create `src/examples/edu8-blink.json`:
+
 ```json
 {
   "components": [
@@ -337,6 +360,7 @@ Register in `src/examples/index.ts` and add to UI examples list.
 ## Estimated Effort
 
 3-4 days of focused development:
+
 - **Day 1**: Implement `ClockController` class with step/run/pause/reset logic; write unit tests
 - **Day 2**: Create clock control UI panel with buttons, frequency selector, state indicator; integrate with BreadboardApp
 - **Day 3**: Connect ClockController to digital simulation; update circuit on clock pulses; visual feedback (highlight, status text)
@@ -345,6 +369,7 @@ Register in `src/examples/index.ts` and add to UI examples list.
 ## Dependencies
 
 All required infrastructure already exists:
+
 - ✅ EDU-8 microprocessor with instruction execution (`src/core/edu8-simulator.ts`)
 - ✅ Digital simulation with clock edge detection (`src/core/digital-simulator.ts`, `src/core/mixed-signal-simulator.ts`)
 - ✅ Explain panel showing CPU state (`src/ui/explain-panel.ts`)
@@ -355,19 +380,24 @@ All required infrastructure already exists:
 ## Risks and Mitigations
 
 **Risk**: Clock pulsing interferes with other UI interactions (component placement, dragging)
-- *Mitigation*: Disable clock controls during active drag operations; pause clock when modal dialogs open
+
+- _Mitigation_: Disable clock controls during active drag operations; pause clock when modal dialogs open
 
 **Risk**: High-frequency clock (10 Hz) causes performance issues with re-rendering
-- *Mitigation*: Optimize render pipeline; batch updates; use requestAnimationFrame; provide performance warning for high frequencies
+
+- _Mitigation_: Optimize render pipeline; batch updates; use requestAnimationFrame; provide performance warning for high frequencies
 
 **Risk**: Students don't understand clock control metaphor (step/run/pause)
-- *Mitigation*: Add tooltips with clear explanations; include usage instructions in example circuit; provide educational documentation
+
+- _Mitigation_: Add tooltips with clear explanations; include usage instructions in example circuit; provide educational documentation
 
 **Risk**: Clock state indicator is not noticeable enough
-- *Mitigation*: Use bright green color when high; add animation/glow effect; position prominently in control panel
+
+- _Mitigation_: Use bright green color when high; add animation/glow effect; position prominently in control panel
 
 **Risk**: Reset button behavior is unclear (what state does it produce?)
-- *Mitigation*: Document reset behavior clearly; show confirmation message or undo option; reset to well-defined initial state (PC=0, A=0, Z=false)
+
+- _Mitigation_: Document reset behavior clearly; show confirmation message or undo option; reset to well-defined initial state (PC=0, A=0, Z=false)
 
 ## References
 
@@ -382,6 +412,7 @@ All required infrastructure already exists:
 ## Success Metrics
 
 After implementation:
+
 1. ✅ Students can place EDU-8 on breadboard and see clock control panel appear
 2. ✅ Clicking "Step" executes one instruction and updates CPU state visibly
 3. ✅ Clicking "Run" starts automatic execution with configurable frequency

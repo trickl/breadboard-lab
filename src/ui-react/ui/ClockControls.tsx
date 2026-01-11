@@ -35,7 +35,7 @@ export const ClockControls: React.FC<ClockControlsProps> = ({ controller }) => {
       const current = microRef.current;
       if (!current) return;
 
-      // TODO: Feed real digital input pin values; for now use 0.
+      // Future: Feed real digital input pin values; for now use 0.
       const nextState = handleClockEdge(current.state, level, 0);
       controller.dispatch({
         type: 'COMPONENT_PROPERTY_CHANGED',
@@ -80,7 +80,14 @@ export const ClockControls: React.FC<ClockControlsProps> = ({ controller }) => {
   return (
     <Box
       id="clock-controls"
-      sx={{ mt: 3, p: 3, bg: 'panelBg', borderRadius: 'sm', border: '1px solid', borderColor: 'border' }}
+      sx={{
+        mt: 3,
+        p: 3,
+        bg: 'panelBg',
+        borderRadius: 'sm',
+        border: '1px solid',
+        borderColor: 'border',
+      }}
     >
       <Text as="h3" sx={{ m: 0, mb: 2, fontSize: 2, color: 'text' }}>
         Clock Controls
@@ -154,7 +161,9 @@ export const ClockControls: React.FC<ClockControlsProps> = ({ controller }) => {
           <label htmlFor="freq-slider" sx={{ fontSize: 0, color: 'secondaryText' }}>
             Frequency
           </label>
-          <Text sx={{ fontSize: 0, color: 'text', fontWeight: 600 }}>{clockState.frequency.toFixed(1)} Hz</Text>
+          <Text sx={{ fontSize: 0, color: 'text', fontWeight: 600 }}>
+            {clockState.frequency.toFixed(1)} Hz
+          </Text>
         </Box>
         <Input
           id="freq-slider"

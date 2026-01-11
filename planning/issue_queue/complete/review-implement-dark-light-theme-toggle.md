@@ -1,6 +1,7 @@
 Implement dark/light theme toggle in top-right corner
 
 ## Source Review
+
 `planning/reviews/review-2026-01-08.md` - Section 10 (lines 194-198)
 
 ## Review Items Addressed
@@ -10,10 +11,12 @@ This task addresses **Section 10: Dark / Light Theme** from the review, which wa
 ### Original Critique (Section 10, lines 194-198)
 
 **Issue:**
+
 - ❌ "A dark/light theme toggle should be placed in the **top-right corner**"
 - ❌ "Use the existing React Light/Dark toggle component from your own NPM package"
 
 **Requirements:**
+
 1. Add theme toggle button positioned in top-right corner of the application
 2. Use existing React Light/Dark toggle component from the project's own NPM package
 3. Toggle should switch between dark and light themes
@@ -38,10 +41,12 @@ This is the **only remaining unaddressed item** from the Medium Priority Improve
 4. Check GitHub organization for related repositories containing UI component libraries
 
 If an existing package is found:
+
 - Install it as a dependency
 - Import and use the component as specified in the review
 
 If no existing package is found:
+
 - Document this finding
 - Ask the user for guidance on which package to use, or
 - Implement a simple, clean theme toggle component that matches the application's visual style
@@ -56,6 +61,7 @@ If no existing package is found:
 4. Position should be absolute or fixed in the top-right corner, clear of other UI elements
 
 **Visual requirements:**
+
 - Should be immediately visible and recognizable
 - Should not obstruct other UI elements
 - Should have appropriate spacing from edges (e.g., 16-24px margin)
@@ -83,7 +89,7 @@ If no existing package is found:
    - Panel/card backgrounds
    - Input/control colors
    - Selection/highlight colors
-   
+
    Ensure good contrast ratios for accessibility (WCAG AA minimum: 4.5:1 for text, 3:1 for UI components)
 
 4. **Toggle interaction:**
@@ -100,6 +106,7 @@ If no existing package is found:
 5. Handle missing/invalid localStorage values gracefully (fallback to default)
 
 **Code pattern:**
+
 ```typescript
 // On theme change
 localStorage.setItem('breadboard-theme', theme);
@@ -112,6 +119,7 @@ applyTheme(savedTheme);
 ### Step 5: Test theme toggle
 
 **Manual testing checklist:**
+
 - [ ] Theme toggle appears in top-right corner
 - [ ] Toggle is visible and accessible
 - [ ] Clicking toggle switches theme immediately
@@ -126,6 +134,7 @@ applyTheme(savedTheme);
 - [ ] Keyboard accessible (can be triggered with Enter/Space)
 
 **Accessibility considerations:**
+
 - Toggle should have appropriate ARIA labels
 - Keyboard navigation support
 - Focus indicators visible in both themes
@@ -134,6 +143,7 @@ applyTheme(savedTheme);
 ### Step 6: Update relevant documentation
 
 If documentation exists for UI components or user interface:
+
 - Document the theme toggle feature
 - Note that theme preference is saved to localStorage
 - Explain how to use the toggle
@@ -165,19 +175,14 @@ Based on existing codebase structure:
 
 1. **Do not change the logic of code unless it has been identified as a clear bug**
    - Theme toggle is additive functionality, not a bug fix
-   
 2. **Do not maintain legacy endpoints for backwards compatibility**
    - Not applicable (UI-only feature)
-   
 3. **Always delete any leftover, unused code**
    - Remove any temporary or test code used during development
-   
 4. **Do not leave comments on changes made within the code**
    - Code should be self-documenting; use clear variable/function names
-   
 5. **Do not rewrite functions from scratch during refactors**
    - Not applicable (new feature, not refactor)
-   
 6. **Ensure all tests and linting pass after each change**
    - Run existing test suite to ensure no regressions
    - Run linter and fix any issues
@@ -185,6 +190,7 @@ Based on existing codebase structure:
 ## Success Criteria
 
 ✅ Task is complete when:
+
 1. Theme toggle button is visible in top-right corner
 2. Clicking toggle switches between dark and light themes
 3. All UI elements are readable and functional in both themes
@@ -210,10 +216,12 @@ Based on existing codebase structure:
 This task completes the review coverage:
 
 **Section 10: Dark / Light Theme (lines 194-198)** ← THIS TASK
+
 - Add theme toggle in top-right corner
 - Use existing React Light/Dark toggle component from NPM package
 
 **Section 12: Priority Summary - Medium Priority Improvements (lines 228-231)**
+
 - ✅ Breadboard visual realism (PR #327)
 - ✅ Hole sizing vs hit area (PR #327)
 - ⏸️ Dark/light theme toggle (THIS TASK)

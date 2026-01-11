@@ -8,7 +8,8 @@ Breadboard Lab supports two-click component placement and value editing, but com
 
 **Long-term goal**: Best-in-class breadboard UI with drag/drop, rotate, snap-to-grid interaction model that feels like working with a real breadboard (planning/vision/goal.md, lines 47-49, 230-254, 342-356).
 
-**Current state**: 
+**Current state**:
+
 - Component placement works via two-click interaction (click first hole, click second hole)
 - Components render visually with selection support (planning/state/system_capabilities.md, lines 89-107)
 - Component values can be edited via property editor (planning/state/system_capabilities.md, lines 117-151)
@@ -25,6 +26,7 @@ Breadboard Lab supports two-click component placement and value editing, but com
 ### Scope
 
 Create an interaction system that allows users to:
+
 1. Select a placed component (already implemented)
 2. Drag the selected component to a new position
 3. See a ghost preview during drag showing new position
@@ -36,6 +38,7 @@ Create an interaction system that allows users to:
 ### Technical Approach
 
 **Interaction flow** (per planning/vision/goal.md, lines 342-356):
+
 ```
 IDLE → [pointer down on component] → COMPONENT_SELECTED
 COMPONENT_SELECTED → [drag] → COMPONENT_DRAGGING
@@ -44,6 +47,7 @@ COMPONENT_DRAGGING → [Escape key] → IDLE (cancel)
 ```
 
 **Implementation strategy**:
+
 - Extend `BreadboardApp` with drag state management
 - Add mousedown/mousemove/mouseup handlers to rendered components
 - Calculate new pin positions based on mouse position and snap-to-grid
@@ -53,6 +57,7 @@ COMPONENT_DRAGGING → [Escape key] → IDLE (cancel)
 - Trigger circuit re-extraction and simulation after position change
 
 **Visual feedback** (per planning/vision/goal.md, lines 234-245):
+
 - Ghost preview shows component at cursor position
 - Preview snaps to nearest valid alignment (all pins align to holes)
 - Invalid positions show error indicator (red overlay or red border)
@@ -60,6 +65,7 @@ COMPONENT_DRAGGING → [Escape key] → IDLE (cancel)
 - Original component remains visible (faded) until drop or cancel
 
 **Validation rules**:
+
 - All component pins must align to valid breadboard holes
 - No overlap with existing components (collision detection)
 - Components must stay within breadboard bounds
@@ -81,6 +87,7 @@ COMPONENT_DRAGGING → [Escape key] → IDLE (cancel)
 ### User Experience Impact
 
 This feature dramatically improves usability:
+
 - **Experimentation**: Users can try different layouts without deleting components
 - **Error correction**: Fix accidental placements without starting over
 - **Learning**: Explore how circuit behavior changes with different topologies
@@ -92,6 +99,7 @@ The interaction feels "physical and authentic" (planning/vision/goal.md, line 20
 ### Alignment with Roadmap
 
 This capability is foundational to the UI/UX vision:
+
 - 🎯 **UI/UX Requirements**: Lines 230-254 explicitly define drag/drop with ghost preview, snapping, and validation
 - 🎯 **State Machine**: Lines 307-356 define component dragging state transitions
 - 🎯 **Design Principles**: Line 208 emphasizes "Physical authenticity — behave like a real breadboard"
@@ -102,6 +110,7 @@ While not explicitly listed as MVP (MVP focused on placement, not repositioning)
 ### Estimated Effort
 
 3-4 days of focused development
+
 - Day 1: Implement drag state management and mouse event handlers
 - Day 2: Add ghost preview rendering and snap-to-grid logic
 - Day 3: Implement collision detection and position validation
@@ -117,23 +126,20 @@ While not explicitly listed as MVP (MVP focused on placement, not repositioning)
 ### Risks
 
 - **Interaction complexity**: Drag-and-drop with constraints (snapping, validation) can be tricky to get right
-  - *Mitigation*: Follow existing two-click placement validation logic, reuse snap calculations
-  
+  - _Mitigation_: Follow existing two-click placement validation logic, reuse snap calculations
 - **Visual feedback**: Ghost preview rendering alongside original component may be visually confusing
-  - *Mitigation*: Use semi-transparent preview, fade original component during drag
-  
+  - _Mitigation_: Use semi-transparent preview, fade original component during drag
 - **Performance**: Continuous validation during mousemove may impact performance
-  - *Mitigation*: Throttle validation to 60fps, optimize collision detection with spatial indexing if needed
-  
+  - _Mitigation_: Throttle validation to 60fps, optimize collision detection with spatial indexing if needed
 - **Touch support**: Mouse-based drag may not work on touch devices
-  - *Mitigation*: Handle touch events (touchstart/touchmove/touchend) in addition to mouse events
-  
+  - _Mitigation_: Handle touch events (touchstart/touchmove/touchend) in addition to mouse events
 - **Collision detection accuracy**: Need to check if component pins would occupy same holes as existing components
-  - *Mitigation*: Reuse existing position validation logic, check all pin positions
+  - _Mitigation_: Reuse existing position validation logic, check all pin positions
 
 ### Implementation Details
 
 **Drag state tracking**:
+
 ```typescript
 interface DragState {
   componentId: string;
@@ -145,12 +151,14 @@ interface DragState {
 ```
 
 **Mouse event handling**:
+
 - `mousedown` on component: Enter drag mode, store original positions
 - `mousemove`: Calculate new positions based on cursor, validate, update preview
 - `mouseup`: If valid preview exists, update component positions in state
 - `keydown` (Escape): Cancel drag, clear preview, restore original positions
 
 **Position calculation**:
+
 - Calculate mouse offset from component origin
 - Map mouse position to breadboard grid coordinates
 - Snap to nearest valid hole
@@ -158,6 +166,7 @@ interface DragState {
 - Validate each pin is within bounds and not colliding
 
 **Rendering changes**:
+
 - During drag: Render original component with reduced opacity (0.3)
 - During drag: Render ghost preview at calculated position
 - Ghost preview uses same SVG rendering as normal components
@@ -180,6 +189,7 @@ Without drag-and-drop, the tool feels rigid and frustrating. With it, the tool f
 ## Next Steps After This Task
 
 Once component repositioning works:
+
 1. Implement component rotation (keyboard R key, rotation handle)
 2. Add multi-select with rectangle selection (enables bulk move operations)
 3. Implement copy/paste (builds on selection + drag infrastructure)

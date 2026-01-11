@@ -3,10 +3,10 @@ import { loadExample, getBreadboardContainer, stabilizeForVisualScreenshot } fro
 
 /**
  * Visual Regression Tests for Breadboard Lab
- * 
+ *
  * These tests capture screenshots of example circuits and compare them against
  * baseline images to detect unintended visual changes.
- * 
+ *
  * To update baselines after intentional visual changes:
  *   npm run test:visual -- --update-snapshots
  */
@@ -18,14 +18,14 @@ test.describe('Example Circuit Visual Regression', () => {
    */
   test('LED and Resistor example renders correctly', async ({ page }) => {
     await loadExample(page, 'led-resistor');
-    
+
     const breadboard = getBreadboardContainer(page);
-    
+
     // Verify React SVG breadboard is present
     await expect(page.locator('svg.breadboard-svg')).toBeVisible();
 
     await stabilizeForVisualScreenshot(page);
-    
+
     // Capture screenshot for comparison
     await expect(breadboard).toHaveScreenshot('led-resistor.png', {
       maxDiffPixels: 100,
@@ -39,14 +39,14 @@ test.describe('Example Circuit Visual Regression', () => {
    */
   test('Voltage Divider example renders correctly', async ({ page }) => {
     await loadExample(page, 'voltage-divider');
-    
+
     const breadboard = getBreadboardContainer(page);
-    
+
     // Verify React SVG breadboard is present
     await expect(page.locator('svg.breadboard-svg')).toBeVisible();
 
     await stabilizeForVisualScreenshot(page);
-    
+
     // Capture screenshot for comparison
     await expect(breadboard).toHaveScreenshot('voltage-divider.png', {
       maxDiffPixels: 100,
@@ -60,14 +60,14 @@ test.describe('Example Circuit Visual Regression', () => {
    */
   test('Parallel LEDs example renders correctly', async ({ page }) => {
     await loadExample(page, 'parallel-leds');
-    
+
     const breadboard = getBreadboardContainer(page);
-    
+
     // Verify React SVG breadboard is present
     await expect(page.locator('svg.breadboard-svg')).toBeVisible();
 
     await stabilizeForVisualScreenshot(page);
-    
+
     // Capture screenshot for comparison
     await expect(breadboard).toHaveScreenshot('parallel-leds.png', {
       maxDiffPixels: 100,
@@ -81,17 +81,17 @@ test.describe('Example Circuit Visual Regression', () => {
    */
   test('Short Circuit Demo example renders correctly', async ({ page }) => {
     await loadExample(page, 'short-circuit-demo');
-    
+
     const breadboard = getBreadboardContainer(page);
-    
+
     // Verify React SVG breadboard is present
     await expect(page.locator('svg.breadboard-svg')).toBeVisible();
 
     await stabilizeForVisualScreenshot(page);
-    
+
     // Note: Error overlay might not be rendered depending on circuit state
     // The important thing is that the circuit loads and renders consistently
-    
+
     // Capture screenshot for comparison
     await expect(breadboard).toHaveScreenshot('short-circuit-demo.png', {
       maxDiffPixels: 100,
@@ -107,13 +107,13 @@ test.describe('Visual Features Present', () => {
    */
   test('Voltage overlays render with colors on successful simulation', async ({ page }) => {
     await loadExample(page, 'led-resistor');
-    
+
     // Wait a bit more to ensure simulation completes
     await page.waitForTimeout(500);
-    
+
     // Check simulation status
     const simulationStatus = await page.locator('.info-panel').textContent();
-    
+
     // If simulation succeeded, the React SVG breadboard should still be present.
     // (Voltage overlays are rendered in SVG; pixel-level assertions are covered
     // by the screenshot comparisons in the example tests.)
@@ -128,7 +128,7 @@ test.describe('Visual Features Present', () => {
    */
   test('Current animation elements are present', async ({ page }) => {
     await loadExample(page, 'led-resistor');
-    
+
     // Current animation is rendered in React SVG.
     await expect(page.locator('svg.breadboard-svg')).toBeVisible();
   });
@@ -139,10 +139,10 @@ test.describe('Visual Features Present', () => {
    */
   test('Error overlay renders on short circuit if present', async ({ page }) => {
     await loadExample(page, 'short-circuit-demo');
-    
+
     // Wait a bit more for error detection
     await page.waitForTimeout(500);
-    
+
     // Error overlays are rendered in SVG; we at least ensure the app didn't blank.
     await expect(page.locator('svg.breadboard-svg')).toBeVisible();
   });

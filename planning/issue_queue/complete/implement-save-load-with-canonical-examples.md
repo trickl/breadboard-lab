@@ -8,8 +8,10 @@ This absence of persistence and examples severely limits the tool's educational 
 
 ## Gap Analysis
 
-**Long-term goal (planning/vision/goal.md)**: 
+**Long-term goal (planning/vision/goal.md)**:
+
 > "Save/Load, Export/Import, and Canonical Examples" (lines 415-432)
+>
 > - Load/save project JSON preserves placements, wiring, and component selections
 > - Built-in examples are selectable from within the UI
 > - Examples included: LED + resistor, Voltage divider, Simple clock-driven circuit
@@ -17,12 +19,14 @@ This absence of persistence and examples severely limits the tool's educational 
 The planning document explicitly lists save/load and canonical examples as **required** capabilities in the target specification.
 
 **Current state (planning/state/system_capabilities.md, lines 982-990)**:
+
 - ❌ No save/load functionality
 - ❌ No data persistence (state is lost on page reload)
 - ❌ No example circuits available
 - ❌ No import/export capabilities
 
 **Specific gaps**:
+
 1. No JSON serialization/deserialization of circuit state
 2. No localStorage or file-based persistence
 3. No UI for saving/loading circuits
@@ -30,6 +34,7 @@ The planning document explicitly lists save/load and canonical examples as **req
 5. No example selector UI
 
 **Impact of gap**:
+
 - Users lose all work on page reload → frustrating, limits adoption
 - No way to share circuits with others → limits collaboration and teaching
 - No starting point for beginners → steep learning curve
@@ -106,6 +111,7 @@ Implement save/load functionality with a canonical example library that allows u
 ### Implementation Approach
 
 **Phase 1: Serialization/Deserialization**
+
 - Define `CircuitData` interface for JSON schema
 - Implement `serializeCircuit(state: BreadboardState): string`
 - Implement `deserializeCircuit(json: string): BreadboardState`
@@ -113,24 +119,28 @@ Implement save/load functionality with a canonical example library that allows u
 - Unit tests for serialization roundtrip
 
 **Phase 2: LocalStorage Persistence**
+
 - Implement `saveToLocalStorage(name: string, data: CircuitData): void`
 - Implement `loadFromLocalStorage(name: string): CircuitData | null`
 - Implement `listSavedCircuits(): { name: string, date: Date }[]`
 - Implement `deleteSavedCircuit(name: string): void`
 
 **Phase 3: File Download/Upload**
+
 - Implement download as JSON file (using `<a download>` or Blob API)
 - Implement file upload with `<input type="file">` handler
 - Parse uploaded file and validate JSON
 - Error handling for file read errors
 
 **Phase 4: Canonical Examples**
+
 - Create example circuit JSON files in `src/examples/` directory
 - Define example metadata (name, description, learning objectives)
 - Import examples as TypeScript modules
 - Implement example registry/catalog
 
 **Phase 5: UI Implementation**
+
 - Add Save/Load/Examples buttons to toolbar
 - Create modal components for save/load/examples dialogs
 - Implement form handling for save dialog (circuit name input)
@@ -139,6 +149,7 @@ Implement save/load functionality with a canonical example library that allows u
 - Style modals consistently with existing UI
 
 **Phase 6: Integration and Testing**
+
 - Wire up all UI components to persistence functions
 - Test full save → reload page → load workflow
 - Test all example circuits load and simulate correctly
@@ -206,6 +217,7 @@ Before adding more complex features (SPICE simulation, microprocessor, audio, sc
 ### Non-Goals
 
 This task specifically does NOT include:
+
 - Cloud storage or user accounts (localStorage only)
 - Real-time collaboration or sharing URLs
 - Circuit versioning or history
@@ -220,6 +232,7 @@ These are separate tasks for future iterations.
 ## Estimated Effort
 
 3-5 days of focused development:
+
 - Day 1: Serialization/deserialization with validation and tests
 - Day 2: LocalStorage persistence layer and file download/upload
 - Day 3: Create 3-5 canonical example circuits with educational content
@@ -236,19 +249,24 @@ These are separate tasks for future iterations.
 ## Risks and Mitigations
 
 **Risk**: JSON format changes break old saved circuits
-- *Mitigation*: Include version field in JSON; implement migration logic for format changes
+
+- _Mitigation_: Include version field in JSON; implement migration logic for format changes
 
 **Risk**: localStorage space limits (typically 5-10MB)
-- *Mitigation*: Monitor storage usage; limit number of saved circuits; add delete functionality
+
+- _Mitigation_: Monitor storage usage; limit number of saved circuits; add delete functionality
 
 **Risk**: Browser compatibility issues with file download/upload
-- *Mitigation*: Use standard APIs (`Blob`, `FileReader`); test on major browsers; provide fallbacks
+
+- _Mitigation_: Use standard APIs (`Blob`, `FileReader`); test on major browsers; provide fallbacks
 
 **Risk**: Users accidentally overwrite work when loading
-- *Mitigation*: Show confirmation dialog; detect unsaved changes; offer to save before loading
+
+- _Mitigation_: Show confirmation dialog; detect unsaved changes; offer to save before loading
 
 **Risk**: Example circuits become outdated as simulator improves
-- *Mitigation*: Version examples; add tests that load and simulate examples; document expected behavior
+
+- _Mitigation_: Version examples; add tests that load and simulate examples; document expected behavior
 
 ## References
 
@@ -260,6 +278,7 @@ These are separate tasks for future iterations.
 ## Success Metrics
 
 After implementation, users should be able to:
+
 1. Build a circuit, save it, reload the page, and load their circuit back
 2. Download a circuit as JSON, send it to someone, who can then load it
 3. Click "Examples" → "LED and Resistor" → see a working circuit appear

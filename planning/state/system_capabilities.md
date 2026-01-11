@@ -19,6 +19,7 @@ Breadboard Lab is a web-based electronics simulator that provides a visual bread
 The UI provides access to all 37 real-world components through a searchable component library browser modal. Users open the browser by clicking the "📦 Component Library" button in the left toolbar.
 
 **Component library browser features:**
+
 - **Search functionality**: Real-time text search by component name, description, or part number using `componentLibrary.search()`
 - **Category filtering**: Filter components by category (Passive Components, Diodes & LEDs, Power Supplies, Wires & Connectors, Audio Components, Virtual Components)
 - **Component cards**: Grid layout displaying each component with:
@@ -32,6 +33,7 @@ The UI provides access to all 37 real-world components through a searchable comp
 - **Keyboard accessible**: Search input auto-focused on open, modal closable via close button or overlay click
 
 **Component selection workflow:**
+
 1. Click "📦 Component Library" button in toolbar
 2. Browse, search, or filter components in the modal
 3. Click desired component card to select it
@@ -39,6 +41,7 @@ The UI provides access to all 37 real-world components through a searchable comp
 5. Use standard two-click placement on breadboard
 
 **Library integration:**
+
 - Components placed from browser automatically populate `libraryId` field in component metadata
 - Component properties (resistance, voltage, forward voltage) are sourced from library entry electrical specifications
 - Backward compatible: existing circuits without `libraryId` continue working with manual property values
@@ -73,16 +76,16 @@ The system includes a complete component library infrastructure with 37 physical
 3. **Library Catalog** (`src/library/`):
    - **Resistors** (23 entries): E12 series (100Ω-10kΩ), both 5% tolerance (4-band) and 1% tolerance (5-band) variants, 1/4W axial package, Yageo CFR Series
    - **LEDs** (4 entries):
-     - 3mm Ultra-Bright Yellow LED (2.1V forward voltage, 590nm wavelength, T1 package) ✓ *Required by goal.md*
+     - 3mm Ultra-Bright Yellow LED (2.1V forward voltage, 590nm wavelength, T1 package) ✓ _Required by goal.md_
      - 5mm Red LED (1.9V, 625nm, T1-3/4 package)
      - 5mm Green LED (2.1V, 525nm, T1-3/4 package)
      - 5mm Blue LED (3.1V, 470nm, T1-3/4 package)
-   - **Switches** (1 entry): SPST toggle switch (0.01Ω closed, 1GΩ open, 250V AC, 3A) ✓ *Required by goal.md*
-   - **Speaker** (1 entry): 8Ω breadboard module (0.5W, 300Hz-5kHz frequency response) ✓ *Required by goal.md*
+   - **Switches** (1 entry): SPST toggle switch (0.01Ω closed, 1GΩ open, 250V AC, 3A) ✓ _Required by goal.md_
+   - **Speaker** (1 entry): 8Ω breadboard module (0.5W, 300Hz-5kHz frequency response) ✓ _Required by goal.md_
    - **Power Supplies** (4 entries): 3.3V (1A), 5.0V (2A), 9.0V (1A), 12.0V (2A)
    - **Wires** (2 entries): 22 AWG solid core (red and black)
    - **Ground** (1 entry): Ground reference (0V)
-   - **Microprocessors** (1 entry): EDU-8 Microprocessor (educational virtual IC) ✓ *Required by goal.md*
+   - **Microprocessors** (1 entry): EDU-8 Microprocessor (educational virtual IC) ✓ _Required by goal.md_
    - Total: 37 real-world components with datasheet-accurate specifications
 
 ### EDU-8 Microprocessor Component
@@ -92,6 +95,7 @@ The system includes a complete component library infrastructure with 37 physical
 The EDU-8 is an educational 8-bit virtual microprocessor component designed for teaching computational electronics. It provides a minimal instruction set that is easy to understand while being powerful enough to create interesting programs.
 
 **Architecture:**
+
 - **8-bit accumulator**: General-purpose register for arithmetic and logic operations
 - **4-bit program counter (PC)**: Points to current instruction in ROM (0-15)
 - **Zero flag (Z)**: Boolean flag set when accumulator equals zero
@@ -101,6 +105,7 @@ The EDU-8 is an educational 8-bit virtual microprocessor component designed for 
 - **DIP-16 package**: Standard IC package with VCC, GND, and signal pins
 
 **Instruction Set** (7 instructions):
+
 1. **LDA** (0x0): Load accumulator with immediate 4-bit value
 2. **ADD** (0x1): Add immediate 4-bit value to accumulator
 3. **IN** (0x2): Load accumulator from input port (IN0-3)
@@ -110,12 +115,14 @@ The EDU-8 is an educational 8-bit virtual microprocessor component designed for 
 7. **HALT** (0xF): Stop execution until reset
 
 **Preset Programs** (built-in):
+
 - **Blink**: Toggles OUT0 between 0 and 1 in a loop
 - **Counter**: Counts from 0 to 15 and displays on output port
 - **Echo**: Copies input port to output port continuously
 - **Pattern**: Displays specific bit patterns on output port
 
 **Electrical Specifications** (TTL-compatible):
+
 - Supply voltage: 3.0V - 5.5V (typical 5.0V)
 - Input high threshold: 2.0V
 - Input low threshold: 0.8V
@@ -124,6 +131,7 @@ The EDU-8 is an educational 8-bit virtual microprocessor component designed for 
 - Maximum output current: 20mA per output
 
 **Implementation Details:**
+
 - Simulator engine: `src/core/edu8-simulator.ts` (full instruction execution)
 - Type system: `EDU8State` interface, `Microprocessor` component type
 - Library entry: `src/library/microprocessors.ts` with DIP-16 pinout
@@ -132,6 +140,7 @@ The EDU-8 is an educational 8-bit virtual microprocessor component designed for 
 - Test coverage: 29 unit tests with 100% coverage
 
 **Current Capabilities:**
+
 - ✅ Component can be placed on breadboard (simplified 2-pin placement)
 - ✅ Internal CPU state fully simulated (accumulator, PC, flags, ROM, I/O)
 - ✅ Explain panel shows real-time CPU state (PC, instruction mnemonic, accumulator, zero flag, halt status, I/O ports)
@@ -147,6 +156,7 @@ The EDU-8 is an educational 8-bit virtual microprocessor component designed for 
 - ✅ 28 unit tests for ClockController (pulse generation, frequency control, state management)
 
 **Deferred Features** (require UI or additional architectural work):
+
 - ❌ Visual DIP-16 IC rendering (no PixiJS renderer case for microprocessor yet)
 - ❌ Full 16-pin placement (currently uses simplified 2-pin placement)
 - ❌ Property editor UI for ROM programming
@@ -154,6 +164,7 @@ The EDU-8 is an educational 8-bit virtual microprocessor component designed for 
 - ❌ Breakpoints and step-backwards debugging features
 
 **Educational Value:**
+
 - Teaches fetch-decode-execute cycle with visible execution on clock edges
 - Demonstrates connection between software (instructions) and hardware (I/O pins)
 - Enables clock-driven circuits and sequential logic exploration
@@ -168,6 +179,7 @@ The EDU-8 is an educational 8-bit virtual microprocessor component designed for 
 The system provides interactive clock control UI for the EDU-8 microprocessor, enabling students to step through programs instruction-by-instruction, run them automatically at adjustable frequencies, and observe the fetch-decode-execute cycle in real-time.
 
 **ClockController Core** (`src/core/clock-controller.ts`):
+
 - **Manual stepping**: `step()` executes one clock pulse (low→high→low sequence) to run one instruction
 - **Automatic pulsing**: `run()` starts periodic clock pulses at configurable frequency (0.5-10 Hz)
 - **Pause capability**: `pause()` stops automatic execution while preserving state
@@ -178,6 +190,7 @@ The system provides interactive clock control UI for the EDU-8 microprocessor, e
 - 28 unit tests with 100% coverage
 
 **Clock Control Panel UI** (left toolbar):
+
 - **Auto-visibility**: Panel appears automatically when EDU-8 microprocessor present on breadboard
 - **Step button** (⏯): Execute one clock cycle to run one instruction (disabled when running)
 - **Run/Pause button** (▶️/⏸): Toggle automatic clock pulsing with visual state indication (green when running)
@@ -190,10 +203,12 @@ The system provides interactive clock control UI for the EDU-8 microprocessor, e
   - "Halted" when program executes HALT instruction
 
 **Keyboard Shortcuts**:
+
 - **Space key**: Execute one instruction (same as Step button) - only when paused
 - Works alongside existing shortcuts (R for rotate, M for audio, Delete/Backspace for delete)
 
 **Integration with BreadboardApp**:
+
 - `handleClockChange(clockHigh)`: Executes EDU-8 instructions on clock edges via `handleClockEdge()` method
 - `handleClockReset()`: Reinitializes CPU state when reset button clicked
 - `updateClockControls()`: Syncs UI elements with ClockController state
@@ -202,23 +217,27 @@ The system provides interactive clock control UI for the EDU-8 microprocessor, e
 - Voltage overlays and LED visualization reflect output changes
 
 **Clock Pulse Behavior**:
+
 - Each pulse consists of: rising edge (low→high) → 50ms high duration → falling edge (high→low)
 - Rising edge triggers instruction execution (fetch-decode-execute cycle)
 - High duration (50ms) provides visible feedback while maintaining responsiveness
 - Falling edge returns clock to low state without executing
 
 **Frequency Range**:
+
 - **Minimum**: 0.5 Hz (one instruction every 2 seconds) - best for observing individual instruction effects
 - **Maximum**: 10 Hz (ten instructions per second) - demonstrates program flow and timing
 - **Default**: 1 Hz - optimized for educational visibility
 
 **Example Circuit**: EDU-8 Blink (`src/examples/edu8-blink.json`):
+
 - Demonstrates clock-driven LED toggling with preset Blink program loaded in ROM
 - Components: EDU-8 microprocessor, LED, 220Ω resistor, 5V power supply, ground
 - Program: Alternates OUT0 between high and low, creating visible LED blinking
 - Serves as canonical demonstration of clock control feature
 
 **State Updates on Clock Pulse**:
+
 1. ClockController triggers clock change event
 2. BreadboardApp calls `handleClockEdge()` on microprocessor
 3. Microprocessor executes one instruction
@@ -228,6 +247,7 @@ The system provides interactive clock control UI for the EDU-8 microprocessor, e
 7. Visual overlays update (voltage heatmap, LEDs)
 
 **Educational Workflow**:
+
 1. Load EDU-8 Blink example circuit
 2. Open Explain panel (click microprocessor)
 3. Use Step (Space key) to execute one instruction at a time
@@ -236,21 +256,25 @@ The system provides interactive clock control UI for the EDU-8 microprocessor, e
 6. See LED respond to output changes in real-time
 
 **Design Rationale**:
+
 - **Observability**: Students see each instruction's effect on hardware
 - **Debuggability**: Step-through execution reveals program logic
 - **Timing**: Adjustable frequency demonstrates clock-driven behavior
 - **Experimentation**: Manual control encourages exploration
 
 **Test Coverage**:
+
 - 28 ClockController unit tests (pulse generation, frequency control, state management)
 - Playwright test verifying UI visibility and element rendering
 - Manual verification with EDU-8 Blink example circuit
 
 **Documentation**:
+
 - User guide (`docs/CLOCK_CONTROL_GUIDE.md`): Usage instructions, technical details, troubleshooting, example programs
 - Implementation summary (`CLOCK_CONTROL_IMPLEMENTATION.md`): Architecture decisions, testing strategy
 
 **Educational Impact**:
+
 - Demystifies CPUs by showing they are state machines responding to clock edges
 - Visualizes fetch-decode-execute cycle in real-time
 - Connects software instructions to hardware behavior (OUT instruction controls LEDs)
@@ -258,6 +282,7 @@ The system provides interactive clock control UI for the EDU-8 microprocessor, e
 - Enables hands-on exploration of computational electronics
 
 **Future Enhancements** (architecture ready, not yet implemented):
+
 - Breakpoints (pause execution at specific PC values)
 - Step backwards (undo instruction execution)
 - Waveform visualization (plot signals over time)
@@ -271,8 +296,9 @@ The system provides interactive clock control UI for the EDU-8 microprocessor, e
 The SPST (Single-Pole Single-Throw) switch is an interactive stateful component that enables users to manually control circuit behavior by opening or closing electrical connections. This is essential for interactive electronics education and building circuits with manual control.
 
 **Electrical Specifications:**
+
 - **Type**: SPST toggle switch
-- **Contact resistance**: 
+- **Contact resistance**:
   - Closed state: 0.01Ω (wire-like conductance)
   - Open state: 1GΩ (effectively infinite resistance)
 - **Voltage rating**: 250V AC
@@ -283,18 +309,21 @@ The SPST (Single-Pole Single-Throw) switch is an interactive stateful component 
 - **Package**: Through-hole, 2-pin, 5.08mm (0.2") spacing
 
 **Switch States:**
+
 - **Open** (default): Blocks current flow (~0 A), breaks circuit continuity
 - **Closed**: Conducts like wire, allows current determined by circuit (Ohm's law)
 
 **User Interaction:**
+
 - **Click toggle**: Click placed switch to toggle between open and closed states
 - **Real-time updates**: Circuit re-simulates immediately on state change
-- **Visual feedback**: 
+- **Visual feedback**:
   - Orange indicator when open (off)
   - Green indicator when closed (on)
 - Integrated into `BreadboardApp.handleComponentClick()` method
 
 **Electrical Simulation:**
+
 - Switch treated as state-dependent resistor in MNA solver
 - Open state: 1GΩ resistance blocks current flow
 - Closed state: 0.01Ω resistance conducts current
@@ -302,6 +331,7 @@ The SPST (Single-Pole Single-Throw) switch is an interactive stateful component 
 - Works with all other components (LEDs, resistors, power supplies)
 
 **Visual Rendering:**
+
 - Procedural SVG rendering with rectangular switch body
 - Toggle indicator circle shows current state
 - Color-coded states: orange (open), green (closed)
@@ -309,11 +339,13 @@ The SPST (Single-Pole Single-Throw) switch is an interactive stateful component 
 - Leads connect to breadboard holes
 
 **Serialization:**
+
 - Switch state persists in saved circuits
 - Backward compatibility: circuits without `switchState` default to 'open'
 - State stored in component metadata as 'open' or 'closed' string
 
 **Example Circuit:**
+
 - "Switch Control LED" demonstrates toggle functionality
 - Circuit: 5V Power → Switch → 220Ω Resistor → LED → Ground
 - Switch starts in closed state (LED on)
@@ -321,6 +353,7 @@ The SPST (Single-Pole Single-Throw) switch is an interactive stateful component 
 - Shows manual circuit control and current flow control
 
 **Test Coverage:**
+
 - 9 unit tests in `switch-component.test.ts`:
   - Switch electrical behavior (open blocks current, closed conducts)
   - Default to open when state undefined
@@ -331,6 +364,7 @@ The SPST (Single-Pole Single-Throw) switch is an interactive stateful component 
   - Default to open for backward compatibility
 
 **Educational Value:**
+
 - Teaches open vs closed circuit states
 - Demonstrates manual circuit control
 - Enables interactive demonstrations (press button to light LED)
@@ -339,6 +373,7 @@ The SPST (Single-Pole Single-Throw) switch is an interactive stateful component 
 - Essential for digital circuit inputs
 
 **Library Integration:**
+
 - Added to component library catalog (interconnect category)
 - Library ID: 'switch-spst'
 - Full electrical specifications and typical uses documented
@@ -346,6 +381,7 @@ The SPST (Single-Pole Single-Throw) switch is an interactive stateful component 
 - Component count increased from 36 to 37 entries
 
 **Implementation Details:**
+
 - `SWITCH` added to `ComponentType` enum
 - `Switch` interface extends `Component` with optional `switchState` property
 - MNA solver modified to handle switches as variable resistors
@@ -354,6 +390,7 @@ The SPST (Single-Pole Single-Throw) switch is an interactive stateful component 
 - Example circuit added to examples registry
 
 **Current Limitations:**
+
 - Only SPST type implemented (SPDT deferred)
 - Click always toggles (sophisticated click/drag disambiguation deferred)
 - No dedicated toggle hotspot (entire component clickable)
@@ -403,7 +440,7 @@ The library transforms Breadboard Lab from an abstract circuit simulator into a 
 ### Physical Layout
 
 - **Grid dimensions**: 30 rows × 14 columns (420 holes total)
-- **Column arrangement**: 
+- **Column arrangement**:
   - 4 rail columns (0-1 left side, 12-13 right side)
   - 10 terminal strip columns (2-6 left side, 7-11 right side)
 - **Row numbering**: 0-29 (zero-indexed)
@@ -459,6 +496,7 @@ The UI consists of three panels:
 7. Component is created with both positions and `libraryId` populated
 
 **Visual feedback**:
+
 - Component library browser opens as centered modal with dark overlay
 - Search input highlights with focus and displays clear button when text entered
 - Category pills highlight active filter
@@ -509,6 +547,7 @@ The UI consists of three panels:
 - No component selected on initial load or after deletion
 
 **Deletion mechanism**:
+
 - Press Delete or Backspace key to remove selected component
 - Circuit automatically re-extracts and re-simulates after deletion
 - Voltage overlay and current animation update to reflect new circuit state
@@ -516,6 +555,7 @@ The UI consists of three panels:
 - No operation performed if no component is selected
 
 **Event handling**:
+
 - Component SVG groups have pointer events enabled (`pointer-events: auto`)
 - Components have cursor: pointer styling for interactivity
 - Mousedown on component initiates drag operation
@@ -533,6 +573,7 @@ The UI consists of three panels:
 **Repositioning system**: After placing a component, users can drag it to a new position with real-time visual feedback.
 
 **Drag interaction flow**:
+
 1. Click component to select it
 2. Click and hold (pointerdown) on selected component to initiate drag
 3. Move mouse to desired location (mousemove updates ghost preview)
@@ -540,6 +581,7 @@ The UI consists of three panels:
 5. Press Escape at any time to cancel drag and keep original position
 
 **Visual feedback during drag**:
+
 - Original component fades to 30% opacity
 - Ghost preview renders at cursor position with 70% opacity
 - Preview snaps to nearest valid grid positions (all pins align to holes)
@@ -548,12 +590,14 @@ The UI consists of three panels:
 - Preview updates continuously during mouse movement
 
 **Position validation**:
+
 - All component pins must align to valid breadboard holes (within bounds)
 - No collision with existing components (pins cannot occupy same holes)
 - Snap-to-grid ensures proper hole alignment
 - Invalid positions cannot be dropped (component returns to original position on mouseup)
 
 **Circuit integration**:
+
 - Circuit automatically re-extracts after successful move
 - Simulation re-runs with new topology
 - Voltage overlay and current animation update to reflect new positions
@@ -561,6 +605,7 @@ The UI consists of three panels:
 - No re-extraction if drag is cancelled
 
 **Implementation details**:
+
 - Drag state tracked in `BreadboardApp` class (`DragState` interface)
 - Mouse event handlers (mousemove, mouseup) manage drag lifecycle after initiation
 - PixiJS pointer events (`pointerdown`) on component containers initiate drag
@@ -571,6 +616,7 @@ The UI consists of three panels:
 - Ghost preview rendered via PixiJS Graphics API
 
 **Event handling**:
+
 - PixiJS component containers have interactive mode enabled (`eventMode: 'static'`)
 - Components have cursor: pointer styling for interactivity
 - `pointerdown` on component calls `onComponentDragStart` with component ID and global coordinates
@@ -586,40 +632,46 @@ The UI consists of three panels:
 **Rotation system**: After placing and selecting a component, users can rotate it 90° clockwise using the R key, with validation to prevent invalid orientations.
 
 **Rotation interaction**:
+
 1. Select a component (click on it)
 2. Press R or r key to rotate 90° clockwise
 3. Rotation cycles through four orientations: 0° → 90° → 180° → 270° → 0°
 4. Invalid rotations are prevented (component retains current orientation)
 
 **Visual rendering**:
+
 - SVG `transform` attribute applies rotation around component center
 - All component types render correctly at all rotation angles
 - Polarity indicators (LED, power supply) rotate with component
 - Component selection persists after rotation
 
 **Position validation**:
+
 - All component pins must align to valid breadboard holes after rotation
 - No collision with existing components (pins cannot occupy same holes)
 - Out-of-bounds rotations are prevented
 - Invalid rotations fail silently (no error message, component unchanged)
 
 **Circuit integration**:
+
 - Pin positions recalculated using 2D rotation matrix transformation
 - Circuit automatically re-extracts after successful rotation
 - Simulation re-runs with new topology
 - Voltage overlay and current animation update to reflect new orientation
 
 **Implementation details**:
+
 - Rotation stored as component property (`rotation: 0 | 90 | 180 | 270`)
 - Rotation transform calculated using standard 2D rotation formulas:
   - 90° clockwise: (x, y) → (y, -x)
-  - 180°: (x, y) → (-x, -y)  
+  - 180°: (x, y) → (-x, -y)
   - 270° clockwise: (x, y) → (-y, x)
 - Rotation applied around component center (midpoint between pins)
 - Single-position components (ground) can rotate without position change
 - Keyboard handler prevents rotation during active drag operation
 
 **Supported components**:
+
 - All component types support rotation (wire, resistor, LED, power supply, ground)
 - Rotation state defaults to 0° for newly placed components
 - Rotation state persists with component until deletion
@@ -629,23 +681,27 @@ The UI consists of three panels:
 **Property editing system**: When a component is selected, a property editor panel displays in the info panel, allowing users to modify component-specific values.
 
 **Editable component types**:
+
 - **Resistor**: Resistance value (Ω) with validation (must be > 0)
 - **LED**: Forward voltage (V) with validation (range: 0.1-5V)
 - **Power Supply**: Voltage (V) with validation (range: 1-20V)
 - **Wire/Ground**: No editable properties (property editor hidden)
 
 **Preset values**: Quick-select buttons for common values:
+
 - Resistor presets: 100Ω, 1kΩ, 10kΩ, 100kΩ
 - LED presets: 1.8V (Infrared), 2.0V (Red), 2.2V (Yellow), 3.0V (Blue)
 - Power supply presets: 3.3V, 5V, 9V, 12V
 
 **Input validation**:
+
 - Real-time validation on input change
 - Error messages displayed for invalid values (negative resistance, out-of-range voltages)
 - Invalid inputs show red border and error text
 - Preset buttons bypass validation (always valid values)
 
 **Update behavior**:
+
 - Component metadata updated in-place on valid input
 - Debounced re-render (300ms delay) prevents excessive updates during typing
 - Circuit re-extraction and simulation triggered automatically after debounce
@@ -653,6 +709,7 @@ The UI consists of three panels:
 - Component list displays updated values with smart formatting (e.g., "10kΩ" for 10000Ω)
 
 **UI characteristics**:
+
 - Property editor appears below component list when component selected
 - Editor hidden when component deselected or deleted
 - Class-based selectors (`.property-error`) avoid ID conflicts
@@ -677,6 +734,7 @@ The system provides two complementary views of the circuit: breadboard view (phy
 ### View Switching Controls
 
 **UI elements**:
+
 - Two-tab view switcher in the left toolbar (below audio controls)
 - **🔌 Breadboard** tab: Shows physical breadboard layout (default/active on load)
 - **📐 Schematic** tab: Shows derived schematic diagram
@@ -684,6 +742,7 @@ The system provides two complementary views of the circuit: breadboard view (phy
 - Inactive tab shows gray background with hover effect
 
 **Switching behavior**:
+
 - Click any tab to switch views instantly
 - View switching preserves simulation state (voltages, currents remain calculated)
 - Component selection persists across view switches
@@ -695,6 +754,7 @@ The system provides two complementary views of the circuit: breadboard view (phy
 **Description**: Primary view showing physical component placement on a 30×14 breadboard grid with rails, terminal strips, holes, and wiring.
 
 **Features**:
+
 - Component placement via two-click interaction
 - Drag-and-drop repositioning with ghost preview
 - Component rotation (R key)
@@ -706,6 +766,7 @@ The system provides two complementary views of the circuit: breadboard view (phy
 - Audio output controls (for speaker components)
 
 **Visual characteristics**:
+
 - 520px × 780px SVG canvas
 - 26px hole spacing (20px hole + 6px margin)
 - Power rails (blue negative, red positive) on left and right sides
@@ -720,14 +781,16 @@ The system provides two complementary views of the circuit: breadboard view (phy
 **Description**: X-Ray Mode is an informational overlay that reveals the hidden internal wiring structure of the breadboard - power rails and terminal strips - helping learners understand which holes are electrically connected.
 
 **Purpose**:
+
 - Reveals the physical connectivity structure that underlies electrical behavior
-- Explains *why* certain holes are electrically connected
+- Explains _why_ certain holes are electrically connected
 - Helps beginners understand breadboard internal wiring without memorization
 - Essential educational feature distinguishing this tool from physical hardware
 
 **UI Controls**:
+
 - **Toggle button**: 🔬 icon in View section of left toolbar
-- **Button states**: 
+- **Button states**:
   - OFF: "🔬 X-Ray Mode" (default gray styling)
   - ON: "🔬 X-Ray: ON" (bright green background #44ff88)
 - **Keyboard shortcut**: X key (case-insensitive)
@@ -735,11 +798,13 @@ The system provides two complementary views of the circuit: breadboard view (phy
 - **Independence**: Works independently of component selection and Electrical View Mode
 
 **Visual Rendering**:
+
 - **Implementation**: `renderInternalConnectivity()` method in `PixiRenderer` class
 - **Rendering order**: Overlay rendered after substrate but before holes (holes appear on top)
 - **Transparency**: 0.25 alpha overlay for subtle visibility without obscuring components
 
 **Connectivity Visualization**:
+
 - **Power Rails** (vertical connectivity, 4 bars):
   - Left negative rail (column 0): Blue bar (color: 0x4444ff) spanning 30 holes
   - Left positive rail (column 1): Red bar (color: 0xff4444) spanning 30 holes
@@ -751,12 +816,14 @@ The system provides two complementary views of the circuit: breadboard view (phy
   - Center gap (between columns 6 and 7): No connectivity bar shows separation
 
 **Design Characteristics**:
+
 - Static geometry: Only re-renders on toggle (no animation overhead)
 - Color-coded: Blue for negative, red for positive, neutral yellow for terminal strips
 - Non-intrusive: Semi-transparent overlay distinguishable from user-added wires
 - Informational only: Does not alter connectivity or affect simulation state
 
 **Educational Value**:
+
 - Shows which holes are internally connected in vertical power rails
 - Reveals horizontal terminal strip connections (5 holes per row)
 - Clearly indicates center gap where left and right sides are NOT connected
@@ -764,6 +831,7 @@ The system provides two complementary views of the circuit: breadboard view (phy
 - Enables experimentation and exploration of breadboard structure
 
 **Implementation Details**:
+
 - `xrayModeEnabled` boolean state in `BreadboardApp` class
 - Default: false (X-Ray Mode off on initial load)
 - Passed to `pixiRenderer.renderBreadboard()` as optional parameter
@@ -778,6 +846,7 @@ The system provides two complementary views of the circuit: breadboard view (phy
 **Status**: Fully implemented (PR #161).
 
 **Schematic generation pipeline**:
+
 1. Circuit extraction produces `ElectricalNetlist` from breadboard placement
 2. `SchematicLayoutGenerator` converts circuit edges to layout nodes
 3. Force-directed algorithm positions components (100 iterations, configurable parameters)
@@ -787,6 +856,7 @@ The system provides two complementary views of the circuit: breadboard view (phy
 7. Layout cached until circuit topology changes
 
 **Force-directed layout algorithm**:
+
 - **Node initialization**: Components placed at random initial positions (400×400 space)
 - **Attraction forces**: Components on same electrical net attract (strength: 0.1)
 - **Repulsion forces**: All components repel to prevent overlap (strength: 1000, min spacing: 100px)
@@ -795,6 +865,7 @@ The system provides two complementary views of the circuit: breadboard view (phy
 - **Terminal configuration**: Component-specific terminal offsets (horizontal for resistors/LEDs, vertical for power supplies)
 
 **Layout configuration** (`DEFAULT_LAYOUT_CONFIG`):
+
 - `symbolSpacing`: 100px minimum spacing between symbols
 - `terminalLength`: 20px length of terminal connections
 - `attractionStrength`: 0.1 (attraction force multiplier)
@@ -802,6 +873,7 @@ The system provides two complementary views of the circuit: breadboard view (phy
 - `iterations`: 100 (number of layout iterations)
 
 **Schematic symbols** (SVG-based, procedurally drawn):
+
 - **Resistor**: Zigzag pattern (6 segments, ±8px height) with leads
 - **LED**: Red triangle with cathode bar and light emission arrows (yellow/orange)
 - **Power Supply**: Battery symbol (positive/negative terminals) with red and black lines
@@ -810,6 +882,7 @@ The system provides two complementary views of the circuit: breadboard view (phy
 - **Generic**: Box fallback for unknown component types
 
 **Connection rendering**:
+
 - Straight lines from symbol terminals to net center point (star topology)
 - Connection paths drawn with voltage-based colors (matches breadboard voltage overlay)
 - Default gray color when simulation fails or net has no voltage data
@@ -817,6 +890,7 @@ The system provides two complementary views of the circuit: breadboard view (phy
 - 4px terminal dots at connection points
 
 **Component labels**:
+
 - **Resistors**: Resistance value displayed below symbol (e.g., "220Ω", "1.0kΩ", "1.0MΩ")
 - **Power Supplies**: Voltage value displayed below symbol (e.g., "5V")
 - **LEDs**: No label (type indicated by symbol)
@@ -824,12 +898,14 @@ The system provides two complementary views of the circuit: breadboard view (phy
 - 12px font size, black text
 
 **Voltage visualization in schematic**:
+
 - Connection lines colored by net voltage (same color mapping as breadboard)
 - Voltage color gradient: 0V (dark blue) → 1.25V (cyan) → 2.5V (yellow) → 3.75V (orange) → 5V (red)
 - Color updates automatically when simulation re-runs
 - Gray default color when simulation unavailable
 
 **Interactive features**:
+
 - Click schematic symbols to select component (blue highlight applies)
 - Click symbols to open explain panel with component details
 - Click connections to open explain panel with net voltage information
@@ -838,23 +914,27 @@ The system provides two complementary views of the circuit: breadboard view (phy
 - Explain panel content identical to breadboard view
 
 **Empty state handling**:
+
 - When no components placed: "No circuit to display" message with hint
 - Empty state icon (📐), text, and hint rendered in centered container
 - Schematic container hidden when breadboard view active
 
 **Bounds calculation**:
+
 - Automatic bounding box calculated from all symbol positions
 - 50px padding added around outermost symbols
 - Default bounds (0, 0, 400, 400) when no symbols present
 - ViewBox dynamically set to calculated bounds for optimal zoom
 
 **Layout caching**:
+
 - Schematic layout cached in `cachedSchematic` property
 - Cache invalidated when circuit topology changes (component added/removed/moved)
 - Cache preserved when only simulation results change (voltage/current updates)
 - Re-layout triggered only when cache is null (avoids redundant computation)
 
 **Implementation details**:
+
 - `src/core/schematic-types.ts` (83 lines): Type definitions for symbols, connections, diagrams, layout config
 - `src/core/schematic-layout.ts` (369 lines): Force-directed graph layout algorithm
 - `src/ui/schematic-renderer.ts` (459 lines): SVG-based rendering with voltage colors
@@ -862,6 +942,7 @@ The system provides two complementary views of the circuit: breadboard view (phy
 - CSS styling in `src/style.css`: View tabs, schematic container, symbol hover/selection effects
 
 **Performance characteristics**:
+
 - Layout generation: O(n² × iterations) where n = number of components (100 iterations)
 - Rendering: O(n + c) where n = symbols, c = connections
 - Cached layout avoids re-computation on view switches
@@ -870,11 +951,13 @@ The system provides two complementary views of the circuit: breadboard view (phy
 ### Constraints
 
 **Breadboard view constraints**:
+
 - Fixed grid dimensions (30×14)
 - Component placement requires two valid hole positions
 - No freeform drawing or custom component shapes
 
 **Schematic view constraints**:
+
 - Layout is fully automatic (no manual positioning or dragging)
 - Force-directed layout may not be optimal for all circuit topologies
 - No schematic-first design (cannot place components in schematic view)
@@ -900,6 +983,7 @@ Implements circuit graph extraction using union-find algorithm:
 ### Output
 
 Produces a `Circuit` object containing:
+
 - **Nodes**: Map of node IDs to `CircuitNode` objects (each node contains its connected positions)
 - **Edges**: Array of `CircuitEdge` objects (each edge represents a component connecting two nodes)
 
@@ -982,6 +1066,7 @@ Implements industry-standard Modified Nodal Analysis technique:
 ### Output
 
 Returns a `SimulationResult` containing:
+
 - `success`: Boolean flag
 - `error`: Error message (if failed)
 - `nodeVoltages`: Map of node IDs to voltage values
@@ -1009,6 +1094,7 @@ The system now supports event-driven digital simulation that enables sequential 
 The system abstracts digital logic levels from analog voltages using industry-standard TTL thresholds:
 
 **Voltage Thresholds**:
+
 - **Input Low (V_IL)**: < 0.8V → Digital 0
 - **Input High (V_IH)**: > 2.0V → Digital 1
 - **Undefined**: 0.8V - 2.0V → Digital X (unknown/undefined)
@@ -1016,18 +1102,21 @@ The system abstracts digital logic levels from analog voltages using industry-st
 - **Output High (V_OH)**: 4.5V (when outputting digital 1)
 
 **4-State Logic**:
+
 - **0**: Logic low
 - **1**: Logic high
 - **Z**: High-impedance (tri-state)
 - **X**: Unknown/undefined (voltage in undefined region or uninitialized)
 
 **Conversion Functions**:
+
 - `analogToDigital(voltage)`: Converts analog voltage to digital value using TTL thresholds
 - `digitalToAnalog(value)`: Converts digital value to analog voltage (V_OL or V_OH)
 - `nibbleToDigital(nibble)`: Converts 4-bit value to array of 4 digital values
 - `digitalToNibble(bits)`: Converts array of 4 digital values to 4-bit value
 
 **Educational Value**:
+
 - Matches real-world TTL logic families (7400 series)
 - Teaches voltage level requirements for digital circuits
 - Demonstrates analog/digital boundary in mixed-signal systems
@@ -1039,22 +1128,26 @@ The system abstracts digital logic levels from analog voltages using industry-st
 Stateful edge detection system tracks signal transitions for clock-driven logic:
 
 **Edge Types**:
+
 - **Rising edge**: Transition from digital 0 to digital 1
 - **Falling edge**: Transition from digital 1 to digital 0
 - **No edge**: Signal remains at same level or transitions involving X/Z states
 
 **State Tracking**:
+
 - Each edge detector maintains previous digital state
 - Detects edges only on defined values (0 or 1)
 - Ignores transitions involving X (undefined) or Z (high-impedance) states
 - State persists across simulation steps for proper edge detection
 
 **API Functions**:
+
 - `createEdgeDetector(initialState)`: Creates new edge detector with initial state
 - `detectRisingEdge(detector, currentValue)`: Returns true if rising edge detected, updates detector state
 - `detectFallingEdge(detector, currentValue)`: Returns true if falling edge detected, updates detector state
 
 **Critical Behavior**:
+
 - Edge detectors are stateful and must persist across simulation steps
 - The `MixedSignalSimulator` maintains edge detector state in its instance
 - Resetting or losing edge detector state will prevent proper clock edge detection
@@ -1066,16 +1159,19 @@ Stateful edge detection system tracks signal transitions for clock-driven logic:
 Priority queue infrastructure for scheduling digital events (currently used for architecture, not heavily utilized in single-iteration synchronous mode):
 
 **Event Types**:
+
 - **Clock Edge Event**: Triggered when clock signal transitions
 - **Digital State Change Event**: Triggered when component output changes
 
 **Features**:
+
 - Events ordered by timestamp for deterministic execution
 - Component-specific event filtering and removal
 - Supports future asynchronous digital logic implementations
 - Ready for multi-clock domain support (future enhancement)
 
 **Current Usage**:
+
 - Event queue created and maintained but not actively used in MVP single-iteration mode
 - Digital components execute synchronously on clock edges without queueing
 - Infrastructure ready for future propagation delay modeling and asynchronous logic
@@ -1087,6 +1183,7 @@ Priority queue infrastructure for scheduling digital events (currently used for 
 Orchestrates event-driven digital simulation by bridging analog voltages to digital component execution:
 
 **Workflow**:
+
 1. Read clock voltage from circuit node (after DC analysis)
 2. Abstract clock voltage to digital value using TTL thresholds
 3. Detect rising/falling edges using stateful edge detector
@@ -1096,15 +1193,18 @@ Orchestrates event-driven digital simulation by bridging analog voltages to digi
 7. Return updated component array with new state
 
 **Key Functions**:
+
 - `createDigitalSimulationState()`: Initialize digital simulation state (event queue, edge detectors, outputs)
 - `stepDigitalSimulation(circuit, components, state, clockNodeId)`: Execute one digital simulation step
 - `getMicroprocessorOutputVoltages(microprocessor)`: Convert EDU-8 4-bit output to 4 analog voltages
 
 **Supported Components**:
+
 - **EDU-8 Microprocessor**: Executes one instruction per rising clock edge
 - **Future**: Can be extended to support flip-flops, counters, shift registers, logic gates
 
 **Design Characteristics**:
+
 - Stateful: Edge detectors and digital outputs persist across steps
 - Synchronous: All digital components execute on same clock edge (no propagation delays in MVP)
 - Single clock domain: All digital components share one global clock signal
@@ -1117,11 +1217,13 @@ Orchestrates event-driven digital simulation by bridging analog voltages to digi
 High-level orchestrator that combines analog DC simulation with digital event-driven simulation:
 
 **Configuration** (`MixedSignalConfig`):
+
 - `enableDigitalSimulation` (boolean): Enable/disable digital simulation layer
 - `clockNodeId` (string, optional): Node ID of clock signal (required if digital simulation enabled)
 - `maxIterations` (number, optional): Maximum convergence iterations (default: 10, currently single iteration used)
 
 **Simulation Loop**:
+
 1. Run DC analysis using `CircuitSimulator` to get analog node voltages
 2. Update circuit nodes with DC solver results
 3. If digital simulation enabled:
@@ -1131,6 +1233,7 @@ High-level orchestrator that combines analog DC simulation with digital event-dr
 4. Return simulation results and updated components
 
 **Critical API Contract**:
+
 - **Input**: Takes `Circuit`, `AnyComponent[]`, and `MixedSignalConfig`
 - **Output**: Returns `MixedSignalResult` (extends `SimulationResult`) and `updatedComponents` array
 - **State Persistence**: Caller MUST use returned `updatedComponents` for next simulation call
@@ -1138,17 +1241,18 @@ High-level orchestrator that combines analog DC simulation with digital event-dr
   - Using stale component array will break clock edge detection and program execution
 
 **Usage Example**:
+
 ```typescript
 const simulator = new MixedSignalSimulator();
 
 // Clock pulse: low → high → low
-circuit.edges.find(e => e.id === 'clkpwr').component.voltage = 5.0;
+circuit.edges.find((e) => e.id === 'clkpwr').component.voltage = 5.0;
 let { result, updatedComponents } = simulator.simulate(circuit, components, {
   enableDigitalSimulation: true,
   clockNodeId: 'clk',
 });
 
-circuit.edges.find(e => e.id === 'clkpwr').component.voltage = 0.0;
+circuit.edges.find((e) => e.id === 'clkpwr').component.voltage = 0.0;
 ({ updatedComponents } = simulator.simulate(circuit, updatedComponents, {
   enableDigitalSimulation: true,
   clockNodeId: 'clk',
@@ -1156,6 +1260,7 @@ circuit.edges.find(e => e.id === 'clkpwr').component.voltage = 0.0;
 ```
 
 **State Management**:
+
 - `MixedSignalSimulator` instance maintains digital state (edge detectors) across simulation calls
 - `resetDigitalState()` method clears all digital state (call when starting new circuit or resetting microprocessor)
 - Edge detector state critical for detecting rising/falling edges
@@ -1167,29 +1272,34 @@ circuit.edges.find(e => e.id === 'clkpwr').component.voltage = 0.0;
 The EDU-8 microprocessor now responds to clock signals for instruction execution:
 
 **Clock Integration**:
+
 - `handleClockEdge(state, clockValue, inputs)`: Executes logic on clock signal changes
 - **Rising edge behavior**: When clock transitions from false to true (0→1), execute one instruction
 - **Falling edge behavior**: No execution, clock state updated only
 - **Stable behavior**: No execution when clock remains at same level
 
 **Execution Behavior**:
+
 - Exactly one instruction executes per rising clock edge
 - Program counter increments (or jumps) after instruction execution
 - Accumulator, zero flag, and outputs update based on instruction
 - HALT instruction stops execution until reset (no further execution on clock edges)
 
 **Internal Clock Tracking**:
+
 - EDU-8 state includes `clockState` boolean field (tracks last clock level)
 - Used internally to detect rising edges (previous=false, current=true)
 - Prevents multiple executions when clock stays high
 
 **Output Integration**:
+
 - EDU-8 outputs (4-bit value) converted to 4 analog voltages by digital simulator
 - Each bit becomes V_OL (0.2V) or V_OH (4.5V)
 - Output voltages can drive LEDs, other analog components in circuit
 - Outputs remain stable between clock edges
 
 **Educational Use Cases**:
+
 - Step-by-step program execution (manual clock pulses)
 - Blink program toggles LED on/off each instruction cycle
 - Counter program increments and displays on output LEDs
@@ -1199,6 +1309,7 @@ The EDU-8 microprocessor now responds to clock signals for instruction execution
 ### Capabilities
 
 **What the system can do**:
+
 - ✅ Abstract analog voltages to digital logic levels using TTL thresholds
 - ✅ Detect rising and falling edges on designated clock signals
 - ✅ Execute EDU-8 microprocessor instructions on rising clock edges
@@ -1209,6 +1320,7 @@ The EDU-8 microprocessor now responds to clock signals for instruction execution
 - ✅ Mixed-signal simulation with DC solver and digital logic coordination
 
 **Test Coverage**:
+
 - 101 new tests for digital simulation (350 tests total)
 - Unit tests: digital signals (24), edge detector (21), event queue (17), digital simulator (13)
 - Integration tests: mixed-signal simulator (8), EDU-8 clock-driven execution (15)
@@ -1218,6 +1330,7 @@ The EDU-8 microprocessor now responds to clock signals for instruction execution
 ### Current Limitations
 
 **Design constraints in MVP** (intentional simplifications):
+
 - **Single clock domain**: All digital components share one global clock signal
 - **Synchronous execution**: All digital components execute on same clock edge (no propagation delays)
 - **No asynchronous inputs**: Digital inputs sampled synchronously, not edge-triggered independently
@@ -1229,6 +1342,7 @@ The EDU-8 microprocessor now responds to clock signals for instruction execution
 - **No multi-clock support**: Cannot have different clock signals for different components
 
 **Future Enhancements** (architecture ready, not yet implemented):
+
 - Multi-clock domain support (event queue infrastructure ready)
 - Asynchronous digital inputs with independent edge triggering
 - Propagation delay modeling for realistic timing
@@ -1240,6 +1354,7 @@ The EDU-8 microprocessor now responds to clock signals for instruction execution
 ### Implementation Files
 
 **Core Digital Simulation**:
+
 - `src/core/digital-signals.ts` (126 lines) - Signal abstraction and conversion
 - `src/core/edge-detector.ts` (110 lines) - Stateful edge detection
 - `src/core/digital-event-queue.ts` (147 lines) - Event scheduling infrastructure
@@ -1247,6 +1362,7 @@ The EDU-8 microprocessor now responds to clock signals for instruction execution
 - `src/core/mixed-signal-simulator.ts` (170 lines) - Analog/digital coordination
 
 **Tests**:
+
 - `src/core/__tests__/digital-signals.test.ts` (141 lines, 24 tests)
 - `src/core/__tests__/edge-detector.test.ts` (190 lines, 21 tests)
 - `src/core/__tests__/digital-event-queue.test.ts` (245 lines, 17 tests)
@@ -1255,6 +1371,7 @@ The EDU-8 microprocessor now responds to clock signals for instruction execution
 - `src/core/__tests__/edu8-simulator.test.ts` (15 new clock-driven tests added)
 
 **Documentation**:
+
 - `ARCHITECTURE.md`: Digital simulation architecture section with data flow diagrams
 - `DIGITAL_SIMULATION_GUIDE.md`: Complete usage guide with API reference and examples
 - `IMPLEMENTATION_SUMMARY_DIGITAL_SIMULATION.md`: Technical summary of implementation
@@ -1264,12 +1381,14 @@ The EDU-8 microprocessor now responds to clock signals for instruction execution
 ### Integration Points
 
 **Current Integration**:
+
 - Digital simulation layer operates independently, called by `MixedSignalSimulator`
 - No UI integration yet (programmatic API only)
 - No clock control UI (future work)
 - No EDU-8 state visualization in UI beyond existing Explain panel
 
 **Future UI Integration Points** (not yet implemented):
+
 - Clock control panel (step button, run/pause, reset, frequency control)
 - EDU-8 state display in Explain Panel (PC, instruction, accumulator, flags, I/O with real-time updates)
 - Program editor for EDU-8 ROM (visual instruction editor)
@@ -1285,16 +1404,19 @@ The EDU-8 microprocessor now responds to clock signals for instruction execution
 The system displays voltage levels on the breadboard using color-coded overlays tied directly to simulation results.
 
 **Visual feedback**:
+
 - All holes in the same electrical net display the same voltage-based color
 - Colors update automatically after component placement
 - Semi-transparent background overlays on hole elements
 
 **Color mapping**:
+
 - Color-blind friendly gradient: 0V (dark blue) → 1.25V (cyan) → 2.5V (yellow) → 3.75V (orange) → 5V (red)
 - Linear interpolation between color stops for smooth gradients
 - Voltage values are clamped to 0-5V range
 
 **Hover tooltips**:
+
 - Mouse hover on any hole displays exact voltage value
 - Formatted description includes voltage and qualitative level (e.g., "2.50V (mid)")
 - Tooltip follows mouse cursor position
@@ -1303,11 +1425,13 @@ The system displays voltage levels on the breadboard using color-coded overlays 
 ### Implementation Details
 
 **Voltage-to-color mapping** (`src/ui/voltage-colors.ts`):
+
 - `voltageToColor()`: Converts voltage to RGB color string with description
 - `voltageToClass()`: Alternative CSS class-based mapping for pattern-based fallback
 - 13 unit tests covering edge cases, interpolation, and clamping
 
 **Rendering approach**:
+
 - Position-to-node mapping extracts which circuit node each hole belongs to
 - Voltage overlay applied during breadboard rendering
 - Cached circuit/simulation results avoid redundant computation on hover
@@ -1328,6 +1452,7 @@ The system displays voltage levels on the breadboard using color-coded overlays 
 The system visualizes current flow through circuit components using animated particles that move along wires and through components, providing real-time feedback on current direction and magnitude.
 
 **Visual feedback**:
+
 - Animated blue particles flow along wires and through components
 - Particles appear automatically when simulation succeeds and current exceeds threshold (1µA)
 - Particle movement shows current direction (from higher voltage to lower voltage)
@@ -1335,12 +1460,14 @@ The system visualizes current flow through circuit components using animated par
 - Animation runs at 60fps using `requestAnimationFrame`
 
 **Visual characteristics**:
+
 - Particle size: 3px diameter circles
 - Current threshold: 1µA minimum (filters out negligible currents)
 - Animation wraps around (particles reappear at start when reaching end)
 
 **Current magnitude visualization**:
-- **Low current (< 1mA)**: 
+
+- **Low current (< 1mA)**:
   - Faint blue color: `rgba(0, 100, 255, 0.4)`
   - Slow speed: 0.15 units/second
   - 1 particle per edge
@@ -1354,11 +1481,13 @@ The system visualizes current flow through circuit components using animated par
   - 5 particles per edge
 
 **Current direction handling**:
+
 - Positive current: particles flow from first position to second position
 - Negative current: particles flow in reverse direction (second to first)
 - Direction automatically determined from MNA solver output
 
 **Path rendering**:
+
 - **Wires**: Manhattan routing (orthogonal path with 3 segments)
 - **Other components**: Straight line from start to end position
 - Coordinates calculated from breadboard grid positions using shared layout constants
@@ -1366,6 +1495,7 @@ The system visualizes current flow through circuit components using animated par
 ### Implementation Details
 
 **Current animator** (`src/ui/current-animator.ts`, 426 lines):
+
 - `CurrentAnimator` class manages particle lifecycle and animation
 - `start()`: Initializes animation with simulation results and components
 - `stop()`: Cleans up animation and removes particles
@@ -1373,18 +1503,21 @@ The system visualizes current flow through circuit components using animated par
 - Private methods for particle creation, path building, position calculation
 
 **Particle system**:
+
 - Each particle tracks: edge ID, progress (0-1), speed, brightness, color
 - Particles update position based on elapsed time (delta time)
 - Progress wraps to create continuous flow effect
 - Particle count, speed, and visual properties scale with current magnitude
 
 **Integration** (`src/ui/breadboard-app.ts`):
+
 - `CurrentAnimator` instance created with application
 - Animation starts automatically after successful simulation
 - Animation stops automatically on circuit changes or simulation failure
 - Particles render into same SVG container as component overlays
 
 **Testing** (`src/ui/__tests__/current-animator.test.ts`, 11 tests):
+
 - Current threshold filtering (particles only appear above 1µA)
 - Magnitude scaling (more particles and faster speed for higher current)
 - Component type support (wire, resistor, LED)
@@ -1408,6 +1541,7 @@ The system visualizes current flow through circuit components using animated par
 Speaker components (8Ω breadboard module) produce real audio output via the browser's Web Audio API, deriving waveform characteristics from circuit simulation results.
 
 **Audio capabilities**:
+
 - Browser-based audio generation using Web Audio API
 - Audio disabled by default (requires explicit user activation)
 - Real-time audio synthesis based on voltage and current across speaker terminals
@@ -1415,6 +1549,7 @@ Speaker components (8Ω breadboard module) produce real audio output via the bro
 - Clean audio shutdown when speakers removed or circuit cleared
 
 **Audio mapping algorithm**:
+
 - **Voltage to frequency**: Logarithmic mapping from 0-5V to 200-2000Hz range
   - Formula: frequency = exp(log(200) + normalized_voltage × (log(2000) - log(200)))
   - Provides musical frequency distribution across voltage range
@@ -1426,6 +1561,7 @@ Speaker components (8Ω breadboard module) produce real audio output via the bro
 - **Threshold filtering**: Speakers auto-stop when voltage < 0.1V or current < 0.1mA
 
 **Multi-speaker support**:
+
 - Independent oscillator nodes for each speaker component
 - Automatic audio mixing via master gain node
 - Per-speaker audio parameters (frequency, amplitude) track voltage/current independently
@@ -1433,6 +1569,7 @@ Speaker components (8Ω breadboard module) produce real audio output via the bro
 - Clean resource management (oscillators stopped and disconnected on speaker removal)
 
 **User interaction requirements**:
+
 - Audio must be enabled by user gesture (browser security requirement)
 - Web Audio API context initialized only after user clicks "Enable Sound" button
 - Audio state persists across circuit changes (once enabled, stays enabled until disabled)
@@ -1442,7 +1579,8 @@ Speaker components (8Ω breadboard module) produce real audio output via the bro
 Interactive audio control panel in left toolbar provides audio enable/disable, volume control, and active speaker monitoring.
 
 **UI elements**:
-- **Enable/Disable button**: 
+
+- **Enable/Disable button**:
   - Shows "🔇 Enable Sound" when disabled (default state)
   - Shows "🔊 Disable Sound" when enabled
   - Button turns green (`background: #44aa44`) when audio active
@@ -1458,10 +1596,12 @@ Interactive audio control panel in left toolbar provides audio enable/disable, v
   - Live count updates as speakers added/removed or voltage/current changes
 
 **Keyboard shortcuts**:
+
 - **M key**: Toggle audio on/off (mute/unmute)
 - Works regardless of focus (document-level listener)
 
 **Persistence**:
+
 - Volume setting saved to localStorage (`breadboard-lab-audio-volume`)
 - Volume restored on page reload
 - Audio enabled/disabled state NOT persisted (always starts disabled for safety)
@@ -1471,12 +1611,14 @@ Interactive audio control panel in left toolbar provides audio enable/disable, v
 Core audio system implemented in `AudioManager` class (`src/audio/audio-manager.ts`, 300 lines).
 
 **Architecture**:
+
 - Singleton pattern: one AudioManager instance per BreadboardApp
 - Web Audio API integration: AudioContext, OscillatorNode, GainNode
 - Speaker tracking: Map of speaker IDs to audio nodes
 - State management: enabled flag, volume level, preferences persistence
 
 **Public API**:
+
 - `enable()`: Initialize AudioContext and master gain node (async, requires user gesture)
 - `disable()`: Stop all oscillators, close AudioContext, clear speaker map
 - `isEnabled()`: Check if audio is currently active
@@ -1487,6 +1629,7 @@ Core audio system implemented in `AudioManager` class (`src/audio/audio-manager.
 - `getActiveSpeakerCount()`: Get number of speakers currently producing audio
 
 **Internal implementation**:
+
 - `createSpeaker()`: Create new oscillator + gain nodes, configure frequency/amplitude, start oscillator
 - `updateSpeakerParameters()`: Update existing oscillator frequency/amplitude with smooth transitions
 - `stopSpeaker()`: Stop oscillator, disconnect nodes, remove from map
@@ -1496,6 +1639,7 @@ Core audio system implemented in `AudioManager` class (`src/audio/audio-manager.
 - `savePreferences()`: Save volume to localStorage on change
 
 **Audio node graph structure**:
+
 ```
 [Oscillator 1] → [Gain 1] ┐
 [Oscillator 2] → [Gain 2] ├→ [Master Gain] → [Destination (speakers)]
@@ -1503,6 +1647,7 @@ Core audio system implemented in `AudioManager` class (`src/audio/audio-manager.
 ```
 
 **Error handling**:
+
 - Graceful fallback if Web Audio API not supported
 - Try-catch on oscillator stop (may already be stopped)
 - Try-catch on localStorage access (may be unavailable)
@@ -1513,8 +1658,9 @@ Core audio system implemented in `AudioManager` class (`src/audio/audio-manager.
 Audio system integrated into `BreadboardApp` simulation loop with automatic updates.
 
 **Integration points**:
+
 1. **Speaker detection**: Filter components by `libraryId === 'speaker-8ohm'` after simulation
-2. **Voltage/current extraction**: 
+2. **Voltage/current extraction**:
    - Find circuit edge for each speaker component
    - Extract node voltages from simulation results
    - Calculate voltage across speaker terminals: `|voltageA - voltageB|`
@@ -1524,6 +1670,7 @@ Audio system integrated into `BreadboardApp` simulation loop with automatic upda
 5. **UI synchronization**: Update audio controls after simulation (speaker count, button state)
 
 **Update triggers**:
+
 - Component placement/removal
 - Component repositioning
 - Component rotation
@@ -1532,6 +1679,7 @@ Audio system integrated into `BreadboardApp` simulation loop with automatic upda
 - Any operation that triggers circuit re-extraction and simulation
 
 **Performance characteristics**:
+
 - Audio updates run after simulation completes (not blocking)
 - Speaker detection: O(n) where n = number of components
 - Edge lookup: O(e) where e = number of edges
@@ -1541,6 +1689,7 @@ Audio system integrated into `BreadboardApp` simulation loop with automatic upda
 ### Browser Compatibility
 
 Web Audio API is widely supported in modern browsers:
+
 - **Chrome**: 23+ (2013)
 - **Firefox**: 25+ (2013)
 - **Safari**: 6.1+ (2013)
@@ -1548,6 +1697,7 @@ Web Audio API is widely supported in modern browsers:
 - **Edge**: All versions (Chromium-based)
 
 **Limitations**:
+
 - No audio in browsers without Web Audio API support (graceful degradation)
 - Audio requires user gesture to start (browser security policy)
 - No mobile-specific audio optimizations (may have latency on some devices)
@@ -1555,6 +1705,7 @@ Web Audio API is widely supported in modern browsers:
 ### Testing
 
 14 unit tests for `AudioManager` (`src/audio/__tests__/audio-manager.test.ts`, 164 lines):
+
 - Initialization (disabled by default, default volume)
 - Enable/disable lifecycle
 - Volume control (set, get, clamping)
@@ -1566,6 +1717,7 @@ Web Audio API is widely supported in modern browsers:
 - localStorage persistence (save/load volume)
 
 **Test coverage**:
+
 - All public API methods tested
 - Edge cases: invalid volume values, low voltage/current, multiple speakers
 - State transitions: disabled → enabled → disabled
@@ -1576,7 +1728,7 @@ Web Audio API is widely supported in modern browsers:
 - **DC circuits only**: Audio derived from DC simulation (voltage across terminals)
   - No AC waveform analysis (requires transient simulation)
   - Audio is synthesized tone based on DC voltage level, not actual AC waveform
-- **Simplified audio model**: 
+- **Simplified audio model**:
   - Voltage maps to frequency (not physically accurate for real speakers)
   - Current maps to amplitude (simplified model of speaker behavior)
   - Single sine wave per speaker (no harmonics or complex waveforms)
@@ -1603,6 +1755,7 @@ The system automatically detects and categorizes five types of common circuit er
 5. **Overcurrent** - LED current exceeding 1.5× its maximum rated current
 
 **Error detection algorithm:**
+
 - Runs automatically after circuit simulation completes
 - Analyzes simulation results (node voltages, edge currents, component types)
 - Detects errors using heuristic rules and threshold checks
@@ -1620,6 +1773,7 @@ The system automatically detects and categorizes five types of common circuit er
 Error icons render automatically on the breadboard SVG overlay at problem locations, making errors immediately visible and interactive.
 
 **Visual characteristics:**
+
 - **Short circuits**: Red circle with white ✕ symbol
 - **Floating nodes**: Orange circle with white ? symbol
 - **Reversed LEDs**: Yellow circle with white ! symbol
@@ -1627,6 +1781,7 @@ Error icons render automatically on the breadboard SVG overlay at problem locati
 - **Overcurrent warnings**: Orange circle with white ! symbol
 
 **Interactive features:**
+
 - Error icons are clickable to open Explain panel with details
 - Hover effects: icon grows from 8px to 10px radius on hover
 - Drop shadow effect increases on hover for visual feedback
@@ -1635,6 +1790,7 @@ Error icons render automatically on the breadboard SVG overlay at problem locati
 - White stroke (2px) around colored background for visibility
 
 **Rendering behavior:**
+
 - Error overlay renders above breadboard holes but below component overlay
 - Icons update automatically when circuit changes or simulation re-runs
 - Multiple errors can be displayed simultaneously
@@ -1646,6 +1802,7 @@ Error icons render automatically on the breadboard SVG overlay at problem locati
 Interactive side panel that provides contextual explanations about circuit behavior, including technical details and educational content.
 
 **Panel structure:**
+
 - Slide-in panel from right side of screen
 - Header with "Circuit Explanation" title and close button (✕)
 - Content area that changes based on what was clicked
@@ -1692,6 +1849,7 @@ Interactive side panel that provides contextual explanations about circuit behav
    - Role in circuit explanation with educational context
 
 **Educational content features:**
+
 - Circuit theory concepts explained in accessible language
 - Ohm's Law (V = IR) referenced with actual circuit values
 - Voltage divider principles explained when relevant
@@ -1701,6 +1859,7 @@ Interactive side panel that provides contextual explanations about circuit behav
 - Troubleshooting hints for zero-current scenarios
 
 **UI/UX characteristics:**
+
 - Slide-in animation with CSS transitions
 - Responsive design adapts to screen size
 - Readable typography with clear hierarchy (h4, h5, p elements)
@@ -1713,6 +1872,7 @@ Interactive side panel that provides contextual explanations about circuit behav
 ### Integration Points
 
 **Circuit simulator integration:**
+
 - `SimulationResult` interface extended with `errors: CircuitError[]` array
 - `CircuitError` interface defined in `types.ts` with all error metadata
 - `ErrorType` enum defines five error categories
@@ -1720,6 +1880,7 @@ Interactive side panel that provides contextual explanations about circuit behav
 - Errors returned even when simulation succeeds (non-blocking)
 
 **UI integration:**
+
 - `ErrorOverlayRenderer` instance created in `BreadboardApp`
 - `ExplainPanel` instance created and initialized with DOM container
 - Error icons render into same SVG as component overlay
@@ -1728,6 +1889,7 @@ Interactive side panel that provides contextual explanations about circuit behav
 - Error overlay updates automatically when circuit changes
 
 **Event handling:**
+
 - Error icon clicks: Extract error data from SVG dataset attributes, open panel with error content
 - Component clicks: Find component by ID, open panel with component content
 - Hole clicks: Map position to node ID, open panel with node content
@@ -1737,16 +1899,19 @@ Interactive side panel that provides contextual explanations about circuit behav
 ### Implementation Details
 
 **Files added:**
+
 - `src/ui/error-overlay-renderer.ts` (140 lines): Error icon SVG rendering
 - `src/ui/explain-panel.ts` (370 lines): Panel UI and content generation
 
 **Files modified:**
+
 - `src/core/types.ts`: Added `ErrorType` enum and `CircuitError` interface
 - `src/core/circuit-simulator.ts`: Added `detectErrors()` method (155 lines of error detection logic)
 - `src/ui/breadboard-app.ts`: Integrated error overlay and explain panel
 - `src/style.css`: Added styles for error icons and explain panel (`.error-icon`, `.explain-panel`, etc.)
 
 **Error detection logic:**
+
 - Short circuit: Checks if voltage source current exceeds 10A threshold
 - Floating node: Node with <0.1V, no current flow, and no power/ground connections
 - Reversed LED: LED with negative current (current < -1µA)
@@ -1754,6 +1919,7 @@ Interactive side panel that provides contextual explanations about circuit behav
 - Overcurrent: LED current exceeds 1.5× `maxCurrent` property
 
 **Explain panel content generation:**
+
 - Separate private methods for each content type (`generateErrorContent`, `generateNodeContent`, `generateComponentContent`)
 - Context-aware heuristics for generating explanations
 - Component role analysis based on circuit topology
@@ -1780,11 +1946,13 @@ Interactive side panel that provides contextual explanations about circuit behav
 The system provides JSON-based serialization for saving and loading circuits with full fidelity.
 
 **JSON Schema (v1.0)**:
+
 - **Version**: Schema version identifier ("1.0")
 - **Metadata**: Circuit name, description, author, created/modified timestamps
 - **Components**: Full component array with type, positions, rotation, and component-specific properties
 
 **Serialization features**:
+
 - Converts `BreadboardState` to human-readable JSON format
 - Preserves all component types: Wire, Resistor, LED, Power Supply, Ground
 - Maintains component positions, rotation angles, and all configurable properties
@@ -1792,6 +1960,7 @@ The system provides JSON-based serialization for saving and loading circuits wit
 - Named default constants: DEFAULT_RESISTANCE (1000Ω), DEFAULT_LED_FORWARD_VOLTAGE (2.0V), DEFAULT_POWER_SUPPLY_VOLTAGE (5.0V)
 
 **Deserialization features**:
+
 - Validates JSON structure and format before loading
 - Validates component types and rotation values (0°, 90°, 180°, 270°)
 - Applies default values for missing component properties
@@ -1800,11 +1969,13 @@ The system provides JSON-based serialization for saving and loading circuits wit
 - Roundtrip fidelity: serialize → deserialize preserves all data
 
 **Testing**:
+
 - 14 unit tests covering serialization, deserialization, validation, and roundtrip
 - Edge cases: empty circuits, missing properties, invalid JSON, invalid rotation
 - All component types tested individually and in combination
 
 **Implementation**:
+
 - `src/core/circuit-serializer.ts` (306 lines)
 - `src/core/__tests__/circuit-serializer.test.ts` (453 lines, 14 tests)
 
@@ -1813,6 +1984,7 @@ The system provides JSON-based serialization for saving and loading circuits wit
 The system provides multiple storage mechanisms for persisting circuits locally and sharing them externally.
 
 **LocalStorage persistence**:
+
 - Save circuits to browser localStorage with user-defined names
 - Indexed storage with O(1) retrieval by name
 - Storage key sanitization: removes special characters, normalizes whitespace
@@ -1822,18 +1994,21 @@ The system provides multiple storage mechanisms for persisting circuits locally 
 - Auto-recovery from corrupted index by rebuilding from localStorage scan
 
 **File operations**:
+
 - Download circuit as `.json` file via Blob API
 - Upload circuit from `.json` file via FileReader API
 - Automatic `.json` extension enforcement on download
 - File selection cancellation handling
 
 **Circuit management**:
+
 - List all saved circuits with metadata (name, description, timestamps)
 - Delete saved circuits from localStorage
 - Sort circuits by most recently modified
 - Update circuit metadata on each save
 
 **Implementation**:
+
 - `src/core/circuit-storage.ts` (250 lines)
 - Storage key prefix: `breadboard-lab-circuit-`
 - Index key: `breadboard-lab-circuit-index`
@@ -1879,12 +2054,14 @@ The system includes six canonical example circuits demonstrating different elect
    - **Loads automatically on first application launch** to demonstrate tool capabilities immediately (goal.md Section 13 requirement)
 
 **Example metadata**:
+
 - ID, name, description for each example
 - Category classification: basic, intermediate, demo, microprocessor
 - Learning objectives list (3-6 objectives per example)
 - JSON circuit data embedded in application
 
 **Default circuit loading** (PR #267):
+
 - On application initialization, `loadDefaultCircuitIfEmpty()` checks if breadboard is empty (no components)
 - If empty, loads EDU-8 Blink example circuit automatically via `getDefaultExample()` function
 - Graceful error handling: if default circuit fails to load, logs error but continues with empty board (user can still use application)
@@ -1898,6 +2075,7 @@ The system includes six canonical example circuits demonstrating different elect
 - Satisfies goal.md Section 13: "On first load, users must see working example circuit with at least one interactive element"
 
 **Implementation**:
+
 - `src/examples/index.ts` (125 lines): Example registry, lookup functions, and `getDefaultExample()` function
 - `src/examples/led-resistor.json` (87 lines): LED and Resistor example
 - `src/examples/switch-led.json` (97 lines): Switch Control LED example (PR #273)
@@ -1913,12 +2091,14 @@ The system includes six canonical example circuits demonstrating different elect
 The system provides modal dialogs for saving, loading, and browsing example circuits, integrated into the left toolbar.
 
 **Toolbar buttons**:
+
 - **📚 Examples**: Opens example circuits browser (blue primary button)
 - **📂 Load Circuit**: Opens saved circuits list and file upload (secondary button)
 - **💾 Save Circuit**: Opens save dialog with name/description inputs (secondary button)
 - **🗑️ Clear All**: Clears breadboard with unsaved changes confirmation (red button)
 
 **Save dialog features**:
+
 - Input fields for circuit name and description (optional)
 - Three action buttons:
   - "Save Locally": Saves to localStorage
@@ -1928,6 +2108,7 @@ The system provides modal dialogs for saving, loading, and browsing example circ
 - Success notification after save
 
 **Load dialog features**:
+
 - List of saved circuits sorted by most recent modification
 - Each list item displays: name, description, last modified timestamp
 - Relative timestamps: "just now", "5 mins ago", "2 hours ago", "3 days ago", or date
@@ -1937,6 +2118,7 @@ The system provides modal dialogs for saving, loading, and browsing example circ
 - Confirmation prompt if loading would overwrite unsaved changes
 
 **Examples dialog features**:
+
 - List of all example circuits with rich metadata
 - Each example displays:
   - Name with category badge (BASIC/INTERMEDIATE/DEMO)
@@ -1947,6 +2129,7 @@ The system provides modal dialogs for saving, loading, and browsing example circ
 - Confirmation prompt if loading would overwrite unsaved changes
 
 **Modal dialog system**:
+
 - Semi-transparent dark overlay (70% black)
 - Centered modal with dark theme matching application
 - Slide-up animation on open, fade-out on close
@@ -1956,6 +2139,7 @@ The system provides modal dialogs for saving, loading, and browsing example circ
 - Responsive design adapts to screen size
 
 **Unsaved changes tracking**:
+
 - Changes tracked automatically on: component placement, deletion, rotation, drag, property edit
 - Confirmation prompts prevent accidental data loss on:
   - Loading saved circuit
@@ -1965,6 +2149,7 @@ The system provides modal dialogs for saving, loading, and browsing example circ
 - Resets unsaved flag after successful save or load
 
 **Implementation**:
+
 - Integrated into `src/ui/breadboard-app.ts` (+492 lines)
 - Modal HTML generation with event listeners
 - HTML escaping for safe rendering of user-provided names/descriptions
@@ -1974,6 +2159,7 @@ The system provides modal dialogs for saving, loading, and browsing example circ
 ### Constraints and Limitations
 
 **Storage constraints**:
+
 - LocalStorage only (no cloud storage or sync across devices)
 - LocalStorage quota limits apply (typically 5-10MB per origin)
 - Circuit persistence tied to browser and domain
@@ -1981,12 +2167,14 @@ The system provides modal dialogs for saving, loading, and browsing example circ
 - No circuit versioning or history
 
 **Serialization constraints**:
+
 - Schema version v1.0 only (no automatic migration from future versions)
 - Component selection state not serialized (always null on load)
 - No compression (JSON stored as plain text)
 - No circuit thumbnails or preview images
 
 **Example library constraints**:
+
 - Fixed set of 5 examples (not user-extensible)
 - Examples embedded in application code (not dynamically loaded)
 - No example categories beyond basic/intermediate/demo/microprocessor
@@ -1994,6 +2182,7 @@ The system provides modal dialogs for saving, loading, and browsing example circ
 - Default circuit (EDU-8 Blink) cannot be customized without code changes
 
 **UI constraints**:
+
 - Modal dialogs block background interactions
 - No keyboard shortcuts for save/load (must use buttons)
 - No auto-save functionality
@@ -2009,6 +2198,7 @@ The system provides modal dialogs for saving, loading, and browsing example circ
 The system displays all placed components with distinctive visual representations on the breadboard using WebGL-accelerated rendering via PixiJS. The renderer provides photorealistic 2D (top-down) breadboard visualization with physical structure, depth cues, and simulation-driven visual effects (PR #167 base implementation, PR #203 photorealistic enhancements).
 
 **Visual representations**:
+
 - **Power supply**: Blue battery rectangle with +/- symbols and voltage label (e.g., "5V")
 - **Resistor**: Tan rectangle with IEC 60062 compliant color bands representing resistance and tolerance (4 bands for 5% tolerance, 5 bands for 1-2% tolerance). Includes connection leads. Fallback to text label if color band calculation fails.
 - **LED**: Red circle with "+" polarity indicator and cathode marker (flat side)
@@ -2017,11 +2207,13 @@ The system displays all placed components with distinctive visual representation
 - **Microprocessor**: Not yet rendered (no PixiJS renderer case implemented); component can be placed but is not visually displayed
 
 **Wire color cycling**:
+
 - Wires cycle through 8 distinct colors: red, black, yellow, green, blue, orange, white, purple
 - Color assignment resets on each render for consistency
 - Each wire gets the next color in the sequence
 
 **Rendering characteristics**:
+
 - Components render automatically after placement using PixiJS WebGL canvas
 - Canvas-based rendering replaces previous SVG overlay approach
 - Components render in layered containers with z-ordering: breadboard grid → components → voltage overlay → particles → error overlays
@@ -2032,6 +2224,7 @@ The system displays all placed components with distinctive visual representation
 - Hardware-accelerated rendering via WebGL for improved performance
 
 **Coordinate mapping**:
+
 - Grid positions (row, col) map to pixel coordinates for PixiJS rendering
 - Hole spacing: 26px per hole (20px hole size + 6px total margin)
 - Breadboard dimensions: 364px width (14 columns) × 780px height (30 rows)
@@ -2039,6 +2232,7 @@ The system displays all placed components with distinctive visual representation
 ### Implementation Details
 
 **PixiJS renderer** (`src/ui/pixi-renderer.ts`, 1136 lines, enhanced in PR #203):
+
 - `PixiRenderer` class handles all WebGL-based rendering logic
 - `init()`: Initializes PixiJS Application with WebGL backend, creates canvas element, sets up layer containers
 - `renderBreadboard()`: Renders breadboard holes with voltage overlay colors using Graphics API
@@ -2052,6 +2246,7 @@ The system displays all placed components with distinctive visual representation
 - Event handling via PixiJS `FederatedPointerEvent` system
 
 **Layer containers**:
+
 - `breadboardContainer`: Breadboard grid holes with voltage colors (z-index 0)
 - `componentsContainer`: Component graphics with sortable children (z-index 1)
 - `voltageOverlayContainer`: Voltage-specific overlays (z-index 2)
@@ -2059,6 +2254,7 @@ The system displays all placed components with distinctive visual representation
 - `errorOverlayContainer`: Error icons (z-index 4)
 
 **Integration** (`src/ui/breadboard-app.ts`):
+
 - PixiJS renderer initialized once with event handlers on first breadboard render
 - Event handlers: `onHoleClick`, `onComponentClick`, `onErrorIconClick`
 - Re-renders breadboard, components, errors, and animation on state changes
@@ -2067,12 +2263,13 @@ The system displays all placed components with distinctive visual representation
 - Canvas element appended to breadboard container on init
 
 **Rendering pipeline**:
+
 ```typescript
 // Initialize (one-time)
 await pixiRenderer.init(breadboard, {
   onHoleClick: (pos) => this.handleHoleClick(pos),
   onComponentClick: (id) => this.handleComponentClick(id),
-  onErrorIconClick: (err) => this.showErrorDialog(err)
+  onErrorIconClick: (err) => this.showErrorDialog(err),
 });
 
 // Render (on each state change)
@@ -2239,6 +2436,7 @@ All photorealistic rendering requirements from goal.md v0.2 are fully met:
 **Educational value**:
 
 The photorealistic rendering enhances the educational mission by:
+
 - Bridging simulation and reality: Students see labels and structure matching physical breadboards
 - Visual feedback: LED glow immediately shows circuit success/failure
 - Professional appearance: Increases adoption in educational institutions
@@ -2261,6 +2459,7 @@ The photorealistic rendering enhances the educational mission by:
 The system implements standard resistor color code calculations per IEC 60062, enabling physically accurate resistor rendering and educational color code learning.
 
 **Core algorithm** (`src/core/resistor-color-code.ts`):
+
 - `resistanceToColorBands(resistance, tolerance)`: Converts resistance value (Ω) and tolerance (%) to array of color bands
 - `colorBandsToResistance(bands)`: Decodes color bands back to resistance and tolerance values
 - Supports 4-band resistors (5% and 10% tolerance)
@@ -2269,17 +2468,20 @@ The system implements standard resistor color code calculations per IEC 60062, e
 - 50+ unit tests covering E12/E24 series, edge cases, and round-trip verification
 
 **Color encoding:**
+
 - **Digit colors**: Black (0), Brown (1), Red (2), Orange (3), Yellow (4), Green (5), Blue (6), Violet (7), Gray (8), White (9)
 - **Multiplier colors**: All digit colors plus Gold (×0.1), Silver (×0.01)
 - **Tolerance colors**: Brown (1%), Red (2%), Gold (5%), Silver (10%), plus precision values for 5-band resistors
 - RGB color values defined for visual rendering (`COLOR_TO_RGB` map)
 
 **Band structure:**
+
 - 4-band: digit1, digit2, multiplier, tolerance
 - 5-band: digit1, digit2, digit3, multiplier, tolerance
 - Band count determined by tolerance value (≤2% uses 5-band, >2% uses 4-band)
 
 **Examples:**
+
 - 1kΩ 5% → Brown (1), Black (0), Red (×100), Gold (±5%)
 - 10kΩ 5% → Brown (1), Black (0), Orange (×1000), Gold (±5%)
 - 220Ω 5% → Red (2), Red (2), Brown (×10), Gold (±5%)
@@ -2300,6 +2502,7 @@ Resistor color bands render automatically on all placed resistors:
 Click any resistor to open the Explain Panel with color code breakdown:
 
 **Display features:**
+
 - Each band shown with background color and readable text
 - Band information includes:
   - Color name (e.g., "Brown", "Black", "Red")
@@ -2310,6 +2513,7 @@ Click any resistor to open the Explain Panel with color code breakdown:
 - Band count and tolerance displayed in section header
 
 **Educational value:**
+
 - Students learn to read physical resistor color codes
 - Interactive feedback reinforces color-to-value associations
 - Real-time updates when resistance value changes
@@ -2345,6 +2549,7 @@ Displays the following statistics:
 ### Data Displayed
 
 Component details shown:
+
 - **Resistor**: Resistance value
 - **LED**: Forward voltage
 - **Power Supply**: Voltage
@@ -2414,7 +2619,6 @@ src/
   - Can be tested in isolation
   - Can be used in Node.js or browser environments
   - All types are in `types.ts`
-  
 - **UI layer**: Manages DOM rendering and user interactions
   - Depends on core layer
   - Uses vanilla JavaScript (no framework)
@@ -2445,6 +2649,7 @@ src/
 **Status**: Phase 3a Complete ✅ (PR #231). Wire re-routing capability added (PR #255).
 
 **Wire Re-routing Capability** (COMPLETE):
+
 - **Connection selection**: Click on any wire/connection to select it
   - Selected connections display blue highlight with thicker stroke width
   - Deselection occurs when clicking components, holes, or background
@@ -2484,6 +2689,7 @@ Phase 3a of the Rete.js migration **implements the connection event handling and
 The `ReteManager` class provides the bridge between the existing component array model and Rete.js's node-based graph representation:
 
 **Classes and Types:**
+
 - `ComponentNode`: Rete node representing a component with multiple leg sockets
   - Socket count determined by component type (2 for resistor/LED/wire, 1 for power supply/ground, 16 for EDU-8 microprocessor)
   - Each leg gets an input socket for connections
@@ -2495,6 +2701,7 @@ The `ReteManager` class provides the bridge between the existing component array
 - `ConnectionValidation`: Interface for validation results with `valid` boolean and optional `reason` string
 
 **ReteManager Capabilities:**
+
 - Optional initialization (works with or without DOM container)
 - Rete.js editor instance with AreaPlugin (viewport management) and ConnectionPlugin
 - Full bidirectional state synchronization:
@@ -2524,6 +2731,7 @@ The `ReteManager` class provides the bridge between the existing component array
 **Circuit Extraction** (`src/core/circuit-extractor.ts`):
 
 New method `extractFromReteGraph()` (Phase 2):
+
 1. Reads occupied positions from Rete BreadboardHoleNodes
 2. Applies breadboard internal connectivity (terminal strips, rails)
 3. Uses same union-find algorithm as position-based method
@@ -2533,6 +2741,7 @@ New method `extractFromReteGraph()` (Phase 2):
 **BreadboardApp Integration** (`src/ui/breadboard-app.ts`):
 
 Feature flag system with Phase 3a:
+
 - `USE_RETE` feature flag **ACTIVE** (`true`) — enables graph-based extraction
 - `USE_RETE_INTERACTIVE` feature flag **ACTIVE** (`true`) — controls interactive connection UI (Phase 3e COMPLETE)
 - `initializeReteIntegration()` method creates hidden Rete container
@@ -2543,14 +2752,16 @@ Feature flag system with Phase 3a:
   - Registers `onConnectionRemoved` handler (currently logs events)
 - Conditional circuit extraction:
   ```typescript
-  const circuit = USE_RETE && this.reteManager
-    ? this.extractor.extractFromReteGraph(this.reteManager, this.state)
-    : this.extractor.extract(this.state);
+  const circuit =
+    USE_RETE && this.reteManager
+      ? this.extractor.extractFromReteGraph(this.reteManager, this.state)
+      : this.extractor.extract(this.state);
   ```
 - Optional `reteManager` instance (active when USE_RETE=true)
 - Hybrid architecture: Rete manages connectivity, PixiJS handles all rendering
 
 **Current Implementation Status:**
+
 - ✅ Dependencies installed (rete@^2.0.6, rete-area-plugin@^2.1.5, rete-connection-plugin@^2.0.5)
 - ✅ ReteManager class with full editor lifecycle management
 - ✅ Node classes (ComponentNode, BreadboardHoleNode) with socket system
@@ -2573,21 +2784,24 @@ Feature flag system with Phase 3a:
 **Hybrid Architecture Implemented:**
 
 Data flow:
+
 ```
 Component placement → BreadboardState updated
                    → syncStateToRete() creates graph
-                   → extractFromReteGraph() reads connectivity  
+                   → extractFromReteGraph() reads connectivity
                    → CircuitSimulator computes behavior
                    → PixiJS renders (unchanged)
 ```
 
 Architecture:
+
 - **Rete.js**: Source of truth for connectivity (which holes are occupied, how components connect)
 - **BreadboardState**: Source of truth for component properties (resistance, voltage, rotation)
 - **Circuit extraction**: Reads Rete graph, applies breadboard internal connectivity (terminal strips/rails via union-find), generates identical netlists to position-based method
 - **PixiJS**: Continues to render all visuals (breadboard, components, overlays) - unchanged
 
 **Design Rationale:**
+
 - Minimizes risk by keeping rendering layer untouched
 - Allows easy rollback via feature flag (`const USE_RETE = false`)
 - Preserves photorealistic PixiJS rendering quality
@@ -2598,6 +2812,7 @@ Architecture:
 **Dependencies:**
 
 All Rete.js libraries are MIT licensed and compatible with the project:
+
 - `rete@^2.0.6`: Core Rete.js visual programming framework
 - `rete-area-plugin@^2.1.5`: Viewport management (pan, zoom)
 - `rete-connection-plugin@^2.0.5`: Connection creation UI (initialized but not interactive in Phase 2)
@@ -2605,6 +2820,7 @@ All Rete.js libraries are MIT licensed and compatible with the project:
 **Testing Coverage:**
 
 Test suites with Phase 3a coverage:
+
 - `src/core/__tests__/rete-manager.test.ts` (26 tests):
   - Editor and plugin initialization
   - ComponentNode and BreadboardHoleNode creation
@@ -2621,7 +2837,6 @@ Test suites with Phase 3a coverage:
     - Hole occupancy detection
     - Floating component creation
     - Programmatic connection creation
-  
 - `src/core/__tests__/circuit-extractor.test.ts` (11 tests):
   - Position-based extraction (6 tests)
   - Rete-based extraction (5 tests):
@@ -2634,6 +2849,7 @@ Test suites with Phase 3a coverage:
 **What Phase 2 & 3a Provide:**
 
 ✅ **Activated capabilities (Phase 2):**
+
 - Rete.js manages connection graph (nodes, sockets, edges) - **ACTIVE**
 - Circuit extraction reads from Rete graph - **ACTIVE**
 - One-connector-per-hole constraint enforced at data structure level - **ACTIVE**
@@ -2642,6 +2858,7 @@ Test suites with Phase 3a coverage:
 - Equivalence with position-based extraction verified - **ACTIVE**
 
 ✅ **Event handling and validation infrastructure (Phase 3a):**
+
 - Connection event callback registration (onConnectionCreated, onConnectionRemoved) - **IMPLEMENTED**
 - Connection validator registration and pipeline integration - **IMPLEMENTED**
 - One-connector-per-hole runtime validation with error messages - **IMPLEMENTED**
@@ -2655,12 +2872,14 @@ Test suites with Phase 3a coverage:
 Phase 3b adds visual feedback systems to support interactive connection creation:
 
 **Hole Hover Effects** - **IMPLEMENTED**
+
 - Blue glow ring (color: 0x44aaff, width: 2px, alpha: 0.6) on pointerover/pointerout
 - Added `onHoleHover` and `onHoleHoverOut` event handlers to `PixiEventHandlers` interface
 - Modified `renderHole()` method in PixiRenderer to attach/detach glow graphics on hover
 - Performance validated: No frame rate impact with 420 interactive holes
 
 **Connection Line Rendering Infrastructure** - **IMPLEMENTED**
+
 - Added `connectionsContainer` layer in PixiRenderer (z-order: between breadboard and components)
 - Implemented `renderConnections()` method with bezier curve rendering
 - Line style: 2px width, gray color (0x999999), 0.7 alpha
@@ -2672,6 +2891,7 @@ Phase 3b adds visual feedback systems to support interactive connection creation
 Phase 3c adds floating component model infrastructure and rendering:
 
 **FloatingComponent Type System** - **IMPLEMENTED**
+
 - New `FloatingComponent` interface in `src/core/types.ts`
 - Canvas-based positioning (`{x, y}` pixels) instead of grid positions
 - Continuous rotation support (0-360°) aligns with goal.md Section 7.2 requirement
@@ -2679,12 +2899,14 @@ Phase 3c adds floating component model infrastructure and rendering:
 - Clear separation from `AnyComponent` type maintains floating/placed distinction
 
 **Component Creation Logic** - **IMPLEMENTED**
+
 - `createFloatingComponent()` method in BreadboardApp
 - Positions component at canvas edge (50px right of breadboard, 100px from top)
 - Populates properties from component library when libraryId provided
 - Modified `selectComponentType()` to use floating workflow when `USE_RETE_INTERACTIVE=true`
 
 **Floating Component Rendering** - **IMPLEMENTED**
+
 - `renderFloatingComponent()` method in PixiRenderer
 - Semi-transparent rendering (70% opacity) indicates unplaced state
 - Visual representations for all 6 component types (resistor, LED, wire, power supply, ground, microprocessor)
@@ -2696,6 +2918,7 @@ Phase 3c adds floating component model infrastructure and rendering:
 Phase 3d implements the complete interactive component placement workflow specified in goal.md Section 5.3.1:
 
 **Floating Component Drag Handling** - **IMPLEMENTED**
+
 - `FloatingDragState` interface tracks drag state for floating components vs placed components
 - `handleFloatingComponentDragStart()` initiates component body drag with offset calculation
 - `updateFloatingComponentDragPreview()` updates component position in real-time during drag
@@ -2704,6 +2927,7 @@ Phase 3d implements the complete interactive component placement workflow specif
 - Escape key cancels floating component placement and cleans up drag state
 
 **Interactive Connection Creation** - **IMPLEMENTED**
+
 - Component legs rendered as interactive yellow circles (5px radius) with 'crosshair' cursor
 - `handleFloatingComponentLegDragStart()` initiates connection drag from specific leg
 - `FloatingComponent.connectedLegs` Map tracks which legs are connected to which holes during interactive placement
@@ -2713,12 +2937,14 @@ Phase 3d implements the complete interactive component placement workflow specif
 - `connectionTargetHole` field in FloatingDragState tracks hole being targeted for connection
 
 **Connection Validation** - **IMPLEMENTED**
+
 - `handleConnectionCreation()` validates hole occupancy via `reteManager.isHoleOccupied()`
 - One-connector-per-hole constraint enforced during interactive placement
 - Occupied holes reject new connections (logged to console, visual feedback pending)
 - Already-connected legs cannot be reconnected (constraint enforced)
 
 **BreadboardState Synchronization** - **IMPLEMENTED**
+
 - `placeFloatingComponent()` converts floating component to placed component when all legs connected
 - `createComponentFromFloating()` performs type-safe component instantiation (Resistor, LED, Wire, Power Supply, Ground)
 - `getComponentLegCount()` determines when all legs are connected (2 for resistor/LED/wire, 1 for power/ground, 16 for microprocessor)
@@ -2728,6 +2954,7 @@ Phase 3d implements the complete interactive component placement workflow specif
 - Rete graph sync via `syncStateToRete()` if Rete integration enabled
 
 **Visual Feedback** - **IMPLEMENTED**
+
 - Floating components render at 70% opacity
 - Component body shows 'grab' cursor when hoverable
 - Component legs rendered as yellow circles with 'crosshair' cursor
@@ -2738,6 +2965,7 @@ Phase 3d implements the complete interactive component placement workflow specif
 **What This Does NOT Provide Yet:**
 
 Phase 3d implements the core interaction workflow. The following capabilities remain for future phases:
+
 - ❌ Connection deletion UI — Future phase
 - ❌ Visual error feedback (red glow, error message) for invalid connections — Partial (console logging only)
 - ❌ Green highlight for valid connection targets — Partial (hole hover infrastructure exists)
@@ -2754,6 +2982,7 @@ Phase 3d implements the core interaction workflow. The following capabilities re
 **Rollback Capability:**
 
 If issues arise with Phase 3e features, rollback is immediate via feature flags:
+
 ```typescript
 const USE_RETE = false; // Disable Rete graph extraction entirely
 const USE_RETE_INTERACTIVE = false; // Disable interactive workflow, revert to legacy two-click
@@ -2764,16 +2993,19 @@ All functionality reverts to position-based extraction with zero data loss and n
 **Feature Flag Status (Phase 3e COMPLETE):**
 
 Both feature flags are now **ACTIVE** (enabled):
+
 - `USE_RETE = true` — Graph-based circuit extraction (Phase 2 complete)
 - `USE_RETE_INTERACTIVE = true` — Interactive component placement workflow (Phase 3e complete)
 
 **Compatibility:**
+
 - `USE_RETE_INTERACTIVE=false`: All 441 tests pass (legacy two-click workflow preserved via placeComponentInteractive compatibility layer)
 - `USE_RETE_INTERACTIVE=true`: All 441 tests pass (interactive workflow fully operational) ✅
 
 **Phase 3e Completion Summary:**
 
 Phase 3e test infrastructure updates are **COMPLETE**:
+
 - ✅ Test API methods added to BreadboardApp for interactive workflow testing
 - ✅ All 441 unit and integration tests updated to use `placeComponentInteractive()`
 - ✅ Single-leg component support (POWER_SUPPLY, GROUND) working correctly
@@ -2784,6 +3016,7 @@ Phase 3e test infrastructure updates are **COMPLETE**:
 - ✅ Goal.md Section 5.3.1 requirements fully satisfied
 
 The interactive component placement workflow is now the default user experience, providing:
+
 - Visual clarity (components float beside breadboard during placement)
 - Precision control (connect each leg individually)
 - Validation (one-connector-per-hole constraint enforced)
@@ -2851,12 +3084,14 @@ npm run format    # Run Prettier
 GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and pull request with two jobs:
 
 **Job 1: Unit and Integration Tests** (`test`)
+
 - Node.js 20 on Ubuntu
 - Runs linter (`npm run lint`)
 - Runs unit tests (`npm test -- --run`)
 - Duration: ~1-2 minutes
 
 **Job 2: Visual Regression Tests** (`visual-tests`)
+
 - Node.js 20 on Ubuntu
 - Installs Playwright Chromium browser with dependencies
 - Runs visual regression tests (`npm run test:visual`)
@@ -3007,7 +3242,7 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
     - Edge cases (1Ω, 1GΩ, non-standard values)
     - Invalid inputs and error handling
 
-11. **component-library.test.ts** (13 tests) ✅
+12. **component-library.test.ts** (13 tests) ✅
     - Component registration with duplicate detection
     - Lookup by ID (existing and non-existing)
     - Get all components
@@ -3016,7 +3251,7 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
     - Case-insensitive search
     - Empty registry handling
 
-12. **library-catalog.test.ts** (18 tests) ✅
+13. **library-catalog.test.ts** (18 tests) ✅
     - Resistor catalog validation:
       - E12 series coverage (16 values with 5% tolerance)
       - 1% tolerance variants (7 values)
@@ -3033,7 +3268,7 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
     - Unique IDs across all entries
     - Valid component types and categories
 
-13. **component-library-utils.test.ts** (19 tests) ✅
+14. **component-library-utils.test.ts** (19 tests) ✅
     - `findClosestResistor()`:
       - Exact matches for E12 series values
       - Rounding to nearest available value
@@ -3055,7 +3290,7 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
       - Extracts electrical properties from library
       - Falls back to component properties when no library entry
 
-14. **audio-manager.test.ts** (14 tests) ✅
+15. **audio-manager.test.ts** (14 tests) ✅
     - Initialization (disabled by default, default volume)
     - Enable/disable lifecycle
     - Volume control (set, get, clamping)
@@ -3066,7 +3301,7 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
     - Automatic speaker stop when voltage/current drops
     - localStorage persistence (save/load volume)
 
-15. **edu8-simulator.test.ts** (36 tests) ✅ **15 new tests added in PR #191**
+16. **edu8-simulator.test.ts** (36 tests) ✅ **15 new tests added in PR #191**
     - Initial state creation and validation
     - Instruction execution for all 7 opcodes (LDA, ADD, IN, OUT, JZ, JMP, HALT)
     - Accumulator operations (load, add with wrap-around)
@@ -3088,7 +3323,7 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
       - HALT state handling with clock signals
     - Full test coverage (100%) of instruction set, state machine, and clock integration
 
-16. **clock-controller.test.ts** (28 tests) ✅ **New in PR #197**
+17. **clock-controller.test.ts** (28 tests) ✅ **New in PR #197**
     - Initial state creation (clock low, paused, 1 Hz default, 0 instructions)
     - `step()` pulse generation (low→high→low sequence)
     - `run()` automatic pulsing at correct frequency
@@ -3100,7 +3335,7 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
     - State management (isRunning, clockState, frequency)
     - Interval management (timer cleanup on pause/reset)
 
-17. **digital-signals.test.ts** (24 tests) ✅ **New in PR #191**
+18. **digital-signals.test.ts** (24 tests) ✅ **New in PR #191**
     - TTL voltage threshold conversion (< 0.8V → 0, > 2.0V → 1)
     - Undefined region handling (0.8V-2.0V → X)
     - Digital to analog conversion (0 → 0.2V, 1 → 4.5V)
@@ -3109,7 +3344,7 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
     - Edge cases (negative voltages, very high voltages)
     - Roundtrip conversion verification
 
-18. **edge-detector.test.ts** (21 tests) ✅ **New in PR #191**
+19. **edge-detector.test.ts** (21 tests) ✅ **New in PR #191**
     - Rising edge detection (0→1 transition)
     - Falling edge detection (1→0 transition)
     - No edge detection (same level, X/Z transitions)
@@ -3118,7 +3353,7 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
     - Multiple consecutive detections
     - Edge cases (undefined values, high-impedance)
 
-19. **digital-event-queue.test.ts** (17 tests) ✅ **New in PR #191**
+20. **digital-event-queue.test.ts** (17 tests) ✅ **New in PR #191**
     - Event insertion and ordering by timestamp
     - Event removal (oldest, by component ID, by type)
     - Clock edge event creation
@@ -3127,7 +3362,7 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
     - Empty queue handling
     - Priority queue behavior verification
 
-20. **digital-simulator.test.ts** (13 tests) ✅ **New in PR #191**
+21. **digital-simulator.test.ts** (13 tests) ✅ **New in PR #191**
     - EDU-8 execution on rising clock edges
     - No execution on falling edges or stable clock
     - Digital output to analog voltage conversion
@@ -3137,7 +3372,7 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
     - Output voltage array generation (4-bit to 4 voltages)
     - Integration with circuit nodes and components
 
-21. **mixed-signal-simulator.test.ts** (8 tests) ✅ **New in PR #191**
+22. **mixed-signal-simulator.test.ts** (8 tests) ✅ **New in PR #191**
     - DC solver and digital simulator coordination
     - Configuration parsing (enableDigitalSimulation, clockNodeId)
     - Clock edge detection triggering EDU-8 execution
@@ -3147,7 +3382,7 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
     - End-to-end counter program execution (4 clock pulses)
     - State persistence across simulation steps
 
-22. **rete-manager.test.ts** (26 tests) ✅ **New in PR #219, expanded in PR #225 and PR #231**
+23. **rete-manager.test.ts** (26 tests) ✅ **New in PR #219, expanded in PR #225 and PR #231**
     - Editor and plugin initialization (with and without DOM container)
     - ComponentNode creation with correct leg count per component type
     - BreadboardHoleNode creation with position data
@@ -3171,7 +3406,7 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
       - Floating component creation (createFloatingComponent)
       - Programmatic connection creation with validation (createConnection)
 
-23. **switch-component.test.ts** (9 tests) ✅ **New in PR #273**
+24. **switch-component.test.ts** (9 tests) ✅ **New in PR #273**
     - Switch electrical behavior:
       - Open state blocks current (< 1μA with 1GΩ resistance)
       - Closed state conducts current (wire-like with 0.01Ω resistance)
@@ -3182,21 +3417,20 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
       - Proper voltage distribution in series circuit
     - Switch integrated with MNA solver as state-dependent resistor
     - Validates current flow control and circuit continuity
-    
-24. **switch-serialization.test.ts** (4 tests) ✅ **New in PR #273**
+25. **switch-serialization.test.ts** (4 tests) ✅ **New in PR #273**
     - Serialize switch component with state (open/closed preserved)
     - Deserialize switch component from JSON
     - Default to open state when switchState missing (backward compatibility)
     - Roundtrip preservation (serialize → deserialize → serialize maintains state)
     - Validates state persistence across save/load operations
 
-25. **clock-control-ui.spec.ts** (1 visual test) ✅ **New in PR #197**
+26. **clock-control-ui.spec.ts** (1 visual test) ✅ **New in PR #197**
     - Clock controls hidden when no microprocessor present
     - Clock controls visible after loading EDU-8 example
     - All UI elements present (buttons, slider, indicator, status)
     - Screenshot validation of rendered UI components
 
-24. **examples.spec.ts** (7 visual regression tests) ⏸️ **Passing but baselines need regeneration**
+27. **examples.spec.ts** (7 visual regression tests) ⏸️ **Passing but baselines need regeneration**
     - Screenshot comparison for all 4 example circuits (LED+resistor, voltage divider, parallel LEDs, short circuit demo)
     - Visual verification that voltage overlays render with colors ✅
     - Visual verification that current animation elements are present
@@ -3317,12 +3551,14 @@ Twenty-five test suites with **459 passing tests** (100% pass rate; 451 unit/int
 The system includes automated visual regression testing to protect critical visual features from accidental breakage.
 
 **Testing infrastructure**:
+
 - **Framework**: Playwright test framework with screenshot comparison
 - **Browser**: Chromium only (for cross-platform consistency)
 - **Coverage**: All 4 canonical example circuits
 - **Baseline storage**: ~68KB of baseline screenshots committed to git
 
 **Test capabilities**:
+
 - Automated screenshot capture of breadboard view with all overlays
 - Pixel-perfect comparison against baseline images
 - Detection of visual regressions in:
@@ -3334,6 +3570,7 @@ The system includes automated visual regression testing to protect critical visu
 - Configurable tolerance: 100px max diff, 0.2 (20%) color threshold
 
 **CI integration**:
+
 - Separate `visual-tests` job in GitHub Actions workflow
 - Runs on every pull request and push to main
 - Automatic failure on visual regressions
@@ -3343,6 +3580,7 @@ The system includes automated visual regression testing to protect critical visu
   - Retention: 30 days
 
 **Test implementation**:
+
 - Helper functions for programmatic example loading (`loadExample()`)
 - Render stabilization waits (1.5s after component overlay appears)
 - Breadboard container viewport capture (not full page)
@@ -3353,12 +3591,14 @@ The system includes automated visual regression testing to protect critical visu
   - Error overlay elements (when applicable)
 
 **Baseline management**:
+
 - Baselines stored in `tests/visual/examples.spec.ts-snapshots/`
 - Update command: `npm run test:visual:update`
 - Manual review required before updating baselines
 - Baselines committed with code changes
 
 **Example tests**:
+
 1. LED and Resistor circuit visual rendering
 2. Voltage Divider circuit visual rendering
 3. Parallel LEDs circuit visual rendering
@@ -3368,6 +3608,7 @@ The system includes automated visual regression testing to protect critical visu
 7. Error overlay rendering verification
 
 **Configuration** (`playwright.config.ts`):
+
 - Test directory: `./tests/visual`
 - Base URL: `http://localhost:5173`
 - Dev server integration (auto-start before tests)
@@ -3377,6 +3618,7 @@ The system includes automated visual regression testing to protect critical visu
 - Workers: 1 on CI (sequential), parallel locally
 
 **npm scripts**:
+
 - `npm run test:visual`: Run visual regression tests
 - `npm run test:visual:ui`: Run with interactive Playwright UI
 - `npm run test:visual:update`: Update baseline screenshots
@@ -3490,6 +3732,7 @@ The production bundle includes **four runtime dependencies**:
 ### Development Dependencies
 
 Core development tools:
+
 - `typescript` (5.3.0): Type checking and compilation
 - `vite` (7.3.0): Build tool and dev server
 - `vitest` (4.0.16): Unit test framework
@@ -3509,85 +3752,85 @@ All dependencies are dev-only; the final bundle is pure TypeScript/JavaScript.
 
 ### Source Files
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `src/core/types.ts` | 182 | Type definitions including Rail, Strip, BreadboardTopology interfaces, ErrorType enum, CircuitError interface, and ComponentLibraryEntry interface (PR #143) |
-| `src/core/breadboard-layout.ts` | 196 | Breadboard connectivity logic with power rails support |
-| `src/core/circuit-extractor.ts` | 294 | Circuit graph extraction with union-find (handles rails and terminal strips); Rete-based extraction added in Phase 2 |
-| `src/core/circuit-simulator.ts` | 528 | DC circuit simulation using MNA and error detection (5 error types) |
-| `src/core/circuit-serializer.ts` | 306 | Circuit JSON serialization/deserialization with validation |
-| `src/core/circuit-storage.ts` | 250 | localStorage persistence and file download/upload |
-| `src/core/component-library.ts` | 82 | Component library registry with lookup, search, and filtering (PR #143) |
-| `src/core/component-library-utils.ts` | 165 | Library utilities for mapping abstract components to library entries (PR #143) |
-| `src/core/resistor-color-code.ts` | 310 | IEC 60062 color code calculations (encoding and decoding) |
-| `src/core/edu8-simulator.ts` | ~200 | EDU-8 microprocessor instruction execution engine (7 instructions, state management, preset programs, clock-driven execution via handleClockEdge) |
-| `src/core/clock-controller.ts` | 219 | **NEW (PR #197)**: Clock signal generation for EDU-8 with manual stepping and automatic pulsing at configurable frequencies |
-| `src/core/digital-signals.ts` | 126 | **NEW (PR #191)**: Digital signal abstraction with TTL thresholds, 4-state logic (0,1,Z,X), analog↔digital conversion |
-| `src/core/edge-detector.ts` | 110 | **NEW (PR #191)**: Stateful edge detection for rising/falling transitions on digital signals |
-| `src/core/digital-event-queue.ts` | 147 | **NEW (PR #191)**: Priority queue for timestamped digital events (clock edges, state changes) |
-| `src/core/digital-simulator.ts` | 171 | **NEW (PR #191)**: Digital simulation orchestrator bridging analog voltages to digital component execution |
-| `src/core/mixed-signal-simulator.ts` | 170 | **NEW (PR #191)**: Mixed-signal coordinator combining DC solver with digital event-driven simulation |
-| `src/core/rete-manager.ts` | 640 | **Rete.js integration layer bridging BreadboardState and Rete graph (Phase 3a complete: event handling and validation infrastructure; wire re-routing added in PR #255)** |
-| `src/core/schematic-types.ts` | 83 | Type definitions for schematic symbols, connections, diagrams, and layout configuration (PR #161) |
-| `src/core/schematic-layout.ts` | 369 | Force-directed graph layout algorithm for schematic generation (PR #161) |
-| `src/library/index.ts` | 32 | Library catalog aggregation and exports (PR #143) |
-| `src/library/resistors.ts` | 83 | Resistor library entries (23 components, E12 series, 5% and 1% tolerance) (PR #143) |
-| `src/library/leds.ts` | 108 | LED library entries (4 components: 3mm yellow, 5mm red/green/blue) (PR #143) |
-| `src/library/microprocessors.ts` | 77 | Microprocessor library entries (EDU-8 educational virtual IC with DIP-16 package, TTL-compatible electrical specs) (PR #173) |
-| `src/library/other-components.ts` | 202 | Power supplies, wires, ground, speaker, and switch library entries (PR #143, PR #273) |
-| `src/audio/audio-manager.ts` | 300 | Web Audio API integration and speaker audio management (PR #155) |
-| `src/examples/index.ts` | 125 | Example circuit registry, lookup functions, and `getDefaultExample()` function (PR #267) |
-| `src/examples/led-resistor.json` | 87 | LED and Resistor example circuit (uses power rails) |
-| `src/examples/voltage-divider.json` | 97 | Voltage Divider example circuit (uses power rails) |
-| `src/examples/parallel-leds.json` | 187 | Parallel LEDs example circuit (uses power rails) |
-| `src/examples/short-circuit-demo.json` | 57 | Short Circuit Demo example circuit (uses power rails) |
-| `src/examples/switch-led.json` | 97 | **NEW (PR #273)**: Switch Control LED example demonstrating interactive switch toggle and LED on/off control |
-| `src/examples/edu8-blink.json` | 87 | **NEW (PR #197)**: EDU-8 Blink example demonstrating clock-driven LED toggling with preset Blink program |
-| `src/ui/breadboard-app.ts` | 3627 | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, rail rendering, audio integration, view switcher, clock control UI, X-Ray Mode toggle (PR #261), wire re-routing UI (PR #255), default circuit loading (PR #267), switch toggle interaction (PR #273), and Rete.js integration (Phase 2 active: USE_RETE=true); PixiJS renderer integration (PR #149, PR #155, PR #161, PR #167, PR #197, PR #219, PR #225, PR #255, PR #261, PR #267, PR #273); public testing API added (PR #179); drag-and-drop restored with PixiJS pointer events (PR #185) |
-| `src/ui/pixi-renderer.ts` | 1668 | **NEW (PR #167, enhanced PR #203, PR #255, PR #261)**: PixiJS WebGL renderer for unified breadboard rendering with photorealistic enhancements (grid with labels/ridges, components with 3D appearance, voltage overlays, current animation, error icons, LED glow effects); X-Ray Mode overlay (`renderInternalConnectivity()`); wire re-routing visual feedback (endpoint handles, ghost preview); replaces SVG-based ComponentRenderer, CurrentAnimator, and ErrorOverlayRenderer |
-| `src/ui/voltage-colors.ts` | 82 | Voltage-to-color mapping utilities |
-| `src/ui/component-renderer.ts` | 568 | **DEPRECATED (PR #167)**: Legacy SVG-based visual component rendering; retained for reference, replaced by PixiRenderer |
-| `src/ui/schematic-renderer.ts` | 459 | SVG-based schematic diagram rendering with standard symbols and voltage colors (PR #161) |
-| `src/ui/current-animator.ts` | 426 | **DEPRECATED (PR #167)**: Legacy SVG animated current flow visualization; retained for reference, replaced by PixiRenderer animation |
-| `src/ui/error-overlay-renderer.ts` | 140 | **DEPRECATED (PR #167)**: Legacy SVG error icon rendering; retained for reference, replaced by PixiRenderer error rendering |
-| `src/ui/explain-panel.ts` | 370 | Contextual explanation panel with educational content |
-| `src/main.ts` | 11 | Application entry point |
-| `src/style.css` | 1318 | Application styles (includes modal dialogs, component library browser, error icons, explain panel styling, rail styling, audio controls, view tabs, schematic container, clock control panel, X-Ray Mode toggle) (PR #149, PR #155, PR #161, PR #197, PR #261) |
+| File                                   | Lines | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/core/types.ts`                    | 182   | Type definitions including Rail, Strip, BreadboardTopology interfaces, ErrorType enum, CircuitError interface, and ComponentLibraryEntry interface (PR #143)                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `src/core/breadboard-layout.ts`        | 196   | Breadboard connectivity logic with power rails support                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `src/core/circuit-extractor.ts`        | 294   | Circuit graph extraction with union-find (handles rails and terminal strips); Rete-based extraction added in Phase 2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `src/core/circuit-simulator.ts`        | 528   | DC circuit simulation using MNA and error detection (5 error types)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `src/core/circuit-serializer.ts`       | 306   | Circuit JSON serialization/deserialization with validation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `src/core/circuit-storage.ts`          | 250   | localStorage persistence and file download/upload                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `src/core/component-library.ts`        | 82    | Component library registry with lookup, search, and filtering (PR #143)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `src/core/component-library-utils.ts`  | 165   | Library utilities for mapping abstract components to library entries (PR #143)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `src/core/resistor-color-code.ts`      | 310   | IEC 60062 color code calculations (encoding and decoding)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `src/core/edu8-simulator.ts`           | ~200  | EDU-8 microprocessor instruction execution engine (7 instructions, state management, preset programs, clock-driven execution via handleClockEdge)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `src/core/clock-controller.ts`         | 219   | **NEW (PR #197)**: Clock signal generation for EDU-8 with manual stepping and automatic pulsing at configurable frequencies                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `src/core/digital-signals.ts`          | 126   | **NEW (PR #191)**: Digital signal abstraction with TTL thresholds, 4-state logic (0,1,Z,X), analog↔digital conversion                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `src/core/edge-detector.ts`            | 110   | **NEW (PR #191)**: Stateful edge detection for rising/falling transitions on digital signals                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `src/core/digital-event-queue.ts`      | 147   | **NEW (PR #191)**: Priority queue for timestamped digital events (clock edges, state changes)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `src/core/digital-simulator.ts`        | 171   | **NEW (PR #191)**: Digital simulation orchestrator bridging analog voltages to digital component execution                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `src/core/mixed-signal-simulator.ts`   | 170   | **NEW (PR #191)**: Mixed-signal coordinator combining DC solver with digital event-driven simulation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `src/core/rete-manager.ts`             | 640   | **Rete.js integration layer bridging BreadboardState and Rete graph (Phase 3a complete: event handling and validation infrastructure; wire re-routing added in PR #255)**                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `src/core/schematic-types.ts`          | 83    | Type definitions for schematic symbols, connections, diagrams, and layout configuration (PR #161)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `src/core/schematic-layout.ts`         | 369   | Force-directed graph layout algorithm for schematic generation (PR #161)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `src/library/index.ts`                 | 32    | Library catalog aggregation and exports (PR #143)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `src/library/resistors.ts`             | 83    | Resistor library entries (23 components, E12 series, 5% and 1% tolerance) (PR #143)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `src/library/leds.ts`                  | 108   | LED library entries (4 components: 3mm yellow, 5mm red/green/blue) (PR #143)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `src/library/microprocessors.ts`       | 77    | Microprocessor library entries (EDU-8 educational virtual IC with DIP-16 package, TTL-compatible electrical specs) (PR #173)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `src/library/other-components.ts`      | 202   | Power supplies, wires, ground, speaker, and switch library entries (PR #143, PR #273)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `src/audio/audio-manager.ts`           | 300   | Web Audio API integration and speaker audio management (PR #155)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `src/examples/index.ts`                | 125   | Example circuit registry, lookup functions, and `getDefaultExample()` function (PR #267)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `src/examples/led-resistor.json`       | 87    | LED and Resistor example circuit (uses power rails)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `src/examples/voltage-divider.json`    | 97    | Voltage Divider example circuit (uses power rails)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `src/examples/parallel-leds.json`      | 187   | Parallel LEDs example circuit (uses power rails)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `src/examples/short-circuit-demo.json` | 57    | Short Circuit Demo example circuit (uses power rails)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `src/examples/switch-led.json`         | 97    | **NEW (PR #273)**: Switch Control LED example demonstrating interactive switch toggle and LED on/off control                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `src/examples/edu8-blink.json`         | 87    | **NEW (PR #197)**: EDU-8 Blink example demonstrating clock-driven LED toggling with preset Blink program                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `src/ui/breadboard-app.ts`             | 3627  | Main UI application class with component library browser, save/load/examples modals, selection/deletion, rotation, property editor, rail rendering, audio integration, view switcher, clock control UI, X-Ray Mode toggle (PR #261), wire re-routing UI (PR #255), default circuit loading (PR #267), switch toggle interaction (PR #273), and Rete.js integration (Phase 2 active: USE_RETE=true); PixiJS renderer integration (PR #149, PR #155, PR #161, PR #167, PR #197, PR #219, PR #225, PR #255, PR #261, PR #267, PR #273); public testing API added (PR #179); drag-and-drop restored with PixiJS pointer events (PR #185) |
+| `src/ui/pixi-renderer.ts`              | 1668  | **NEW (PR #167, enhanced PR #203, PR #255, PR #261)**: PixiJS WebGL renderer for unified breadboard rendering with photorealistic enhancements (grid with labels/ridges, components with 3D appearance, voltage overlays, current animation, error icons, LED glow effects); X-Ray Mode overlay (`renderInternalConnectivity()`); wire re-routing visual feedback (endpoint handles, ghost preview); replaces SVG-based ComponentRenderer, CurrentAnimator, and ErrorOverlayRenderer                                                                                                                                                 |
+| `src/ui/voltage-colors.ts`             | 82    | Voltage-to-color mapping utilities                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `src/ui/component-renderer.ts`         | 568   | **DEPRECATED (PR #167)**: Legacy SVG-based visual component rendering; retained for reference, replaced by PixiRenderer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `src/ui/schematic-renderer.ts`         | 459   | SVG-based schematic diagram rendering with standard symbols and voltage colors (PR #161)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `src/ui/current-animator.ts`           | 426   | **DEPRECATED (PR #167)**: Legacy SVG animated current flow visualization; retained for reference, replaced by PixiRenderer animation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `src/ui/error-overlay-renderer.ts`     | 140   | **DEPRECATED (PR #167)**: Legacy SVG error icon rendering; retained for reference, replaced by PixiRenderer error rendering                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `src/ui/explain-panel.ts`              | 370   | Contextual explanation panel with educational content                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `src/main.ts`                          | 11    | Application entry point                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `src/style.css`                        | 1318  | Application styles (includes modal dialogs, component library browser, error icons, explain panel styling, rail styling, audio controls, view tabs, schematic container, clock control panel, X-Ray Mode toggle) (PR #149, PR #155, PR #161, PR #197, PR #261)                                                                                                                                                                                                                                                                                                                                                                       |
 
 ### Test Files
 
-| File | Tests | Purpose |
-|------|-------|---------|
-| `src/core/__tests__/breadboard-layout.test.ts` | 15 | Breadboard connectivity tests (strips and rails) |
-| `src/core/__tests__/circuit-extractor.test.ts` | 6 | Circuit extraction tests (with rail connectivity) |
-| `src/core/__tests__/circuit-simulator.test.ts` | 12 | Circuit simulation tests (MNA solver) |
-| `src/core/__tests__/circuit-serializer.test.ts` | 14 | Circuit serialization/deserialization tests (roundtrip, validation, edge cases) |
-| `src/core/__tests__/resistor-color-code.test.ts` | 50 | Resistor color code tests (encoding, decoding, E12/E24 series) |
-| `src/core/__tests__/edu8-simulator.test.ts` | 36 | EDU-8 microprocessor simulator tests (instruction execution, state transitions, preset programs, clock-driven execution, 100% coverage) (PR #173, PR #191) |
-| `src/core/__tests__/clock-controller.test.ts` | 28 | **NEW (PR #197)**: ClockController tests (pulse generation, frequency control, state management, step/run/pause/reset operations) |
-| `src/core/__tests__/digital-signals.test.ts` | 24 | **NEW (PR #191)**: Digital signal abstraction tests (TTL thresholds, conversions, 4-state logic) |
-| `src/core/__tests__/edge-detector.test.ts` | 21 | **NEW (PR #191)**: Edge detection tests (rising/falling edges, state tracking) |
-| `src/core/__tests__/digital-event-queue.test.ts` | 17 | **NEW (PR #191)**: Digital event queue tests (event ordering, filtering, removal) |
-| `src/core/__tests__/digital-simulator.test.ts` | 13 | **NEW (PR #191)**: Digital simulator tests (EDU-8 execution, output conversion, clock integration) |
-| `src/core/__tests__/mixed-signal-simulator.test.ts` | 8 | **NEW (PR #191)**: Mixed-signal simulator tests (DC/digital coordination, end-to-end program execution) |
-| `src/core/__tests__/switch-component.test.ts` | 9 | **NEW (PR #273)**: Switch component electrical behavior tests (open/closed states, LED control, series circuits) |
-| `src/core/__tests__/switch-serialization.test.ts` | 4 | **NEW (PR #273)**: Switch serialization/deserialization tests (state persistence, backward compatibility) |
-| `src/core/__tests__/rete-manager.test.ts` | 28 | **NEW (PR #219, expanded PR #255)**: ReteManager tests (editor initialization, node creation, state synchronization, leg count mapping, wire re-routing validation) |
-| `src/core/__tests__/component-library.test.ts` | 13 | Component library registry tests (registration, lookup, search, filtering) (PR #143) |
-| `src/core/__tests__/component-library-utils.test.ts` | 19 | Library utility tests (closest matching, default mappings, property extraction) (PR #143) |
-| `src/library/__tests__/library-catalog.test.ts` | 18 | Library catalog validation tests (resistors, LEDs, speaker, power supplies) (PR #143) |
-| `src/ui/__tests__/voltage-colors.test.ts` | 13 | Voltage-to-color mapping tests |
-| `src/ui/__tests__/component-renderer.test.ts` | 9 | Component visual rendering tests |
-| `src/ui/__tests__/current-animator.test.ts` | 11 | Current animation tests (particle system, magnitude scaling) |
-| `src/ui/__tests__/breadboard-app.test.ts` | 25 | Component selection, deletion, rotation, and drag-and-drop interaction tests |
-| `src/ui/__tests__/property-editor.test.ts` | 12 | Property editor tests (visibility, editing, presets, validation) |
-| `src/ui/__tests__/xray-mode.test.ts` | 7 | **NEW (PR #261)**: X-Ray Mode tests (toggle button, keyboard shortcut, state persistence, interaction independence) |
-| `src/audio/__tests__/audio-manager.test.ts` | 14 | AudioManager unit tests (initialization, enable/disable, speakers, volume, persistence) (PR #155) |
-| `tests/clock-control-ui.spec.ts` | 1 | **NEW (PR #197)**: Playwright test verifying clock control UI visibility and element rendering |
-| `tests/visual/examples.spec.ts` | 7 | Visual regression tests using Playwright screenshot comparison |
-| `tests/visual/helpers.ts` | - | Helper functions for visual tests (example loading, render stabilization) |
-| `tests/visual/examples.spec.ts-snapshots/` | - | Baseline screenshots for visual regression (4 PNG files, ~68KB total) |
-| `tests/visual/README.md` | - | Visual regression testing documentation |
+| File                                                 | Tests | Purpose                                                                                                                                                             |
+| ---------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/core/__tests__/breadboard-layout.test.ts`       | 15    | Breadboard connectivity tests (strips and rails)                                                                                                                    |
+| `src/core/__tests__/circuit-extractor.test.ts`       | 6     | Circuit extraction tests (with rail connectivity)                                                                                                                   |
+| `src/core/__tests__/circuit-simulator.test.ts`       | 12    | Circuit simulation tests (MNA solver)                                                                                                                               |
+| `src/core/__tests__/circuit-serializer.test.ts`      | 14    | Circuit serialization/deserialization tests (roundtrip, validation, edge cases)                                                                                     |
+| `src/core/__tests__/resistor-color-code.test.ts`     | 50    | Resistor color code tests (encoding, decoding, E12/E24 series)                                                                                                      |
+| `src/core/__tests__/edu8-simulator.test.ts`          | 36    | EDU-8 microprocessor simulator tests (instruction execution, state transitions, preset programs, clock-driven execution, 100% coverage) (PR #173, PR #191)          |
+| `src/core/__tests__/clock-controller.test.ts`        | 28    | **NEW (PR #197)**: ClockController tests (pulse generation, frequency control, state management, step/run/pause/reset operations)                                   |
+| `src/core/__tests__/digital-signals.test.ts`         | 24    | **NEW (PR #191)**: Digital signal abstraction tests (TTL thresholds, conversions, 4-state logic)                                                                    |
+| `src/core/__tests__/edge-detector.test.ts`           | 21    | **NEW (PR #191)**: Edge detection tests (rising/falling edges, state tracking)                                                                                      |
+| `src/core/__tests__/digital-event-queue.test.ts`     | 17    | **NEW (PR #191)**: Digital event queue tests (event ordering, filtering, removal)                                                                                   |
+| `src/core/__tests__/digital-simulator.test.ts`       | 13    | **NEW (PR #191)**: Digital simulator tests (EDU-8 execution, output conversion, clock integration)                                                                  |
+| `src/core/__tests__/mixed-signal-simulator.test.ts`  | 8     | **NEW (PR #191)**: Mixed-signal simulator tests (DC/digital coordination, end-to-end program execution)                                                             |
+| `src/core/__tests__/switch-component.test.ts`        | 9     | **NEW (PR #273)**: Switch component electrical behavior tests (open/closed states, LED control, series circuits)                                                    |
+| `src/core/__tests__/switch-serialization.test.ts`    | 4     | **NEW (PR #273)**: Switch serialization/deserialization tests (state persistence, backward compatibility)                                                           |
+| `src/core/__tests__/rete-manager.test.ts`            | 28    | **NEW (PR #219, expanded PR #255)**: ReteManager tests (editor initialization, node creation, state synchronization, leg count mapping, wire re-routing validation) |
+| `src/core/__tests__/component-library.test.ts`       | 13    | Component library registry tests (registration, lookup, search, filtering) (PR #143)                                                                                |
+| `src/core/__tests__/component-library-utils.test.ts` | 19    | Library utility tests (closest matching, default mappings, property extraction) (PR #143)                                                                           |
+| `src/library/__tests__/library-catalog.test.ts`      | 18    | Library catalog validation tests (resistors, LEDs, speaker, power supplies) (PR #143)                                                                               |
+| `src/ui/__tests__/voltage-colors.test.ts`            | 13    | Voltage-to-color mapping tests                                                                                                                                      |
+| `src/ui/__tests__/component-renderer.test.ts`        | 9     | Component visual rendering tests                                                                                                                                    |
+| `src/ui/__tests__/current-animator.test.ts`          | 11    | Current animation tests (particle system, magnitude scaling)                                                                                                        |
+| `src/ui/__tests__/breadboard-app.test.ts`            | 25    | Component selection, deletion, rotation, and drag-and-drop interaction tests                                                                                        |
+| `src/ui/__tests__/property-editor.test.ts`           | 12    | Property editor tests (visibility, editing, presets, validation)                                                                                                    |
+| `src/ui/__tests__/xray-mode.test.ts`                 | 7     | **NEW (PR #261)**: X-Ray Mode tests (toggle button, keyboard shortcut, state persistence, interaction independence)                                                 |
+| `src/audio/__tests__/audio-manager.test.ts`          | 14    | AudioManager unit tests (initialization, enable/disable, speakers, volume, persistence) (PR #155)                                                                   |
+| `tests/clock-control-ui.spec.ts`                     | 1     | **NEW (PR #197)**: Playwright test verifying clock control UI visibility and element rendering                                                                      |
+| `tests/visual/examples.spec.ts`                      | 7     | Visual regression tests using Playwright screenshot comparison                                                                                                      |
+| `tests/visual/helpers.ts`                            | -     | Helper functions for visual tests (example loading, render stabilization)                                                                                           |
+| `tests/visual/examples.spec.ts-snapshots/`           | -     | Baseline screenshots for visual regression (4 PNG files, ~68KB total)                                                                                               |
+| `tests/visual/README.md`                             | -     | Visual regression testing documentation                                                                                                                             |
 
 ### Configuration Files
 
@@ -3684,6 +3927,7 @@ PR #243 completed Phase 3d interactive connection workflow implementation. The f
 - ✅ Escape key cancellation of floating component placement — Phase 3d ✓
 
 **What IS Implemented (PR #237 + PR #243)**:
+
 - ✅ Hole hover effects with blue glow visual feedback (PR #237)
 - ✅ Connection line rendering infrastructure with bezier curves (PR #237)
 - ✅ FloatingComponent type system with canvas positioning and continuous rotation support (PR #237)
@@ -3712,12 +3956,14 @@ The interactive workflow test infrastructure is now complete and the feature fla
 - ❌ Green highlight for valid connection targets — Future phase
 
 **Interactive workflow is now the default user experience**, meeting goal.md Section 5.3.1 requirements:
+
 - Components float beside breadboard during placement (avoiding visual occlusion)
 - Users connect individual legs to holes (precise control)
 - Validation prevents invalid connections (one-connector-per-hole constraint)
 - Undo/redo fully supported
 
 **Remaining Future Enhancements**:
+
 - Connection deletion UI — Future phase
 - Enhanced visual error feedback (red glow, error message overlays) for invalid connections — Future phase
 - Green highlight for valid connection targets — Future phase

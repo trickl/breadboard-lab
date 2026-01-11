@@ -1,14 +1,17 @@
 # Implementation Summary: Interactive Clock Control UI for EDU-8 Microprocessor
 
 ## Objective
+
 Implement interactive clock control UI to enable students to step through EDU-8 microprocessor programs instruction-by-instruction and observe the fetch-decode-execute cycle in real-time.
 
 ## What Was Implemented
 
 ### 1. ClockController Class (`src/core/clock-controller.ts`)
+
 **Purpose**: Manages clock signal generation with manual stepping and automatic pulsing.
 
 **Key Features**:
+
 - `step()`: Executes one clock pulse (low→high→low sequence)
 - `run()`: Starts automatic pulsing at configurable frequency
 - `pause()`: Stops automatic pulsing while preserving state
@@ -19,7 +22,9 @@ Implement interactive clock control UI to enable students to step through EDU-8 
 **Test Coverage**: 28 unit tests covering all functionality (100% passing)
 
 ### 2. UI Integration (`src/ui/breadboard-app.ts`)
+
 **Changes**:
+
 - Added `ClockController` instance to BreadboardApp
 - Integrated clock change callbacks to trigger microprocessor execution
 - Added `handleClockChange()` method to execute EDU-8 instructions on clock edges
@@ -30,7 +35,9 @@ Implement interactive clock control UI to enable students to step through EDU-8 
 - Show/hide clock controls based on microprocessor presence
 
 ### 3. Clock Control Panel HTML (in `breadboard-app.ts` render method)
+
 **UI Elements**:
+
 - **Step Button** (⏯ Step): Execute one instruction
 - **Run/Pause Button** (▶️ Run / ⏸ Pause): Toggle automatic execution
 - **Reset Button** (🔄 Reset): Reinitialize CPU
@@ -39,7 +46,9 @@ Implement interactive clock control UI to enable students to step through EDU-8 
 - **Status Text**: "Running at X Hz", "Paused (N instructions)", or "Halted"
 
 ### 4. CSS Styling (`src/style.css`)
+
 **Added Styles**:
+
 - `.clock-controls`: Main panel styling (follows audio controls pattern)
 - `.clock-buttons`: Grid layout for buttons
 - `.clock-btn`: Button styling with hover effects and disabled state
@@ -50,7 +59,9 @@ Implement interactive clock control UI to enable students to step through EDU-8 
 - Custom range slider styling for WebKit and Firefox
 
 ### 5. EDU-8 Blink Example Circuit (`src/examples/edu8-blink.json`)
+
 **Components**:
+
 - EDU-8 microprocessor with Blink program loaded (ROM: [1, 48, 0, 48, 80, ...])
 - LED connected to microprocessor OUT0 via 220Ω resistor
 - Power supply (5V) and ground
@@ -59,7 +70,9 @@ Implement interactive clock control UI to enable students to step through EDU-8 
 **Purpose**: Canonical demonstration of clock control feature
 
 ### 6. Examples Integration (`src/examples/index.ts`)
+
 **Changes**:
+
 - Added `edu8-blink.json` import
 - New category: `'microprocessor'` (in addition to basic/intermediate/demo)
 - Added EDU-8 Blink to EXAMPLE_CIRCUITS array with learning objectives
@@ -67,7 +80,9 @@ Implement interactive clock control UI to enable students to step through EDU-8 
 ### 7. Documentation
 
 #### `docs/CLOCK_CONTROL_GUIDE.md` (6,800 words)
+
 Comprehensive guide covering:
+
 - **Overview**: Features and purpose
 - **Usage**: Step-by-step instructions for basic and educational workflows
 - **Technical Details**: Clock pulse behavior, frequency range, state updates
@@ -77,6 +92,7 @@ Comprehensive guide covering:
 - **Future Enhancements**: Potential features (breakpoints, waveforms, etc.)
 
 #### `README.md` Updates
+
 - Added Clock Control section under Usage
 - Keyboard shortcuts documentation (Space for step)
 - Link to comprehensive guide
@@ -84,7 +100,9 @@ Comprehensive guide covering:
 ### 8. Testing
 
 #### Unit Tests (`src/core/__tests__/clock-controller.test.ts`)
+
 28 tests covering:
+
 - Initial state (clock low, paused, 1 Hz, 0 instructions)
 - `step()` pulse generation and instruction counting
 - `run()` automatic pulsing at correct frequency
@@ -96,7 +114,9 @@ Comprehensive guide covering:
 **Result**: All 28 tests passing
 
 #### Manual UI Test (`tests/clock-control-ui.spec.ts`)
+
 Playwright test verifying:
+
 - Clock controls hidden when no microprocessor present
 - Clock controls visible after loading EDU-8 example
 - All UI elements present (buttons, slider, indicator, status)
@@ -106,6 +126,7 @@ Playwright test verifying:
 ## Files Changed/Added
 
 ### New Files (5)
+
 1. `src/core/clock-controller.ts` (219 lines)
 2. `src/core/__tests__/clock-controller.test.ts` (321 lines)
 3. `src/examples/edu8-blink.json` (87 lines)
@@ -113,6 +134,7 @@ Playwright test verifying:
 5. `docs/CLOCK_CONTROL_GUIDE.md` (324 lines)
 
 ### Modified Files (4)
+
 1. `src/ui/breadboard-app.ts` (+180 lines)
    - Imports, ClockController initialization
    - Clock control HTML
@@ -131,22 +153,27 @@ Playwright test verifying:
 ## Key Design Decisions
 
 ### 1. Clock Pulse Timing
+
 - **50ms high duration**: Long enough to be visible for debugging, short enough to feel responsive
 - **Frequency range 0.5-10 Hz**: Optimized for educational observation (too fast = can't see individual instructions, too slow = tedious)
 
 ### 2. UI Placement
+
 - **Below Audio Output**: Follows established pattern, keeps related controls together
 - **Auto-hide**: Only visible when microprocessor present (reduces clutter for non-digital circuits)
 
 ### 3. Keyboard Shortcuts
+
 - **Space for Step**: Common convention (media players, debuggers use Space)
 - **Only when paused**: Prevents accidental stepping during automatic execution
 
 ### 4. State Management
+
 - **Instruction counter in ClockController**: Persists across run/pause cycles, resets on explicit reset
 - **Disable step when running**: Prevents conflicting manual/automatic control
 
 ### 5. Visual Feedback
+
 - **LED-style indicator**: Intuitive representation of digital high/low
 - **Green glow effect**: Clear visual distinction for high state
 - **Status text updates**: Provides context (frequency, instruction count, halted state)
@@ -154,16 +181,19 @@ Playwright test verifying:
 ## Testing Strategy
 
 ### Unit Tests
+
 - **Fake timers** (`vi.useFakeTimers()`): Fast, deterministic testing of time-dependent behavior
 - **Edge cases**: Boundary conditions (min/max frequency, repeated calls, state transitions)
 - **Callback verification**: Ensure events fire correctly
 
 ### Integration Testing
+
 - **Playwright**: Verify DOM rendering and visibility
 - **Screenshot validation**: Visual regression testing
 - **Example circuits**: End-to-end workflow validation
 
 ### Manual Testing (Deferred to User)
+
 - Step-through execution
 - Run/pause toggle
 - Frequency adjustment during execution
@@ -174,12 +204,14 @@ Playwright test verifying:
 ## Educational Impact
 
 ### Before This Feature
+
 - EDU-8 microprocessor existed but had no UI for execution
 - Students could see CPU state in Explain panel but couldn't control execution
 - Preset programs were testable via unit tests but not demonstrable to students
 - Clock-driven behavior required programmatic API calls (not user-accessible)
 
 ### After This Feature
+
 - Students can **step through programs** one instruction at a time
 - **Observable fetch-decode-execute cycle**: Watch PC increment, instruction decode, execution, state update
 - **Adjustable execution speed**: Slow (1 Hz) for learning, faster (5-10 Hz) for demonstrating flow
@@ -187,6 +219,7 @@ Playwright test verifying:
 - **Experimentation**: Students can load different programs, adjust frequency, reset and try again
 
 ### Learning Outcomes Enabled
+
 1. **Demystify CPUs**: Show that processors are just state machines responding to clocks
 2. **Visualize Execution**: Make abstract instruction execution concrete and observable
 3. **Connect Software to Hardware**: See how instructions (OUT) directly control pins (LEDs)
@@ -195,21 +228,25 @@ Playwright test verifying:
 ## Future Work
 
 ### Immediate (If Time Permits)
+
 - [ ] Full functional testing (run/pause, frequency changes)
 - [ ] Test LED toggling with actual Blink program
 - [ ] Verify Explain panel updates in real-time during execution
 
 ### Short-Term Enhancements
+
 - [ ] Breakpoints: Pause execution at specific PC values
 - [ ] Step backwards: Undo instruction execution
 - [ ] Single-step mode indicator in UI (highlight current instruction)
 
 ### Medium-Term Enhancements
+
 - [ ] Waveform visualization: Plot signals over time
 - [ ] Program editor: Edit ROM contents directly in UI
 - [ ] Execution trace: Record instruction history
 
 ### Long-Term Vision
+
 - [ ] Multi-clock domains: Multiple independent clocks
 - [ ] Interrupt support: External events trigger execution
 - [ ] Hardware debugger UI: Breakpoints, watchpoints, step over/into
@@ -219,6 +256,7 @@ Playwright test verifying:
 The clock control UI successfully transforms the EDU-8 microprocessor from a "backend feature with unit tests" into an "interactive educational tool." Students can now explore computational electronics hands-on, observing the connection between software instructions and hardware behavior in real-time.
 
 The implementation is:
+
 - ✅ **Complete**: All planned features implemented
 - ✅ **Tested**: 28 unit tests passing, UI verified with screenshots
 - ✅ **Documented**: 6,800+ words of user-facing documentation

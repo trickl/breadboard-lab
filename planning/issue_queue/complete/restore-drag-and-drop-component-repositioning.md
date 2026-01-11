@@ -9,14 +9,17 @@ This removal represents a critical regression in user experience. Users can plac
 ## Gap Analysis
 
 **Long-term goal** (`planning/vision/goal.md`, lines 115-127):
+
 > "Component placement: Components are draggable from a component library panel."
 > "Selection and editing: Single selection for components/wires. Multi-selection via shift+click and marquee. Delete/copy/paste and undo/redo."
 
 The goal document doesn't explicitly mention repositioning, but it's a fundamental expectation of any drag-and-drop interface that placed items can be moved.
 
 **Previous capability** (`planning/state/system_capabilities.md`, lines 313-362):
+
 > "Component Drag-and-Drop Repositioning"
 > "Repositioning system: After placing a component, users can drag it to a new position with real-time visual feedback."
+>
 > - Drag interaction flow (5 steps)
 > - Visual feedback during drag (ghost preview, valid/invalid indicators)
 > - Position validation
@@ -25,6 +28,7 @@ The goal document doesn't explicitly mention repositioning, but it's a fundament
 This was fully implemented with comprehensive visual feedback, snap-to-grid, collision detection, and ghost preview.
 
 **Current state** (`PIXI_MIGRATION_STATUS.md`, lines 44-74):
+
 > "The drag-and-drop functionality was removed in PR #167 as a 'known limitation'."
 > Status: TODO
 > Priority: HIGH - "Critical user-facing functionality"
@@ -35,6 +39,7 @@ This was fully implemented with comprehensive visual feedback, snap-to-grid, col
 ## Impact
 
 This regression affects:
+
 1. **User experience**: Cannot adjust circuit layout without deleting and re-placing components
 2. **Educational workflow**: Students experimenting with layouts must start over when repositioning is needed
 3. **Productivity**: Circuit refinement becomes tedious and error-prone
@@ -58,6 +63,7 @@ This regression affects:
 **Phase 1: Extend PixiEventHandlers Interface**
 
 Add drag start callback to event handlers:
+
 ```typescript
 export interface PixiEventHandlers {
   onHoleClick?: (position: Position) => void;
@@ -70,6 +76,7 @@ export interface PixiEventHandlers {
 **Phase 2: Add Pointer Event in PixiRenderer**
 
 Modify component rendering to capture pointerdown:
+
 ```typescript
 // In renderComponents method, for each component container:
 container.eventMode = 'static';
@@ -77,17 +84,14 @@ container.cursor = 'pointer';
 
 container.on('pointerdown', (event: FederatedPointerEvent) => {
   event.stopPropagation(); // Prevent hole click
-  this.eventHandlers.onComponentDragStart?.(
-    component.id,
-    event.global.x,
-    event.global.y
-  );
+  this.eventHandlers.onComponentDragStart?.(component.id, event.global.x, event.global.y);
 });
 ```
 
 **Phase 3: Wire Up in BreadboardApp**
 
 Connect PixiJS event to existing drag infrastructure:
+
 ```typescript
 private async initPixiRenderer(): Promise<void> {
   await this.pixiRenderer.init(this.breadboard, {
@@ -133,6 +137,7 @@ private handleComponentDragStart(componentId: string, mouseX: number, mouseY: nu
 **Phase 4: Verify Existing Drag Logic**
 
 The existing `handleMouseMove` and `handleMouseUp` methods should work without modification:
+
 - `handleMouseMove`: Updates `dragState.currentMousePos`, calculates preview positions, validates placement
 - `handleMouseUp`: Commits new position if valid, clears drag state, removes event listeners
 - Escape key cancellation already implemented
@@ -140,6 +145,7 @@ The existing `handleMouseMove` and `handleMouseUp` methods should work without m
 **Phase 5: Re-enable Tests**
 
 Remove `TODO` markers from 5 disabled tests in `breadboard-app.test.ts`:
+
 - "initiates drag operation when component is clicked and held"
 - "updates ghost preview position during drag"
 - "completes drag and updates component position on mouseup"
@@ -164,6 +170,7 @@ Remove `TODO` markers from 5 disabled tests in `breadboard-app.test.ts`:
 ### Estimated Complexity
 
 **Small (2-3 hours)**
+
 - Infrastructure already exists (DragState, mouse handlers, validation logic)
 - Only need to wire up PixiJS pointerdown event
 - Tests are already written and waiting
@@ -172,20 +179,25 @@ Remove `TODO` markers from 5 disabled tests in `breadboard-app.test.ts`:
 ### Risks and Mitigations
 
 **Risk**: PixiJS global coordinates may differ from DOM event coordinates
-- *Mitigation*: Use `event.global.x/y` for PixiJS coordinates; existing `handleMouseMove` uses DOM coordinates; verify coordinate systems are compatible
+
+- _Mitigation_: Use `event.global.x/y` for PixiJS coordinates; existing `handleMouseMove` uses DOM coordinates; verify coordinate systems are compatible
 
 **Risk**: Event propagation conflicts (hole click vs component drag)
-- *Mitigation*: Use `event.stopPropagation()` on component pointerdown to prevent hole click
+
+- _Mitigation_: Use `event.stopPropagation()` on component pointerdown to prevent hole click
 
 **Risk**: Drag performance may be lower with Canvas rendering
-- *Mitigation*: Profile during drag; PixiJS should be faster than SVG; existing rendering is already optimized
+
+- _Mitigation_: Profile during drag; PixiJS should be faster than SVG; existing rendering is already optimized
 
 **Risk**: Tests may need adjustments for new event source
-- *Mitigation*: Tests use public API (`clickComponent`, `getState`) which should remain compatible; verify and adjust if needed
+
+- _Mitigation_: Tests use public API (`clickComponent`, `getState`) which should remain compatible; verify and adjust if needed
 
 ### Dependencies
 
 All required infrastructure exists:
+
 - ✅ DragState interface and management in BreadboardApp
 - ✅ Mouse event handlers (handleMouseMove, handleMouseUp)
 - ✅ Position validation logic
@@ -196,6 +208,7 @@ All required infrastructure exists:
 - ✅ 5 disabled tests waiting to be enabled
 
 New additions required:
+
 - Add `onComponentDragStart` to PixiEventHandlers interface
 - Add `pointerdown` event listener in PixiRenderer component rendering
 - Add `handleComponentDragStart` method in BreadboardApp
@@ -226,6 +239,7 @@ New additions required:
 ### Non-Goals
 
 This task specifically does **NOT** include:
+
 - Multi-component drag (still single selection only)
 - Drag from component library browser (separate interaction)
 - Undo/redo for drag operations (broader feature)
@@ -245,6 +259,7 @@ This task specifically does **NOT** include:
 ### Success Metrics
 
 After implementation:
+
 1. ✅ Component drag-and-drop working in live application
 2. ✅ All 5 drag tests passing
 3. ✅ No performance regression during drag (profiled at 60fps)

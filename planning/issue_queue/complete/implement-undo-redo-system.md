@@ -12,11 +12,13 @@ This creates friction in the learning process. Students hesitate to experiment, 
 
 > **Selection and editing**  
 > Requirements:
+>
 > - Single selection for components/wires.
 > - Multi-selection via shift+click and marquee.
 > - **Delete/copy/paste and undo/redo.**
-> 
+>
 > Acceptance criteria:
+>
 > - **[ ] Undo/redo retains at least 50 steps.**
 
 The planning document explicitly **requires** undo/redo with a specific acceptance criterion: **50 steps of history retention**.
@@ -92,41 +94,44 @@ interface Command {
 
 class AddComponentCommand implements Command {
   constructor(private component: AnyComponent) {}
-  
+
   execute(state: BreadboardState): BreadboardState {
     return {
       ...state,
       components: [...state.components, this.component],
     };
   }
-  
+
   undo(state: BreadboardState): BreadboardState {
     return {
       ...state,
-      components: state.components.filter(c => c.id !== this.component.id),
+      components: state.components.filter((c) => c.id !== this.component.id),
     };
   }
-  
+
   description = `Add ${this.component.type}`;
 }
 
 class DeleteComponentCommand implements Command {
-  constructor(private componentId: string, private component: AnyComponent) {}
-  
+  constructor(
+    private componentId: string,
+    private component: AnyComponent
+  ) {}
+
   execute(state: BreadboardState): BreadboardState {
     return {
       ...state,
-      components: state.components.filter(c => c.id !== this.componentId),
+      components: state.components.filter((c) => c.id !== this.componentId),
     };
   }
-  
+
   undo(state: BreadboardState): BreadboardState {
     return {
       ...state,
       components: [...state.components, this.component],
     };
   }
-  
+
   description = `Delete ${this.component.type}`;
 }
 
@@ -143,57 +148,57 @@ export class HistoryManager {
   private undoStack: Command[] = [];
   private redoStack: Command[] = [];
   private readonly maxHistory: number = 50;
-  
+
   execute(command: Command, currentState: BreadboardState): BreadboardState {
     const newState = command.execute(currentState);
-    
+
     this.undoStack.push(command);
     if (this.undoStack.length > this.maxHistory) {
       this.undoStack.shift(); // Remove oldest
     }
-    
+
     this.redoStack = []; // Clear redo on new action
-    
+
     return newState;
   }
-  
+
   undo(currentState: BreadboardState): BreadboardState | null {
     const command = this.undoStack.pop();
     if (!command) return null;
-    
+
     const newState = command.undo(currentState);
     this.redoStack.push(command);
-    
+
     return newState;
   }
-  
+
   redo(currentState: BreadboardState): BreadboardState | null {
     const command = this.redoStack.pop();
     if (!command) return null;
-    
+
     const newState = command.execute(currentState);
     this.undoStack.push(command);
-    
+
     return newState;
   }
-  
+
   canUndo(): boolean {
     return this.undoStack.length > 0;
   }
-  
+
   canRedo(): boolean {
     return this.redoStack.length > 0;
   }
-  
+
   clear(): void {
     this.undoStack = [];
     this.redoStack = [];
   }
-  
+
   getUndoCount(): number {
     return this.undoStack.length;
   }
-  
+
   getRedoCount(): number {
     return this.redoStack.length;
   }
@@ -208,28 +213,28 @@ Refactor `BreadboardApp` to use command pattern:
 // src/ui/breadboard-app.ts
 export class BreadboardApp {
   private historyManager: HistoryManager = new HistoryManager();
-  
+
   // OLD: Direct state mutation
   // this.state.components.push(newComponent);
-  
+
   // NEW: Command-based state mutation
   addComponent(component: AnyComponent): void {
     const command = new AddComponentCommand(component);
     this.state = this.historyManager.execute(command, this.state);
     this.render();
   }
-  
+
   deleteComponent(componentId: string): void {
-    const component = this.state.components.find(c => c.id === componentId);
+    const component = this.state.components.find((c) => c.id === componentId);
     if (!component) return;
-    
+
     const command = new DeleteComponentCommand(componentId, component);
     this.state = this.historyManager.execute(command, this.state);
     this.render();
   }
-  
+
   // Similar for moveComponent, rotateComponent, editComponentProperty
-  
+
   undo(): void {
     const newState = this.historyManager.undo(this.state);
     if (newState) {
@@ -238,7 +243,7 @@ export class BreadboardApp {
       this.showUndoFeedback(); // Optional: brief notification
     }
   }
-  
+
   redo(): void {
     const newState = this.historyManager.redo(this.state);
     if (newState) {
@@ -276,12 +281,8 @@ Add undo/redo buttons to toolbar for discoverability:
 
 ```html
 <div class="history-controls">
-  <button id="undo-btn" class="btn-history" title="Undo (Ctrl+Z)" disabled>
-    ↶ Undo
-  </button>
-  <button id="redo-btn" class="btn-history" title="Redo (Ctrl+Shift+Z)" disabled>
-    ↷ Redo
-  </button>
+  <button id="undo-btn" class="btn-history" title="Undo (Ctrl+Z)" disabled>↶ Undo</button>
+  <button id="redo-btn" class="btn-history" title="Redo (Ctrl+Shift+Z)" disabled>↷ Redo</button>
 </div>
 ```
 
@@ -323,21 +324,25 @@ For MVP, storing full command objects with component references is sufficient.
 ### Educational and User Experience Impact
 
 **Encourages experimentation:**
+
 - Students try alternative circuit designs without fear of permanent mistakes
 - "What if I move this resistor?" becomes low-risk exploration
 - Teachers can demonstrate design iterations: try → undo → try different approach
 
 **Reduces frustration:**
+
 - Accidental deletions are reversible
 - Wrong component placements don't require starting over
 - Complex circuits can be refined iteratively without rebuilding
 
 **Standard software behavior:**
+
 - Undo/redo is expected in all modern editing tools
 - Absence feels "broken" or "unfinished" to users
 - Keyboard shortcuts (Ctrl+Z) are muscle memory for most users
 
 **Enables future features:**
+
 - Copy/paste requires undo ("undo paste" operation)
 - Multi-component operations benefit from undo (select 5 components, delete, undo)
 - Collaborative editing (future) requires action history for conflict resolution
@@ -395,6 +400,7 @@ Initial implementation focuses on **standard undo/redo**: linear history stack, 
 ### Step 1: Create Command Infrastructure
 
 Create `src/core/command.ts`:
+
 - Define `Command` interface with `execute()`, `undo()`, `description`
 - Implement concrete commands:
   - `AddComponentCommand`
@@ -407,6 +413,7 @@ Create `src/core/command.ts`:
 ### Step 2: Create HistoryManager
 
 Create `src/core/history-manager.ts`:
+
 - Implement `HistoryManager` class with undo/redo stacks
 - Enforce 50-item cap on undo stack (goal.md requirement)
 - Implement `execute()`, `undo()`, `redo()`, `clear()` methods
@@ -416,6 +423,7 @@ Create `src/core/history-manager.ts`:
 ### Step 3: Refactor BreadboardApp Editing Operations
 
 Update `src/ui/breadboard-app.ts`:
+
 - Add `historyManager: HistoryManager` instance
 - Refactor existing methods to use commands:
   - `addComponent()` → use `AddComponentCommand`
@@ -429,6 +437,7 @@ Update `src/ui/breadboard-app.ts`:
 ### Step 4: Add Keyboard Shortcuts
 
 Update keyboard event handler in `BreadboardApp`:
+
 - Add Ctrl+Z (Cmd+Z) for undo
 - Add Ctrl+Shift+Z (Cmd+Shift+Z) and Ctrl+Y for redo
 - Prevent default browser behavior for these shortcuts
@@ -437,6 +446,7 @@ Update keyboard event handler in `BreadboardApp`:
 ### Step 5: Optional UI Buttons
 
 Add undo/redo buttons to toolbar:
+
 - Create button HTML and CSS
 - Wire up click handlers to `undo()` and `redo()` methods
 - Update button enabled/disabled state after each action
@@ -445,6 +455,7 @@ Add undo/redo buttons to toolbar:
 ### Step 6: Testing
 
 Write comprehensive tests:
+
 - Unit tests for all command classes (execute and undo correctness)
 - Unit tests for HistoryManager (stack operations, cap enforcement)
 - Integration tests for BreadboardApp undo/redo:
@@ -461,17 +472,20 @@ Write comprehensive tests:
 ### Step 7: Documentation
 
 Update `README.md`:
+
 - Add "Undo/Redo" section explaining keyboard shortcuts
 - Document history capacity (50 actions)
 - Note that history clears on circuit load
 
 Add inline help:
+
 - Tooltip on undo button: "Undo (Ctrl+Z) — up to 50 actions"
 - Tooltip on redo button: "Redo (Ctrl+Shift+Z or Ctrl+Y)"
 
 ## Estimated Effort
 
 3-5 days of focused development:
+
 - **Day 1**: Command pattern infrastructure (command classes, unit tests)
 - **Day 2**: HistoryManager implementation (stack logic, cap enforcement, unit tests)
 - **Day 3**: BreadboardApp refactoring (wrap editing operations in commands, undo/redo methods)
@@ -481,6 +495,7 @@ Add inline help:
 ## Dependencies
 
 All required infrastructure already exists:
+
 - ✅ Component editing operations (place, delete, move, rotate, edit properties)
 - ✅ BreadboardState data structure
 - ✅ Rendering pipeline (re-render after undo/redo)
@@ -491,25 +506,32 @@ All required infrastructure already exists:
 ## Risks and Mitigations
 
 **Risk**: Refactoring existing editing code introduces bugs
-- *Mitigation*: Incremental refactoring; wrap existing code in commands without rewriting logic; comprehensive integration tests; manual testing of all editing operations
+
+- _Mitigation_: Incremental refactoring; wrap existing code in commands without rewriting logic; comprehensive integration tests; manual testing of all editing operations
 
 **Risk**: Memory leaks from storing command history (component references)
-- *Mitigation*: Enforce 50-item cap strictly; store minimal state in commands (component IDs, not full component objects where possible); profile memory usage
+
+- _Mitigation_: Enforce 50-item cap strictly; store minimal state in commands (component IDs, not full component objects where possible); profile memory usage
 
 **Risk**: Undo/redo becomes confusing with complex multi-step operations
-- *Mitigation*: Each action is one undo step (simple, predictable); optional: show brief feedback message describing what was undone ("Undone: Delete LED")
+
+- _Mitigation_: Each action is one undo step (simple, predictable); optional: show brief feedback message describing what was undone ("Undone: Delete LED")
 
 **Risk**: Redo stack behavior surprises users (clears on new action)
-- *Mitigation*: This is standard software behavior (Ctrl+Z in all editors); document clearly; users familiar with any editing tool expect this
+
+- _Mitigation_: This is standard software behavior (Ctrl+Z in all editors); document clearly; users familiar with any editing tool expect this
 
 **Risk**: Undo/redo doesn't update all visualizations correctly
-- *Mitigation*: Call full `render()` pipeline after undo/redo (includes circuit extraction, simulation, overlay updates); integration tests verify all visualizations update
+
+- _Mitigation_: Call full `render()` pipeline after undo/redo (includes circuit extraction, simulation, overlay updates); integration tests verify all visualizations update
 
 **Risk**: History cap (50 items) is insufficient for complex circuits
-- *Mitigation*: 50 is goal.md requirement; can increase if users request (e.g., 100 or 200); cap is configurable constant; monitor user feedback
+
+- _Mitigation_: 50 is goal.md requirement; can increase if users request (e.g., 100 or 200); cap is configurable constant; monitor user feedback
 
 **Risk**: Undo keyboard shortcut conflicts with browser behavior
-- *Mitigation*: `preventDefault()` on Ctrl+Z when handled; ensure it only triggers when no input field focused; test in all major browsers
+
+- _Mitigation_: `preventDefault()` on Ctrl+Z when handled; ensure it only triggers when no input field focused; test in all major browsers
 
 ## References
 
@@ -521,6 +543,7 @@ All required infrastructure already exists:
 ## Success Metrics
 
 After implementation:
+
 1. ✅ Users can undo any editing operation with Ctrl+Z
 2. ✅ Users can redo undone operations with Ctrl+Shift+Z or Ctrl+Y
 3. ✅ History retains at least 50 actions (goal.md acceptance criterion met)

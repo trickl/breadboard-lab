@@ -9,6 +9,7 @@ The planning document explicitly marks resistor color band rendering as a **requ
 ## Gap Analysis
 
 **Long-term goal (from goal.md, lines 150-171):**
+
 - Resistors render with correct color banding
 - Band count is derived from tolerance (4-band for 5%, 5-band for 1%)
 - Resistor visuals are procedurally generated from resistance/tolerance values
@@ -22,6 +23,7 @@ The planning document explicitly marks resistor color band rendering as a **requ
   - Lookup output matches rendered resistor
 
 **Current state (from system_capabilities.md, lines 878-942):**
+
 - Resistors render as tan rectangles with text labels
 - Resistance values are configurable through property editor
 - Visual representation uses geometric shapes, not color bands
@@ -68,6 +70,7 @@ Transform resistor rendering from text-labeled rectangles to physically accurate
 ### Technical Approach
 
 **Phase 1: Color Code Algorithm (Core Logic)**
+
 - Create `src/core/resistor-color-code.ts` module
 - Implement functions:
   - `resistanceToColorBands(resistance: number, tolerance: number): ColorBand[]`
@@ -76,6 +79,7 @@ Transform resistor rendering from text-labeled rectangles to physically accurate
 - Write comprehensive unit tests (edge cases, standard values, E12/E24 series)
 
 **Phase 2: Visual Rendering**
+
 - Modify `src/ui/component-renderer.ts`
 - Replace text-label rendering with band rendering
 - Draw resistor body as cylinder/rectangle
@@ -84,6 +88,7 @@ Transform resistor rendering from text-labeled rectangles to physically accurate
 - Ensure bands are visible at current scale (~50px resistor length)
 
 **Phase 3: Lookup Tool UI**
+
 - Create `src/ui/resistor-lookup-panel.ts`
 - Add toggle button in toolbar ("🎨 Color Code Lookup")
 - Design modal or side panel with two modes:
@@ -93,6 +98,7 @@ Transform resistor rendering from text-labeled rectangles to physically accurate
 - Integrate with existing `ExplainPanel` or create standalone component
 
 **Phase 4: Integration and Polish**
+
 - Connect lookup panel to breadboard resistor clicks
 - Update visual regression tests to capture color band rendering
 - Add tests for color code algorithm
@@ -145,6 +151,7 @@ This task directly addresses planning document requirements:
 ### Dependencies
 
 **None** - all infrastructure exists:
+
 - Component rendering system in place (`ComponentRenderer`)
 - Property editor can be extended
 - Explain panel exists for interactive explanations
@@ -153,22 +160,26 @@ This task directly addresses planning document requirements:
 ### Risks and Mitigations
 
 **Risk 1: Color bands too small to see clearly**
-- *Mitigation*: Test at actual scale; consider optional "magnified view" or tooltip zoom
-- *Mitigation*: Supplement colors with subtle texture patterns for accessibility
+
+- _Mitigation_: Test at actual scale; consider optional "magnified view" or tooltip zoom
+- _Mitigation_: Supplement colors with subtle texture patterns for accessibility
 
 **Risk 2: Color-blind users cannot distinguish bands**
-- *Mitigation*: Add optional "show values" mode (toggle color bands ↔ text labels)
-- *Mitigation*: Use patterns or textures in addition to colors
-- *Mitigation*: Explain panel always shows numeric values as text
+
+- _Mitigation_: Add optional "show values" mode (toggle color bands ↔ text labels)
+- _Mitigation_: Use patterns or textures in addition to colors
+- _Mitigation_: Explain panel always shows numeric values as text
 
 **Risk 3: Not all resistance values map cleanly to standard color codes**
-- *Mitigation*: Document supported range (1Ω to 999MΩ)
-- *Mitigation*: Warn user if non-standard value is entered
-- *Mitigation*: Suggest nearest standard E12/E24 series value
+
+- _Mitigation_: Document supported range (1Ω to 999MΩ)
+- _Mitigation_: Warn user if non-standard value is entered
+- _Mitigation_: Suggest nearest standard E12/E24 series value
 
 **Risk 4: Tolerance editing adds UI complexity**
-- *Mitigation*: Default to 5% tolerance (4-band); make tolerance optional advanced property
-- *Mitigation*: Property editor gains "Advanced" section for tolerance
+
+- _Mitigation_: Default to 5% tolerance (4-band); make tolerance optional advanced property
+- _Mitigation_: Property editor gains "Advanced" section for tolerance
 
 ## Why This Task Now
 

@@ -28,7 +28,7 @@ The clock control panel appears automatically in the left toolbar when an EDU-8 
 
 ### Basic Operation
 
-1. **Load an EDU-8 Circuit**: 
+1. **Load an EDU-8 Circuit**:
    - Click "📚 Examples" and select "EDU-8 Blink Program"
    - Or manually place an EDU-8 microprocessor from the Component Library
 
@@ -69,11 +69,13 @@ The clock control panel appears automatically in the left toolbar when an EDU-8 
 ### Clock Pulse Behavior
 
 Each clock pulse consists of:
+
 1. **Rising Edge** (low → high): Triggers instruction execution
 2. **High Duration**: 50ms (visible for debugging, fast enough for UI)
 3. **Falling Edge** (high → low): Returns clock to low state
 
 The EDU-8 microprocessor executes one instruction per rising edge, following the fetch-decode-execute cycle:
+
 - **Fetch**: Read instruction from ROM at current PC
 - **Decode**: Parse opcode and operand
 - **Execute**: Perform operation and update state
@@ -90,6 +92,7 @@ Lower frequencies (0.5-2 Hz) are best for observing individual instruction effec
 ### State Updates
 
 When clock pulses occur:
+
 1. The ClockController triggers a clock change event
 2. BreadboardApp calls `handleClockEdge()` on the microprocessor
 3. The microprocessor executes one instruction

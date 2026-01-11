@@ -6,7 +6,7 @@ This document specifies the **visual layout** and **rendering appearance** of th
 
 This spec is intentionally **implementation-oriented**: it defines **grid counts**, **coordinate systems**, **layering order**, **hole geometry**, **print markings**, **materials/shading**, and **acceptance checks**.
 
-> Note on provenance/licensing: This spec describes *general visual traits* of a solderless breadboard photo reference. Do **not** reuse or trace third-party copyrighted artwork. The implementation should be procedurally rendered or drawn from scratch.
+> Note on provenance/licensing: This spec describes _general visual traits_ of a solderless breadboard photo reference. Do **not** reuse or trace third-party copyrighted artwork. The implementation should be procedurally rendered or drawn from scratch.
 
 ---
 
@@ -44,7 +44,7 @@ Define `pitch` as the uniform spacing between adjacent holes within a region.
 
 The reference image shows a consistent pitch across terminal holes. Rail holes also appear pitched similarly, but may be offset/packed differently due to the rail block width.
 
-**Rule:** In the renderer, all hole centers must lie on mathematically exact grid coordinates; any photoreal “organic” feel must come from *shading/noise*, not from misaligned hole positions.
+**Rule:** In the renderer, all hole centers must lie on mathematically exact grid coordinates; any photoreal “organic” feel must come from _shading/noise_, not from misaligned hole positions.
 
 ---
 
@@ -106,8 +106,8 @@ Because photo-based exact counting is ambiguous without measurement, define the 
 
 - Rail columns use **30 row positions** aligned to the terminal rows.
 - Each rail column has **two breaks**:
-  1) **Mid split** near the center, removing `gapA` consecutive positions.
-  2) **Lower larger blank/notch** further down, removing `gapB` consecutive positions.
+  1. **Mid split** near the center, removing `gapA` consecutive positions.
+  2. **Lower larger blank/notch** further down, removing `gapB` consecutive positions.
 
 Recommended defaults (tunable, but must be consistent left/right):
 
@@ -161,11 +161,11 @@ Define:
 
 From left to right:
 
-1) Left rail block (narrow)
-2) Left terminal block (`a–e`)
-3) Center trench (gap + recess)
-4) Right terminal block (`f–j`)
-5) Right rail block (narrow)
+1. Left rail block (narrow)
+2. Left terminal block (`a–e`)
+3. Center trench (gap + recess)
+4. Right terminal block (`f–j`)
+5. Right rail block (narrow)
 
 Each block should be visually distinct via subtle shading and seams.
 
@@ -203,9 +203,9 @@ Assume a soft directional light from **upper-left**.
 
 Render hole depth via 3-layer approach:
 
-1) **Rim highlight** (thin stroke or gradient): brighter on upper-left.
-2) **Bevel ring** (mid tone): gradient toward lower-right.
-3) **Cavity** (dark): near-black/dark gray fill with subtle highlight at upper-left edge.
+1. **Rim highlight** (thin stroke or gradient): brighter on upper-left.
+2. **Bevel ring** (mid tone): gradient toward lower-right.
+3. **Cavity** (dark): near-black/dark gray fill with subtle highlight at upper-left edge.
 
 **Rule:** The bevel must be consistent for all holes in a region (no random light direction).
 
@@ -287,17 +287,17 @@ Stripe rendering:
 
 Render from back to front:
 
-1) Background (transparent or app background)
-2) Breadboard body base fill (rounded rectangle)
-3) Subtle body gradients + noise
-4) Rail block base shading (slightly distinct panels)
-5) Terminal block base shading
-6) Center trench recess shading + seam
-7) Rail stripes (red/blue lines)
-8) Hole shadows (optional ambient occlusion pass)
-9) Hole bevels and cavities (all holes)
-10) Printed labels (letters, numbers, +/−)
-11) Optional imperfections layer (very subtle specks/smudges)
+1. Background (transparent or app background)
+2. Breadboard body base fill (rounded rectangle)
+3. Subtle body gradients + noise
+4. Rail block base shading (slightly distinct panels)
+5. Terminal block base shading
+6. Center trench recess shading + seam
+7. Rail stripes (red/blue lines)
+8. Hole shadows (optional ambient occlusion pass)
+9. Hole bevels and cavities (all holes)
+10. Printed labels (letters, numbers, +/−)
+11. Optional imperfections layer (very subtle specks/smudges)
 
 **Rule:** Labels and stripes must sit visually “on top” of plastic, while holes appear cut “into” plastic.
 

@@ -1,6 +1,7 @@
 Implement Component Rotation and Breadboard Orientation Controls
 
 ## Source Review
+
 `planning/reviews/review-2026-01-08.md` — Section 6: Rotation & Orientation (lines 123-134)
 
 ## Review Items Addressed
@@ -10,10 +11,12 @@ This task fully implements **Section 6: Rotation & Orientation** from the 2026-0
 ### Section 6.1: Component Rotation (lines 125-126)
 
 **Original Issues:**
+
 - ❌ "There is **no obvious way to rotate components**"
 - ❌ "Rotation is essential for realistic placement"
 
 **Requirements:**
+
 - Add UI affordances for component rotation
 - Support multiple rotation triggers:
   - Keyboard shortcut (R key) for selected components
@@ -64,10 +67,12 @@ This task fully implements **Section 6: Rotation & Orientation** from the 2026-0
 ### Section 6.2: Breadboard Orientation (lines 128-134)
 
 **Original Issues:**
+
 - ❌ "The breadboard is currently oriented vertically (portrait)"
 - ❌ "This is unusual; most breadboards are shown horizontally (landscape)"
 
 **Requirements:**
+
 - Add a button in the main pane to rotate the entire breadboard canvas
 - Support rotation in 90° increments (90 / 180 / 270 / 360)
 - Breadboard orientation is a **view transformation**, not a data model change
@@ -114,6 +119,7 @@ This task fully implements **Section 6: Rotation & Orientation** from the 2026-0
 ## Acceptance Criteria
 
 ### Component Rotation:
+
 - [ ] Selected components can be rotated via 'R' key
 - [ ] Selected components show rotation handle when selected
 - [ ] Rotation handle is clickable and rotates component 90° clockwise
@@ -125,6 +131,7 @@ This task fully implements **Section 6: Rotation & Orientation** from the 2026-0
 - [ ] Rotation works for all component types (resistors, LEDs, power supplies, etc.)
 
 ### Breadboard Orientation:
+
 - [ ] Breadboard rotation button is visible and discoverable
 - [ ] Clicking button rotates breadboard 90° clockwise
 - [ ] Breadboard can rotate through all four orientations (0° / 90° / 180° / 270°)
@@ -136,6 +143,7 @@ This task fully implements **Section 6: Rotation & Orientation** from the 2026-0
 - [ ] Rotation animation is smooth and non-disruptive
 
 ### Constraints:
+
 - [ ] No changes to data model row/column coordinate system (orientation is view-only)
 - [ ] All existing functionality preserved (drag-and-drop, wire routing, selection, etc.)
 - [ ] No breaking changes to circuit save/load format
@@ -145,6 +153,7 @@ This task fully implements **Section 6: Rotation & Orientation** from the 2026-0
 ## Implementation Approach
 
 ### Phase 1: Component Rotation Foundation
+
 1. Add `rotation` property to component state (in data model)
 2. Update PixiRenderer to apply rotation transform to component containers
 3. Update pin position calculation to account for rotation
@@ -152,6 +161,7 @@ This task fully implements **Section 6: Rotation & Orientation** from the 2026-0
 5. Test rotation with simple components (resistors, LEDs)
 
 ### Phase 2: Rotation UI Affordances
+
 1. Add rotation handle rendering to selected components
 2. Implement click handler for rotation handle
 3. Style rotation handle with hover states and touch-friendly sizing
@@ -159,6 +169,7 @@ This task fully implements **Section 6: Rotation & Orientation** from the 2026-0
 5. Test rotation handle interaction (mouse and touch)
 
 ### Phase 3: Rotation Validation & Integration
+
 1. Integrate rotation with undo/redo system
 2. Ensure wire connections update correctly after rotation
 3. Test rotation with all component types
@@ -166,6 +177,7 @@ This task fully implements **Section 6: Rotation & Orientation** from the 2026-0
 5. Verify netlist generation works correctly with rotated components
 
 ### Phase 4: Breadboard Orientation
+
 1. Add breadboard rotation button to UI (top toolbar or view controls)
 2. Implement breadboard rotation transform (CSS or canvas)
 3. Update mouse coordinate transformations for rotated breadboard
@@ -173,12 +185,14 @@ This task fully implements **Section 6: Rotation & Orientation** from the 2026-0
 5. Implement orientation persistence (localStorage)
 
 ### Phase 5: Orientation Visual Consistency
+
 1. Ensure voltage heatmap overlays rotate with breadboard
 2. Ensure X-ray mode overlays rotate with breadboard
 3. Test with power rails visible/hidden
 4. Verify all visual overlays align correctly at all orientations
 
 ### Phase 6: Testing & Polish
+
 1. Test component rotation with complex circuits
 2. Test breadboard orientation with large circuits
 3. Test on touch devices (rotation handle touch target size)
@@ -188,6 +202,7 @@ This task fully implements **Section 6: Rotation & Orientation** from the 2026-0
 ## Refactor Safety Rules (Mandatory)
 
 If this task requires moving code across files:
+
 1. Move code **verbatim** into new location first
 2. Update imports/call sites to make it run
 3. Fix visibility, scope, parameterization on migrated code
@@ -207,6 +222,7 @@ If this task requires moving code across files:
 ### Component Rotation Implementation
 
 The component rotation feature requires changes to:
+
 - **Data Model:** Add `rotation` field to ComponentState (0 | 90 | 180 | 270)
 - **Renderer:** Apply rotation transform in PixiRenderer.renderComponent()
 - **Pin Calculation:** Rotate pin offsets based on component rotation
@@ -216,6 +232,7 @@ The component rotation feature requires changes to:
 ### Breadboard Orientation Implementation
 
 The breadboard orientation feature requires changes to:
+
 - **View Transform:** Apply rotation to breadboard container (CSS transform or PixiJS rotation)
 - **Coordinate Mapping:** Transform mouse events from rotated canvas space to logical breadboard space
 - **Persistence:** Save/restore orientation to localStorage
@@ -224,12 +241,14 @@ The breadboard orientation feature requires changes to:
 ### Coordinate System Invariants
 
 **CRITICAL:** Breadboard orientation is a **view transformation only**. The underlying data model coordinate system (rows/columns) must remain unchanged:
+
 - Row 0 is always the top row (data model)
 - Column A is always the left column (data model)
 - When breadboard is rotated 90°, visual rendering rotates but data model stays fixed
 - Mouse clicks must be transformed from rotated view space to data model space
 
 This ensures:
+
 - Circuit save/load files are orientation-independent
 - Netlist generation is orientation-independent
 - Undo/redo works correctly regardless of orientation
@@ -237,16 +256,19 @@ This ensures:
 ### Testing Strategy
 
 **Unit Tests:**
+
 - Test component rotation state transitions (0° → 90° → 180° → 270° → 0°)
 - Test pin position calculation with rotation
 - Test coordinate transformations for breadboard orientation
 
 **Integration Tests:**
+
 - Test component rotation with wire connections
 - Test breadboard orientation with complex circuits
 - Test undo/redo with rotation operations
 
 **Manual Tests:**
+
 - Test rotation handle on touch devices
 - Test keyboard shortcut in various contexts
 - Test visual overlays at all breadboard orientations
@@ -265,6 +287,7 @@ This ensures:
 This task addresses **High Priority UX Improvements** from the review (Section 12, lines 222-227). Component rotation is essential for realistic breadboard usage, and breadboard orientation addresses a common user expectation (landscape orientation).
 
 The review explicitly states:
+
 > "Rotation is essential for realistic placement" (line 126)
 > "Most breadboards are shown horizontally (landscape)" (line 130)
 

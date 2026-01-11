@@ -7,6 +7,7 @@ This task implements **Milestone 6 — Overlays and explain panel parity** from 
 **Migration progress:** Milestones 0-5 complete (86%). This is Milestone 6 of 7.
 
 **What has been completed:**
+
 - ✅ Milestone 0: React infrastructure with feature flag
 - ✅ Milestone 1: Renderer-agnostic controller layer
 - ✅ Milestone 2: SVG breadboard substrate with hole highlighting
@@ -15,6 +16,7 @@ This task implements **Milestone 6 — Overlays and explain panel parity** from 
 - ✅ Milestone 5: Interactive connection creation with hole occupancy constraints
 
 **Current state:**
+
 - React UI (`?react=true`) has functional breadboard, components, and connections
 - Simulation pipeline (CircuitExtractor, CircuitSimulator) already exists and works
 - PixiJS UI still has overlays (voltage heatmap, current animation, error badges)
@@ -27,17 +29,21 @@ This task addresses the following specific items from the review document:
 ### Voltage Overlay (lines 219-224, 346)
 
 **Review requirement (lines 219-224):**
+
 > **Voltage overlays**
 > **Current:** Pixi draws a voltage overlay layer.
-> 
+>
 > **New:** Render a per-net or per-hole voltage overlay:
+>
 > - MVP overlay: per-hole colored halo for connected holes that are part of a net.
 > - Better overlay: per-net region shading with alpha.
 
 **Review requirement (line 346):**
+
 > - Voltage overlay matches simulation node voltages.
 
 **Task:**
+
 1. Create `src/ui-react/overlays/VoltageOverlay.tsx` component
 2. Subscribe to controller state to access `state.simulation.result`
 3. For each connected net (holes connected by connections):
@@ -57,6 +63,7 @@ This task addresses the following specific items from the review document:
 8. Add toggle control to show/hide voltage overlay (UI state in controller)
 
 **Acceptance criteria:**
+
 - Voltage overlay renders when simulation completes successfully
 - Hole colors reflect actual node voltages from simulation
 - Overlay is semi-transparent (substrate visible underneath)
@@ -66,17 +73,21 @@ This task addresses the following specific items from the review document:
 ### Current Flow Animation (lines 225-232, 347)
 
 **Review requirement (lines 225-232):**
+
 > **Current flow animation**
 > **Current:** Pixi spawns particles moving along paths.
-> 
+>
 > **New (SVG):**
+>
 > - Simple MVP: animate stroke dash offset on wires where $|I| > \epsilon$.
 > - Better: render small circles moving along the path using `requestAnimationFrame` in React (still allowed; it's not WebGL).
 
 **Review requirement (line 347):**
+
 > - Current animation reflects `edgeCurrents` direction/magnitude.
 
 **Task:**
+
 1. Create `src/ui-react/overlays/CurrentAnimation.tsx` component
 2. Subscribe to controller state to access `state.simulation.result.edgeCurrents`
 3. For each connection with non-zero current ($|I| > 0.001$):
@@ -100,6 +111,7 @@ This task addresses the following specific items from the review document:
 7. Add toggle control to show/hide current animation (UI state in controller)
 
 **Acceptance criteria:**
+
 - Current animation renders on connections with non-zero current
 - Animation direction matches actual current flow direction
 - Animation speed reflects current magnitude
@@ -110,17 +122,21 @@ This task addresses the following specific items from the review document:
 ### Error Overlay (lines 233-238, 348)
 
 **Review requirement (lines 233-238):**
+
 > **Errors**
 > **Current:** Pixi draws error icons and supports click → explain.
-> 
+>
 > **New:** Render error badges as SVG/HTML positioned elements anchored to:
+>
 > - the component centroid, or
 > - the specific hole/pin if available.
 
 **Review requirement (line 348):**
+
 > - Error badges clickable → explain panel.
 
 **Task:**
+
 1. Create `src/ui-react/overlays/ErrorOverlay.tsx` component
 2. Subscribe to controller state to access `state.simulation.errors` using `getSimulationErrors(state)` selector
 3. For each simulation error:
@@ -151,6 +167,7 @@ This task addresses the following specific items from the review document:
 9. Render error overlay as top layer (above all components and connections)
 
 **Acceptance criteria:**
+
 - Error badges render when simulation produces errors
 - Badges positioned at correct locations (component/hole/net)
 - Badges are clickable and trigger explain panel
@@ -161,6 +178,7 @@ This task addresses the following specific items from the review document:
 ## Implementation Strategy
 
 ### Phase 1: Controller State Updates
+
 1. Add UI state for overlay toggles to `AppState`:
    ```typescript
    ui: {
@@ -179,6 +197,7 @@ This task addresses the following specific items from the review document:
    - `isCurrentAnimationEnabled(state): boolean`
 
 ### Phase 2: Voltage Overlay Component
+
 1. Create `src/ui-react/overlays/VoltageOverlay.tsx`
 2. Implement voltage → color mapping function (heatmap)
 3. Query simulation voltages from controller state
@@ -187,6 +206,7 @@ This task addresses the following specific items from the review document:
 6. Test with existing test circuit (resistor + LED + power supply)
 
 ### Phase 3: Current Animation Component
+
 1. Create `src/ui-react/overlays/CurrentAnimation.tsx`
 2. Query edge currents from controller state
 3. Implement stroke dash offset animation (MVP approach)
@@ -195,6 +215,7 @@ This task addresses the following specific items from the review document:
 6. Test with circuit that has measurable current flow
 
 ### Phase 4: Error Overlay Component
+
 1. Create `src/ui-react/overlays/ErrorOverlay.tsx`
 2. Query simulation errors from controller state
 3. Map error types to badge visuals (icon, color, position)
@@ -203,6 +224,7 @@ This task addresses the following specific items from the review document:
 6. Test with circuits that produce errors (short circuit, floating nodes, etc.)
 
 ### Phase 5: Integration and Testing
+
 1. Add overlay components to `BreadboardScene.tsx` layer hierarchy:
    ```
    <BreadboardSvg />           // Substrate (bottom)
@@ -231,6 +253,7 @@ This task addresses the following specific items from the review document:
 ## Simulation Integration
 
 **Data sources:**
+
 - `state.simulation.result`: Contains node voltages, edge currents, power dissipation
 - `state.simulation.errors`: Contains simulation errors with location metadata
 - Selectors from `src/ui-controller/selectors.ts`:
@@ -241,6 +264,7 @@ This task addresses the following specific items from the review document:
   - `isSimulationSuccessful(state)`
 
 **Simulation lifecycle:**
+
 1. User modifies circuit (add component, create connection, move component)
 2. Controller dispatches appropriate action
 3. `SimulationRunner` debounces and runs extraction + simulation
@@ -252,18 +276,21 @@ This task addresses the following specific items from the review document:
 ## Performance Considerations
 
 **Voltage overlay:**
+
 - Render one SVG circle per hole (max 420 circles)
 - Use SVG symbol reuse if many holes have same voltage
 - Memoize color calculations
 - Only render circles for holes that are part of connected nets
 
 **Current animation:**
+
 - Use CSS animations where possible (more performant than JS)
 - If using `requestAnimationFrame`, ensure cleanup on unmount
 - Only animate connections with non-negligible current
 - Consider throttling animation updates if performance is an issue
 
 **Error overlay:**
+
 - Typically few errors (< 10 badges)
 - Badges are static (no animation needed)
 - Click handlers should be lightweight
@@ -271,6 +298,7 @@ This task addresses the following specific items from the review document:
 ## Testing Requirements
 
 **Manual testing:**
+
 1. Load React UI with `?react=true`
 2. Create circuit: power supply → resistor → LED → ground
 3. Verify voltage overlay shows correct voltages (5V at power, ~3V at LED, 0V at ground)
@@ -281,6 +309,7 @@ This task addresses the following specific items from the review document:
 8. Test pan/zoom (overlays should stay aligned)
 
 **Unit tests (optional, can add if time permits):**
+
 - Voltage → color mapping function
 - Current magnitude → animation speed calculation
 - Error type → badge style mapping
@@ -290,29 +319,34 @@ This task addresses the following specific items from the review document:
 This task satisfies the following acceptance criteria from the review (lines 345-350):
 
 ✅ **Voltage overlay matches simulation node voltages** (line 346)
-   - Overlay queries actual simulation results
-   - Colors reflect computed voltages
-   - Updates on simulation rerun
+
+- Overlay queries actual simulation results
+- Colors reflect computed voltages
+- Updates on simulation rerun
 
 ✅ **Current animation reflects `edgeCurrents` direction/magnitude** (line 347)
-   - Animation queries actual edge currents
-   - Direction matches current flow
-   - Speed proportional to magnitude
+
+- Animation queries actual edge currents
+- Direction matches current flow
+- Speed proportional to magnitude
 
 ✅ **Error badges clickable → explain panel** (line 348)
-   - Badges are interactive SVG/HTML elements
-   - Click handler triggers explain panel
-   - Error details displayed to user
+
+- Badges are interactive SVG/HTML elements
+- Click handler triggers explain panel
+- Error details displayed to user
 
 ## Files to Create
 
 **New files:**
+
 - `src/ui-react/overlays/VoltageOverlay.tsx` (150-200 lines est.)
 - `src/ui-react/overlays/CurrentAnimation.tsx` (100-150 lines est.)
 - `src/ui-react/overlays/ErrorOverlay.tsx` (100-150 lines est.)
 - Optional: `src/ui-react/overlays/ExplainPanel.tsx` (if doesn't exist)
 
 **Modified files:**
+
 - `src/ui-controller/types.ts` - Add overlay toggle state and actions
 - `src/ui-controller/breadboard-controller.ts` - Handle overlay toggle actions
 - `src/ui-controller/selectors.ts` - Add overlay state selectors (if needed)
@@ -320,6 +354,7 @@ This task satisfies the following acceptance criteria from the review (lines 345
 - `src/ui-react/App.tsx` - Add overlay toggle controls (optional)
 
 **Files NOT to change:**
+
 - All simulation logic (`src/core/**`) - Do not modify
 - All component library (`src/library/**`) - Do not modify
 - All PixiJS rendering (`src/ui/**`) - Do not modify (Milestone 7 will remove)
@@ -367,6 +402,7 @@ This milestone is complete when:
 ## Next Steps After Completion
 
 After this milestone completes:
+
 - **Milestone 7** can begin: Remove PixiJS entirely
 - React UI will have full feature parity with PixiJS UI
 - Feature flag can be removed and React UI becomes default

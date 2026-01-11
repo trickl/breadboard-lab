@@ -1,11 +1,13 @@
 Rebalance sidebar layout and remove low-value panels
 
 ## Review Source
+
 `planning/reviews/review-2026-01-08.md` — Sections 1, 3, and 4
 
 ## Problem Statement
 
 The current sidebar layout has significant UX issues:
+
 - The left sidebar is overloaded with controls while the right sidebar is underutilized
 - Several right sidebar panels provide no clear value to users
 - The information architecture does not align with user workflows
@@ -16,6 +18,7 @@ The current sidebar layout has significant UX issues:
 ### Section 1: Overall Layout & Information Architecture (Lines 7-29)
 
 **Issue 1.1: Left vs Right Sidebar Balance**
+
 - The left-hand sidebar is overloaded
 - The right-hand sidebar is underutilized with significant unused space
 
@@ -24,6 +27,7 @@ The current sidebar layout has significant UX issues:
 The review provides explicit recommendations for reorganization:
 
 **Left Sidebar should contain:**
+
 - Component Library (top, unchanged)
 - Quick Select (below Component Library)
 - Examples
@@ -32,6 +36,7 @@ The review provides explicit recommendations for reorganization:
 - Clear All (conceptually belongs with component manipulation)
 
 **Right Sidebar should contain:**
+
 - View controls
 - Audio Output
 - Clock Control
@@ -41,22 +46,26 @@ The review provides explicit recommendations for reorganization:
 ### Section 3: Examples, Load/Save, and Clear Controls (Lines 58-67)
 
 **Issue 3.1: Examples**
+
 - The example circuits are "quite nice"
 - Acceptable that these will change later
 - No changes needed to example content
 
 **Issue 3.2: Control Placement**
+
 - Consider moving Examples / Load Circuit / Save Circuit to the right sidebar
 - Clear All feels semantically tied to component editing and should likely remain on the left with components
 
 ### Section 4: Right Sidebar: Circuit Info & Lists (Lines 70-97)
 
 **Issue 4.1: Circuit Info / Nodes / Connections (Lines 72-75)**
+
 - These sections provide **no clear value** in their current form
 - Their purpose is unclear to users
 - Recommendation: **remove entirely**
 
 **Issue 4.2: Component List (Lines 77-82)**
+
 - The component list provides little value because:
   - Components are already visible on the breadboard
   - Multiple wires are indistinguishable in a list
@@ -65,12 +74,14 @@ The review provides explicit recommendations for reorganization:
 - Recommendation: **remove entirely**
 
 **Issue 4.3: Component Properties (Lines 84-87)**
+
 - Component Properties is **very useful**
 - Clicking a component and immediately editing its properties is a strong UX feature
 - This panel should be **retained and expanded**
 - No changes needed
 
 **Issue 4.4: Selection Feedback Gap (Lines 89-96)**
+
 - When a wire is selected:
   - Nothing appears in Component Properties
   - There is no clear indication that the wire is selected
@@ -113,6 +124,7 @@ Remove the following panels entirely from the right sidebar:
 4. **Component List panel** - components already visible on breadboard, list not meaningful
 
 **How to remove:**
+
 - Locate rendering functions for these panels
 - Remove DOM generation code
 - Remove any associated state properties
@@ -125,6 +137,7 @@ Remove the following panels entirely from the right sidebar:
 Reorganize the left sidebar to match the review's recommendation:
 
 **Target structure (top to bottom):**
+
 1. Component Library (already present, no move)
 2. Quick Select (already present, verify position)
 3. Examples
@@ -133,6 +146,7 @@ Reorganize the left sidebar to match the review's recommendation:
 6. Clear All
 
 **Implementation:**
+
 - Move Examples, Load Circuit, Save Circuit buttons from their current location to left sidebar
 - Move Clear All button to left sidebar if not already there
 - Ensure vertical ordering matches the list above
@@ -144,6 +158,7 @@ Reorganize the left sidebar to match the review's recommendation:
 Reorganize the right sidebar to match the review's recommendation:
 
 **Target structure (top to bottom):**
+
 1. View controls (group heading)
    - X-Ray Mode button
    - Rotate Board button
@@ -153,6 +168,7 @@ Reorganize the right sidebar to match the review's recommendation:
 4. Component Properties (panel - retain as-is)
 
 **Implementation:**
+
 - Move View controls to top of right sidebar if not already there
 - Group X-Ray Mode and Rotate Board under "View" section/heading
 - Ensure Audio Output is below View controls
@@ -165,6 +181,7 @@ Reorganize the right sidebar to match the review's recommendation:
 Enhance Component Properties panel to show wire selection state:
 
 **Current issue:**
+
 - When a wire is selected, nothing appears in Component Properties
 - No clear indication that wire is selected
 
@@ -272,6 +289,7 @@ After reorganization:
 ## Expected Outcome
 
 **Left Sidebar:**
+
 - Component Library at top (unchanged)
 - Quick Select below it (unchanged)
 - Examples, Load Circuit, Save Circuit, Clear All below
@@ -279,6 +297,7 @@ After reorganization:
 - All component-related workflow in one place
 
 **Right Sidebar:**
+
 - View controls at top (X-Ray, Rotate Board)
 - Audio Output below
 - Clock Control below
@@ -287,11 +306,13 @@ After reorganization:
 - Removed panels that provided no value
 
 **Component Properties:**
+
 - Shows component info when component selected (unchanged)
 - Shows wire info when wire selected (new)
 - Clear selection feedback in all cases
 
 **User Impact:**
+
 - More intuitive layout
 - Less visual clutter
 - Easier to find controls
@@ -301,9 +322,11 @@ After reorganization:
 ## Files to Modify
 
 Primary file:
+
 - `src/ui/breadboard-app.ts` - sidebar rendering and panel organization
 
 Possible additional files:
+
 - `src/style.css` - sidebar styling, panel grouping, spacing adjustments
 
 ## Acceptance Criteria

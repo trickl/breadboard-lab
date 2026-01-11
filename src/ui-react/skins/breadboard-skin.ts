@@ -97,7 +97,7 @@ export function isRailGapRow(row: number): boolean {
 /**
  * Whether a hole should be drawn and considered interactive in the photo-like skin.
  *
- * NOTE: This is a UI-level constraint only; it does not (yet) change the electrical model.
+ * Note: This is a UI-level constraint only; it does not (yet) change the electrical model.
  */
 export function isHoleVisible(pos: Position): boolean {
   if (!BreadboardLayout.isValidPosition(pos)) {

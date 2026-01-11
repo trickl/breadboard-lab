@@ -7,6 +7,7 @@ This task implements **Milestone 5 — Interactive wiring via Rete** from the Pi
 **Migration status:** 5 of 7 milestones complete (71% progress). Milestone 5 is the next logical step in the migration plan.
 
 **Prerequisites completed:**
+
 - ✅ Milestone 0: React infrastructure with feature flag (PR #465)
 - ✅ Milestone 1: Renderer-agnostic controller (PR #471)
 - ✅ Milestone 2: Breadboard substrate in SVG (PR #477)
@@ -14,6 +15,7 @@ This task implements **Milestone 5 — Interactive wiring via Rete** from the Pi
 - ✅ Milestone 4: Rete graph layer visible and aligned (PR #489)
 
 **Current state:**
+
 - React UI renders breadboard substrate with 420 interactive holes
 - Components render as SVG with selection, drag, rotate, and delete interactions
 - Rete editor integrated with component nodes and coordinate alignment
@@ -33,8 +35,9 @@ From `planning/reviews/review-09-01-26-remove-pixijs-react-rete-rendering.md`:
 
 > **Milestone 5 — Interactive wiring via Rete**
 > **Outcome:** Phase-3-style connection creation works without Pixi.
-> 
+>
 > Acceptance criteria:
+>
 > - Drag leg → hole creates connection.
 > - One-connector-per-hole constraint enforced with clear feedback.
 
@@ -42,25 +45,28 @@ From `planning/reviews/review-09-01-26-remove-pixijs-react-rete-rendering.md`:
 
 > **Connections/wires**
 > **Current:** Pixi draws wires and (optionally) "Rete connection lines" container.
-> 
+>
 > **New:** Use Rete's connection plugin + React renderer to draw connections, but coordinate endpoints in world space so they align visually with holes.
-> 
+>
 > If Rete connection visuals can't match the breadboard style, render connections ourselves in SVG from `reteManager.getConnections()` as a temporary bridge.
 
 ### Supporting: Interaction model requirements (lines 242-270)
 
 > **Core interactions**
+>
 > - Connection creation (drag from leg → hole)
-> 
+>
 > **Recommended state machine (React-friendly)**
 > Represent interaction as explicit modes:
+>
 > - `idle`
 > - `draggingComponent`
 > - `draggingFloatingComponent`
 > - `draggingConnection`
 > - `reroutingConnection`
-> 
+>
 > Each mode has:
+>
 > - entry conditions
 > - pointer move behavior
 > - commit/cancel behavior
@@ -69,14 +75,16 @@ From `planning/reviews/review-09-01-26-remove-pixijs-react-rete-rendering.md`:
 
 > **DR-2: Rete renders the graph layer, not the entire breadboard**
 > **Decision:** Use Rete's React renderer for:
+>
 > - Component nodes (visual bodies)
 > - Ports/legs (connection endpoints)
 > - Connections (wires)
-> 
+>
 > But **do not** model every breadboard hole as a rendered Rete node.
-> 
+>
 > **DR-3: One shared coordinate system ("world space") for everything**
 > **Decision:** Define a single coordinate system (world space) for:
+>
 > - Breadboard geometry
 > - Component positions
 > - Connection endpoints
@@ -87,6 +95,7 @@ From `planning/reviews/review-09-01-26-remove-pixijs-react-rete-rendering.md`:
 ### Overview
 
 Implement Phase 3 interactive connection workflow in React UI:
+
 1. User pointer-down on component leg (Rete port)
 2. Drag shows preview connection line following pointer
 3. Hover over breadboard hole highlights valid drop target
@@ -161,13 +170,15 @@ Implement Phase 3 interactive connection workflow in React UI:
 **File:** `src/ui-controller/types.ts`
 
 Add to `AppState` interface:
+
 ```typescript
 connectionDrag: {
   dragState: ConnectionDragState | null;
-};
+}
 ```
 
 Define new state type:
+
 ```typescript
 interface ConnectionDragState {
   sourcePortId: string;
@@ -181,6 +192,7 @@ interface ConnectionDragState {
 ```
 
 Add to `Action` discriminated union:
+
 ```typescript
 | { type: 'CONNECTION_DRAG_STARTED'; portId: string; componentId: string; legIndex: number; position: Position }
 | { type: 'CONNECTION_DRAG_MOVED'; pointerPosition: { x: number; y: number }; hoveredHole: Position | null; isValid: boolean }
@@ -191,6 +203,7 @@ Add to `Action` discriminated union:
 **File:** `src/ui-controller/breadboard-controller.ts`
 
 Add reducer cases for new actions:
+
 - `CONNECTION_DRAG_STARTED`: Initialize `connectionDrag.dragState`
 - `CONNECTION_DRAG_MOVED`: Update pointer position and hovered hole
 - `CONNECTION_DRAG_COMPLETED`: Clear drag state, dispatch to Rete
@@ -203,14 +216,16 @@ Add reducer cases for new actions:
 **File:** `src/ui-controller/types.ts`
 
 Add to `AppState` interface:
+
 ```typescript
 connections: {
   occupiedHoles: Map<string, string>; // hole position key → connection ID
   // Example: "5,8" → "conn-1" means hole at row 5, column 8 is occupied
-};
+}
 ```
 
 Update `CONNECTION_CREATED` action:
+
 ```typescript
 | { type: 'CONNECTION_CREATED'; connectionId: string; portId: string; targetPosition: Position }
 ```
@@ -218,9 +233,11 @@ Update `CONNECTION_CREATED` action:
 **File:** `src/ui-controller/breadboard-controller.ts`
 
 Add reducer case:
+
 - `CONNECTION_CREATED`: Add entry to `occupiedHoles` map
 
 Add helper function:
+
 ```typescript
 function isHoleOccupied(state: AppState, position: Position): boolean {
   const key = `${position.row},${position.column}`;
@@ -231,6 +248,7 @@ function isHoleOccupied(state: AppState, position: Position): boolean {
 **File:** `src/ui-controller/selectors.ts`
 
 Add selector:
+
 ```typescript
 export function isHoleOccupied(state: AppState, position: Position): boolean {
   const key = `${position.row},${position.column}`;
@@ -245,6 +263,7 @@ export function isHoleOccupied(state: AppState, position: Position): boolean {
 **File:** `src/ui-react/components/ComponentsLayer.tsx`
 
 Add pointer event handlers for component legs:
+
 ```typescript
 function handleLegPointerDown(
   e: React.PointerEvent,
@@ -261,7 +280,7 @@ function handleLegPointerDown(
     legIndex,
     position,
   });
-  
+
   // Attach document-level move/up handlers (same pattern as component drag)
   document.addEventListener('pointermove', handleConnectionDragMove);
   document.addEventListener('pointerup', handleConnectionDragUp);
@@ -269,23 +288,24 @@ function handleLegPointerDown(
 ```
 
 Implement drag move handler:
+
 ```typescript
 function handleConnectionDragMove(e: PointerEvent) {
   // Convert screen coordinates to SVG world space
   const svg = svgRef.current;
   if (!svg) return;
-  
+
   const point = svg.createSVGPoint();
   point.x = e.clientX;
   point.y = e.clientY;
   const worldPoint = point.matrixTransform(svg.getScreenCTM()!.inverse());
-  
+
   // Convert world coordinates to grid position
   const gridPosition = pixelsToPosition({ x: worldPoint.x, y: worldPoint.y });
-  
+
   // Check if grid position is valid hole
   const isValid = isValidPosition(gridPosition) && !isHoleOccupied(state, gridPosition);
-  
+
   controller.dispatch({
     type: 'CONNECTION_DRAG_MOVED',
     pointerPosition: { x: worldPoint.x, y: worldPoint.y },
@@ -296,12 +316,16 @@ function handleConnectionDragMove(e: PointerEvent) {
 ```
 
 Implement drag complete handler:
+
 ```typescript
 function handleConnectionDragUp(e: PointerEvent) {
   document.removeEventListener('pointermove', handleConnectionDragMove);
   document.removeEventListener('pointerup', handleConnectionDragUp);
-  
-  if (state.connectionDrag.dragState?.isValidTarget && state.connectionDrag.dragState.hoveredHolePosition) {
+
+  if (
+    state.connectionDrag.dragState?.isValidTarget &&
+    state.connectionDrag.dragState.hoveredHolePosition
+  ) {
     // Valid connection - dispatch completion
     controller.dispatch({
       type: 'CONNECTION_DRAG_COMPLETED',
@@ -316,6 +340,7 @@ function handleConnectionDragUp(e: PointerEvent) {
 ```
 
 Update keyboard handler to support Escape during connection drag:
+
 ```typescript
 // In BreadboardScene.tsx handleKeyDown
 if (e.key === 'Escape' && state.connectionDrag.dragState) {
@@ -330,6 +355,7 @@ if (e.key === 'Escape' && state.connectionDrag.dragState) {
 **File:** `src/ui-react/components/ComponentsLayer.tsx` (or new `ConnectionPreview.tsx`)
 
 Add connection preview rendering to ComponentsLayer:
+
 ```typescript
 {state.connectionDrag.dragState && (
   <ConnectionDragPreview
@@ -340,6 +366,7 @@ Add connection preview rendering to ComponentsLayer:
 ```
 
 Create new component:
+
 ```typescript
 interface ConnectionDragPreviewProps {
   dragState: ConnectionDragState;
@@ -349,10 +376,10 @@ interface ConnectionDragPreviewProps {
 function ConnectionDragPreview({ dragState, occupiedHoles }: ConnectionDragPreviewProps) {
   const sourcePixels = positionToPixels(dragState.sourcePosition);
   const targetPixels = dragState.currentPointerPosition;
-  
+
   // Line color based on validity
   const strokeColor = dragState.isValidTarget ? '#00ff00' : '#ff0000';
-  
+
   return (
     <g className="connection-preview">
       <line
@@ -388,10 +415,11 @@ function ConnectionDragPreview({ dragState, occupiedHoles }: ConnectionDragPrevi
 **File:** `src/ui-react/BreadboardSvg.tsx`
 
 Modify `handlePointerMove` to check for active connection drag:
+
 ```typescript
 function handlePointerMove(e: React.PointerEvent) {
   // Existing hole hover logic...
-  
+
   // If connection drag active, highlight hovered hole differently
   if (connectionDragState) {
     const isValid = isValidPosition(nearestPos) && !isHoleOccupied(state, nearestPos);
@@ -409,29 +437,25 @@ function handlePointerMove(e: React.PointerEvent) {
 **File:** `src/ui-react/rete/ReteGraphLayer.tsx`
 
 Add connection creation logic:
+
 ```typescript
 async function handleConnectionCompleted(portId: string, targetPosition: Position) {
   // Find source node and port
   const sourceNode = editor.getNode(getNodeIdForPort(portId));
   if (!sourceNode) return;
-  
+
   const sourcePort = sourceNode.outputs[portId];
   if (!sourcePort) return;
-  
+
   // Create virtual target node for breadboard hole
   // (Alternative: create invisible Rete nodes for all holes - revisit if needed)
   const targetNode = await createHoleNode(targetPosition);
-  
+
   // Create Rete connection
-  const connection = new ClassicPreset.Connection(
-    sourceNode,
-    portId,
-    targetNode,
-    'hole-input'
-  );
-  
+  const connection = new ClassicPreset.Connection(sourceNode, portId, targetNode, 'hole-input');
+
   await editor.addConnection(connection);
-  
+
   // Notify controller
   controller.dispatch({
     type: 'CONNECTION_CREATED',
@@ -443,6 +467,7 @@ async function handleConnectionCompleted(portId: string, targetPosition: Positio
 ```
 
 Subscribe to controller connection completion action:
+
 ```typescript
 useEffect(() => {
   const unsubscribe = controller.subscribe((state) => {
@@ -452,13 +477,14 @@ useEffect(() => {
       // (Implementation depends on how controller signals completion)
     }
   });
-  
+
   return unsubscribe;
 }, [controller]);
 ```
 
 **Alternative approach (if virtual nodes are problematic):**
 Render connections directly in SVG from controller state without Rete connection objects:
+
 ```typescript
 // In ComponentsLayer or new ConnectionsLayer component
 {state.connections.list.map(conn => (
@@ -483,6 +509,7 @@ Render connections directly in SVG from controller state without Rete connection
 **File:** `src/ui-react/components/ConnectionsLayer.tsx` (new file)
 
 Create dedicated layer for connection rendering:
+
 ```typescript
 interface ConnectionsLayerProps {
   controller: BreadboardController;
@@ -490,11 +517,11 @@ interface ConnectionsLayerProps {
 
 export function ConnectionsLayer({ controller }: ConnectionsLayerProps) {
   const [state, setState] = useState(controller.getState());
-  
+
   useEffect(() => {
     return controller.subscribe(setState);
   }, [controller]);
-  
+
   return (
     <g className="connections-layer">
       {state.connections.list.map(conn => (
@@ -516,7 +543,7 @@ interface ConnectionLineProps {
 function ConnectionLine({ connection, isSelected }: ConnectionLineProps) {
   const sourcePixels = positionToPixels(connection.sourcePosition);
   const targetPixels = positionToPixels(connection.targetPosition);
-  
+
   return (
     <line
       x1={sourcePixels.x}
@@ -535,6 +562,7 @@ function ConnectionLine({ connection, isSelected }: ConnectionLineProps) {
 **File:** `src/ui-react/BreadboardScene.tsx`
 
 Add ConnectionsLayer to scene (before ComponentsLayer for z-ordering):
+
 ```typescript
 <svg ref={svgRef} ...>
   <BreadboardSvg ... />
@@ -550,6 +578,7 @@ Add ConnectionsLayer to scene (before ComponentsLayer for z-ordering):
 **File:** `src/ui-controller/index.ts`
 
 Update `createInitialState()`:
+
 ```typescript
 export function createInitialState(): AppState {
   return {
@@ -571,6 +600,7 @@ export function createInitialState(): AppState {
 **File:** `src/ui-controller/__tests__/breadboard-controller.test.ts`
 
 Add test cases:
+
 ```typescript
 describe('Connection drag actions', () => {
   it('should start connection drag', () => {
@@ -581,28 +611,28 @@ describe('Connection drag actions', () => {
       legIndex: 0,
       position: { row: 5, column: 8 },
     });
-    
+
     const state = controller.getState();
     expect(state.connectionDrag.dragState).not.toBeNull();
     expect(state.connectionDrag.dragState?.sourceComponentId).toBe('comp-1');
   });
-  
+
   it('should update connection drag position', () => {
     // Start drag first
     controller.dispatch({ type: 'CONNECTION_DRAG_STARTED', ... });
-    
+
     controller.dispatch({
       type: 'CONNECTION_DRAG_MOVED',
       pointerPosition: { x: 100, y: 200 },
       hoveredHole: { row: 6, column: 9 },
       isValid: true,
     });
-    
+
     const state = controller.getState();
     expect(state.connectionDrag.dragState?.currentPointerPosition).toEqual({ x: 100, y: 200 });
     expect(state.connectionDrag.dragState?.isValidTarget).toBe(true);
   });
-  
+
   it('should complete connection drag and create connection', () => {
     controller.dispatch({ type: 'CONNECTION_DRAG_STARTED', ... });
     controller.dispatch({
@@ -610,20 +640,20 @@ describe('Connection drag actions', () => {
       portId: 'port-1',
       targetPosition: { row: 6, column: 9 },
     });
-    
+
     const state = controller.getState();
     expect(state.connectionDrag.dragState).toBeNull();
     // Connection creation handled separately
   });
-  
+
   it('should cancel connection drag', () => {
     controller.dispatch({ type: 'CONNECTION_DRAG_STARTED', ... });
     controller.dispatch({ type: 'CONNECTION_DRAG_CANCELLED' });
-    
+
     const state = controller.getState();
     expect(state.connectionDrag.dragState).toBeNull();
   });
-  
+
   it('should track occupied holes', () => {
     controller.dispatch({
       type: 'CONNECTION_CREATED',
@@ -631,11 +661,11 @@ describe('Connection drag actions', () => {
       portId: 'port-1',
       targetPosition: { row: 5, column: 8 },
     });
-    
+
     const state = controller.getState();
     expect(state.connections.occupiedHoles.get('5,8')).toBe('conn-1');
   });
-  
+
   it('should prevent connection to occupied hole', () => {
     controller.dispatch({
       type: 'CONNECTION_CREATED',
@@ -643,7 +673,7 @@ describe('Connection drag actions', () => {
       portId: 'port-1',
       targetPosition: { row: 5, column: 8 },
     });
-    
+
     controller.dispatch({ type: 'CONNECTION_DRAG_STARTED', ... });
     controller.dispatch({
       type: 'CONNECTION_DRAG_MOVED',
@@ -651,7 +681,7 @@ describe('Connection drag actions', () => {
       hoveredHole: { row: 5, column: 8 },
       isValid: false, // Should be false due to occupancy
     });
-    
+
     const state = controller.getState();
     expect(state.connectionDrag.dragState?.isValidTarget).toBe(false);
   });
@@ -665,6 +695,7 @@ describe('Connection drag actions', () => {
 #### AC1: Drag leg → hole creates connection
 
 **Verification steps:**
+
 1. Navigate to `http://localhost:5173/?react=true`
 2. Ensure test component exists on breadboard (from Milestone 3)
 3. Pointer-down on component leg (small circle at leg position)
@@ -677,6 +708,7 @@ describe('Connection drag actions', () => {
 10. **Expected:** Connection persists in state (visible on re-render)
 
 **Success criteria:**
+
 - ✅ Preview line renders during drag
 - ✅ Preview line follows pointer
 - ✅ Preview line snaps to hole when hovering valid target
@@ -687,6 +719,7 @@ describe('Connection drag actions', () => {
 #### AC2: One-connector-per-hole constraint enforced with clear feedback
 
 **Verification steps:**
+
 1. Create first connection to hole at row 5, column 8 (from AC1)
 2. Start drag from different component leg
 3. Hover over same hole (row 5, column 8)
@@ -695,6 +728,7 @@ describe('Connection drag actions', () => {
 6. **Expected:** Connection is NOT created, preview disappears, no error thrown
 
 **Verification steps (multiple connections from same leg):**
+
 1. Create connection from leg 1 of resistor to hole A
 2. Start drag from same leg 1 of same resistor
 3. **Expected:** Preview shows from leg 1 (not restricted)
@@ -705,6 +739,7 @@ describe('Connection drag actions', () => {
    (One-connector-per-hole means each HOLE has max one connection, not each LEG)
 
 **Success criteria:**
+
 - ✅ Occupied holes reject new connections
 - ✅ Red highlight shown for occupied holes during drag
 - ✅ Preview line shows red color for invalid target
@@ -715,18 +750,21 @@ describe('Connection drag actions', () => {
 ### Additional Verification
 
 **Visual regression:**
+
 - Connection lines render with correct endpoints
 - Preview line renders smoothly during drag
 - Highlight colors correct (green for valid, red for invalid, blue for default hover)
 - Z-ordering correct (connections behind components)
 
 **Interaction edge cases:**
+
 - Drag off breadboard and release → connection cancelled
 - Press Escape during drag → connection cancelled
 - Drag to invalid position (outside grid) → preview shows red, connection cancelled on release
 - Fast drag movements → preview updates smoothly without lag
 
 **Performance:**
+
 - No frame drops during connection drag preview
 - Multiple connections (10+) render without performance issues
 - Coordinate transformations performant (same pattern as Milestone 3 component drag)
@@ -734,11 +772,13 @@ describe('Connection drag actions', () => {
 ### Notes on Implementation Strategy
 
 **Refactor safety rules (from task instructions):**
+
 1. ✅ **Move code verbatim first:** Existing `ReteManager` connection logic can be referenced but not directly moved (React UI is different architecture)
 2. ✅ **Update imports/call sites:** Controller actions replace imperative ReteManager calls
 3. ✅ **Targeted improvements only:** Focus on Phase 3 workflow parity, not enhancements
 
 **Coordinate transformation consistency:**
+
 - Reuse `positionToPixels()` and `pixelsToPosition()` from Milestone 2
 - Reuse SVG coordinate transform pattern from Milestone 3
 - Maintain 26px hole spacing constant
@@ -746,18 +786,21 @@ describe('Connection drag actions', () => {
 
 **State machine approach (lines 242-270):**
 Controller `connectionDrag.dragState` implements explicit state:
+
 - `null` = idle (no drag active)
 - `ConnectionDragState` = dragging connection
-Entry condition: Pointer-down on leg
-Exit condition: Pointer-up (commit or cancel) or Escape key
+  Entry condition: Pointer-down on leg
+  Exit condition: Pointer-up (commit or cancel) or Escape key
 
 **Rete integration strategy:**
+
 - **Recommended:** Start with pure SVG connection rendering (skip Rete connection objects initially)
 - **Rationale:** Review guidance (lines 212-217) suggests rendering from state if Rete visuals don't match breadboard style
 - **Future enhancement:** Migrate to Rete ConnectionPlugin rendering once SVG version proven
 - **Benefit:** Simpler initial implementation, fewer coordinate mapping issues
 
 **Testing strategy:**
+
 - Unit tests for controller actions (DOM-free)
 - Manual verification of UI interactions (no automated Playwright tests yet per existing pattern)
 - Visual inspection of coordinate alignment
@@ -766,12 +809,14 @@ Exit condition: Pointer-up (commit or cancel) or Escape key
 ### Dependencies
 
 **External packages (already installed):**
+
 - `rete@^2.0.6` (Rete core)
 - `rete-area-plugin@^2.0.4` (pan/zoom)
 - `rete-connection-plugin@^2.0.3` (connection management)
 - `rete-react-plugin@^2.1.0` (React renderer, added in Milestone 4)
 
 **Internal modules:**
+
 - `src/ui-controller/*` (state management)
 - `src/ui-react/geometry/breadboard-layout.ts` (coordinate helpers)
 - `src/ui-react/components/ComponentsLayer.tsx` (interaction layer)
@@ -792,6 +837,7 @@ Exit condition: Pointer-up (commit or cancel) or Escape key
 ### Definition of Done
 
 This milestone is complete when:
+
 - [ ] Controller has connection drag state and actions
 - [ ] Controller tracks hole occupancy (one-connector-per-hole)
 - [ ] Component legs are clickable/draggable to initiate connection
@@ -810,6 +856,7 @@ This milestone is complete when:
 ### Post-Completion
 
 After this milestone:
+
 - **Milestone 6** can implement overlays (voltage, current, errors)
 - **Milestone 7** can remove PixiJS (all core interactions implemented in React)
 - Future enhancement: Connection deletion interaction

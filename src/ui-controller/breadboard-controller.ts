@@ -13,7 +13,7 @@ function getDefaultConnectionAppearance() {
 
 export class BreadboardController {
   private state: AppState;
-  private listeners: Set<(state: AppState) => void>;
+  private readonly listeners: Set<(state: AppState) => void>;
 
   constructor(initialState: AppState) {
     this.state = initialState;
@@ -38,6 +38,42 @@ export class BreadboardController {
   }
 
   private reduce(state: AppState, action: Action): AppState {
+    if (action.type === 'STATE_REPLACED') {
+      return action.state;
+    }
+
+    if (action.type.startsWith('COMPONENT_') || action.type === 'PIN_SELECTED') {
+      return this.reduceComponentActions(state, action);
+    }
+
+    if (action.type.startsWith('CONNECTION_')) {
+      return this.reduceConnectionActions(state, action);
+    }
+
+    if (action.type.startsWith('DRAG_') || action.type.startsWith('PIN_DRAG_')) {
+      return this.reduceDragActions(state, action);
+    }
+
+    if (action.type.startsWith('FLOATING_')) {
+      return this.reduceFloatingComponentActions(state, action);
+    }
+
+    if (action.type.startsWith('PLACEMENT_')) {
+      return this.reducePlacementActions(state, action);
+    }
+
+    if (action.type.startsWith('SIMULATION_')) {
+      return this.reduceSimulationActions(state, action);
+    }
+
+    if (action.type.startsWith('CIRCUIT_')) {
+      return this.reduceCircuitActions(state, action);
+    }
+
+    return this.reduceUiActions(state, action);
+  }
+
+  private reduceComponentActions(state: AppState, action: Action): AppState {
     switch (action.type) {
       case 'COMPONENT_ADDED':
         return {
@@ -120,7 +156,7 @@ export class BreadboardController {
           },
         };
 
-      case 'COMPONENT_PROPERTY_CHANGED': {
+      case 'COMPONENT_PROPERTY_CHANGED':
         return {
           ...state,
           breadboard: {
@@ -134,7 +170,6 @@ export class BreadboardController {
             hasUnsavedChanges: true,
           },
         };
-      }
 
       case 'PIN_SELECTED':
         return {
@@ -146,6 +181,42 @@ export class BreadboardController {
           },
         };
 
+      case 'COMPONENT_ID_COUNTER_SET':
+        return {
+          ...state,
+          counters: {
+            ...state.counters,
+            componentIdCounter: action.counter,
+          },
+        };
+
+      default:
+        return state;
+    }
+  }
+
+  private reduceConnectionActions(state: AppState, action: Action): AppState {
+    if (action.type === 'CONNECTION_SELECTED' || action.type === 'CONNECTION_APPEARANCE_UPDATED') {
+      return this.reduceConnectionSelectionActions(state, action);
+    }
+
+    if (action.type.startsWith('CONNECTION_REROUTE_')) {
+      return this.reduceConnectionRerouteActions(state, action);
+    }
+
+    if (action.type.startsWith('CONNECTION_DRAG_')) {
+      return this.reduceConnectionDragActions(state, action);
+    }
+
+    if (action.type === 'CONNECTION_DELETED') {
+      return this.reduceConnectionDeleteAction(state, action);
+    }
+
+    return state;
+  }
+
+  private reduceConnectionSelectionActions(state: AppState, action: Action): AppState {
+    switch (action.type) {
       case 'CONNECTION_SELECTED':
         return {
           ...state,
@@ -167,8 +238,8 @@ export class BreadboardController {
         };
 
       case 'CONNECTION_APPEARANCE_UPDATED': {
-        const existing = state.connections.appearanceById[action.connectionId] ??
-          getDefaultConnectionAppearance();
+        const existing =
+          state.connections.appearanceById[action.connectionId] ?? getDefaultConnectionAppearance();
 
         return {
           ...state,
@@ -193,19 +264,25 @@ export class BreadboardController {
         };
       }
 
+      default:
+        return state;
+    }
+  }
+
+  private reduceConnectionRerouteActions(state: AppState, action: Action): AppState {
+    switch (action.type) {
       case 'CONNECTION_REROUTE_STARTED':
         return {
           ...state,
           connections: {
             ...state.connections,
             selectedConnectionId: action.connectionId,
-            appearanceById:
-              !state.connections.appearanceById[action.connectionId]
-                ? {
-                    ...state.connections.appearanceById,
-                    [action.connectionId]: getDefaultConnectionAppearance(),
-                  }
-                : state.connections.appearanceById,
+            appearanceById: !state.connections.appearanceById[action.connectionId]
+              ? {
+                  ...state.connections.appearanceById,
+                  [action.connectionId]: getDefaultConnectionAppearance(),
+                }
+              : state.connections.appearanceById,
             rerouteDragState: {
               type: 'connection-reroute',
               connectionId: action.connectionId,
@@ -240,6 +317,13 @@ export class BreadboardController {
           },
         };
 
+      default:
+        return state;
+    }
+  }
+
+  private reduceConnectionDragActions(state: AppState, action: Action): AppState {
+    switch (action.type) {
       case 'CONNECTION_DRAG_STARTED':
         return {
           ...state,
@@ -271,12 +355,11 @@ export class BreadboardController {
 
       case 'CONNECTION_DRAG_COMPLETED': {
         if (!state.connectionDrag.dragState) return state;
-        
-        // Create new connection
+
         const connectionId = `conn-${Date.now()}`;
         const dragState = state.connectionDrag.dragState;
         const holeKey = `${action.targetPosition.row},${action.targetPosition.col}`;
-        
+
         const newConnection = {
           id: connectionId,
           sourceComponentId: dragState.sourceComponentId,
@@ -284,10 +367,10 @@ export class BreadboardController {
           sourcePosition: dragState.sourcePosition,
           targetPosition: action.targetPosition,
         };
-        
+
         const newOccupiedHoles = new Map(state.connections.occupiedHoles);
         newOccupiedHoles.set(holeKey, connectionId);
-        
+
         return {
           ...state,
           connections: {
@@ -313,47 +396,58 @@ export class BreadboardController {
           },
         };
 
-      case 'CONNECTION_DELETED': {
-        const connection = state.connections.list.find((c) => c.id === action.connectionId) ?? null;
+      default:
+        return state;
+    }
+  }
 
-        const nextNonce = state.connections.reteCommandNonce + 1;
+  private reduceConnectionDeleteAction(state: AppState, action: Action): AppState {
+    if (action.type !== 'CONNECTION_DELETED') {
+      return state;
+    }
 
-        // Legacy occupied-holes bookkeeping (only if this connection exists in the legacy list)
-        const newOccupiedHoles = new Map(state.connections.occupiedHoles);
-        if (connection) {
-          const holeKey = `${connection.targetPosition.row},${connection.targetPosition.col}`;
-          newOccupiedHoles.delete(holeKey);
-        }
+    const connection = state.connections.list.find((c) => c.id === action.connectionId) ?? null;
+    const nextNonce = state.connections.reteCommandNonce + 1;
 
-        return {
-          ...state,
-          connections: {
-            ...state.connections,
-            list: connection
-              ? state.connections.list.filter((c) => c.id !== action.connectionId)
-              : state.connections.list,
-            occupiedHoles: newOccupiedHoles,
-            appearanceById: Object.fromEntries(
-              Object.entries(state.connections.appearanceById).filter(([id]) => id !== action.connectionId)
-            ),
-            selectedConnectionId:
-              state.connections.selectedConnectionId === action.connectionId
-                ? null
-                : state.connections.selectedConnectionId,
-            reteCommand: {
-              type: 'delete-connection',
-              connectionId: action.connectionId,
-              nonce: nextNonce,
-            },
-            reteCommandNonce: nextNonce,
-          },
-          circuit: {
-            ...state.circuit,
-            hasUnsavedChanges: true,
-          },
-        };
-      }
+    const newOccupiedHoles = new Map(state.connections.occupiedHoles);
+    if (connection) {
+      const holeKey = `${connection.targetPosition.row},${connection.targetPosition.col}`;
+      newOccupiedHoles.delete(holeKey);
+    }
 
+    return {
+      ...state,
+      connections: {
+        ...state.connections,
+        list: connection
+          ? state.connections.list.filter((c) => c.id !== action.connectionId)
+          : state.connections.list,
+        occupiedHoles: newOccupiedHoles,
+        appearanceById: Object.fromEntries(
+          Object.entries(state.connections.appearanceById).filter(
+            ([id]) => id !== action.connectionId
+          )
+        ),
+        selectedConnectionId:
+          state.connections.selectedConnectionId === action.connectionId
+            ? null
+            : state.connections.selectedConnectionId,
+        reteCommand: {
+          type: 'delete-connection',
+          connectionId: action.connectionId,
+          nonce: nextNonce,
+        },
+        reteCommandNonce: nextNonce,
+      },
+      circuit: {
+        ...state.circuit,
+        hasUnsavedChanges: true,
+      },
+    };
+  }
+
+  private reduceDragActions(state: AppState, action: Action): AppState {
+    switch (action.type) {
       case 'DRAG_STARTED':
         return {
           ...state,
@@ -435,6 +529,13 @@ export class BreadboardController {
           },
         };
 
+      default:
+        return state;
+    }
+  }
+
+  private reduceFloatingComponentActions(state: AppState, action: Action): AppState {
+    switch (action.type) {
       case 'FLOATING_COMPONENT_CREATED':
         return {
           ...state,
@@ -475,22 +576,21 @@ export class BreadboardController {
           },
         };
 
-      case 'FLOATING_COMPONENT_LEG_CONNECTED':
-        {
-          if (!state.floatingComponent.component) return state;
-          const updatedConnectedLegs = new Map(state.floatingComponent.component.connectedLegs);
-          updatedConnectedLegs.set(action.legIndex, action.holePosition);
-          return {
-            ...state,
-            floatingComponent: {
-              ...state.floatingComponent,
-              component: {
-                ...state.floatingComponent.component,
-                connectedLegs: updatedConnectedLegs,
-              },
+      case 'FLOATING_COMPONENT_LEG_CONNECTED': {
+        if (!state.floatingComponent.component) return state;
+        const updatedConnectedLegs = new Map(state.floatingComponent.component.connectedLegs);
+        updatedConnectedLegs.set(action.legIndex, action.holePosition);
+        return {
+          ...state,
+          floatingComponent: {
+            ...state.floatingComponent,
+            component: {
+              ...state.floatingComponent.component,
+              connectedLegs: updatedConnectedLegs,
             },
-          };
-        }
+          },
+        };
+      }
 
       case 'FLOATING_COMPONENT_PLACED':
       case 'FLOATING_COMPONENT_CANCELLED':
@@ -539,6 +639,13 @@ export class BreadboardController {
           },
         };
 
+      default:
+        return state;
+    }
+  }
+
+  private reducePlacementActions(state: AppState, action: Action): AppState {
+    switch (action.type) {
       case 'PLACEMENT_TYPE_SELECTED':
         return {
           ...state,
@@ -578,6 +685,13 @@ export class BreadboardController {
           },
         };
 
+      default:
+        return state;
+    }
+  }
+
+  private reduceSimulationActions(state: AppState, action: Action): AppState {
+    switch (action.type) {
       case 'SIMULATION_COMPLETED':
         return {
           ...state,
@@ -596,6 +710,13 @@ export class BreadboardController {
           },
         };
 
+      default:
+        return state;
+    }
+  }
+
+  private reduceUiActions(state: AppState, action: Action): AppState {
+    switch (action.type) {
       case 'XRAY_MODE_TOGGLED':
         return {
           ...state,
@@ -632,17 +753,16 @@ export class BreadboardController {
           },
         };
 
-      case 'BREADBOARD_ROTATED':
-        {
-          const nextRotation = ((state.ui.breadboardOrientation + 90) % 360) as 0 | 90 | 180 | 270;
-          return {
-            ...state,
-            ui: {
-              ...state.ui,
-              breadboardOrientation: nextRotation,
-            },
-          };
-        }
+      case 'BREADBOARD_ROTATED': {
+        const nextRotation = ((state.ui.breadboardOrientation + 90) % 360) as 0 | 90 | 180 | 270;
+        return {
+          ...state,
+          ui: {
+            ...state.ui,
+            breadboardOrientation: nextRotation,
+          },
+        };
+      }
 
       case 'THEME_TOGGLED':
         return {
@@ -662,6 +782,13 @@ export class BreadboardController {
           },
         };
 
+      default:
+        return state;
+    }
+  }
+
+  private reduceCircuitActions(state: AppState, action: Action): AppState {
+    switch (action.type) {
       case 'CIRCUIT_LOADED':
         return {
           ...state,
@@ -717,18 +844,6 @@ export class BreadboardController {
             hasUnsavedChanges: true,
           },
         };
-
-      case 'COMPONENT_ID_COUNTER_SET':
-        return {
-          ...state,
-          counters: {
-            ...state.counters,
-            componentIdCounter: action.counter,
-          },
-        };
-
-      case 'STATE_REPLACED':
-        return action.state;
 
       default:
         return state;

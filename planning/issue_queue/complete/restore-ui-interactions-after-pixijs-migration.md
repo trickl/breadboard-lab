@@ -21,7 +21,8 @@ PR #167 migrated rendering from SVG to PixiJS Canvas-based WebGL rendering. This
 
 **Goal state**: All UI interactions working with comprehensive test coverage protecting against regressions.
 
-**Current state**: 
+**Current state**:
+
 - Rendering works visually but lacks interactive features
 - Test suite has 12% failure rate
 - New renderer code has 0% test coverage
@@ -69,6 +70,7 @@ PR #167 migrated rendering from SVG to PixiJS Canvas-based WebGL rendering. This
    - Test layer container setup
 
 **Success Criteria**:
+
 - All 260 tests passing (100% pass rate)
 - Component drag-and-drop working in live application
 - Voltage tooltips appearing on hover in live application
@@ -78,6 +80,7 @@ PR #167 migrated rendering from SVG to PixiJS Canvas-based WebGL rendering. This
 **Priority**: HIGH - This task restores critical user-facing functionality and fixes a broken test suite.
 
 **Estimated Effort**: 2-3 days
+
 - 1 day: Fix test infrastructure (update 25 tests to work with Canvas)
 - 1 day: Restore drag-and-drop and voltage tooltips
 - 0.5 days: Regenerate visual baselines and verify

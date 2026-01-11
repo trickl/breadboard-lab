@@ -14,6 +14,7 @@ The breadboard rotation feature (PR #303) applied CSS `transform: rotate()` to t
 ### Impact
 
 All mouse interactions were broken at non-zero rotations:
+
 - ❌ Clicking holes selected wrong locations
 - ❌ Dragging components moved them to incorrect positions
 - ❌ Wire routing connected to wrong holes
@@ -138,8 +139,9 @@ const { x: mouseX, y: mouseY } = this.transformMouseCoordinates(
 ### TypeScript Compilation
 
 ✅ No TypeScript errors in modified files
+
 ```bash
-npx tsc --noEmit 2>&1 | grep "breadboard-app.ts.*2[0-9]{3}" 
+npx tsc --noEmit 2>&1 | grep "breadboard-app.ts.*2[0-9]{3}"
 # Result: No errors in our new code
 ```
 
@@ -148,6 +150,7 @@ npx tsc --noEmit 2>&1 | grep "breadboard-app.ts.*2[0-9]{3}"
 ✅ Transformation logic verified with standalone JavaScript test
 
 Key test: Center point `(centerX, centerY)` maps to itself at all rotations
+
 - 0°: ✅ (400, 300) → (400, 300)
 - 90°: ✅ (400, 300) → (400, 300)
 - 180°: ✅ (400, 300) → (400, 300)
@@ -156,6 +159,7 @@ Key test: Center point `(centerX, centerY)` maps to itself at all rotations
 ### Code Review
 
 ✅ All handlers that receive mouse coordinates updated:
+
 - Searched for: `clientX`, `clientY`, `globalX`, `globalY`
 - Result: All 7 handlers identified and updated
 
@@ -166,6 +170,7 @@ Key test: Center point `(centerX, centerY)` maps to itself at all rotations
 See `MOUSE_COORDINATE_TRANSFORMATION_TESTING.md` for comprehensive testing checklist.
 
 **Key scenarios to test at each orientation** (0°, 90°, 180°, 270°):
+
 - Hole selection and highlighting
 - Component placement from Quick Select
 - Component dragging
@@ -286,18 +291,21 @@ The mathematical approach (inverse rotation matrix) is well-established in compu
 ### A. Inverse Rotation Matrix Derivation
 
 For a 2D rotation by angle θ:
+
 ```
 R(θ) = [cos(θ)  -sin(θ)]
        [sin(θ)   cos(θ)]
 ```
 
 Inverse rotation by -θ:
+
 ```
 R(-θ) = [cos(θ)   sin(θ)]
         [-sin(θ)  cos(θ)]
 ```
 
 For standard angles:
+
 - 90°: cos(90°)=0, sin(90°)=1 → `(x,y) → (y,-x)`
 - 180°: cos(180°)=-1, sin(180°)=0 → `(x,y) → (-x,-y)`
 - 270°: cos(270°)=0, sin(270°)=-1 → `(x,y) → (-y,x)`

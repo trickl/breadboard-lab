@@ -47,7 +47,11 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = React.memo(
       >
         <ComponentHitArea component={component} />
         <ComponentBody component={component} />
-        <HoverOrSelectionOutline component={component} isHovered={!!isHovered} isSelected={isSelected} />
+        <HoverOrSelectionOutline
+          component={component}
+          isHovered={!!isHovered}
+          isSelected={isSelected}
+        />
         {isSelected && <RotationHandle component={component} />}
       </g>
     );
@@ -301,8 +305,22 @@ const GroundBody: React.FC<{ component: AnyComponent }> = ({ component }) => {
     <>
       {/* Ground symbol - three decreasing horizontal lines */}
       <line x1={pos.x - 15} y1={pos.y} x2={pos.x + 15} y2={pos.y} stroke="#000" strokeWidth="3" />
-      <line x1={pos.x - 10} y1={pos.y + 6} x2={pos.x + 10} y2={pos.y + 6} stroke="#000" strokeWidth="3" />
-      <line x1={pos.x - 5} y1={pos.y + 12} x2={pos.x + 5} y2={pos.y + 12} stroke="#000" strokeWidth="3" />
+      <line
+        x1={pos.x - 10}
+        y1={pos.y + 6}
+        x2={pos.x + 10}
+        y2={pos.y + 6}
+        stroke="#000"
+        strokeWidth="3"
+      />
+      <line
+        x1={pos.x - 5}
+        y1={pos.y + 12}
+        x2={pos.x + 5}
+        y2={pos.y + 12}
+        stroke="#000"
+        strokeWidth="3"
+      />
 
       {/* Pin */}
       <circle cx={pos.x} cy={pos.y} r="4" fill="#888" />
@@ -374,7 +392,14 @@ const SwitchBody: React.FC<{ component: AnyComponent }> = ({ component }) => {
       />
 
       {/* Leads */}
-      <line x1={start.x} y1={start.y} x2={centerX - 15} y2={centerY} stroke="#888" strokeWidth="2" />
+      <line
+        x1={start.x}
+        y1={start.y}
+        x2={centerX - 15}
+        y2={centerY}
+        stroke="#888"
+        strokeWidth="2"
+      />
       <line x1={centerX + 15} y1={centerY} x2={end.x} y2={end.y} stroke="#888" strokeWidth="2" />
 
       {/* Pins */}
@@ -549,7 +574,9 @@ function getComponentCenter(positions: Position[]): Position {
   return { row: avgRow, col: avgCol };
 }
 
-function getComponentBoundsPixels(positions: Position[]): { cx: number; cy: number; r: number } | null {
+function getComponentBoundsPixels(
+  positions: Position[]
+): { cx: number; cy: number; r: number } | null {
   if (!positions.length) return null;
 
   const pixels = positions.map(positionToPixels);

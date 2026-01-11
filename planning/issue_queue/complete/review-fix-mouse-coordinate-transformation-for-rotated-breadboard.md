@@ -1,6 +1,7 @@
 Fix mouse coordinate transformation for rotated breadboard interactions
 
 ## Source Review
+
 `planning/reviews/review-2026-01-08.md` - Section 6 follow-up requirement
 
 ## Review Items Addressed
@@ -12,12 +13,12 @@ This task addresses the **critical limitation** explicitly documented in PR #303
 PR #303 successfully implemented breadboard orientation controls (0°/90°/180°/270° rotation) and component rotation handles. However, it documented a **HIGH PRIORITY** limitation:
 
 > **Mouse Coordinate Transformations Not Implemented ⚠️**
-> 
+>
 > - Breadboard rotation applies CSS transform to canvas container
 > - Mouse event coordinates are in rotated canvas space
 > - App logic expects coordinates in logical breadboard space (0° orientation)
 > - No transformation currently implemented
-> 
+>
 > **Impact:** Interactions at non-zero breadboard angles do not work correctly. Clicking holes, dragging components, routing wires will have incorrect positions.
 
 This limitation makes the rotation feature **unusable in practice**. Users can rotate the breadboard, but cannot interact with it at non-zero angles.
@@ -36,22 +37,26 @@ This is the **most urgent** unaddressed item from the review because:
 From `review-2026-01-08.actions.md` (lines 859-881):
 
 **Issue:**
+
 - Breadboard rotation applies CSS transform to canvas container
-- Mouse event coordinates are in rotated canvas space  
+- Mouse event coordinates are in rotated canvas space
 - App logic expects coordinates in logical breadboard space (0° orientation)
 - No transformation currently implemented
 
 **Impact:**
+
 - Interactions at non-zero breadboard angles do not work correctly
 - Clicking holes, dragging components, routing wires have incorrect positions
 - Offset/rotation depends on angle (90°/180°/270° each need different transforms)
 
 **Example:**
+
 - At 90° rotation: mouse (100, 200) in rotated space needs to map to logical coordinates
 - Requires inverse rotation matrix: `[x', y'] = rotate([x, y], -90°)`
 - Must also account for canvas dimensions and center point
 
 **Required Fix:**
+
 - Add `transformMouseCoordinates(mouseX, mouseY, orientation)` method
 - Apply inverse rotation to all mouse event handlers
 - Transform before hit detection, snapping, and position calculations
@@ -61,6 +66,7 @@ From `review-2026-01-08.actions.md` (lines 859-881):
 ## Detailed Implementation Instructions
 
 ### Goal
+
 Enable all mouse interactions to work correctly when the breadboard is rotated to 90°, 180°, or 270°.
 
 ### Technical Approach
@@ -102,11 +108,11 @@ Create a method `transformMouseCoordinates(mouseX: number, mouseY: number, orien
 ```typescript
 /**
  * Transform mouse coordinates from rotated canvas space to logical breadboard space.
- * 
+ *
  * The breadboard can be rotated via CSS transform, which changes the coordinate space
  * of mouse events. This method applies the inverse rotation to map canvas coordinates
  * back to logical breadboard coordinates.
- * 
+ *
  * @param mouseX - Mouse X coordinate in canvas space (after CSS rotation)
  * @param mouseY - Mouse Y coordinate in canvas space (after CSS rotation)
  * @param orientation - Current breadboard rotation angle (0, 90, 180, or 270 degrees)
@@ -237,7 +243,7 @@ handleSomeMouseEvent(e: MouseEvent) {
 Ensure that no other code assumes untransformed coordinates. Check:
 
 - ✅ `snapToGrid()` - receives pixels, returns grid positions (no changes needed)
-- ✅ `pixelsToPosition()` - receives pixels, returns grid positions (no changes needed)  
+- ✅ `pixelsToPosition()` - receives pixels, returns grid positions (no changes needed)
 - ✅ `positionToPixels()` - receives grid positions, returns pixels (no changes needed)
 - ✅ Hit detection in PixiRenderer - operates on logical coordinates (no changes needed)
 
@@ -285,6 +291,7 @@ All coordinate conversion methods already work in logical space, so they don't n
 **Test Circuit Recommendation**:
 
 Load or create a simple circuit:
+
 - 2-3 components (resistor, LED)
 - 2-3 wires with bend points
 - Test at 0° (baseline), then rotate and verify same interactions work at 90°, 180°, 270°

@@ -1,4 +1,5 @@
-# Breadboard Educational Tool  
+# Breadboard Educational Tool
+
 ## Next Iteration Specification (Rete.js Migration)
 
 ---
@@ -13,9 +14,9 @@ The primary goals are:
 2. Model **physical breadboard interaction realistically**, while enabling **capabilities impossible in physical hardware** (e.g. animated current flow, hidden connectivity, live voltage/current inspection).
 3. Improve **first-time user experience** so the tool is immediately understandable and usable.
 4. Establish a clean separation between:
-   - *Physical placement*
-   - *Electrical behaviour*
-   - *Logical circuit representation*
+   - _Physical placement_
+   - _Electrical behaviour_
+   - _Logical circuit representation_
 
 This iteration prioritises **correct interaction primitives and mental models**, not breadth of components.
 
@@ -197,6 +198,7 @@ Wire rendering should:
   - Dragging rotates the component
 
 Rotation affects:
+
 - Visual orientation
 - Connector positions
 - Snapping geometry
@@ -210,6 +212,7 @@ Rotation affects:
   - Keyboard delete/backspace
 
 Deletion must remove:
+
 - Associated connectors
 - Associated wires
 - Electrical graph references
@@ -251,6 +254,7 @@ When enabled:
 - Flow direction and speed reflect current magnitude
 
 This applies to:
+
 - Wires
 - Component legs
 - Internal breadboard connections
@@ -281,7 +285,7 @@ This explicitly supports multimeter-style learning.
 
 X-Ray Mode reveals the **hidden internal wiring of the breadboard**.
 
-This explains *why* certain holes are electrically connected.
+This explains _why_ certain holes are electrically connected.
 
 ---
 
@@ -294,6 +298,7 @@ When enabled:
 - Overlaid wiring is clearly distinguishable from user-added wires
 
 X-Ray Mode is informational only:
+
 - It does not alter connectivity
 - It does not affect simulation state
 
@@ -306,6 +311,7 @@ X-Ray Mode is informational only:
 LEDs are not binary indicators.
 
 They must:
+
 - Respond to voltage and current levels
 - Respect polarity and forward voltage
 - Display proportional brightness
@@ -361,6 +367,7 @@ On first load, users must see:
 - At least one interactive element (e.g. switch + LED)
 
 This immediately communicates:
+
 - Purpose
 - Interaction model
 - Educational value
@@ -384,6 +391,7 @@ The Logical View presents a **canonical, abstracted circuit diagram**, independe
 - Maintains a one-to-one mapping with circuit topology
 
 This view supports:
+
 - Conceptual understanding
 - Debugging
 - Teaching abstraction

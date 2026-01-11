@@ -1,5 +1,10 @@
 import type { Position } from '@/core/types';
-import { getBreadboardDimensions, positionToPixels, LABEL_PADDING_X, LABEL_PADDING_Y } from '@/ui-react/geometry/breadboard-layout';
+import {
+  getBreadboardDimensions,
+  positionToPixels,
+  LABEL_PADDING_X,
+  LABEL_PADDING_Y,
+} from '@/ui-react/geometry/breadboard-layout';
 
 export type BoardRotation = 0 | 90 | 180 | 270;
 

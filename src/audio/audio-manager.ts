@@ -13,7 +13,7 @@ interface SpeakerNode {
 export class AudioManager {
   private audioContext: AudioContext | null = null;
   private masterGain: GainNode | null = null;
-  private speakers: Map<string, SpeakerNode> = new Map();
+  private readonly speakers: Map<string, SpeakerNode> = new Map();
   private enabled: boolean = false;
   private volume: number = 0.5; // 0.0 to 1.0
   private static readonly MIN_FREQUENCY = 200; // Hz

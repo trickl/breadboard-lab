@@ -8,35 +8,32 @@ export default defineConfig({
   // Include all Playwright specs (UI + visual regression) under tests/
   // This allows `tests/clock-control-ui.spec.ts` to run in CI and locally.
   testDir: './tests',
-  
+
   /* Run tests in files in parallel */
   fullyParallel: true,
-  
+
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
-  
+
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  
+
   /* Opt out of parallel tests on CI */
   workers: process.env.CI ? 1 : undefined,
-  
+
   /* Reporter to use */
   // Use a console reporter for readable logs, and generate an HTML report without auto-opening.
   // This keeps `playwright test` (and `npm run test:visual`) from hanging by serving the report.
-  reporter: [
-    ['list'],
-    ['html', { open: 'never', outputFolder: 'playwright-report' }],
-  ],
-  
+  reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
+
   /* Shared settings for all the projects below */
   use: {
     /* Base URL to use in actions like `await page.goto('/')` */
     baseURL: 'http://localhost:4173',
-    
+
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
-    
+
     /* Screenshot only on failure */
     screenshot: 'only-on-failure',
   },

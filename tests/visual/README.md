@@ -66,6 +66,7 @@ npm run test:visual:update
 ### Baseline Screenshots
 
 Baseline screenshots are stored in:
+
 ```
 tests/visual/examples.spec.ts-snapshots/
 ```
@@ -131,10 +132,10 @@ npx playwright test examples.spec.ts:12 --update-snapshots
 test('LED and Resistor example renders correctly', async ({ page }) => {
   // Load the example circuit
   await loadExample(page, 'led-resistor');
-  
+
   // Get the breadboard container
   const breadboard = getBreadboardContainer(page);
-  
+
   // Compare against baseline
   await expect(breadboard).toHaveScreenshot('led-resistor.png', {
     maxDiffPixels: 100,

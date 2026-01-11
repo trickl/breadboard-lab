@@ -9,12 +9,14 @@ Breadboard Lab is a web-based electronics simulator built with clean architectur
 **Current Implementation:** TypeScript + React + Rete.js
 
 The application uses **React with SVG rendering** for the UI, providing:
+
 - DOM-based rendering that's inspectable and testable
 - Declarative component model for maintainable UI code
 - SVG for precise, scalable vector graphics
 - Excellent TypeScript support and ecosystem
 
 **Core Technologies:**
+
 - **Language:** TypeScript 5.3+ (strict mode)
 - **Build Tool:** Vite 7.3+ (fast dev server, optimized production builds)
 - **UI Framework:** React 19.2+ with SVG rendering
@@ -62,11 +64,13 @@ breadboard-lab/
 The core layer contains all domain logic and is completely independent of the UI. It can be tested in isolation.
 
 **types.ts**
+
 - Defines all domain types: `Component`, `Circuit`, `Position`, etc.
 - Uses TypeScript discriminated unions for type safety
 - No dependencies on UI or external libraries
 
 **breadboard-layout.ts**
+
 - Models the physical breadboard structure
 - 30 rows × 14 columns (4 power rail columns + 10 terminal strip columns)
 - **Power rails**: 4 vertical rails (left negative, left positive, right positive, right negative)
@@ -81,6 +85,7 @@ The core layer contains all domain logic and is completely independent of the UI
 - No state, fully deterministic
 
 **circuit-extractor.ts**
+
 - Converts breadboard state to circuit graph
 - Uses union-find algorithm for connected components
 - Identifies electrical nodes from physical positions
@@ -88,6 +93,7 @@ The core layer contains all domain logic and is completely independent of the UI
 - Complexity: O(n log n) where n is number of positions
 
 **circuit-simulator.ts**
+
 - Simulates circuit voltages and currents using Modified Nodal Analysis (MNA)
 - Handles parallel circuits, voltage dividers, and multiple current paths
 - Identifies ground and voltage source nodes
@@ -96,6 +102,7 @@ The core layer contains all domain logic and is completely independent of the UI
 - Detects circuit errors (short circuits, floating nodes, reversed LEDs, etc.)
 
 **digital-signals.ts**
+
 - Abstracts digital logic levels from analog voltages
 - Uses TTL-compatible thresholds (0.8V low, 2.0V high)
 - Provides bidirectional conversion: analog ↔ digital
@@ -103,18 +110,21 @@ The core layer contains all domain logic and is completely independent of the UI
 - Helper functions for nibble (4-bit) conversions
 
 **edge-detector.ts**
+
 - Detects rising and falling edges on digital signals
 - Tracks previous signal state for edge detection
 - Only detects edges between defined values (0 or 1)
 - Stateful detector that updates with each detection
 
 **digital-event-queue.ts**
+
 - Priority queue for timestamped digital events
 - Supports clock edge events and digital state change events
 - Events ordered by timestamp for deterministic simulation
 - Component-specific event filtering and removal
 
 **digital-simulator.ts**
+
 - Orchestrates event-driven digital simulation
 - Bridges analog voltages to digital signals using TTL thresholds
 - Detects clock edges and dispatches to digital components
@@ -122,6 +132,7 @@ The core layer contains all domain logic and is completely independent of the UI
 - Currently supports EDU-8 microprocessor component
 
 **mixed-signal-simulator.ts**
+
 - Combines analog DC simulation with digital event-driven simulation
 - Coordinates CircuitSimulator and DigitalSimulator
 - Simulation loop: DC analysis → voltage abstraction → digital execution → output conversion
@@ -129,6 +140,7 @@ The core layer contains all domain logic and is completely independent of the UI
 - Maintains digital state across simulation steps
 
 **edu8-simulator.ts**
+
 - Educational 8-bit microprocessor with 4-bit program counter
 - Minimal instruction set: LDA, ADD, IN, OUT, JZ, JMP, HALT
 - Executes one instruction per rising clock edge via `handleClockEdge`
@@ -140,6 +152,7 @@ The core layer contains all domain logic and is completely independent of the UI
 The UI layer is split into renderer-agnostic state management and React-specific presentation:
 
 **ui-controller/** - Renderer-agnostic state management
+
 - BreadboardController manages application state immutably
 - Provides actions for component manipulation (add, move, rotate, delete)
 - Handles simulation triggering and error detection
@@ -147,6 +160,7 @@ The UI layer is split into renderer-agnostic state management and React-specific
 - No dependencies on rendering technology
 
 **ui-react/** - React presentation layer
+
 - React/SVG rendering of breadboard, components, and overlays
 - BreadboardScene orchestrates layout and interaction
 - BreadboardSvg renders the substrate (holes, rails, strips)
@@ -160,16 +174,19 @@ The UI layer is split into renderer-agnostic state management and React-specific
 ### Configuration
 
 **TypeScript Configuration**
+
 - Strict mode enabled for maximum type safety
 - ES2020 target for modern JavaScript features
 - Path aliases for clean imports (`@/core/...`)
 
 **Build Configuration (Vite)**
+
 - Fast development server with HMR
 - Optimized production builds
 - Path resolution for TypeScript aliases
 
 **Test Configuration (Vitest)**
+
 - Unit tests for core logic
 - Fast execution with Vite's transform pipeline
 - Coverage reporting available
@@ -241,21 +258,25 @@ Mixed-Signal Simulator
 ## Key Design Decisions
 
 ### 1. Separation of Concerns
+
 - Core logic is completely independent of UI
 - Can swap UI framework without changing core
 - Core can be used in Node.js, browser, or other environments
 
 ### 2. Immutable State
+
 - Components are stored in array
 - Each update creates new state
 - Makes reasoning about state changes easier
 
 ### 3. Union-Find for Circuit Extraction
+
 - Efficient algorithm for finding connected components
 - O(α(n)) amortized time for union/find operations
 - Natural fit for breadboard connection problem
 
 ### 4. Event-Driven Digital Simulation
+
 - Separates analog (continuous) and digital (discrete-event) domains
 - Digital signals abstracted from analog voltages using TTL thresholds
 - Clock edge detection enables sequential logic execution
@@ -264,12 +285,14 @@ Mixed-Signal Simulator
 - Maintains digital simulation state across simulation steps for proper edge detection
 
 ### 5. Mixed-Signal Architecture
+
 - Analog and digital simulations run cooperatively, not competitively
 - DC solver provides analog voltages → Digital simulator processes edges → Components update
 - Single iteration per simulation step (no convergence loop in current implementation)
 - Future: Iterative convergence if digital outputs significantly affect analog circuit
 
 ### 6. TypeScript Strict Mode
+
 - Catches errors at compile time
 - Self-documenting code with types
 - Better IDE support and refactoring
@@ -283,24 +306,28 @@ The digital simulation layer enables event-driven execution of digital component
 ### Key Components
 
 **Digital Signal Abstraction**
+
 - Maps analog voltages to digital logic levels (0, 1, Z, X)
 - TTL thresholds: V_IL=0.8V (low), V_IH=2.0V (high)
 - Output voltages: V_OL=0.2V (low), V_OH=4.5V (high)
 - Handles undefined region (0.8V-2.0V) as 'X' (unknown)
 
 **Edge Detection**
+
 - Tracks previous digital state per pin
 - Detects rising (0→1) and falling (1→0) transitions
 - Only detects edges on defined values (ignores Z and X)
 - Stateful: edge detector must persist across simulation steps
 
 **Event Queue**
+
 - Priority queue for timestamped events (not currently used in single-iteration mode)
 - Supports clock edge and state change events
 - Ordered by timestamp for deterministic execution
 - Provides component-specific filtering
 
 **Digital Simulator**
+
 - Entry point: `stepDigitalSimulation(circuit, components, digitalState, clockNodeId)`
 - Reads clock voltage from circuit nodes (after DC analysis)
 - Abstracts clock to digital, detects edges
@@ -308,6 +335,7 @@ The digital simulation layer enables event-driven execution of digital component
 - Returns updated component array
 
 **Mixed-Signal Simulator**
+
 - High-level orchestrator combining DC and digital simulation
 - Configuration: `enableDigitalSimulation`, `clockNodeId`
 - Workflow:
@@ -320,12 +348,14 @@ The digital simulation layer enables event-driven execution of digital component
 ### EDU-8 Microprocessor Integration
 
 **Clock-Driven Execution**
+
 - `handleClockEdge(state, clockValue, inputs)` method
 - Executes one instruction on rising clock edge (when `clockValue` transitions from false to true)
 - Updates `clockState` in component state to track clock level
 - No execution on falling edges or when clock stays constant
 
 **Instruction Execution**
+
 - Fetch instruction from ROM at `programCounter`
 - Decode into opcode and operand
 - Execute based on opcode (LDA, ADD, IN, OUT, JZ, JMP, HALT)
@@ -333,6 +363,7 @@ The digital simulation layer enables event-driven execution of digital component
 - Increment PC (or jump) for next instruction
 
 **Output Conversion**
+
 - `getMicroprocessorOutputVoltages(microprocessor)` converts 4-bit output to analog voltages
 - Each bit becomes V_OL (0.2V) or V_OH (4.5V)
 - Outputs can drive LEDs, other analog components in circuit
@@ -340,6 +371,7 @@ The digital simulation layer enables event-driven execution of digital component
 ### Simulation Workflow Example
 
 **Single Clock Pulse**:
+
 1. User/UI sets clock power supply voltage to 5.0V
 2. `mixedSignalSimulator.simulate(circuit, components, config)` called
 3. DC solver runs → clock node voltage = 5.0V
@@ -350,6 +382,7 @@ The digital simulation layer enables event-driven execution of digital component
 8. Repeat with clock=0.0V for falling edge
 
 **Blink Program Example** (toggles OUT0):
+
 ```
 Pulse 1: Execute LDA #1  → accumulator = 1
 Pulse 2: Execute OUT     → outputs = 0b0001 (OUT0 high)
@@ -361,6 +394,7 @@ Pulse 5: Execute JMP 0   → PC wraps to 0, loop repeats
 ### Current Limitations
 
 **Simplifications in MVP**:
+
 - Single clock domain (all digital components share one clock)
 - Synchronous only (no component propagation delays)
 - EDU-8 inputs sampled synchronously (not edge-triggered)
@@ -369,6 +403,7 @@ Pulse 5: Execute JMP 0   → PC wraps to 0, loop repeats
 - Single iteration per step (no analog/digital convergence loop)
 
 **Future Enhancements**:
+
 - Multi-clock domain support
 - Asynchronous digital inputs
 - Setup/hold time validation
@@ -377,6 +412,7 @@ Pulse 5: Execute JMP 0   → PC wraps to 0, loop repeats
 - More digital components (flip-flops, counters, shift registers)
 
 ### 5. TypeScript Strict Mode
+
 - Catches errors at compile time
 - Self-documenting code with types
 - Better IDE support and refactoring
@@ -384,6 +420,7 @@ Pulse 5: Execute JMP 0   → PC wraps to 0, loop repeats
 ## Testing Strategy
 
 ### Unit Tests
+
 - Test breadboard layout connection logic
 - Test circuit extraction with various component configurations
 - Test digital signal abstraction (TTL thresholds, conversions)
@@ -393,6 +430,7 @@ Pulse 5: Execute JMP 0   → PC wraps to 0, loop repeats
 - Test edge cases (empty board, invalid positions, undefined digital values)
 
 ### Integration Tests
+
 - Test digital simulator with EDU-8 (clock pulses, instruction execution)
 - Test mixed-signal simulator (DC + digital coordination)
 - Test EDU-8 preset programs (blink, counter, echo, pattern)
@@ -400,6 +438,7 @@ Pulse 5: Execute JMP 0   → PC wraps to 0, loop repeats
 - Test digital state persistence across simulation steps
 
 ### Visual Tests
+
 - Playwright tests for UI rendering and interactions
 - Screenshot comparison for component placement
 - Visual regression testing for voltage heatmap overlays
@@ -409,6 +448,7 @@ Pulse 5: Execute JMP 0   → PC wraps to 0, loop repeats
 ## Future Enhancements
 
 ### Core Layer - Analog Simulation
+
 - [x] Full Modified Nodal Analysis (MNA) for complex circuits (DONE)
 - [x] Short circuit and open circuit detection (DONE)
 - [x] Component validation (LED polarity, overcurrent) (DONE)
@@ -417,6 +457,7 @@ Pulse 5: Execute JMP 0   → PC wraps to 0, loop repeats
 - [ ] More component models (diodes, transistors, op-amps)
 
 ### Core Layer - Digital Simulation
+
 - [x] Event-driven digital simulation infrastructure (DONE)
 - [x] EDU-8 microprocessor with clock-driven execution (DONE)
 - [x] TTL-compatible digital signal abstraction (DONE)
@@ -429,6 +470,7 @@ Pulse 5: Execute JMP 0   → PC wraps to 0, loop repeats
 - [ ] Iterative convergence for digital output feedback to analog circuit
 
 ### UI Layer
+
 - [x] Visual wire rendering (DONE with React/SVG)
 - [x] Component graphics (resistor bands, LED colors) (DONE)
 - [x] Voltage heatmap overlay (DONE)
@@ -445,6 +487,7 @@ Pulse 5: Execute JMP 0   → PC wraps to 0, loop repeats
 - [ ] Save/load circuits
 
 ### Additional Features
+
 - [ ] More component types (capacitor, switch, battery)
 - [ ] Component customization (resistance values, voltages)
 - [ ] Circuit validation and error messages
@@ -454,11 +497,13 @@ Pulse 5: Execute JMP 0   → PC wraps to 0, loop repeats
 ## Performance Considerations
 
 ### Current Implementation
+
 - Full UI re-render on each component placement
 - Circuit extraction runs on every update
 - Simulation runs on every update
 
 ### Optimization Opportunities
+
 - Incremental circuit updates (only re-extract changed regions)
 - Memoization of simulation results
 - Partial UI updates (only changed holes)
@@ -476,9 +521,11 @@ Pulse 5: Execute JMP 0   → PC wraps to 0, loop repeats
 ## Dependencies
 
 ### Production
+
 - None (vanilla TypeScript/JavaScript)
 
 ### Development
+
 - TypeScript: Type checking and compilation
 - Vite: Build tool and dev server
 - Vitest: Test framework

@@ -34,7 +34,7 @@ interface LayoutNode {
  * Generates schematic diagrams from electrical circuits
  */
 export class SchematicLayoutGenerator {
-  private config: LayoutConfig;
+  private readonly config: LayoutConfig;
 
   constructor(config: Partial<LayoutConfig> = {}) {
     this.config = { ...DEFAULT_LAYOUT_CONFIG, ...config };
@@ -155,9 +155,19 @@ export class SchematicLayoutGenerator {
   private applyForceDirectedLayout(nodes: Map<string, LayoutNode>, _circuit: Circuit): void {
     const nodeArray = Array.from(nodes.values());
 
-    // Build net-to-nodes mapping for attraction forces
+    const netToNodes = this.buildNetToNodes(nodeArray);
+    for (let iteration = 0; iteration < this.config.iterations; iteration++) {
+      this.resetForces(nodeArray);
+      this.applyRepulsionForces(nodeArray);
+      this.applyAttractionForces(netToNodes);
+      this.integratePositions(nodeArray);
+      this.coolDown(nodeArray, iteration);
+    }
+  }
+
+  private buildNetToNodes(nodes: LayoutNode[]): Map<string, LayoutNode[]> {
     const netToNodes = new Map<string, LayoutNode[]>();
-    for (const node of nodeArray) {
+    for (const node of nodes) {
       for (const terminal of node.terminals) {
         if (!netToNodes.has(terminal.netId)) {
           netToNodes.set(terminal.netId, []);
@@ -165,49 +175,57 @@ export class SchematicLayoutGenerator {
         netToNodes.get(terminal.netId)!.push(node);
       }
     }
+    return netToNodes;
+  }
 
-    // Run layout iterations
-    for (let iteration = 0; iteration < this.config.iterations; iteration++) {
-      // Reset forces
-      for (const node of nodeArray) {
-        node.force.x = 0;
-        node.force.y = 0;
-      }
+  private resetForces(nodes: LayoutNode[]): void {
+    for (const node of nodes) {
+      node.force.x = 0;
+      node.force.y = 0;
+    }
+  }
 
-      // Apply repulsion forces (all nodes repel each other)
-      for (let i = 0; i < nodeArray.length; i++) {
-        for (let j = i + 1; j < nodeArray.length; j++) {
-          this.applyRepulsionForce(nodeArray[i], nodeArray[j]);
-        }
+  private applyRepulsionForces(nodes: LayoutNode[]): void {
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        this.applyRepulsionForce(nodes[i], nodes[j]);
       }
+    }
+  }
 
-      // Apply attraction forces (nodes connected by same net attract)
-      for (const netNodes of netToNodes.values()) {
-        if (netNodes.length > 1) {
-          // Connect all nodes on the same net
-          for (let i = 0; i < netNodes.length; i++) {
-            for (let j = i + 1; j < netNodes.length; j++) {
-              this.applyAttractionForce(netNodes[i], netNodes[j]);
-            }
-          }
-        }
-      }
+  private applyAttractionForces(netToNodes: Map<string, LayoutNode[]>): void {
+    for (const netNodes of netToNodes.values()) {
+      this.applyAttractionForNet(netNodes);
+    }
+  }
 
-      // Update velocities and positions
-      const damping = 0.8;
-      for (const node of nodeArray) {
-        node.velocity.x = (node.velocity.x + node.force.x) * damping;
-        node.velocity.y = (node.velocity.y + node.force.y) * damping;
-        node.position.x += node.velocity.x;
-        node.position.y += node.velocity.y;
-      }
+  private applyAttractionForNet(netNodes: LayoutNode[]): void {
+    if (netNodes.length <= 1) {
+      return;
+    }
 
-      // Cool down over time
-      const temperature = 1 - iteration / this.config.iterations;
-      for (const node of nodeArray) {
-        node.velocity.x *= temperature;
-        node.velocity.y *= temperature;
+    for (let i = 0; i < netNodes.length; i++) {
+      for (let j = i + 1; j < netNodes.length; j++) {
+        this.applyAttractionForce(netNodes[i], netNodes[j]);
       }
+    }
+  }
+
+  private integratePositions(nodes: LayoutNode[]): void {
+    const damping = 0.8;
+    for (const node of nodes) {
+      node.velocity.x = (node.velocity.x + node.force.x) * damping;
+      node.velocity.y = (node.velocity.y + node.force.y) * damping;
+      node.position.x += node.velocity.x;
+      node.position.y += node.velocity.y;
+    }
+  }
+
+  private coolDown(nodes: LayoutNode[], iteration: number): void {
+    const temperature = 1 - iteration / this.config.iterations;
+    for (const node of nodes) {
+      node.velocity.x *= temperature;
+      node.velocity.y *= temperature;
     }
   }
 

@@ -93,11 +93,11 @@ export function getDefaultLibraryId(component: AnyComponent): string | undefined
   // Otherwise, find best match in library
   switch (component.type) {
     case ComponentType.RESISTOR:
-      return findClosestResistor((component as Resistor).resistance);
+      return findClosestResistor(component.resistance);
     case ComponentType.LED:
-      return findClosestLED((component as LED).forwardVoltage);
+      return findClosestLED(component.forwardVoltage);
     case ComponentType.POWER_SUPPLY:
-      return findPowerSupply((component as PowerSupply).voltage);
+      return findPowerSupply(component.voltage);
     case ComponentType.WIRE:
       return findDefaultWire();
     case ComponentType.GROUND:
@@ -112,7 +112,7 @@ export function getDefaultLibraryId(component: AnyComponent): string | undefined
  * Returns properties that should be used for simulation
  */
 export function getComponentPropertiesFromLibrary(component: AnyComponent): Partial<AnyComponent> {
-  const libraryId = component.libraryId || getDefaultLibraryId(component);
+  const libraryId = component.libraryId ?? getDefaultLibraryId(component);
   if (!libraryId) {
     // No library entry, use component's own properties
     return component;
@@ -129,32 +129,59 @@ export function getComponentPropertiesFromLibrary(component: AnyComponent): Part
 
   switch (component.type) {
     case ComponentType.RESISTOR:
-      if (entry.electrical.resistance !== undefined) {
-        (props as Partial<Resistor>).resistance = entry.electrical.resistance as number;
+      {
+        const resistance = coerceElectricalNumber(entry.electrical.resistance);
+        if (resistance !== undefined) {
+          (props as Partial<Resistor>).resistance = resistance;
+        }
       }
       break;
 
     case ComponentType.LED:
-      if (entry.electrical.forwardVoltage !== undefined) {
-        (props as Partial<LED>).forwardVoltage = entry.electrical.forwardVoltage as number;
-      }
-      if (entry.electrical.maxCurrent !== undefined) {
-        (props as Partial<LED>).maxCurrent = entry.electrical.maxCurrent as number;
+      {
+        const forwardVoltage = coerceElectricalNumber(entry.electrical.forwardVoltage);
+        if (forwardVoltage !== undefined) {
+          (props as Partial<LED>).forwardVoltage = forwardVoltage;
+        }
+
+        const maxCurrent = coerceElectricalNumber(entry.electrical.maxCurrent);
+        if (maxCurrent !== undefined) {
+          (props as Partial<LED>).maxCurrent = maxCurrent;
+        }
       }
       break;
 
     case ComponentType.POWER_SUPPLY:
-      if (entry.electrical.voltage !== undefined) {
-        (props as Partial<PowerSupply>).voltage = entry.electrical.voltage as number;
+      {
+        const voltage = coerceElectricalNumber(entry.electrical.voltage);
+        if (voltage !== undefined) {
+          (props as Partial<PowerSupply>).voltage = voltage;
+        }
       }
       break;
 
     case ComponentType.WIRE:
-      if (entry.electrical.resistance !== undefined) {
-        (props as Partial<Wire>).resistance = entry.electrical.resistance as number;
+      {
+        const resistance = coerceElectricalNumber(entry.electrical.resistance);
+        if (resistance !== undefined) {
+          (props as Partial<Wire>).resistance = resistance;
+        }
       }
       break;
   }
 
   return props;
+}
+
+function coerceElectricalNumber(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  return undefined;
 }

@@ -107,28 +107,33 @@ export class BreadboardLayout {
     }
 
     // Terminal strips: within a row, all holes on the same side are connected
-    if (pos1.row === pos2.row) {
-      // Left terminal strip (columns 2-6)
-      if (
-        pos1.col >= this.STRIP_LEFT_START &&
-        pos1.col <= this.STRIP_LEFT_END &&
-        pos2.col >= this.STRIP_LEFT_START &&
-        pos2.col <= this.STRIP_LEFT_END
-      ) {
-        return true;
-      }
-      // Right terminal strip (columns 7-11)
-      if (
-        pos1.col >= this.STRIP_RIGHT_START &&
-        pos1.col <= this.STRIP_RIGHT_END &&
-        pos2.col >= this.STRIP_RIGHT_START &&
-        pos2.col <= this.STRIP_RIGHT_END
-      ) {
-        return true;
-      }
+    if (pos1.row !== pos2.row) {
+      return false;
     }
 
-    return false;
+    if (this.areInSameTerminalStripRange(pos1, pos2, this.STRIP_LEFT_START, this.STRIP_LEFT_END)) {
+      return true;
+    }
+
+    return this.areInSameTerminalStripRange(
+      pos1,
+      pos2,
+      this.STRIP_RIGHT_START,
+      this.STRIP_RIGHT_END
+    );
+  }
+
+  private static isColInRange(pos: Position, startCol: number, endCol: number): boolean {
+    return pos.col >= startCol && pos.col <= endCol;
+  }
+
+  private static areInSameTerminalStripRange(
+    pos1: Position,
+    pos2: Position,
+    startCol: number,
+    endCol: number
+  ): boolean {
+    return this.isColInRange(pos1, startCol, endCol) && this.isColInRange(pos2, startCol, endCol);
   }
 
   /**
@@ -159,32 +164,48 @@ export class BreadboardLayout {
       return [];
     }
 
-    const connected: Position[] = [];
-
-    // Check if position is in a rail
     if (this.isPositionInRail(pos)) {
-      // All positions in the same rail column are connected
-      for (let row = 0; row < this.ROWS; row++) {
-        connected.push({ row, col: pos.col });
-      }
-      return connected;
+      return this.buildRailConnectedPositions(pos.col);
     }
 
-    // Terminal strips
     if (this.isInTerminalStrip(pos)) {
-      if (pos.col >= this.STRIP_LEFT_START && pos.col <= this.STRIP_LEFT_END) {
-        // Left terminal strip
-        for (let col = this.STRIP_LEFT_START; col <= this.STRIP_LEFT_END; col++) {
-          connected.push({ row: pos.row, col });
-        }
-      } else if (pos.col >= this.STRIP_RIGHT_START && pos.col <= this.STRIP_RIGHT_END) {
-        // Right terminal strip
-        for (let col = this.STRIP_RIGHT_START; col <= this.STRIP_RIGHT_END; col++) {
-          connected.push({ row: pos.row, col });
-        }
-      }
+      return this.buildTerminalStripConnectedPositions(pos);
+    }
+
+    return [];
+  }
+
+  private static buildRailConnectedPositions(col: number): Position[] {
+    const connected: Position[] = [];
+    for (let row = 0; row < this.ROWS; row++) {
+      connected.push({ row, col });
+    }
+    return connected;
+  }
+
+  private static buildTerminalStripConnectedPositions(pos: Position): Position[] {
+    const range = this.getTerminalStripRangeForColumn(pos.col);
+    if (!range) {
+      return [];
+    }
+
+    const connected: Position[] = [];
+    for (let col = range.startCol; col <= range.endCol; col++) {
+      connected.push({ row: pos.row, col });
     }
 
     return connected;
+  }
+
+  private static getTerminalStripRangeForColumn(
+    col: number
+  ): { startCol: number; endCol: number } | null {
+    if (col >= this.STRIP_LEFT_START && col <= this.STRIP_LEFT_END) {
+      return { startCol: this.STRIP_LEFT_START, endCol: this.STRIP_LEFT_END };
+    }
+    if (col >= this.STRIP_RIGHT_START && col <= this.STRIP_RIGHT_END) {
+      return { startCol: this.STRIP_RIGHT_START, endCol: this.STRIP_RIGHT_END };
+    }
+    return null;
   }
 }

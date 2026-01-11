@@ -1,6 +1,7 @@
 Remove low-value right sidebar panels: Circuit Info, Nodes, Connections, and Component List
 
 ## Source Review
+
 `planning/reviews/review-2026-01-08.md` - Section 4: Right Sidebar: Circuit Info & Lists (lines 70-97)
 
 ## Review Items Addressed
@@ -10,6 +11,7 @@ This task addresses **Section 4** from the review, which identified several righ
 ### Section 4.1: Circuit Info / Nodes / Connections (Lines 72-75)
 
 **Original Critique:**
+
 - These sections provide **no clear value** in their current form
 - Their purpose is unclear to users
 - Recommendation: **remove entirely**
@@ -19,6 +21,7 @@ This task addresses **Section 4** from the review, which identified several righ
 ### Section 4.2: Component List (Lines 77-82)
 
 **Original Critique:**
+
 - The component list provides little value because:
   - Components are already visible on the breadboard
   - Multiple wires are indistinguishable in a list
@@ -30,6 +33,7 @@ This task addresses **Section 4** from the review, which identified several righ
 ### Section 4.3: Component Properties (Lines 84-87)
 
 **Original Feedback:**
+
 - Component Properties is **very useful**
 - Clicking a component and immediately editing its properties is a strong UX feature
 - This panel should be **retained and expanded**
@@ -39,6 +43,7 @@ This task addresses **Section 4** from the review, which identified several righ
 ### Section 4.4: Selection Feedback Gap (Lines 89-95)
 
 **Original Critique:**
+
 - When a wire is selected:
   - Nothing appears in Component Properties
   - There is no clear indication that the wire is selected
@@ -72,6 +77,7 @@ This task addresses **Section 4** from the review, which identified several righ
 6. **ONLY remove** the UI presentation layer for these panels
 
 **Safety check:**
+
 - Verify that removing these panels does not break Component Properties panel
 - Verify that the right sidebar still renders correctly without these panels
 - Test that the application still functions normally after removal
@@ -86,6 +92,7 @@ This task addresses **Section 4** from the review, which identified several righ
 6. **ONLY remove** the UI panel that displays the list
 
 **Safety check:**
+
 - Verify that component selection on the breadboard still works
 - Verify that Component Properties panel still shows selected component properties
 - Test that removing the list doesn't break component interaction workflows
@@ -111,6 +118,7 @@ This task addresses **Section 4** from the review, which identified several righ
 7. **Ensure visual consistency** with existing Component Properties styling
 
 **Example wire properties display:**
+
 ```
 === Component Properties ===
 Wire
@@ -187,13 +195,14 @@ After this PR:
 ## Files Likely to Be Modified
 
 Based on the codebase structure:
+
 - `src/ui/breadboard-app.ts` (main UI orchestration - panel rendering and updates)
 - `src/style.css` (possibly remove CSS for removed panels)
 
 ## Success Criteria
 
 - [ ] Circuit Info panel removed from right sidebar
-- [ ] Nodes panel removed from right sidebar  
+- [ ] Nodes panel removed from right sidebar
 - [ ] Connections panel removed from right sidebar
 - [ ] Component List panel removed from right sidebar
 - [ ] Component Properties panel still works for components

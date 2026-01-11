@@ -87,7 +87,7 @@ export function stepDigitalSimulation(
 
   // Get clock voltage from circuit
   const clockNode = circuit.nodes.get(clockNodeId);
-  if (!clockNode || clockNode.voltage === undefined) {
+  if (clockNode?.voltage === undefined) {
     return components; // No clock signal
   }
 

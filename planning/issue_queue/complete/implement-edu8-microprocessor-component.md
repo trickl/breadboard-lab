@@ -5,6 +5,7 @@ Implement EDU-8 virtual microprocessor component with instruction execution
 Breadboard Lab currently provides passive components (resistors, LEDs), power supplies, and audio output (speaker), but lacks any programmable logic component. The planning document explicitly requires a **simple microprocessor component** to enable educational circuits demonstrating clock-driven behavior, sequential logic, and basic programming concepts.
 
 Without a microprocessor component, students cannot:
+
 - Explore clock-driven circuits
 - Learn about sequential logic and state machines
 - Understand how digital outputs respond to inputs
@@ -14,7 +15,9 @@ Without a microprocessor component, students cannot:
 ## Gap Analysis
 
 **Long-term goal** (`planning/vision/goal.md`, lines 366-394):
+
 > "Simple microprocessor component — required"
+>
 > - Component name: EDU-8 Microprocessor (virtual IC)
 > - Simulated internal behavior (not stubbed)
 > - Operates on clock input and reset
@@ -25,9 +28,11 @@ Without a microprocessor component, students cannot:
 >   - Explain panel shows PC/opcode/output
 
 **Canonical example requirement** (`planning/vision/goal.md`, line 431):
+
 > "Simple clock-driven circuit (microprocessor + clock)" must be included in built-in examples
 
 **Current state** (`planning/state/system_capabilities.md`):
+
 - ❌ No microprocessor component exists in the component library
 - ❌ No digital/event simulation beyond DC voltage/current analysis
 - ❌ No clock-driven or sequential logic components
@@ -43,6 +48,7 @@ Without a microprocessor component, students cannot:
 ### Scope
 
 Create a virtual microprocessor component that:
+
 1. Appears in component library as placeable IC (DIP-like package)
 2. Has defined pinout: VCC, GND, CLK, RST, IN[3:0], OUT[3:0], HALT
 3. Executes a minimal instruction set from internal ROM
@@ -56,6 +62,7 @@ Create a virtual microprocessor component that:
 **Phase 1: Component Definition**
 
 Define `EDU-8` component in library catalog:
+
 ```typescript
 {
   id: 'edu8-microprocessor',
@@ -97,32 +104,34 @@ Define `EDU-8` component in library catalog:
 **Phase 2: Internal State Machine**
 
 Implement execution model:
+
 ```typescript
 interface EDU8State {
-  accumulator: number;    // 8-bit register
+  accumulator: number; // 8-bit register
   programCounter: number; // 4-bit (0-15)
   zeroFlag: boolean;
   halted: boolean;
-  rom: Uint8Array;        // 16 bytes program memory
-  inputs: number;         // 4-bit input snapshot
-  outputs: number;        // 4-bit output register
+  rom: Uint8Array; // 16 bytes program memory
+  inputs: number; // 4-bit input snapshot
+  outputs: number; // 4-bit output register
 }
 
 // Instruction set (4 bits opcode + 4 bits operand)
 enum Opcode {
-  LDA = 0x0,  // LDA imm4  - Load accumulator with immediate
-  ADD = 0x1,  // ADD imm4  - Add immediate to accumulator
-  IN  = 0x2,  // IN        - Load accumulator from inputs
-  OUT = 0x3,  // OUT       - Output accumulator to outputs
-  JZ  = 0x4,  // JZ addr4  - Jump if zero flag set
-  JMP = 0x5,  // JMP addr4 - Unconditional jump
-  HALT= 0xF   // HALT      - Stop execution
+  LDA = 0x0, // LDA imm4  - Load accumulator with immediate
+  ADD = 0x1, // ADD imm4  - Add immediate to accumulator
+  IN = 0x2, // IN        - Load accumulator from inputs
+  OUT = 0x3, // OUT       - Output accumulator to outputs
+  JZ = 0x4, // JZ addr4  - Jump if zero flag set
+  JMP = 0x5, // JMP addr4 - Unconditional jump
+  HALT = 0xf, // HALT      - Stop execution
 }
 ```
 
 **Phase 3: Clock-Driven Execution**
 
 Add simulation step that:
+
 1. Detects rising edge on CLK pin (voltage transition from <1V to >2V)
 2. Checks RST pin (active high resets state)
 3. Fetches instruction from ROM[PC]
@@ -133,6 +142,7 @@ Add simulation step that:
 **Phase 4: Integration with Existing Simulation**
 
 Extend circuit simulator to handle digital components:
+
 - Digital outputs drive voltage sources (HIGH = 4.5V, LOW = 0.2V)
 - Digital inputs sample voltage levels (>2V = HIGH, <0.8V = LOW)
 - Clock input edge detection (requires storing previous voltage)
@@ -142,6 +152,7 @@ Extend circuit simulator to handle digital components:
 **Phase 5: Program Configuration UI**
 
 Add property editor for microprocessor:
+
 - Display current ROM contents as hex bytes
 - Allow editing program (16-byte hex editor)
 - Provide example programs as presets:
@@ -153,6 +164,7 @@ Add property editor for microprocessor:
 **Phase 6: Explain Panel Integration**
 
 When microprocessor is clicked, show:
+
 - Current program counter (0-15)
 - Current instruction (mnemonic and operands)
 - Accumulator value (hex and binary)
@@ -165,6 +177,7 @@ When microprocessor is clicked, show:
 **Phase 7: Canonical Example Circuit**
 
 Create `blinky-microprocessor.json` example:
+
 - EDU-8 microprocessor
 - Clock generator (simple oscillator or manual pulse source)
 - Power supply (5V)
@@ -193,6 +206,7 @@ Create `blinky-microprocessor.json` example:
 This feature transforms Breadboard Lab from a pure analog circuit tool into a platform for teaching **computational electronics**:
 
 **Students learn:**
+
 - How clock signals drive sequential operations
 - The connection between software (program) and hardware (I/O)
 - Basic machine code and instruction execution
@@ -201,6 +215,7 @@ This feature transforms Breadboard Lab from a pure analog circuit tool into a pl
 - Difference between combinational (resistors, LEDs) and sequential (microprocessor) circuits
 
 **Use cases:**
+
 - Blinking LED with software control (vs. timer IC)
 - Binary counter output
 - Input-controlled output (button → LED logic)
@@ -209,6 +224,7 @@ This feature transforms Breadboard Lab from a pure analog circuit tool into a pl
 
 **Pedagogical value:**
 The EDU-8 is intentionally simplified (4-bit I/O, 16-byte ROM, minimal instruction set) to be:
+
 - Teachable in minutes
 - Understandable by inspection (Explain panel shows all state)
 - Debuggable step-by-step (manual clock pulses)
@@ -221,7 +237,6 @@ This task directly implements a **required** capability from the planning docume
 - `goal.md` lines 366-394: "Simple microprocessor component — required"
   - EDU-8 Microprocessor with simulated internal behavior
   - Acceptance criteria explicitly defined (toggle outputs, reset behavior, Explain panel)
-  
 - `goal.md` line 431: Canonical example "Simple clock-driven circuit (microprocessor + clock)"
 
 - `goal.md` lines 344-352: "Digital/event simulation" requirement
@@ -341,6 +356,7 @@ The EDU-8 is a **teaching device**, not a production microcontroller. It priorit
 ## Dependencies
 
 All required infrastructure already exists:
+
 - ✅ Component library system (can add new component)
 - ✅ Circuit simulation pipeline (can extend for digital)
 - ✅ PixiJS renderer (can add new visual)
@@ -349,6 +365,7 @@ All required infrastructure already exists:
 - ✅ Example circuit system (can add new example)
 
 New dependencies:
+
 - Clock signal source (may need clock generator component or use function generator pattern)
 - Voltage level sampling (new simulator capability)
 - State persistence across simulation steps (new simulator state)
@@ -356,22 +373,28 @@ New dependencies:
 ## Risks and Mitigations
 
 **Risk**: Clock edge detection may be complex with DC-only simulation
-- *Mitigation*: Store previous voltage per digital input; detect transition on each simulation step; use simple threshold logic
+
+- _Mitigation_: Store previous voltage per digital input; detect transition on each simulation step; use simple threshold logic
 
 **Risk**: Digital and analog domains may conflict (voltage sources from digital outputs)
-- *Mitigation*: Model digital outputs as ideal voltage sources in MNA matrix; document analog/digital bridge behavior
+
+- _Mitigation_: Model digital outputs as ideal voltage sources in MNA matrix; document analog/digital bridge behavior
 
 **Risk**: Instruction execution may be slow or cause performance issues
-- *Mitigation*: Execute only on clock edges (not every frame); use efficient state machine; profile and optimize if needed
+
+- _Mitigation_: Execute only on clock edges (not every frame); use efficient state machine; profile and optimize if needed
 
 **Risk**: Program editor UX may be confusing for beginners
-- *Mitigation*: Provide clear presets; validate inputs; show helpful error messages; document instruction set reference
+
+- _Mitigation_: Provide clear presets; validate inputs; show helpful error messages; document instruction set reference
 
 **Risk**: Debugging incorrect programs may be difficult
-- *Mitigation*: Explain panel shows full state; manual clock allows step-through; preset programs are known-good
+
+- _Mitigation_: Explain panel shows full state; manual clock allows step-through; preset programs are known-good
 
 **Risk**: Scope creep (requests for more instructions, larger ROM, interrupts)
-- *Mitigation*: Document intentional limitations; refer to educational goals; defer enhancements to separate tasks
+
+- _Mitigation_: Document intentional limitations; refer to educational goals; defer enhancements to separate tasks
 
 ## References
 
@@ -383,6 +406,7 @@ New dependencies:
 ## Success Metrics
 
 After implementation:
+
 1. ✅ EDU-8 component in library and placeable on breadboard
 2. ✅ Clock-driven instruction execution verified with unit tests
 3. ✅ Digital outputs control LEDs and other components

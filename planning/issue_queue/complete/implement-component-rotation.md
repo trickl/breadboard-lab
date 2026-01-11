@@ -7,6 +7,7 @@ Breadboard Lab allows users to place, select, move, and delete components, but t
 ## Gap Analysis
 
 **Long-term goal**: Best-in-class breadboard UI with rotate functionality (planning/vision/goal.md, lines 239-253):
+
 - Keyboard shortcut: Press `R` to rotate selected component 90° clockwise
 - On-screen handle: Circular rotation handle visible when component is selected
 - Touch support: Two-finger rotate gesture (optional, stretch goal)
@@ -14,6 +15,7 @@ Breadboard Lab allows users to place, select, move, and delete components, but t
 - Acceptance criteria include rotation handle visibility and functional keyboard shortcut
 
 **Current state**: Component interaction capabilities exist (planning/state/system_capabilities.md):
+
 - Component selection works with visual feedback (blue drop-shadow)
 - Component drag-and-drop repositioning with ghost preview
 - Component deletion via keyboard (Delete/Backspace)
@@ -30,6 +32,7 @@ Breadboard Lab allows users to place, select, move, and delete components, but t
 ### Scope
 
 Create a rotation system that:
+
 1. Allows rotating selected component 90° clockwise via `R` key
 2. Displays visual rotation handle when component is selected
 3. Tracks component rotation state (0°, 90°, 180°, 270°)
@@ -41,11 +44,13 @@ Create a rotation system that:
 ### Technical Approach
 
 **Data model extension**:
+
 - Add `rotation` property to component types (already defined in planning document: `rotation: 0 | 90 | 180 | 270`)
 - Default rotation is 0° for newly placed components
 - Rotation state persists with component
 
 **Keyboard interaction**:
+
 - Listen for `R` key press when a component is selected
 - Rotate selected component 90° clockwise (0° → 90° → 180° → 270° → 0°)
 - Validate new pin positions after rotation
@@ -53,17 +58,20 @@ Create a rotation system that:
 - Visual feedback for invalid rotation (red flash or error indicator)
 
 **Visual handle** (optional for MVP, keyboard is primary):
+
 - Render circular rotation handle above selected component
 - Click-and-drag to rotate (more complex, can be deferred)
 - For MVP: keyboard shortcut is sufficient
 
 **Rendering updates**:
+
 - Extend `ComponentRenderer` to apply rotation transform to component visuals
 - Use SVG `transform` attribute for rotation around component center
 - Ensure pin positions in data model match visual rotation
 - Update wire endpoints if needed
 
 **Position validation**:
+
 - After rotation, recalculate all pin positions
 - Check if rotated pins align to valid breadboard holes
 - Check for collisions with existing components
@@ -84,6 +92,7 @@ Create a rotation system that:
 ### Educational Impact
 
 Component rotation is essential for authentic breadboard experience:
+
 - **Physical realism**: Real breadboards require rotating components to fit layouts
 - **Wire management**: Rotation reduces wire crossings and improves circuit clarity
 - **Polarity awareness**: Rotating LEDs/power supplies teaches polarity concepts
@@ -92,6 +101,7 @@ Component rotation is essential for authentic breadboard experience:
 ### Alignment with Roadmap
 
 This task completes a core MVP interaction feature (planning/vision/goal.md, lines 239-253):
+
 - 🎯 Explicitly listed in UI/UX requirements as essential interaction
 - 🎯 Keyboard shortcut `R` specified in detail
 - 🎯 Acceptance criteria defined in planning document
@@ -101,6 +111,7 @@ This task completes a core MVP interaction feature (planning/vision/goal.md, lin
 ### Estimated Effort
 
 2-4 days of focused development
+
 - Day 1: Add rotation property to data model, implement keyboard handler
 - Day 2: Update rendering logic to apply rotation transforms
 - Day 3: Implement position validation and collision detection
@@ -116,13 +127,13 @@ This task completes a core MVP interaction feature (planning/vision/goal.md, lin
 ### Risks
 
 - **Pin alignment complexity**: Rotated components must still snap to grid
-  - *Mitigation*: Carefully calculate pin positions relative to rotation center
+  - _Mitigation_: Carefully calculate pin positions relative to rotation center
 - **Collision detection**: Rotated components may collide with existing components
-  - *Mitigation*: Reuse existing collision detection from drag-and-drop system
+  - _Mitigation_: Reuse existing collision detection from drag-and-drop system
 - **Wire rendering**: Wires connected to rotated components need correct endpoints
-  - *Mitigation*: Wire endpoints are already based on pin positions, so should update automatically
+  - _Mitigation_: Wire endpoints are already based on pin positions, so should update automatically
 - **Visual clarity**: Some components (like resistors) may look similar at 0° and 180°
-  - *Mitigation*: Add visual asymmetry (e.g., resistance label position) to indicate orientation
+  - _Mitigation_: Add visual asymmetry (e.g., resistance label position) to indicate orientation
 
 ## Why This Task Now
 
@@ -143,6 +154,7 @@ The tool has all core visualization features (voltage heatmap, current animation
 ### Rotation Data Model
 
 Component interface already supports rotation (from planning document):
+
 ```typescript
 interface Placement {
   id: string;
@@ -158,11 +170,13 @@ Current implementation needs to add this property and ensure it's initialized to
 ### Rotation Transform Logic
 
 For a component centered at (cx, cy) with pins at positions [(x1, y1), (x2, y2)]:
+
 - Rotate 90° clockwise: (x, y) → (cy + (y - cy), cx - (x - cx))
 - Rotate 180°: (x, y) → (2*cx - x, 2*cy - y)
 - Rotate 270° clockwise: (x, y) → (cy - (y - cy), cx + (x - cx))
 
 Or use standard rotation matrix applied to SVG:
+
 ```svg
 <g transform="rotate(90, cx, cy)">
   <!-- component visual -->
@@ -172,6 +186,7 @@ Or use standard rotation matrix applied to SVG:
 ### Keyboard Handler
 
 Extend existing keyboard event listener in `BreadboardApp`:
+
 ```typescript
 // In setupEventListeners():
 document.addEventListener('keydown', (e) => {
@@ -187,6 +202,7 @@ document.addEventListener('keydown', (e) => {
 ### Testing Strategy
 
 Unit tests to add (in `breadboard-app.test.ts`):
+
 - [ ] Pressing `R` rotates component from 0° to 90°
 - [ ] Multiple `R` presses cycle through 0° → 90° → 180° → 270° → 0°
 - [ ] Rotation updates visual rendering (SVG transform applied)
@@ -198,6 +214,7 @@ Unit tests to add (in `breadboard-app.test.ts`):
 ## Next Steps After This Task
 
 Once component rotation works:
+
 1. Implement error detection overlays with helpful messages (short circuits, floating nodes, reversed LEDs)
 2. Add undo/redo functionality (track rotation in history stack)
 3. Add multi-select capability with group rotation

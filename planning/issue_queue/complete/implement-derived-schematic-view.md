@@ -7,15 +7,18 @@ The system currently provides a breadboard view where users place components phy
 ## Gap Analysis
 
 **Goal requirement (from `/planning/vision/goal.md`):**
+
 > "Schematic view is derived from the netlist and is available when present."
 
 **Current state (from `/planning/state/system_capabilities.md`):**
+
 > "Views: Breadboard view is primary. Schematic view is derived from the netlist and is available when present."
 > Listed under constraints: "No schematic editor (separate from breadboard view)"
 
 The goal document positions schematic view as a **required secondary view** that is auto-generated from the netlist, not a hand-drawn perfection. The purpose is clear: "debugging, learning, export."
 
 **Why this is the most important gap:**
+
 1. **Educational value**: Students learn electronics by understanding both physical breadboard layouts AND abstract schematic diagrams. Without schematic view, they miss half the learning.
 2. **Debugging aid**: Complex circuits are easier to understand in schematic form—connections are shown electrically, not spatially.
 3. **Professional preparation**: Real-world electronics uses schematics for documentation and communication.
@@ -36,20 +39,24 @@ Implement an auto-generated schematic view that:
 
 ## Technical Approach (High-Level)
 
-**Input:** 
+**Input:**
+
 - `ElectricalNetlist` (already extracted from breadboard)
 - `SimulationResult` (voltages and currents)
 
 **Processing:**
+
 - Map components to standard schematic symbols (SVG or procedural)
 - Apply graph layout algorithm (e.g., layered/hierarchical layout for DAGs, force-directed for general graphs)
 - Calculate positions and route connection lines (orthogonal or straight)
 
 **Output:**
+
 - SVG rendering of schematic diagram
 - Interactive elements (click handlers, voltage overlays, current flow)
 
 **Libraries to consider:**
+
 - ELK.js (Eclipse Layout Kernel) for automatic graph layout
 - Cytoscape.js (graph visualization library)
 - Custom simple layout for initial version (can be enhanced later)
@@ -69,12 +76,14 @@ Implement an auto-generated schematic view that:
 ## Scope Constraints
 
 **In scope:**
+
 - Basic schematic symbols for current component types (resistor, LED, power supply, ground, wire as net)
 - Automatic layout (even if not perfect)
 - Voltage/current visualization in schematic
 - Interactive explain panel integration
 
 **Out of scope (deferred):**
+
 - Hand-editing schematic positions
 - Schematic-first design (placing components in schematic view)
 - Complex schematic symbols (ICs, transistors not yet in library)
@@ -84,11 +93,13 @@ Implement an auto-generated schematic view that:
 ## Dependencies
 
 **Requires (already available):**
+
 - Netlist extraction (✅ implemented)
 - Circuit simulation (✅ implemented)
 - Component types system (✅ implemented)
 
 **Enables (future features):**
+
 - Schematic export (PDF, PNG, SVG)
 - Printable circuit documentation
 - Schematic-based tutorials
@@ -117,13 +128,16 @@ Without schematic view, Breadboard Lab remains a "breadboard simulator" rather t
 ## References
 
 **Goal document requirement:**
+
 - `/planning/vision/goal.md` § Views: "Schematic view is derived from the netlist and is available when present."
 
 **Current system state:**
+
 - `/planning/state/system_capabilities.md` § Views: "Breadboard view is primary. Schematic view is derived from the netlist and is available when present."
 - Circuit extraction produces `ElectricalNetlist` with nets and components (§ Data Model)
 
 **Layout algorithm resources:**
+
 - ELK.js: https://github.com/kieler/elkjs (Eclipse Layout Kernel in JavaScript)
 - Cytoscape.js: https://js.cytoscape.org/ (graph visualization library)
 - Force-directed layouts: D3.js force simulation patterns

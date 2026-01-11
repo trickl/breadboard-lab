@@ -103,12 +103,20 @@ export const ExamplesModal: React.FC<ExamplesModalProps> = ({
                   borderRadius: 'sm',
                   cursor: 'pointer',
                   outline: 'none',
-                  transition: 'transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease',
+                  transition:
+                    'transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease',
                   ':hover': { borderColor: 'primary', transform: 'translateY(-1px)' },
                   ':focus-visible': { boxShadow: '0 0 0 2px rgba(68,136,255,0.6)' },
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 2,
+                  }}
+                >
                   <Text sx={{ fontSize: 2, fontWeight: 600, color: 'text' }}>{example.name}</Text>
                   <Box
                     sx={{
@@ -125,7 +133,9 @@ export const ExamplesModal: React.FC<ExamplesModalProps> = ({
                     {example.category}
                   </Box>
                 </Box>
-                <Text sx={{ mt: 2, fontSize: 1, color: 'secondaryText' }}>{example.description}</Text>
+                <Text sx={{ mt: 2, fontSize: 1, color: 'secondaryText' }}>
+                  {example.description}
+                </Text>
               </Box>
             ))}
           </Box>

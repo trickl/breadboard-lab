@@ -67,8 +67,8 @@ export function listSavedCircuits(): SavedCircuitInfo[] {
 
   return Object.values(index).sort((a, b) => {
     // Sort by modified date (most recent first), fallback to created date
-    const dateA = new Date(a.modified || a.created).getTime();
-    const dateB = new Date(b.modified || b.created).getTime();
+    const dateA = new Date(a.modified ?? a.created).getTime();
+    const dateB = new Date(b.modified ?? b.created).getTime();
     return dateB - dateA;
   });
 }
@@ -205,7 +205,7 @@ function rebuildCircuitIndex(): Record<string, SavedCircuitInfo> {
 
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.startsWith(STORAGE_KEY_PREFIX)) {
+    if (key?.startsWith(STORAGE_KEY_PREFIX)) {
       try {
         const json = localStorage.getItem(key);
         if (json) {

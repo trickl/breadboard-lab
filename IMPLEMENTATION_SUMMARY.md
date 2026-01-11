@@ -21,6 +21,7 @@ Following the principle of **minimal changes**, this PR delivers:
 5. **Clear integration points** - Documented for follow-up work
 
 This approach:
+
 - ✅ Reduces risk of breaking existing functionality
 - ✅ Allows thorough review of data model
 - ✅ Enables incremental improvements
@@ -29,6 +30,7 @@ This approach:
 ### What's Delivered
 
 #### 1. Data Model (src/core/types.ts)
+
 ```typescript
 interface ComponentLibraryEntry {
   id: string;
@@ -36,7 +38,7 @@ interface ComponentLibraryEntry {
   category: ComponentCategory;
   manufacturer?: string;
   partFamily?: string;
-  package: { kind, pinCount, dimensions };
+  package: { kind; pinCount; dimensions };
   footprint: { pins };
   electrical: Record<string, number | string>;
   visuals: { renderer };
@@ -46,6 +48,7 @@ interface ComponentLibraryEntry {
 ```
 
 #### 2. Library Registry (src/core/component-library.ts)
+
 - Register components
 - Lookup by ID
 - Search by name/description/part number
@@ -53,6 +56,7 @@ interface ComponentLibraryEntry {
 - Global `componentLibrary` instance
 
 #### 3. Library Catalog (src/library/)
+
 - **Resistors** (23 entries): E12 series, 5% and 1% tolerance
 - **LEDs** (4 entries): 3mm yellow, 5mm red/green/blue
 - **Speaker** (1 entry): 8Ω module
@@ -61,6 +65,7 @@ interface ComponentLibraryEntry {
 - **Ground** (1 entry): Reference point
 
 #### 4. Library Utilities (src/core/component-library-utils.ts)
+
 - `findClosestResistor()` - Match resistance values
 - `findClosestLED()` - Match forward voltages
 - `findPowerSupply()` - Find exact voltage
@@ -68,6 +73,7 @@ interface ComponentLibraryEntry {
 - `getComponentPropertiesFromLibrary()` - Property lookup
 
 #### 5. Documentation (COMPONENT_LIBRARY.md)
+
 - Complete architecture guide
 - Usage examples
 - Integration strategy
@@ -139,22 +145,26 @@ const libId = getDefaultLibraryId(resistor);
 ## Integration Strategy
 
 ### Phase 1: Foundation ✅ (This PR)
+
 - Data model and infrastructure
 - Library catalog with 35 components
 - Utility functions and documentation
 
 ### Phase 2: UI Integration (Future PR)
+
 - Component library browser modal
 - Update component selection workflow
 - Library-aware rendering
 - Property editor enhancements
 
 ### Phase 3: Migration (Future PR)
+
 - Automatic migration of old circuits
 - Update example circuits
 - Visual regression testing
 
 ### Phase 4: Enhanced Features (Future)
+
 - User-defined components
 - Import/export library entries
 - Advanced search and filtering
@@ -185,18 +195,23 @@ README.md (updated)
 ## Key Decisions
 
 ### 1. Minimal Changes
+
 No UI modifications in this PR to avoid breaking existing functionality. UI integration is documented for follow-up work.
 
 ### 2. Backward Compatibility
+
 Optional `libraryId` field ensures existing circuits continue to work without modification.
 
 ### 3. Real-World Parts
+
 All components based on actual datasheets with accurate specifications (forward voltages, resistances, package dimensions).
 
 ### 4. E12 Series Resistors
+
 Standard E12 series provides common values that students actually use in breadboarding.
 
 ### 5. Educational Metadata
+
 Each component includes description and typical uses to support learning objectives.
 
 ## Educational Impact
@@ -204,11 +219,13 @@ Each component includes description and typical uses to support learning objecti
 This implementation transforms Breadboard Lab from an **abstract circuit simulator** into a **practical electronics education tool**:
 
 ### Before
+
 - "Place a resistor with any resistance value"
 - "Use an LED with configurable forward voltage"
 - Students don't know which parts to buy
 
 ### After
+
 - "Place a 220Ω 1/4W 5% resistor (Brown-Red-Brown-Gold)"
 - "Use a 5mm red LED (Vf=1.9V, If=20mA)"
 - Students learn specific parts they can purchase

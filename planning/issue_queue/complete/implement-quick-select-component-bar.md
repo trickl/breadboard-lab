@@ -13,6 +13,7 @@ This task implements the missing Quick Select Component Bar as specified in goal
 ## Problem Statement
 
 **Current State:**
+
 - Single "📦 Component Library" button in left toolbar
 - Requires 3+ steps to place first component: (1) Click library button, (2) Search/browse modal, (3) Select component
 - No quick access to frequently-used components
@@ -20,6 +21,7 @@ This task implements the missing Quick Select Component Bar as specified in goal
 - Modal-based workflow interrupts visual focus on breadboard
 
 **Target State (from goal.md Section 12):**
+
 - Quick Select bar displayed prominently on initial load
 - Default items: LED, Wire (red), Resistor, Switch, Battery/power source
 - Users can favorite components from library
@@ -124,16 +126,16 @@ Section 12 of goal.md explicitly states "The tool must be usable **within second
  * Quick Select component entry
  */
 export interface QuickSelectComponent {
-  libraryId: string;         // References ComponentLibraryEntry.id
-  isDefault: boolean;         // True for default 5, false for user favorites
-  order: number;              // Display order (defaults 0-4, favorites 5+)
+  libraryId: string; // References ComponentLibraryEntry.id
+  isDefault: boolean; // True for default 5, false for user favorites
+  order: number; // Display order (defaults 0-4, favorites 5+)
 }
 
 /**
  * Quick Select state persisted to localStorage
  */
 export interface QuickSelectState {
-  components: QuickSelectComponent[];  // Max 8 entries
+  components: QuickSelectComponent[]; // Max 8 entries
 }
 ```
 
@@ -203,14 +205,14 @@ export class QuickSelectManager {
     if (this.components.length >= MAX_COMPONENTS) {
       return false; // At capacity
     }
-    if (this.components.some(c => c.libraryId === libraryId)) {
+    if (this.components.some((c) => c.libraryId === libraryId)) {
       return false; // Already exists
     }
     const entry = componentLibrary.get(libraryId);
     if (!entry) {
       return false; // Invalid library ID
     }
-    
+
     const newComponent: QuickSelectComponent = {
       libraryId,
       isDefault: false,
@@ -225,12 +227,12 @@ export class QuickSelectManager {
    * Remove component from Quick Select (if not default)
    */
   removeComponent(libraryId: string): boolean {
-    const component = this.components.find(c => c.libraryId === libraryId);
+    const component = this.components.find((c) => c.libraryId === libraryId);
     if (!component || component.isDefault) {
       return false; // Cannot remove defaults
     }
-    
-    this.components = this.components.filter(c => c.libraryId !== libraryId);
+
+    this.components = this.components.filter((c) => c.libraryId !== libraryId);
     this.reorder();
     this.save();
     return true;
@@ -240,7 +242,7 @@ export class QuickSelectManager {
    * Check if component is in Quick Select
    */
   hasComponent(libraryId: string): boolean {
-    return this.components.some(c => c.libraryId === libraryId);
+    return this.components.some((c) => c.libraryId === libraryId);
   }
 
   /**
@@ -265,13 +267,13 @@ export class QuickSelectManager {
   private validateAndRepair(): void {
     // Ensure all default components exist
     const defaults = DEFAULT_COMPONENTS.filter(
-      d => !this.components.some(c => c.libraryId === d.libraryId)
+      (d) => !this.components.some((c) => c.libraryId === d.libraryId)
     );
     this.components = [...defaults, ...this.components];
 
     // Validate library IDs
-    this.components = this.components.filter(c => 
-      componentLibrary.get(c.libraryId) !== undefined
+    this.components = this.components.filter(
+      (c) => componentLibrary.get(c.libraryId) !== undefined
     );
 
     // Enforce max capacity
@@ -323,8 +325,8 @@ private renderQuickSelectBar(): void {
     // Label
     const label = document.createElement('div');
     label.className = 'quick-select-label';
-    label.textContent = entry.name.length > 10 
-      ? entry.name.substring(0, 10) + '…' 
+    label.textContent = entry.name.length > 10
+      ? entry.name.substring(0, 10) + '…'
       : entry.name;
     button.appendChild(label);
 
@@ -368,8 +370,8 @@ private renderQuickSelectBar(): void {
 // Add after each component card:
 const addToQuickSelectBtn = document.createElement('button');
 addToQuickSelectBtn.className = 'add-to-quick-select';
-addToQuickSelectBtn.textContent = quickSelectManager.hasComponent(entry.id) 
-  ? '★ In Quick Select' 
+addToQuickSelectBtn.textContent = quickSelectManager.hasComponent(entry.id)
+  ? '★ In Quick Select'
   : '☆ Add to Quick Select';
 addToQuickSelectBtn.disabled = quickSelectManager.hasComponent(entry.id);
 
@@ -398,9 +400,7 @@ addToQuickSelectBtn.onclick = (e) => {
   <!-- Dynamically populated by renderQuickSelectBar() -->
 </div>
 
-<button id="component-library-btn" class="toolbar-btn">
-  📦 Component Library
-</button>
+<button id="component-library-btn" class="toolbar-btn">📦 Component Library</button>
 ```
 
 ### CSS Styling
@@ -528,6 +528,7 @@ addToQuickSelectBtn.onclick = (e) => {
 ## Implementation Plan
 
 ### Phase 1: Core Quick Select Manager (2-3 hours)
+
 1. Create `src/core/quick-select-manager.ts`
 2. Implement QuickSelectManager class with load/save/add/remove methods
 3. Add QuickSelectComponent and QuickSelectState to `src/core/types.ts`
@@ -535,6 +536,7 @@ addToQuickSelectBtn.onclick = (e) => {
 5. Verify localStorage persistence and validation
 
 ### Phase 2: UI Integration (3-4 hours)
+
 1. Add Quick Select container to index.html
 2. Implement `renderQuickSelectBar()` in BreadboardApp
 3. Add click handlers for component selection
@@ -543,6 +545,7 @@ addToQuickSelectBtn.onclick = (e) => {
 6. Test component selection flow end-to-end
 
 ### Phase 3: Library Browser Integration (2-3 hours)
+
 1. Modify `renderComponentLibraryBrowser()` to add "Add to Quick Select" buttons
 2. Implement add-to-Quick-Select handler
 3. Handle capacity limit (8 components max)
@@ -550,6 +553,7 @@ addToQuickSelectBtn.onclick = (e) => {
 5. Test add/remove workflow
 
 ### Phase 4: Styling and Polish (2-3 hours)
+
 1. Add CSS for Quick Select bar layout
 2. Style component buttons (icon, label, hover, selected)
 3. Style remove buttons (✕)
@@ -557,6 +561,7 @@ addToQuickSelectBtn.onclick = (e) => {
 5. Test responsive behavior and scrolling
 
 ### Phase 5: Testing and Documentation (2-3 hours)
+
 1. Write unit tests for QuickSelectManager (load, save, add, remove, validation)
 2. Write integration tests for UI interactions
 3. Update README.md with Quick Select usage
@@ -571,9 +576,10 @@ addToQuickSelectBtn.onclick = (e) => {
 
 ### Unit Tests
 
-**src/core/__tests__/quick-select-manager.test.ts** (NEW FILE)
+**src/core/**tests**/quick-select-manager.test.ts** (NEW FILE)
 
 Test cases:
+
 1. Initialize with defaults when localStorage empty
 2. Load persisted state from localStorage
 3. Add component successfully when below capacity
@@ -592,9 +598,10 @@ Test cases:
 
 ### Integration Tests
 
-**src/ui/__tests__/quick-select-ui.test.ts** (NEW FILE)
+**src/ui/**tests**/quick-select-ui.test.ts** (NEW FILE)
 
 Test cases:
+
 1. Quick Select bar renders on app initialization
 2. Default 5 components displayed correctly
 3. Clicking Quick Select button selects component type
@@ -609,6 +616,7 @@ Test cases:
 ### Manual Verification
 
 Checklist:
+
 - [ ] Quick Select bar visible on first load
 - [ ] 5 default components present (LED, Wire, Resistor, Switch, Power Supply)
 - [ ] Clicking Quick Select button selects component for placement

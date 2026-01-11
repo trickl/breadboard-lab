@@ -1,6 +1,7 @@
 Fix breadboard hole selection reliability
 
 ## Source Review
+
 `planning/reviews/review-2026-01-08.md`
 
 ## Review Items Addressed
@@ -10,11 +11,13 @@ This task addresses **Section 5.3: Breadboard Slot Selection Bug** (lines 115-11
 ### Section 5.3: Breadboard Slot Selection Bug
 
 **Original Issue:**
+
 - Users should be able to select **any breadboard hole or slot** directly.
 - This does not appear to work reliably.
 - This appears to be a bug rather than a design decision.
 
 **Current Status:**
+
 - Not addressed in previous PRs
 - Listed as HIGH priority in actions document
 - Required for wire connections and component placement workflow
@@ -23,6 +26,7 @@ This task addresses **Section 5.3: Breadboard Slot Selection Bug** (lines 115-11
 ### Section 11: Critical Functional Blocker (Partial - line 209)
 
 **Original Issue:**
+
 - "Breadboard holes cannot always be selected"
 
 This is the last unresolved item from the critical functional blockers list.
@@ -30,6 +34,7 @@ This is the last unresolved item from the critical functional blockers list.
 ### Section 12: Priority Summary - Blocking Issues (line 220)
 
 **Original Issue:**
+
 - "Unreliable breadboard hole selection"
 
 This is the last unresolved item from the blocking issues priority list.
@@ -69,6 +74,7 @@ Investigate and fix the breadboard hole selection reliability issue. Users must 
 ### Expected Behavior
 
 After fixes, users should be able to:
+
 - Click/tap any breadboard hole (row or rail) reliably
 - See visual feedback when hovering over a hole (if not already present)
 - Select holes for wire connections consistently
@@ -103,6 +109,7 @@ After fixes, users should be able to:
 ### Files Likely Involved
 
 Based on the codebase structure and previous PRs:
+
 - `src/ui/pixi-renderer.ts` - rendering and hit area definitions
 - `src/ui/breadboard-app.ts` - event handling and interaction logic
 - Possibly breadboard model files if hole definitions are incorrect
@@ -128,11 +135,13 @@ Based on the codebase structure and previous PRs:
 ### Priority Justification
 
 This is the **last remaining blocking issue** from the review's critical functional blockers. Until breadboard holes can be selected reliably:
+
 - Users cannot create wire connections consistently
 - Component placement workflow is unreliable
 - The application cannot be used for its core purpose (building breadboard circuits)
 
 This issue has been explicitly categorized as:
+
 - **HIGH priority** in the actions document
 - **Blocking issue** in the review's priority summary
 - **Required** for wire connections and component placement workflow
@@ -151,6 +160,7 @@ This issue has been explicitly categorized as:
 ## Refactor Safety Rule
 
 This task is a bug fix, not a refactor, so the refactor safety rule does not apply. However:
+
 - Move code verbatim first if any reorganization is needed
 - Update imports/call sites next
 - Then do targeted improvements
@@ -160,17 +170,19 @@ This task is a bug fix, not a refactor, so the refactor safety rule does not app
 ## Related Context
 
 From `review-2026-01-08.actions.md`:
+
 > **From Section 5.3: Breadboard Hole Selection**
-> 
+>
 > **Not yet addressed:**
+>
 > - Breadboard hole hit detection issues
 > - Overlapping interactive elements blocking holes
 > - Visual feedback for hole hover/selection
 > - Z-index/layering verification
 > - Hit area vs visual hole size tuning
-> 
+>
 > **Complexity:** MEDIUM — likely event handling or layering issue
-> 
+>
 > **Priority:** HIGH — required for wire connections and component placement workflow
 
 This provides additional context on the likely nature of the issue and expected investigation areas.

@@ -85,6 +85,7 @@ These features are **native abstractions in Rete.js** but require significant cu
 **Section 3: Core Conceptual Model**
 
 > "All meaningful physical and electrical entities are represented as **Rete nodes**, including:
+>
 > - Components (LEDs, resistors, transistors, switches, batteries)
 > - Breadboard holes (conceptually, even if visually grouped)
 > - Wires (either edges or thin intermediary nodes)"
@@ -101,7 +102,6 @@ These features are **native abstractions in Rete.js** but require significant cu
   - Properties: type, rotation (continuous angle), electrical properties (resistance, voltage, etc.)
   - Connectors: Fixed sockets representing component legs/terminals
   - Visual: Component body rendered at node position with rotation applied
-  
 - **Breadboard hole nodes**: Represent connection points on the breadboard
   - Properties: position (row, column), rail/strip membership
   - Connectors: Single input socket (enforces one-connector-per-hole)
@@ -163,6 +163,7 @@ These features are **native abstractions in Rete.js** but require significant cu
    - Sync PixiRenderer state from Rete editor state
 
 **Acceptance Criteria**:
+
 - Rete.js editor initializes without errors
 - Existing components can be represented as Rete nodes
 - Circuit extraction works with Rete-based state
@@ -177,6 +178,7 @@ These features are **native abstractions in Rete.js** but require significant cu
 **From goal.md Section 5.3.1:**
 
 > "Selecting a component does **not** immediately place it on the breadboard. The component appears **adjacent to the board**, floating beside it. The user:
+>
 > 1. Drags the component body into position
 > 2. Connects individual legs to breadboard holes"
 
@@ -205,6 +207,7 @@ These features are **native abstractions in Rete.js** but require significant cu
    - Circuit extraction only includes fully connected components
 
 **Acceptance Criteria**:
+
 - Components can be placed in staging area
 - Individual legs can be connected to holes
 - One-connector-per-hole constraint enforced
@@ -220,12 +223,14 @@ These features are **native abstractions in Rete.js** but require significant cu
 **From goal.md Section 7.2:**
 
 > "All components support **continuous rotation** (not limited to 90°). When selected:
+>
 > - A rotation handle or arc is shown
 > - Dragging rotates the component"
 
 **From goal.md Section 6.2:**
 
 > "Wires are draggable via control points. Re-routing must be supported (Rete re-root pattern):
+>
 > - Dragging a segment recalculates the path
 > - Routing avoids component overlap where possible"
 
@@ -251,6 +256,7 @@ These features are **native abstractions in Rete.js** but require significant cu
    - Wire color selectable by user
 
 **Acceptance Criteria**:
+
 - Components rotate continuously (not quantized to 90°)
 - Rotation handle appears on selected components
 - Wires have draggable control points or segments
@@ -268,6 +274,7 @@ These features are **native abstractions in Rete.js** but require significant cu
 > "Switches are **stateful, interactive components**. Primary challenge: left-click is already used for dragging."
 
 > "Interaction Model:
+>
 > - Short click (below movement threshold): toggles switch state
 > - Click-and-drag: moves the switch
 > - Optional future enhancement: dedicated toggle hotspot"
@@ -294,6 +301,7 @@ These features are **native abstractions in Rete.js** but require significant cu
    - Include in Quick Select Bar (one of the 5 default components)
 
 **Acceptance Criteria**:
+
 - Switch components can be placed and connected
 - Short click toggles switch state (< 5px movement threshold)
 - Switch state affects circuit behavior (open vs closed)
@@ -309,14 +317,16 @@ These features are **native abstractions in Rete.js** but require significant cu
 **From goal.md Section 4.2:**
 
 > "These modes overlay additional information on top of either view:
+>
 > 1. **Electrical View Mode**
 > 2. **X-Ray Mode**
-> They are independent toggles and may be enabled or disabled separately."
+>    They are independent toggles and may be enabled or disabled separately."
 
 **X-Ray Mode (Section 10)**:
 
 > "X-Ray Mode reveals the **hidden internal wiring of the breadboard**.
 > When enabled:
+>
 > - Internal breadboard buses and rails become visible
 > - Electrically shared holes are visually grouped or linked
 > - Overlaid wiring is clearly distinguishable from user-added wires"
@@ -325,6 +335,7 @@ These features are **native abstractions in Rete.js** but require significant cu
 
 > "Electrical View Mode exposes **dynamic electrical behaviour** that cannot be observed physically.
 > When enabled:
+>
 > - Animated connectors show **where current is flowing**
 > - Animations appear **only on active paths**
 > - Flow direction and speed reflect current magnitude
@@ -353,6 +364,7 @@ These features are **native abstractions in Rete.js** but require significant cu
    - Toggle states independent of Physical vs Logical view selection
 
 **Acceptance Criteria**:
+
 - Two toggle buttons in UI
 - X-Ray Mode reveals internal breadboard connectivity
 - Electrical View Mode shows voltage/current values and animated current flow
@@ -368,6 +380,7 @@ These features are **native abstractions in Rete.js** but require significant cu
 **From goal.md Section 12 and 13:**
 
 > "The tool must be usable **within seconds**. Displayed prominently on initial load:
+>
 > - LED
 > - Wire (red)
 > - Resistor
@@ -375,6 +388,7 @@ These features are **native abstractions in Rete.js** but require significant cu
 > - Battery / power source"
 
 > "On first load, users must see:
+>
 > - A **working example circuit**
 > - At least one interactive element (e.g. switch + LED)"
 
@@ -400,6 +414,7 @@ These features are **native abstractions in Rete.js** but require significant cu
    - Tooltip/hint system guides user to first actions
 
 **Acceptance Criteria**:
+
 - Quick Select Bar shows 5 default components on load
 - One-click component selection from bar
 - First-time users see working example circuit
@@ -544,6 +559,7 @@ The migration is complete when:
 **Risk**: Rete.js abstraction layer may introduce performance overhead.
 
 **Mitigation**:
+
 - Profile early and often during development
 - Use PixiJS rendering plugin to maintain WebGL performance
 - Optimize Rete node update frequency
@@ -554,6 +570,7 @@ The migration is complete when:
 **Risk**: Development team unfamiliar with Rete.js paradigms.
 
 **Mitigation**:
+
 - Allocate time for Rete.js documentation review and experimentation
 - Start with simple proof-of-concept (single node type, basic connection)
 - Leverage Rete.js community examples and plugins
@@ -564,6 +581,7 @@ The migration is complete when:
 **Risk**: Migration introduces subtle bugs or breaks existing workflows.
 
 **Mitigation**:
+
 - Parallel implementation approach (feature flag)
 - Comprehensive testing during transition
 - Beta testing period with flag enabled
@@ -574,6 +592,7 @@ The migration is complete when:
 **Risk**: Rete.js default rendering does not match photorealistic quality.
 
 **Mitigation**:
+
 - Integrate PixiRenderer as Rete plugin (preserve all visual features)
 - Visual regression tests catch regressions
 - Manual review of visual quality before cutover
@@ -585,6 +604,7 @@ The migration is complete when:
 **Total Effort**: 4-6 weeks (1 senior engineer, full-time)
 
 **Phase Breakdown**:
+
 - Phase 1 (Foundation): 1 week
 - Phase 2 (Leg-Level Connections): 1-2 weeks
 - Phase 3 (Rotation and Routing): 1 week

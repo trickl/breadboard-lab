@@ -1,5 +1,4 @@
-Integrate Component Library UI with Browser Modal
-===================================================
+# Integrate Component Library UI with Browser Modal
 
 ## Context
 
@@ -10,6 +9,7 @@ This creates a significant gap between the educational vision—teaching student
 ## Current State
 
 **Component library infrastructure (complete):**
+
 - `ComponentLibraryEntry` data model with physical/electrical specifications
 - Component registry with lookup, search, and filtering capabilities
 - 35 cataloged components:
@@ -24,6 +24,7 @@ This creates a significant gap between the educational vision—teaching student
 - Complete documentation (COMPONENT_LIBRARY.md)
 
 **UI state (incomplete):**
+
 - Left toolbar shows 5 abstract buttons
 - No component browser or search interface
 - No access to manufacturer metadata or specifications
@@ -33,6 +34,7 @@ This creates a significant gap between the educational vision—teaching student
 ## Goal
 
 Replace the abstract component type buttons with a modern component browser that enables:
+
 1. Browsing the component library by category
 2. Searching components by name, description, or part number
 3. Viewing detailed specifications before placement
@@ -45,6 +47,7 @@ Replace the abstract component type buttons with a modern component browser that
 Create a searchable, categorized component browser modal that opens when users click a new "📦 Component Library" button in the toolbar.
 
 **Modal structure:**
+
 - Header with search input (filters by name/description/part number)
 - Category tabs or accordion (Passive, Diode, Power, Interconnect, etc.)
 - Component grid displaying:
@@ -56,12 +59,14 @@ Create a searchable, categorized component browser modal that opens when users c
 - User then places selected component using existing two-click interaction
 
 **Search and filter:**
+
 - Real-time text search using `componentLibrary.search(query)`
 - Category filtering using `componentLibrary.getByCategory(category)`
 - Combined search + category filter
 - Clear search button to reset
 
 **Component cards:**
+
 - Name and description
 - Physical specs (package, dimensions, pin count)
 - Electrical specs (resistance, voltage, current ratings, tolerance)
@@ -71,11 +76,13 @@ Create a searchable, categorized component browser modal that opens when users c
 ### 2. Toolbar Updates
 
 **Replace existing buttons:**
+
 - Remove 5 individual component type buttons
 - Add single "📦 Component Library" button that opens browser modal
 - Keep existing buttons: Examples, Load, Save, Clear All
 
 **Rationale:**
+
 - Cleaner interface (1 button instead of 5)
 - Scalable to any number of components
 - Consistent with modern component selection patterns
@@ -83,6 +90,7 @@ Create a searchable, categorized component browser modal that opens when users c
 ### 3. Property Editor Enhancement (Optional)
 
 When a component with `libraryId` is selected, show library metadata in property editor:
+
 - Component name from library
 - Manufacturer and part number (if available)
 - Physical package information
@@ -93,12 +101,14 @@ This is optional for the initial implementation but would enhance the educationa
 ### 4. Migration Strategy
 
 **Backward compatibility:**
+
 - Existing circuits without `libraryId` continue to work
 - When loading old circuits, use `getDefaultLibraryId()` to suggest library match
 - Property editor still allows editing raw values
 - All existing tests remain passing
 
 **Gradual migration path:**
+
 1. New components placed from browser get `libraryId` automatically
 2. Existing components without `libraryId` render as before
 3. Future enhancement: "Migrate to Library Part" button in property editor
@@ -106,14 +116,17 @@ This is optional for the initial implementation but would enhance the educationa
 ## Technical Details
 
 **Files to modify:**
+
 - `src/ui/breadboard-app.ts`: Add component browser modal, remove old buttons
 - `src/style.css`: Add modal styling for component browser
 - `src/ui/component-renderer.ts`: (Optional) Size-accurate rendering based on library package dimensions
 
 **Files to create:**
+
 - `src/ui/component-browser.ts`: New component browser UI class (optional, can be inline in breadboard-app)
 
 **Integration points (from COMPONENT_LIBRARY.md):**
+
 - Component browser modal uses `componentLibrary.getAll()` for initial display
 - Search uses `componentLibrary.search(query)`
 - Category filtering uses `componentLibrary.getByCategory(category)`
@@ -136,10 +149,12 @@ This is optional for the initial implementation but would enhance the educationa
 ## Educational Impact
 
 This change transforms the user experience from:
+
 - **Before**: "Click 'Resistor' button, place a generic resistor, set resistance to 1000Ω"
 - **After**: "Click 'Component Library', search or browse for '1kΩ 1/4W 5% Resistor (Brown-Black-Red-Gold)', see it's a Yageo CFR series axial package, select it, place it"
 
 Students learn:
+
 - What real components look like (package types, physical dimensions)
 - How to read specifications (tolerance, power rating, voltage rating)
 - Which parts to purchase for projects
@@ -175,6 +190,7 @@ Students learn:
 ## Estimated Complexity
 
 **Medium** - Requires UI development but leverages existing infrastructure:
+
 - Component browser modal: ~200-300 lines
 - Toolbar updates: ~50 lines
 - CSS styling: ~100 lines

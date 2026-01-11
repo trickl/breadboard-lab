@@ -12,7 +12,7 @@ The goal.md document specifies that this iteration must "Replace the current Pix
 Currently, system_capabilities.md explicitly documents that this interaction model is **not yet implemented** (lines 3310-3312):
 
 > - ❌ Floating component drag handling (component appears but user cannot drag it yet) — Phase 3d
-> - ❌ Interactive connection creation (drag-from-leg-to-hole) — Phase 3d  
+> - ❌ Interactive connection creation (drag-from-leg-to-hole) — Phase 3d
 > - ❌ BreadboardState synchronization on connection events — Phase 3d
 
 The system currently uses a legacy two-click placement model (click hole 1, click hole 2) which does NOT match the goal.md specification. PR #237 laid the foundational infrastructure (Phase 3b-3c), but the actual user-facing interaction workflow remains incomplete.
@@ -20,6 +20,7 @@ The system currently uses a legacy two-click placement model (click hole 1, clic
 ## Gap Analysis
 
 **Target State (goal.md):**
+
 - Component selection spawns a floating component adjacent to the breadboard
 - User can drag the floating component body around the canvas
 - User drags from component legs to breadboard holes to create connections
@@ -28,6 +29,7 @@ The system currently uses a legacy two-click placement model (click hole 1, clic
 - A hole may only accept one connector (one-connector-per-hole constraint enforced during interaction)
 
 **Current State (system_capabilities.md):**
+
 - Component selection immediately enters two-click placement mode
 - User clicks hole 1, then hole 2 to place component
 - No floating component interaction exists
@@ -49,6 +51,7 @@ Implement the complete interactive connection workflow (Rete.js Phase 3d) that e
 **When:** User selects a component from the library (via component library browser)
 
 **Then:**
+
 - Component appears as a FloatingComponent at the canvas edge (already implemented in PR #237)
 - Component is immediately draggable (NOT YET IMPLEMENTED)
 - User can click and drag the component body to any position on canvas
@@ -61,12 +64,14 @@ Implement the complete interactive connection workflow (Rete.js Phase 3d) that e
 - Component can be dragged anywhere on canvas, not constrained to grid
 
 **Visual feedback:**
+
 - Component body renders with semi-transparent appearance
 - Legs (connectors) render at correct positions relative to body center
 - Rotation handle or visual indicator shows current orientation
 - Component follows mouse smoothly (60fps target)
 
 **Implementation notes:**
+
 - Extend existing FloatingComponent infrastructure from PR #237
 - Hook into PixiJS event system for pointerdown/pointermove/pointerup on floating component
 - Update floating component position on every mousemove event
@@ -78,6 +83,7 @@ Implement the complete interactive connection workflow (Rete.js Phase 3d) that e
 **When:** User has a floating component on canvas
 
 **Then:**
+
 - User can initiate a connection drag from any component leg (connector)
 - Dragging from leg to breadboard hole creates a connection
 - Connection is validated against one-connector-per-hole constraint
@@ -86,6 +92,7 @@ Implement the complete interactive connection workflow (Rete.js Phase 3d) that e
 - Successfully connected legs transition from floating state to placed state
 
 **Interaction flow:**
+
 1. **Initiate connection drag:**
    - User pointerdown on component leg (connector node in Rete graph)
    - Visual feedback: connection line starts rendering from leg position to cursor
@@ -115,16 +122,19 @@ Implement the complete interactive connection workflow (Rete.js Phase 3d) that e
    - Component remains floating, user can retry
 
 **Multi-leg components:**
+
 - Components with multiple legs (resistor: 2, LED: 2, EDU-8: 16) require all legs connected before component is fully placed
 - Alternatively, implement partial placement: component becomes "placed" after first leg connection, remaining legs can be connected subsequently
 - Goal.md does not specify; recommend full-placement-on-all-connections for consistency with goal's "connect individual legs" language
 
 **Validation rules enforced during interaction:**
+
 - One-connector-per-hole constraint (use existing `isHoleOccupied()` from Phase 3a)
 - Target hole must be within breadboard bounds
 - Component leg and breadboard hole must be compatible socket types (use Rete socket system)
 
 **Implementation notes:**
+
 - Use existing Rete connection drag infrastructure from rete-connection-plugin
 - Hook into Rete connection events (onConnectionCreated) already set up in Phase 3a
 - Use existing connection validator from Phase 3a for runtime validation
@@ -136,6 +146,7 @@ Implement the complete interactive connection workflow (Rete.js Phase 3d) that e
 **When:** User successfully creates a connection via drag-from-leg-to-hole interaction
 
 **Then:**
+
 - Connection is created in Rete graph (already handled by Rete.js)
 - BreadboardState is updated to reflect the new connection
 - If component is now fully connected (all legs placed):
@@ -146,6 +157,7 @@ Implement the complete interactive connection workflow (Rete.js Phase 3d) that e
   - Visual overlays update (voltage heatmap, current animation)
 
 **Synchronization flow:**
+
 1. **Connection created event fires** (Rete.js event, handler already registered in Phase 3a)
 2. **Event handler extracts connection data:**
    - Source: component ID and leg index
@@ -167,12 +179,14 @@ Implement the complete interactive connection workflow (Rete.js Phase 3d) that e
    - User can continue connecting remaining legs
 
 **Connection removal:**
+
 - When user deletes a connection (future Phase 3e task), reverse synchronization:
   - Remove position mapping from BreadboardState Component
   - If component becomes partially placed, optionally transition back to floating state
   - Re-run circuit extraction and simulation
 
 **Implementation notes:**
+
 - Extend `onConnectionCreated` handler in BreadboardApp (already exists from Phase 3a setup)
 - Use existing `syncFromBreadboardState()` method to maintain Rete graph consistency
 - Reuse existing circuit extraction and simulation pipeline
@@ -184,11 +198,13 @@ Implement the complete interactive connection workflow (Rete.js Phase 3d) that e
 **When:** Phase 3d implementation is complete and tested
 
 **Then:**
+
 - Set `USE_RETE_INTERACTIVE = true` in BreadboardApp
 - Default interaction model switches from two-click placement to floating component workflow
 - Legacy two-click placement code can be deprecated (but retain for reference)
 
 **Backward compatibility:**
+
 - Existing saved circuits (from two-click era) must load correctly
 - Circuit extraction works identically for both interaction models (already verified in Phase 2)
 - All 441 existing tests must pass
@@ -196,15 +212,18 @@ Implement the complete interactive connection workflow (Rete.js Phase 3d) that e
 #### 5. User Experience Refinements
 
 **Escape key behavior:**
+
 - Pressing Escape while dragging floating component cancels placement
 - Component disappears from canvas
 - No state changes occur
 
 **Right-click context menu (optional enhancement):**
+
 - Right-click on floating component shows: "Rotate", "Cancel Placement"
 - Right-click on placed component shows existing context menu if any
 
 **Visual clarity:**
+
 - Floating components render above placed components (z-order)
 - Connection lines render below components but above breadboard
 - Cursor changes to indicate drag states:
@@ -214,6 +233,7 @@ Implement the complete interactive connection workflow (Rete.js Phase 3d) that e
   - "not-allowed" cursor when hovering invalid target hole
 
 **Touch support considerations:**
+
 - Touch-and-hold on floating component initiates drag
 - Touch-and-hold on leg initiates connection drag
 - Single-finger drag moves component or connection line
@@ -222,24 +242,28 @@ Implement the complete interactive connection workflow (Rete.js Phase 3d) that e
 #### 6. Testing Requirements
 
 **Unit tests:**
+
 - Floating component drag state management
 - Connection creation validation (one-connector-per-hole)
 - BreadboardState synchronization on connection events
 - Partial vs full component placement logic
 
 **Integration tests:**
+
 - End-to-end workflow: select component → drag floating → connect legs → verify placed
 - Multi-leg component placement (resistor, LED, EDU-8)
 - Connection rejection scenarios (occupied hole, invalid hole)
 - Circuit extraction equivalence: interactive placement produces same circuit as two-click
 
 **Visual regression tests:**
+
 - Update existing Playwright tests to use new interaction model
 - Verify floating component rendering
 - Verify connection line rendering during drag
 - Verify hover effects and validation feedback
 
 **Manual testing:**
+
 - Load each example circuit, verify simulation correctness
 - Place each component type (resistor, LED, power supply, wire, ground, microprocessor)
 - Test edge cases: component drag off canvas, rapid clicking, connection cancellation
@@ -252,18 +276,21 @@ Implement the complete interactive connection workflow (Rete.js Phase 3d) that e
 This task is large and should be broken into incremental substeps:
 
 **3d.1: Floating Component Drag**
+
 - Implement pointerdown/pointermove/pointerup handlers for floating component body
 - Update FloatingComponent position state on drag
 - Add Escape key cancellation
 - Test: Drag floating component around canvas smoothly
 
 **3d.2: Connection Line Rendering During Drag**
+
 - Extend existing connection rendering to support in-progress connections
 - Render bezier curve from leg to cursor during drag
 - Implement hover effects on target holes
 - Test: Visual connection line follows cursor, holes highlight on hover
 
 **3d.3: Connection Validation and Creation**
+
 - Implement pointerdown on leg to initiate connection drag
 - Implement validation on pointerup over hole (use existing `isHoleOccupied()`)
 - Call `createConnection()` on valid drop
@@ -271,6 +298,7 @@ This task is large and should be broken into incremental substeps:
 - Test: Valid connections create, invalid connections reject with feedback
 
 **3d.4: BreadboardState Synchronization**
+
 - Extend `onConnectionCreated` handler to update BreadboardState
 - Implement fully-placed vs partially-placed logic
 - Transition component from floating to placed when all legs connected
@@ -278,6 +306,7 @@ This task is large and should be broken into incremental substeps:
 - Test: Placed components appear in circuit simulation correctly
 
 **3d.5: Enable Feature Flag and Integration Testing**
+
 - Set USE_RETE_INTERACTIVE = true
 - Update or disable affected unit tests (10 tests fail with flag enabled, per PR #237)
 - Update visual regression test baselines
@@ -287,12 +316,14 @@ This task is large and should be broken into incremental substeps:
 ### Code Locations
 
 **Files to modify:**
+
 - `src/ui/breadboard-app.ts`: Add event handlers for floating component drag and connection creation
 - `src/ui/pixi-renderer.ts`: Extend connection rendering for in-progress connections, add hover feedback on holes
 - `src/core/rete-manager.ts`: No changes needed (APIs already exist)
 - `src/core/types.ts`: Potentially add `isFullyPlaced` flag to FloatingComponent or Component
 
 **Files to review:**
+
 - PR #237 implementation: Understand existing floating component infrastructure
 - PR #231 implementation (Phase 3a): Understand existing connection validation and event handling
 - goal.md sections 5.3, 5.4, 6.2: Verify all interaction requirements met
@@ -300,20 +331,25 @@ This task is large and should be broken into incremental substeps:
 ### Risks and Mitigations
 
 **Risk 1: Performance degradation with many floating components**
+
 - Mitigation: Limit to 1-3 floating components at a time, or implement object pooling
 
 **Risk 2: Complex multi-leg component placement UX**
+
 - Mitigation: Start with 2-pin components (resistor, LED), then extend to EDU-8 (16 pins)
 
 **Risk 3: Touch interaction conflicts with zoom/pan**
+
 - Mitigation: Use touch-and-hold with delay to disambiguate drag vs pan gestures
 
 **Risk 4: Existing tests may be tightly coupled to two-click model**
+
 - Mitigation: PR #237 noted 10 tests fail with USE_RETE_INTERACTIVE=true; update these tests to use new interaction API
 
 ## Success Metrics
 
 **Functional completeness:**
+
 - [ ] User can select component from library and it appears floating
 - [ ] User can drag floating component body around canvas
 - [ ] User can drag from component leg to breadboard hole to create connection
@@ -324,12 +360,14 @@ This task is large and should be broken into incremental substeps:
 - [ ] USE_RETE_INTERACTIVE flag can be enabled with zero breaking changes
 
 **Quality metrics:**
+
 - [ ] All existing unit tests pass (441+ tests)
 - [ ] Visual regression tests updated and passing
 - [ ] No performance degradation (60fps maintained)
 - [ ] No accessibility regressions (keyboard navigation still works)
 
 **User experience validation:**
+
 - [ ] First-time users can place a component without instructions (< 30 seconds)
 - [ ] Floating component drag feels responsive and intuitive
 - [ ] Connection creation feels precise and predictable
@@ -338,16 +376,19 @@ This task is large and should be broken into incremental substeps:
 ## Related Work
 
 **Depends on:**
+
 - PR #237 (Phase 3b-3c): Floating component infrastructure, hole hover effects, connection rendering
 - PR #231 (Phase 3a): Connection event handling, validation infrastructure
 
 **Enables:**
+
 - Phase 3e: Test infrastructure updates for new interaction model
 - Future: Wire re-routing (drag control points on existing connections)
 - Future: Connection deletion UI
 - Future: Multi-select and bulk operations on floating/placed components
 
 **Deferred to future tasks:**
+
 - Continuous rotation interaction (mouse wheel on floating component)
 - Right-click context menus
 - Wire re-routing (Section 6.2 of goal.md)
@@ -360,6 +401,7 @@ This task is large and should be broken into incremental substeps:
 Completing this task directly serves the goal.md's stated purpose of improving "first-time user experience so the tool is immediately understandable and usable" (Section 1, Goal 3).
 
 The floating component interaction model:
+
 - **Reduces cognitive load**: User sees the component before placing it
 - **Improves spatial reasoning**: User can position component body before committing to pin placement
 - **Teaches physical reality**: Mimics how real breadboard prototyping works (place component, insert legs)

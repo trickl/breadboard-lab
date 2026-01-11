@@ -32,7 +32,7 @@ export interface Command {
 export class AddComponentCommand implements Command {
   readonly description: string;
 
-  constructor(private component: AnyComponent) {
+  constructor(private readonly component: AnyComponent) {
     this.description = `Add ${component.type}`;
   }
 
@@ -58,8 +58,8 @@ export class DeleteComponentCommand implements Command {
   readonly description: string;
 
   constructor(
-    private componentId: string,
-    private component: AnyComponent
+    private readonly componentId: string,
+    private readonly component: AnyComponent
   ) {
     this.description = `Delete ${component.type}`;
   }
@@ -75,10 +75,8 @@ export class DeleteComponentCommand implements Command {
   }
 
   undo(state: BreadboardState): BreadboardState {
-    return {
-      ...state,
-      components: [...state.components, this.component],
-    };
+    // Reuse the add logic to keep behavior consistent with adding a component.
+    return new AddComponentCommand(this.component).execute(state);
   }
 }
 
@@ -89,9 +87,9 @@ export class MoveComponentCommand implements Command {
   readonly description: string;
 
   constructor(
-    private componentId: string,
-    private oldPositions: Position[],
-    private newPositions: Position[]
+    private readonly componentId: string,
+    private readonly oldPositions: Position[],
+    private readonly newPositions: Position[]
   ) {
     this.description = `Move component`;
   }
@@ -122,11 +120,11 @@ export class RotateComponentCommand implements Command {
   readonly description: string;
 
   constructor(
-    private componentId: string,
-    private oldRotation: 0 | 90 | 180 | 270,
-    private newRotation: 0 | 90 | 180 | 270,
-    private oldPositions: Position[],
-    private newPositions: Position[]
+    private readonly componentId: string,
+    private readonly oldRotation: 0 | 90 | 180 | 270,
+    private readonly newRotation: 0 | 90 | 180 | 270,
+    private readonly oldPositions: Position[],
+    private readonly newPositions: Position[]
   ) {
     this.description = `Rotate component`;
   }
@@ -161,10 +159,10 @@ export class EditPropertyCommand implements Command {
   readonly description: string;
 
   constructor(
-    private componentId: string,
-    private propertyName: string,
-    private oldValue: unknown,
-    private newValue: unknown
+    private readonly componentId: string,
+    private readonly propertyName: string,
+    private readonly oldValue: unknown,
+    private readonly newValue: unknown
   ) {
     this.description = `Edit ${propertyName}`;
   }
@@ -201,10 +199,10 @@ export class RepositionPinCommand implements Command {
   readonly description: string;
 
   constructor(
-    private componentId: string,
-    private pinIndex: number,
-    private oldPosition: Position,
-    private newPosition: Position
+    private readonly componentId: string,
+    private readonly pinIndex: number,
+    private readonly oldPosition: Position,
+    private readonly newPosition: Position
   ) {
     this.description = `Reposition pin ${pinIndex}`;
   }

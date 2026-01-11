@@ -14,6 +14,7 @@ This directory contains planning documents for the Breadboard Lab project.
 Comprehensive planning document for migrating from PixiJS bespoke wiring system to Rete.js visual programming graph architecture.
 
 **Contents:**
+
 - Executive summary and unique selling proposition
 - Current state analysis (pain points, what works well)
 - Competitor analysis (Fritzing, CircuitJS, Wokwi)
@@ -28,6 +29,7 @@ Comprehensive planning document for migrating from PixiJS bespoke wiring system 
 - Definition of done with 26+ checkboxes
 
 **Key Decisions:**
+
 1. Hybrid architecture: Rete.js for graph logic, PixiJS for rendering
 2. Phased approach with proof-of-concept first
 3. Core layer (circuit extraction/simulation) remains unchanged
@@ -41,9 +43,11 @@ Comprehensive planning document for migrating from PixiJS bespoke wiring system 
 ## Issue Queue
 
 ### Processed
+
 - [migrate-to-retejs-architecture.md](./issue_queue/processed/migrate-to-retejs-architecture.md) — Original issue description
 
 ### Complete
+
 - See [issue_queue/complete/](./issue_queue/complete/) for completed features
 
 ## How to Use This Documentation

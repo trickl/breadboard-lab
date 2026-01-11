@@ -4,9 +4,9 @@ import { CircuitSimulator } from '@/core/circuit-simulator';
 import type { ReteManager } from '@/core/rete-manager';
 
 export class SimulationRunner {
-  private controller: BreadboardController;
-  private extractor: CircuitExtractor;
-  private simulator: CircuitSimulator;
+  private readonly controller: BreadboardController;
+  private readonly extractor: CircuitExtractor;
+  private readonly simulator: CircuitSimulator;
   private debounceTimer: number | null = null;
   private reteManager: ReteManager | null = null;
 

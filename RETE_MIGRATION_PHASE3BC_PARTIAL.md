@@ -11,6 +11,7 @@
 This document details the partial implementation of Phases 3b and 3c of the Rete.js interactive connection workflow, as specified in issue [Implement Rete.js Interactive Connection Workflow (Phases 3b-3e)](planning/issue_queue/processed/implement-rete-interactive-connection-workflow.md).
 
 **Scope of Work Completed**: Foundation infrastructure for interactive connection creation, including:
+
 - Visual feedback systems (hole hover states, connection line rendering)
 - Floating component model (data structures and rendering)
 - Feature flag controlled workflow switching
@@ -30,12 +31,14 @@ This document details the partial implementation of Phases 3b and 3c of the Rete
 Added interactive hover effects to breadboard holes:
 
 **Changes**:
+
 - Extended `PixiEventHandlers` interface with `onHoleHover` and `onHoleHoverOut` callbacks
 - Modified `renderHole()` method to add hover event listeners
 - Hover effect: Blue glow ring (color: `0x44aaff`, width: 2px, alpha: 0.6) appears on `pointerover`
 - Glow is removed on `pointerout`
 
 **Implementation**:
+
 ```typescript
 // In renderHole() method
 hole.on('pointerover', (event: FederatedPointerEvent) => {
@@ -44,7 +47,7 @@ hole.on('pointerover', (event: FederatedPointerEvent) => {
   hoverGlow.stroke({ width: 2, color: 0x44aaff, alpha: 0.6 });
   (hole as any).hoverGlow = hoverGlow;
   hole.addChild(hoverGlow);
-  
+
   this.eventHandlers.onHoleHover?.(pos, event);
 });
 
@@ -54,12 +57,13 @@ hole.on('pointerout', (event: FederatedPointerEvent) => {
     hole.removeChild(hoverGlow);
     (hole as any).hoverGlow = null;
   }
-  
+
   this.eventHandlers.onHoleHoverOut?.(pos, event);
 });
 ```
 
 **Visual Behavior**:
+
 - Hover state provides clear visual feedback for target holes during connection creation
 - Consistent with goal.md requirement: "Invalid connections should be visually rejected with subtle feedback"
 - Performance: No frame rate impact (tested with 420 interactive holes)
@@ -71,17 +75,20 @@ hole.on('pointerout', (event: FederatedPointerEvent) => {
 Added infrastructure for rendering Rete connection lines:
 
 **Changes**:
+
 - Added `connectionsContainer` layer to PixiRenderer (z-order: between breadboard and components)
 - Implemented `renderConnections()` method with bezier curve rendering
 - Integrated connection rendering into BreadboardApp render pipeline (behind `USE_RETE_INTERACTIVE` flag)
 
 **Current Implementation**:
+
 - Renders simplified connections between adjacent component positions
 - Uses bezier curves for aesthetic routing (arc height: 15px)
 - Line style: width 2px, color `0x999999` (gray), alpha 0.7
 - Future enhancement: Parse actual Rete graph structure to render true leg-to-hole connections
 
 **Code Structure**:
+
 ```typescript
 renderConnections(
   reteManager: { getConnections(), getComponentNode(), getHoleNode(), ... } | null,
@@ -96,10 +103,15 @@ renderConnections(
 ```
 
 **Integration Point**:
+
 ```typescript
 // In BreadboardApp.renderBreadboard()
 if (USE_RETE_INTERACTIVE && this.reteManager) {
-  this.pixiRenderer.renderConnections(this.reteManager, this.state.components, this.cachedSimulation);
+  this.pixiRenderer.renderConnections(
+    this.reteManager,
+    this.state.components,
+    this.cachedSimulation
+  );
 }
 ```
 
@@ -113,21 +125,23 @@ Added `FloatingComponent` interface:
 
 ```typescript
 export interface FloatingComponent {
-  id: string;                          // Unique floating component ID
-  type: ComponentType;                 // Component type (RESISTOR, LED, etc.)
-  libraryId?: string;                  // Optional library reference
-  position: { x: number; y: number };  // Canvas coordinates (pixels, not grid)
-  rotation: number;                    // Continuous rotation in degrees (0-360)
-  properties: {                        // Component-specific properties
-    resistance?: number;               // For resistors (Ohms)
-    forwardVoltage?: number;          // For LEDs (Volts)
-    maxCurrent?: number;              // For LEDs (Amperes)
-    voltage?: number;                 // For power supplies (Volts)
+  id: string; // Unique floating component ID
+  type: ComponentType; // Component type (RESISTOR, LED, etc.)
+  libraryId?: string; // Optional library reference
+  position: { x: number; y: number }; // Canvas coordinates (pixels, not grid)
+  rotation: number; // Continuous rotation in degrees (0-360)
+  properties: {
+    // Component-specific properties
+    resistance?: number; // For resistors (Ohms)
+    forwardVoltage?: number; // For LEDs (Volts)
+    maxCurrent?: number; // For LEDs (Amperes)
+    voltage?: number; // For power supplies (Volts)
   };
 }
 ```
 
 **Design Rationale**:
+
 - Canvas-based positioning (`{x, y}` pixels) instead of grid positions allows free placement
 - Continuous rotation support (0-360°) aligns with goal.md Section 7.2 requirement
 - Properties dictionary accommodates all component types without type-specific interfaces
@@ -140,6 +154,7 @@ export interface FloatingComponent {
 Added floating component state and creation logic:
 
 **State Addition**:
+
 ```typescript
 export class BreadboardApp {
   // ...existing state...
@@ -148,28 +163,29 @@ export class BreadboardApp {
 ```
 
 **Creation Method**:
+
 ```typescript
 private createFloatingComponent(type: ComponentType, libraryId?: string): void {
   const id = `floating-${this.componentIdCounter++}`;
-  
+
   // Position at right edge of breadboard
   const gridWidth = BreadboardLayout.TOTAL_COLS * PixiRenderer.HOLE_SPACING;
   const xOffset = 50; // 50px to the right
   const yOffset = 100; // 100px from top
-  
+
   // Get properties from library if available
   const libraryEntry = libraryId ? componentLibrary.get(libraryId) : undefined;
-  
+
   // Create floating component with default properties
   const properties: FloatingComponent['properties'] = {};
-  
+
   switch (type) {
     case ComponentType.RESISTOR:
       properties.resistance = (libraryEntry?.electrical.resistance as number) ?? 1000;
       break;
     // ...other cases...
   }
-  
+
   this.floatingComponent = {
     id,
     type,
@@ -178,13 +194,14 @@ private createFloatingComponent(type: ComponentType, libraryId?: string): void {
     rotation: 0,
     properties,
   };
-  
+
   this.placementStart = null;
   this.render();
 }
 ```
 
 **Positioning Strategy**:
+
 - Component appears at canvas edge (50px right of breadboard, 100px from top)
 - Visible but non-overlapping with breadboard
 - Aligns with goal.md Section 5.3.1: "The component appears adjacent to the board, floating beside it"
@@ -212,6 +229,7 @@ selectComponentType(type: ComponentType): void {
 ```
 
 **Feature Flag**:
+
 ```typescript
 const USE_RETE_INTERACTIVE = false; // Disabled pending test updates
 ```
@@ -225,28 +243,31 @@ const USE_RETE_INTERACTIVE = false; // Disabled pending test updates
 Implemented `renderFloatingComponent()` method with visual representations for all component types:
 
 **Rendering Strategy**:
+
 - Semi-transparent (alpha: 0.7) to indicate floating/unplaced state
 - Simple geometric shapes + text labels
 - "Drag to place" instruction text for user guidance
 
 **Component Visual Representations**:
 
-| Component Type | Visual Representation | Color |
-|----------------|----------------------|-------|
-| RESISTOR | Rectangle (40x20px) | `0xccaa66` (tan/beige) |
-| LED | Circle (15px radius) | `0xff4444` (red) |
-| WIRE | Horizontal line (50px) | `0x333333` (dark gray) |
-| POWER_SUPPLY | Rectangle with "+" symbol | `0x4444ff` (blue) |
-| GROUND | Ground symbol (standard EE symbol) | `0x333333` (dark gray) |
-| MICROPROCESSOR | Generic rectangle | `0x888888` (gray) |
+| Component Type | Visual Representation              | Color                  |
+| -------------- | ---------------------------------- | ---------------------- |
+| RESISTOR       | Rectangle (40x20px)                | `0xccaa66` (tan/beige) |
+| LED            | Circle (15px radius)               | `0xff4444` (red)       |
+| WIRE           | Horizontal line (50px)             | `0x333333` (dark gray) |
+| POWER_SUPPLY   | Rectangle with "+" symbol          | `0x4444ff` (blue)      |
+| GROUND         | Ground symbol (standard EE symbol) | `0x333333` (dark gray) |
+| MICROPROCESSOR | Generic rectangle                  | `0x888888` (gray)      |
 
 **Label Style**:
+
 - Font size: 10px
 - Color: `0xffffff` (white)
 - Position: Below component visual
 - Text: "{ComponentType}\n(drag to place)"
 
 **Integration**:
+
 ```typescript
 // In BreadboardApp.renderBreadboard()
 if (USE_RETE_INTERACTIVE && this.floatingComponent) {
@@ -291,10 +312,12 @@ if (USE_RETE_INTERACTIVE && this.floatingComponent) {
 **Context**: Existing components use BreadboardState positions (grid-based), floating components use canvas positions (pixel-based).
 
 **Decision**: Maintain two separate rendering paths:
+
 - Placed components: Existing `renderComponents()` method (grid-aligned)
 - Floating components: New `renderFloatingComponent()` method (canvas-positioned)
 
 **Rationale**:
+
 - Minimizes changes to existing, well-tested rendering code
 - Clear separation of concerns
 - Allows feature flag to cleanly switch between workflows
@@ -308,6 +331,7 @@ if (USE_RETE_INTERACTIVE && this.floatingComponent) {
 **Decision**: Phase 3b implementation renders simplified connections between adjacent component positions.
 
 **Rationale**:
+
 - Provides visual feedback infrastructure
 - Validates layer ordering and rendering performance
 - Full implementation deferred to Phase 3d (when connections are user-created)
@@ -321,6 +345,7 @@ if (USE_RETE_INTERACTIVE && this.floatingComponent) {
 **Decision**: Keep `USE_RETE_INTERACTIVE=false` until test suite is updated.
 
 **Rationale**:
+
 - Prevents breaking existing tests
 - Allows incremental development and validation
 - Supports safe rollback if issues are discovered
@@ -334,6 +359,7 @@ if (USE_RETE_INTERACTIVE && this.floatingComponent) {
 ### Unit Tests: ✅ All Passing (441/441)
 
 All existing tests pass with `USE_RETE_INTERACTIVE=false`:
+
 - `src/core/__tests__/rete-manager.test.ts` (26 tests) - Phase 3a coverage
 - `src/ui/__tests__/breadboard-app.test.ts` (25 tests) - Two-click placement workflow
 - All other core and UI tests passing
@@ -343,11 +369,13 @@ All existing tests pass with `USE_RETE_INTERACTIVE=false`:
 When enabling `USE_RETE_INTERACTIVE=true`, the following tests fail:
 
 **`src/ui/__tests__/breadboard-app.test.ts`** (10 failing tests):
+
 - Component selection tests expect `selectedComponentType` state (now creates `floatingComponent`)
 - Placement tests use `clickHole()` twice (now requires drag-and-drop workflow)
 - Rotation tests expect placed component (now need to handle floating components)
 
 **Required Test Updates**:
+
 1. Add `getFloatingComponent()` test API
 2. Add `dragFloatingComponent(from, to)` test API
 3. Add `connectLegToHole(componentId, legIndex, position)` test API
@@ -359,6 +387,7 @@ When enabling `USE_RETE_INTERACTIVE=true`, the following tests fail:
 **Status**: Not yet run (requires Playwright setup)
 
 **Planned Updates** (Phase 3e):
+
 - Regenerate baselines for all 4 example circuits
 - Add new visual tests for:
   - Floating component rendering
@@ -375,6 +404,7 @@ When enabling `USE_RETE_INTERACTIVE=true`, the following tests fail:
 **Test**: 420 interactive holes (30 rows × 14 cols) with hover effects
 
 **Results**:
+
 - No frame rate degradation (maintains 60fps)
 - Hover effects render/remove instantly
 - No memory leaks observed
@@ -396,9 +426,11 @@ When enabling `USE_RETE_INTERACTIVE=true`, the following tests fail:
 ### Section 5.3.1: Component Instantiation ✅
 
 **Goal Requirement**:
+
 > "Selecting a component does not immediately place it on the breadboard. The component appears adjacent to the board, floating beside it."
 
 **Implementation Status**: ✅ **Achieved**
+
 - `createFloatingComponent()` positions component at canvas edge (50px right of breadboard)
 - Component does not occupy breadboard holes until connections are made
 - Visible and ready for drag-and-drop interaction
@@ -406,9 +438,11 @@ When enabling `USE_RETE_INTERACTIVE=true`, the following tests fail:
 ### Section 5.4: Snapping and Constraints 🔄
 
 **Goal Requirement**:
+
 > "Legs magnetically snap to free breadboard holes. A hole may only accept one connector."
 
 **Implementation Status**: 🔄 **Partial**
+
 - One-connector-per-hole validation exists (Phase 3a: `validateOneConnectorPerHole()`)
 - Magnetic snapping visual preview: **Not yet implemented**
 - Drag-from-leg-to-hole interaction: **Not yet implemented**
@@ -418,9 +452,11 @@ When enabling `USE_RETE_INTERACTIVE=true`, the following tests fail:
 ### Section 7.2: Rotation 🔄
 
 **Goal Requirement**:
+
 > "All components support continuous rotation (not limited to 90°)."
 
 **Implementation Status**: 🔄 **Partial**
+
 - `FloatingComponent` interface supports continuous rotation (0-360°)
 - Current placed components still use discrete rotation (0, 90, 180, 270)
 - Rotation handle UI: **Not yet implemented**
@@ -551,6 +587,7 @@ When enabling `USE_RETE_INTERACTIVE=true`, the following tests fail:
 **Description**: Updating 25+ tests to support both workflows may reveal edge cases or require significant refactoring.
 
 **Mitigation**:
+
 - Maintain backward compatibility with feature flag
 - Update tests incrementally (one test file at a time)
 - Run full test suite after each change
@@ -563,6 +600,7 @@ When enabling `USE_RETE_INTERACTIVE=true`, the following tests fail:
 **Description**: Continuous drag events (mousemove) may cause frame rate drops if rendering is expensive.
 
 **Mitigation**:
+
 - Use requestAnimationFrame for drag updates
 - Throttle drag events if needed
 - Profile early and optimize if issues found
@@ -575,6 +613,7 @@ When enabling `USE_RETE_INTERACTIVE=true`, the following tests fail:
 **Description**: Users familiar with two-click placement may find new workflow unintuitive.
 
 **Mitigation**:
+
 - Provide in-app tutorial or onboarding
 - Clear visual affordances (labels, hover states)
 - Keep old workflow available behind flag for transition period
@@ -609,6 +648,7 @@ When enabling `USE_RETE_INTERACTIVE=true`, the following tests fail:
 Phases 3b and 3c infrastructure is now in place, providing the foundation for interactive connection creation. The visual feedback systems (hole hover, connection rendering) and floating component model are complete and tested. The remaining work (drag handling, connection interaction, test updates) is well-scoped and follows a clear implementation path.
 
 **Key Achievements**:
+
 - 361 lines of new code (infrastructure)
 - Zero breaking changes (all 441 tests passing)
 - Feature flag controlled rollout
@@ -621,16 +661,19 @@ Phases 3b and 3c infrastructure is now in place, providing the foundation for in
 ## References
 
 **Planning Documents**:
+
 - `/planning/vision/goal.md` - Target state specification
 - `/planning/state/system_capabilities.md` - Current state documentation
 - `/planning/issue_queue/processed/implement-rete-interactive-connection-workflow.md` - Original issue
 
 **Implementation Summaries**:
+
 - `RETE_MIGRATION_PHASE1_SUMMARY.md` - Phase 1 (foundation)
 - `RETE_MIGRATION_PHASE2_SUMMARY.md` - Phase 2 (state sync)
 - `RETE_MIGRATION_PHASE3_SUMMARY.md` - Phase 3a (event handlers)
 
 **Code Files**:
+
 - `src/core/types.ts` - FloatingComponent type definition
 - `src/core/rete-manager.ts` - Rete integration (Phase 3a complete)
 - `src/ui/pixi-renderer.ts` - Visual rendering (Phase 3b complete)

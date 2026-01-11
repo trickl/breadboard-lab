@@ -39,6 +39,7 @@ Implemented inverse rotation matrix transformation that converts mouse coordinat
 ### Prerequisites
 
 1. Build and run the application:
+
    ```bash
    npm install
    npm run dev
@@ -136,6 +137,7 @@ The user should not be able to tell that there is a coordinate transformation ha
 ### Known Working Configuration
 
 This implementation was tested with:
+
 - Canvas dimensions are dynamic (based on breadboard layout)
 - Transformation uses `getBoundingClientRect()` for accurate canvas dimensions
 - Center point calculated as `(width/2, height/2)`
@@ -146,6 +148,7 @@ This implementation was tested with:
 ### Unit Tests
 
 The existing unit tests in `src/ui/__tests__/breadboard-app.test.ts` continue to pass because:
+
 - Tests use the public API (e.g., `placeComponentInteractive()`)
 - Coordinate transformation is internal implementation detail
 - Tests don't depend on specific mouse coordinate values
@@ -157,14 +160,14 @@ If adding Playwright visual tests for rotation:
 ```typescript
 test('interactions work at 90° rotation', async ({ page }) => {
   await page.goto('/');
-  
+
   // Rotate breadboard to 90°
   await page.click('#rotate-board-btn');
-  
+
   // Place a component
   await page.click('.quick-select-resistor');
   await page.click('#breadboard', { position: { x: 400, y: 300 } });
-  
+
   // Verify component was placed
   const components = await page.evaluate(() => {
     return window.app.getComponents();
@@ -185,7 +188,9 @@ If interactions seem inaccurate at a specific rotation:
 2. **Verify transformation is being called**:
    - Add console.log in `transformMouseCoordinates()`:
      ```typescript
-     console.log(`Transform: orientation=${orientation}, input=(${mouseX},${mouseY}), output=(${result.x},${result.y})`);
+     console.log(
+       `Transform: orientation=${orientation}, input=(${mouseX},${mouseY}), output=(${result.x},${result.y})`
+     );
      ```
 
 3. **Check breadboardOrientation state**:
@@ -241,6 +246,7 @@ Potential improvements not included in this implementation:
 ## Contact
 
 If you encounter issues with this implementation, please file an issue with:
+
 - Orientation angle when issue occurs
 - Specific interaction that fails (e.g., "component drag at 180°")
 - Expected vs actual behavior

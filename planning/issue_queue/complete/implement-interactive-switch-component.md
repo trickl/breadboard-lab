@@ -9,6 +9,7 @@ This task implements the **interactive switch component** as explicitly required
 The current system implements 36 components in the library but **lacks any switch component**. Goal.md explicitly requires switches as one of the 5 default quick select items alongside LED, Wire, Resistor, and Battery/power source (Section 12.2, lines 337-344). Section 8 (lines 220-235) dedicates an entire section to switch behavior, defining the interaction model and state propagation requirements.
 
 Without switches, users cannot:
+
 - Build circuits with manual control (e.g., "press button to light LED")
 - Explore series/parallel switch configurations
 - Learn about open/closed circuit states
@@ -60,11 +61,13 @@ Implement **two switch types** to cover common educational scenarios:
 ### Electrical Model
 
 #### Open State (Switch Off)
+
 - Resistance: **1 GΩ (1,000,000,000 Ω)** - effectively infinite for MNA solver
 - Current flow: ~0 A (blocked)
 - Behavior: Breaks circuit continuity
 
 #### Closed State (Switch On)
+
 - Resistance: **0.01 Ω** - same as wire resistance for consistency
 - Current flow: Determined by circuit (Ohm's law)
 - Behavior: Provides electrical connection equivalent to wire
@@ -76,7 +79,7 @@ Extend `Component` type in `src/core/types.ts`:
 ```typescript
 export interface Component {
   // ... existing fields ...
-  
+
   // For switch components
   switchState?: 'open' | 'closed'; // undefined for non-switch components
 }
@@ -98,14 +101,15 @@ Default state: `'open'` (safe default - circuit starts disconnected)
    - Track movement distance: **5px** max (below this = click, above = drag)
 
 2. **Interaction logic**:
+
    ```
    On pointerdown:
      - Record timestamp and position
      - Do NOT initiate drag immediately
-   
+
    On pointermove (before threshold timeout):
      - If distance > 5px: Cancel click, initiate drag
-   
+
    On pointerup (before threshold timeout):
      - If time < 200ms AND distance < 5px:
        - Toggle switch state
@@ -122,6 +126,7 @@ Default state: `'open'` (safe default - circuit starts disconnected)
 #### Alternative Interaction (Optional Enhancement)
 
 Goal.md mentions "dedicated toggle hotspot" as optional future enhancement (line 232). This could be:
+
 - Small circular "button" overlaid on switch body
 - Click on button = always toggle (never drag)
 - Click on switch body = drag behavior
@@ -146,18 +151,21 @@ Open state:        Closed state:
 ```
 
 **Dimensions**:
+
 - Body: 40px × 20px rounded rectangle
 - Toggle circle: 8px diameter
 - Terminals: 2px × 10px leads extending from body
 - Terminal spacing: 30px (consistent with other 2-terminal components)
 
 **Colors**:
+
 - Body: `#404040` (dark gray)
 - Toggle circle: `#FFAA00` (orange) when open, `#00FF00` (green) when closed
 - Border: `#606060` (medium gray), 2px stroke
 - Terminals: `#888888` (light gray metallic)
 
 **State indicator**:
+
 - Open: Toggle circle on left, gap visible in center
 - Closed: Toggle circle on right, connection bar visible
 
@@ -180,42 +188,42 @@ export const SWITCH_SPST: ComponentLibraryEntry = {
   type: ComponentType.SWITCH, // New enum value
   category: ComponentCategory.INTERCONNECT,
   description: 'Single-pole single-throw toggle switch for manual circuit control',
-  
+
   // Physical specifications
   package: {
     type: 'THROUGH_HOLE',
     pinCount: 2,
     leadSpacing: { value: 5.08, unit: 'mm' }, // 0.2" standard
   },
-  
+
   // Electrical specifications
   electrical: {
     // Contact resistance when closed
     resistance: { value: 0.01, unit: 'Ω' },
-    
+
     // Voltage rating
     voltageRating: { value: 250, unit: 'V' }, // AC rated
-    
+
     // Current rating
     currentRating: { value: 3, unit: 'A' },
-    
+
     // Operating force (educational info)
     custom: {
       operatingForce: '150g',
       lifeCycles: '10,000',
       contactMaterial: 'Silver',
-    }
+    },
   },
-  
+
   // Manufacturer metadata
   manufacturer: {
     name: 'Generic',
     partFamily: 'Toggle Switch',
   },
-  
+
   // Rendering
   renderer: 'procedural', // Procedurally drawn in PixiJS
-  
+
   // Educational metadata
   typicalUses: [
     'Manual circuit control',
@@ -255,12 +263,13 @@ Switches behave as **variable resistors** - resistance changes based on state.
 if (edge.component.type === ComponentType.SWITCH) {
   // Use state-dependent resistance
   const switchState = edge.component.switchState ?? 'open';
-  const resistance = switchState === 'closed' 
-    ? 0.01  // Wire-like when closed
-    : 1e9;  // Near-infinite when open
-  
+  const resistance =
+    switchState === 'closed'
+      ? 0.01 // Wire-like when closed
+      : 1e9; // Near-infinite when open
+
   const conductance = 1 / resistance;
-  
+
   // Standard resistor stamp with variable resistance
   if (n1Index !== undefined && n2Index !== undefined) {
     G[n1Index][n1Index] += conductance;
@@ -294,17 +303,17 @@ private toggleSwitchState(componentId: string): void {
   if (!component || component.type !== ComponentType.SWITCH) {
     return;
   }
-  
+
   // Toggle state
   const newState = component.switchState === 'closed' ? 'open' : 'closed';
   component.switchState = newState;
-  
+
   // Visual feedback animation
   this.animateSwitchToggle(componentId);
-  
+
   // Re-simulate circuit (topology unchanged, only resistance values changed)
   this.extractAndSimulate();
-  
+
   // Re-render
   this.render();
 }
@@ -329,11 +338,11 @@ Switch state must be persisted in saved circuits:
       "type": "SWITCH",
       "libraryId": "switch-spst",
       "positions": [
-        {"row": 10, "col": 5},
-        {"row": 10, "col": 6}
+        { "row": 10, "col": 5 },
+        { "row": 10, "col": 6 }
       ],
       "rotation": 0,
-      "switchState": "closed"  // NEW FIELD
+      "switchState": "closed" // NEW FIELD
     }
   ]
 }
@@ -402,6 +411,7 @@ Create new test file with:
 Create new example circuit: "Switch Control LED"
 
 Circuit design:
+
 - Power supply (5V)
 - Switch (SPST)
 - Resistor (220Ω)
@@ -409,6 +419,7 @@ Circuit design:
 - Ground
 
 Two screenshots:
+
 1. Switch open (LED off, no current flow)
 2. Switch closed (LED on, current flowing)
 
@@ -417,17 +428,20 @@ Two screenshots:
 #### Create New Example: "Switch Control LED" (`src/examples/switch-led.json`)
 
 Demonstrates:
+
 - Switch behavior (open/closed states)
 - Series circuit control
 - Interactive manual switching
 - LED on/off control
 
 Circuit topology:
+
 ```
 [5V Power] → [Switch] → [220Ω Resistor] → [LED] → [Ground]
 ```
 
 Component placement:
+
 - Power supply on left rail (column 1)
 - Switch at row 15, columns 4-5
 - Resistor at row 15, columns 7-9
@@ -459,6 +473,7 @@ Add to "Components" section:
 ```
 
 Add to "Keyboard Shortcuts":
+
 - No new keyboard shortcuts (switches use existing selection/delete shortcuts)
 
 #### Component Library Documentation (`COMPONENT_LIBRARY.md`)
@@ -580,12 +595,14 @@ The switch component implementation is complete when:
 ### Dependencies
 
 **Requires**:
+
 - Existing component placement system (already implemented)
 - Existing MNA solver (already implemented)
 - Existing PixiJS renderer (already implemented)
 - Existing circuit serialization (already implemented)
 
 **Blocks**:
+
 - Goal.md Section 12.2 completion (quick select bar with all 5 default items)
 - Educational scenarios requiring manual circuit control
 - Advanced switch types (SPDT, DPDT, push-button, momentary)
@@ -593,6 +610,7 @@ The switch component implementation is complete when:
 ### Risk Assessment
 
 **Low risk**:
+
 - Switch model is simple (just variable resistor)
 - No new solver algorithms required
 - PixiJS rendering pattern established
@@ -600,11 +618,13 @@ The switch component implementation is complete when:
 - No architectural changes required
 
 **Potential challenges**:
+
 1. Click/drag disambiguation - need precise threshold tuning
 2. Visual design clarity - toggle state must be immediately obvious
 3. Touch device compatibility - short click detection on mobile
 
 **Mitigation**:
+
 1. Use conservative thresholds (200ms, 5px) - can tune based on user feedback
 2. Clear color coding (orange=open, green=closed) + position indicator
 3. Test on touch devices, adjust thresholds if needed
@@ -625,11 +645,13 @@ The following are explicitly **deferred** to future iterations:
 ### References
 
 **Goal.md citations**:
+
 - Section 8 (lines 220-235): Switches and User Interaction
 - Section 12.2 (lines 337-344): Default Quick Select Items
 - Section 3.1 (lines 43-49): Nodes (switches listed as meaningful entities)
 
 **Related PRs**:
+
 - PR #143: Component library foundation
 - PR #149: Component library browser UI
 - PR #89: Component selection
@@ -637,6 +659,7 @@ The following are explicitly **deferred** to future iterations:
 - PR #167: PixiJS rendering
 
 **Technical references**:
+
 - Modified Nodal Analysis: Switch as variable resistor
 - PixiJS Graphics API: Procedural shape rendering
 - IEC 60617: Electrical symbol standards (toggle switch symbol)
@@ -655,6 +678,7 @@ This task is **well-scoped and self-contained**. The switch component follows es
 6. **Testing**: Follow existing test patterns (unit, integration, visual)
 
 **Start here**:
+
 1. Add `SWITCH` to `ComponentType` enum in `src/core/types.ts`
 2. Create library entry in `src/library/other-components.ts`
 3. Add rendering case in `src/ui/pixi-renderer.ts`
@@ -662,6 +686,7 @@ This task is **well-scoped and self-contained**. The switch component follows es
 5. Add toggle handler in `src/ui/breadboard-app.ts`
 
 **Test as you go**:
+
 - After each phase, run `npm test` to verify no regressions
 - After Phase 4, manually test switch toggling in browser
 - After Phase 5, verify all new tests pass

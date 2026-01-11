@@ -28,9 +28,9 @@ export type SmoothZoomOptions = {
  * - time-smoothed/animated (mouse wheels feel less "steppy")
  */
 export class SmoothZoom extends Zoom {
-  private wheelZoomSpeed: number;
-  private smoothTimeMs: number;
-  private clamp: { min: number; max: number };
+  private readonly wheelZoomSpeed: number;
+  private readonly smoothTimeMs: number;
+  private readonly clamp: { min: number; max: number };
 
   private pendingFactor = 1;
   private raf: number | null = null;
@@ -72,7 +72,7 @@ export class SmoothZoom extends Zoom {
     };
   }
 
-  private animate = (now: number) => {
+  private readonly animate = (now: number) => {
     this.raf = null;
 
     // If we got destroyed or never initialized.

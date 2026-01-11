@@ -42,7 +42,7 @@ export interface MixedSignalResult extends SimulationResult {
  * 5. Repeat until convergence (or max iterations)
  */
 export class MixedSignalSimulator {
-  private dcSimulator: CircuitSimulator;
+  private readonly dcSimulator: CircuitSimulator;
   private digitalState: DigitalSimulationState;
 
   constructor() {

@@ -9,20 +9,25 @@ This task addresses **Section 5.2** (Expected Interaction Model) from `planning/
 ### Section 5.2: Expected Interaction Model (Line 109-114)
 
 **Original Requirement:**
+
 > "Users should be able to:
+>
 > - Drag an entire component as a unit ✅ (RESOLVED in PR #291)
 > - **Select and move individual legs independently** ❌ (NOT YET IMPLEMENTED)"
 
 **Review Context (Section 5.1, lines 102-108):**
+
 > "Dragging components is unreliable or broken... It is not possible to drag an individual leg independently... The interaction feels frustrating and inconsistent."
 
 **Priority Classification (from actions file):**
+
 - **Complexity:** HIGH — requires data model changes, new UI affordances, and constraint logic
 - **Priority:** MEDIUM — full-component dragging addresses most use cases; individual leg dragging is an advanced feature
 
 ## Problem Statement
 
 Currently, users can only drag entire components as units. Real breadboard usage requires the ability to reposition individual component legs/pins independently to:
+
 1. Adjust component placement without removing and replacing the entire component
 2. Accommodate physical constraints (e.g., bent resistor leads, adjusted LED positioning)
 3. Fix wiring mistakes by moving one pin while keeping the other connected
@@ -35,28 +40,32 @@ This feature was explicitly deferred in PR #291 because it requires significant 
 ### 1. Data Model Changes
 
 **Current State:**
+
 - Components store two `Position` objects (startPos, endPos)
 - Positions are immutable once placed
 - Moving a component updates both positions simultaneously
 
 **Required Changes:**
+
 - Extend `Component` type to support per-pin positioning:
+
   ```typescript
   interface Component {
     // Existing fields...
-    positions: Position[];  // Array of pin positions (flexible length)
-    pinCount: number;       // Number of pins/legs
+    positions: Position[]; // Array of pin positions (flexible length)
+    pinCount: number; // Number of pins/legs
     // OR maintain backward compatibility:
-    legPositions?: Position[];  // Optional per-leg positions
+    legPositions?: Position[]; // Optional per-leg positions
   }
   ```
 
 - Add support for "bent" component state:
+
   ```typescript
   interface Component {
     // Existing fields...
-    isBent?: boolean;       // Flag for components with adjusted legs
-    originalSpan?: number;  // Original row/column span for reference
+    isBent?: boolean; // Flag for components with adjusted legs
+    originalSpan?: number; // Original row/column span for reference
   }
   ```
 
@@ -67,12 +76,14 @@ This feature was explicitly deferred in PR #291 because it requires significant 
 ### 2. UI Affordances for Pin Selection
 
 **Hit Detection:**
+
 - Add distinct hit areas for individual pins (not just component body)
 - Pin hit area should be circular (~8-10px radius) at pin endpoint
 - Component body hit area should exclude pin endpoints
 - Visual feedback when hovering over a pin (highlight pin, change cursor)
 
 **Selection Model:**
+
 - Click component body → select entire component (existing behavior)
 - Click individual pin → select that specific pin (new behavior)
 - Selection highlight should indicate pin selection vs component selection:
@@ -80,12 +91,14 @@ This feature was explicitly deferred in PR #291 because it requires significant 
   - Pin selection: highlighted pin + "drag me" indicator (new)
 
 **Implementation Location:**
+
 - `pixi-renderer.ts`: Add pin hit area creation method (similar to `createComponentHitArea()`)
 - `breadboard-app.ts`: Add pin selection handlers and state
 
 ### 3. Per-Pin Drag Mode
 
 **Drag Behavior:**
+
 - When dragging a selected pin:
   - Only that pin moves
   - Other pins remain anchored
@@ -94,12 +107,14 @@ This feature was explicitly deferred in PR #291 because it requires significant 
   - Preview shows new pin position + visual wire/body adjustment
 
 **Constraints to Enforce:**
+
 - Pin must snap to a breadboard hole (no floating pins)
 - Pin cannot overlap another component's pin on the same hole
 - Electrical connectivity must be maintained (netlist updates)
 - Some components may have physical constraints (see constraint system below)
 
 **Implementation Location:**
+
 - `breadboard-app.ts`: Add `handlePinDragStart()`, `handlePinDragMove()`, `handlePinDragEnd()`
 - Reuse existing snap-to-grid logic from component dragging
 - Add new command `RepositionPinCommand` for undo/redo support
@@ -109,6 +124,7 @@ This feature was explicitly deferred in PR #291 because it requires significant 
 **Component Types by Flexibility:**
 
 **Flexible Components (can bend/stretch):**
+
 - Resistors: legs can be bent to different rows
 - LEDs: legs can be bent to different rows
 - Wires: already flexible (existing wire re-routing handles this)
@@ -116,45 +132,52 @@ This feature was explicitly deferred in PR #291 because it requires significant 
 - Capacitors: legs can be bent
 
 **Rigid Components (cannot bend individual pins):**
+
 - Integrated circuits (ICs/microprocessors): pins are fixed relative to chip body
 - Multi-pin headers: pins maintain rigid spacing
 - Switches with multiple terminals: structure is rigid
 - Power supplies: terminals are fixed
 
 **Implementation:**
+
 ```typescript
 interface ComponentType {
   // Existing fields...
   flexibility: 'flexible' | 'rigid' | 'semi-rigid';
-  maxPinSpan?: number;     // Maximum distance pins can span (in holes)
-  minPinSpan?: number;     // Minimum distance pins must span
+  maxPinSpan?: number; // Maximum distance pins can span (in holes)
+  minPinSpan?: number; // Minimum distance pins must span
 }
 ```
 
 **Constraint Enforcement:**
+
 - Flexible components: allow independent pin repositioning
 - Rigid components: disallow pin repositioning (drag moves entire component)
 - Semi-rigid components: allow small adjustments within limits
 
 **User Feedback:**
+
 - Attempting to drag a pin on a rigid component shows tooltip: "This component's pins are fixed"
 - Exceeding max span shows preview in red + validation message
 
 ### 5. Visual Feedback for Adjusted Components
 
 **Bent Component Rendering:**
+
 - When a flexible component has adjusted legs:
   - Draw bent body/leads using curved paths (Bezier curves)
   - Maintain visual connection from body to all pins
   - Use subtle color/style to indicate "adjusted" state (optional)
 
 **Example Visual Changes:**
+
 - **Resistor (normal):** Straight body spanning 5 rows
 - **Resistor (bent):** Curved body, left pin at row 5, right pin at row 12
 - **LED (normal):** Straight legs, body centered between pins
 - **LED (bent):** Curved legs, body shifted, pins at different rows
 
 **Implementation Location:**
+
 - `pixi-renderer.ts`: Add bent component rendering logic to `renderComponent()`
 - Use PixiJS Graphics API to draw curved paths
 - Reuse existing component rendering where possible (color bands, polarity markers)
@@ -162,6 +185,7 @@ interface ComponentType {
 ### 6. Electrical Netlist Updates
 
 **Netlist Synchronization:**
+
 - When a pin is repositioned:
   - Update `circuit-extractor.ts` to use new pin positions
   - Regenerate netlist from updated component positions
@@ -169,18 +193,21 @@ interface ComponentType {
   - Update voltage/current overlays
 
 **Connection Validation:**
+
 - Ensure pin repositioning doesn't create invalid circuits:
   - Floating pins (not connected to anything) should be flagged
   - Short circuits from pin repositioning should be highlighted
   - Open circuits should be detected
 
 **Implementation Location:**
+
 - `circuit-extractor.ts`: Update to handle `legPositions` array if present
 - Add validation for pin repositioning in `breadboard-app.ts`
 
 ## Implementation Plan
 
 ### Phase 1: Data Model Changes (2-3 hours)
+
 1. Extend `Component` type to support per-pin positions
 2. Update component creation to initialize all pin positions
 3. Add backward compatibility for existing circuits
@@ -188,6 +215,7 @@ interface ComponentType {
 5. Write unit tests for new data model
 
 ### Phase 2: Hit Detection & Selection (2-3 hours)
+
 1. Add pin hit area creation in `pixi-renderer.ts`
 2. Add pin selection handlers in `breadboard-app.ts`
 3. Add visual feedback for pin hover and selection
@@ -195,6 +223,7 @@ interface ComponentType {
 5. Write unit tests for pin hit detection
 
 ### Phase 3: Per-Pin Drag Mode (3-4 hours)
+
 1. Implement `handlePinDragStart()`, `handlePinDragMove()`, `handlePinDragEnd()`
 2. Add drag preview for pin repositioning
 3. Implement snap-to-grid for pin endpoints
@@ -202,6 +231,7 @@ interface ComponentType {
 5. Write unit tests for pin dragging
 
 ### Phase 4: Constraint System (2-3 hours)
+
 1. Define component flexibility in component library
 2. Implement constraint checking during pin drag
 3. Add user feedback for constraint violations
@@ -209,6 +239,7 @@ interface ComponentType {
 5. Write unit tests for constraint enforcement
 
 ### Phase 5: Visual Feedback (2-3 hours)
+
 1. Implement bent component rendering (curved paths)
 2. Update resistor rendering for bent state
 3. Update LED rendering for bent state
@@ -216,6 +247,7 @@ interface ComponentType {
 5. Write visual regression tests
 
 ### Phase 6: Netlist Updates & Testing (2-3 hours)
+
 1. Update netlist generation for independent pin positions
 2. Add connection validation
 3. Update voltage/current overlays
@@ -227,6 +259,7 @@ interface ComponentType {
 ## Acceptance Criteria
 
 ### Must Have:
+
 - [ ] User can click on an individual pin of a flexible component (resistor, LED) to select it
 - [ ] Dragging a selected pin moves only that pin to a new breadboard hole
 - [ ] Other pins of the same component remain anchored in their original positions
@@ -238,6 +271,7 @@ interface ComponentType {
 - [ ] Visual regression tests pass for bent components
 
 ### Nice to Have:
+
 - [ ] Hover tooltip indicates which components allow pin repositioning
 - [ ] Visual indicator shows component is in "adjusted" state
 - [ ] Max/min span constraints are enforced with clear user feedback
@@ -246,23 +280,27 @@ interface ComponentType {
 ## Testing Strategy
 
 ### Unit Tests:
+
 - Data model: component with independent pin positions
 - Hit detection: pin hit areas vs component body hit areas
 - Constraint system: flexible vs rigid component classification
 - Netlist generation: independent pin positions → correct netlist
 
 ### Integration Tests:
+
 - Complete workflow: select pin → drag → drop → netlist updates
 - Undo/redo: pin repositioning → undo → redo
 - Multi-component: reposition pins on multiple components
 
 ### Visual Regression Tests (Playwright):
+
 - Bent resistor rendering
 - Bent LED rendering
 - Selection highlights for pins vs components
 - Drag preview for pin repositioning
 
 ### Manual Testing:
+
 - Adjust resistor leg from row 5 to row 8 (bent resistor)
 - Adjust LED leg from row 10 to row 15 (bent LED)
 - Attempt to drag IC pin (should be prevented)
@@ -272,12 +310,14 @@ interface ComponentType {
 ## Known Complexity & Risks
 
 ### High Complexity Items:
+
 1. **Data model migration:** Backward compatibility with existing circuits
 2. **Visual rendering:** Drawing bent component bodies with Bezier curves
 3. **Constraint system:** Defining and enforcing flexibility rules for all component types
 4. **Netlist synchronization:** Ensuring electrical model stays consistent
 
 ### Risks:
+
 - **Performance:** Bent component rendering may be slower than straight components
   - Mitigation: Cache bent component graphics, only redraw on change
 - **User confusion:** Users may not understand which components allow pin dragging

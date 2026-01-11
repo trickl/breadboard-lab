@@ -20,7 +20,9 @@ test.describe('rail-to-rail wiring', () => {
 
   for (const t of targets) {
     test(`click-to-connect: Rail R+ → ${t.label} at same hole index`, async ({ page }) => {
-      const src = page.locator(`[data-rail-id="${sourceRailId}"][data-hole-index="${idx}"]`).first();
+      const src = page
+        .locator(`[data-rail-id="${sourceRailId}"][data-hole-index="${idx}"]`)
+        .first();
       const dst = page.locator(`[data-rail-id="${t.railId}"][data-hole-index="${idx}"]`).first();
 
       await expect(src).toBeVisible();
@@ -37,7 +39,9 @@ test.describe('rail-to-rail wiring', () => {
     });
 
     test(`drag-to-connect: Rail R+ → ${t.label} at same hole index`, async ({ page }) => {
-      const src = page.locator(`[data-rail-id="${sourceRailId}"][data-hole-index="${idx}"]`).first();
+      const src = page
+        .locator(`[data-rail-id="${sourceRailId}"][data-hole-index="${idx}"]`)
+        .first();
       const dst = page.locator(`[data-rail-id="${t.railId}"][data-hole-index="${idx}"]`).first();
 
       await expect(src).toBeVisible();

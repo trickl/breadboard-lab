@@ -286,65 +286,68 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
 function validateCircuitData(data: unknown): ValidationError[] {
   const errors: ValidationError[] = [];
 
-  if (typeof data !== 'object' || data === null) {
-    errors.push({ field: 'root', message: 'Circuit data must be an object' });
+  const addError = (field: string, message: string) => {
+    errors.push({ field, message });
+  };
+
+  const isRecord = (value: unknown): value is Record<string, unknown> => {
+    return typeof value === 'object' && value !== null;
+  };
+
+  const validateMetadata = (value: unknown) => {
+    if (!isRecord(value)) {
+      addError('metadata', 'Metadata must be an object');
+      return;
+    }
+
+    if (typeof value.name !== 'string') {
+      addError('metadata.name', 'Name must be a string');
+    }
+    if (typeof value.created !== 'string') {
+      addError('metadata.created', 'Created timestamp must be a string');
+    }
+  };
+
+  const validateComponent = (value: unknown, index: number) => {
+    if (!isRecord(value)) {
+      addError(`components[${index}]`, 'Component must be an object');
+      return;
+    }
+
+    if (typeof value.id !== 'string') {
+      addError(`components[${index}].id`, 'Component ID must be a string');
+    }
+    if (typeof value.type !== 'string') {
+      addError(`components[${index}].type`, 'Component type must be a string');
+    }
+    if (!Array.isArray(value.positions)) {
+      addError(`components[${index}].positions`, 'Positions must be an array');
+    }
+    if (typeof value.rotation !== 'number') {
+      addError(`components[${index}].rotation`, 'Rotation must be a number');
+    }
+  };
+
+  if (!isRecord(data)) {
+    addError('root', 'Circuit data must be an object');
     return errors;
   }
 
-  const circuitData = data as Record<string, unknown>;
+  const circuitData = data;
 
   // Validate version
   if (typeof circuitData.version !== 'string') {
-    errors.push({ field: 'version', message: 'Version must be a string' });
+    addError('version', 'Version must be a string');
   }
 
   // Validate metadata
-  if (typeof circuitData.metadata !== 'object' || circuitData.metadata === null) {
-    errors.push({ field: 'metadata', message: 'Metadata must be an object' });
-  } else {
-    const metadata = circuitData.metadata as Record<string, unknown>;
-    if (typeof metadata.name !== 'string') {
-      errors.push({ field: 'metadata.name', message: 'Name must be a string' });
-    }
-    if (typeof metadata.created !== 'string') {
-      errors.push({ field: 'metadata.created', message: 'Created timestamp must be a string' });
-    }
-  }
+  validateMetadata(circuitData.metadata);
 
   // Validate components array
   if (!Array.isArray(circuitData.components)) {
-    errors.push({ field: 'components', message: 'Components must be an array' });
+    addError('components', 'Components must be an array');
   } else {
-    const components = circuitData.components;
-    components.forEach((comp, index) => {
-      if (typeof comp !== 'object' || comp === null) {
-        errors.push({ field: `components[${index}]`, message: 'Component must be an object' });
-        return;
-      }
-
-      const component = comp as Record<string, unknown>;
-      if (typeof component.id !== 'string') {
-        errors.push({ field: `components[${index}].id`, message: 'Component ID must be a string' });
-      }
-      if (typeof component.type !== 'string') {
-        errors.push({
-          field: `components[${index}].type`,
-          message: 'Component type must be a string',
-        });
-      }
-      if (!Array.isArray(component.positions)) {
-        errors.push({
-          field: `components[${index}].positions`,
-          message: 'Positions must be an array',
-        });
-      }
-      if (typeof component.rotation !== 'number') {
-        errors.push({
-          field: `components[${index}].rotation`,
-          message: 'Rotation must be a number',
-        });
-      }
-    });
+    circuitData.components.forEach((component, index) => validateComponent(component, index));
   }
 
   return errors;

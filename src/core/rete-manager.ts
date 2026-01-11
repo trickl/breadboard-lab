@@ -106,13 +106,17 @@ type Schemes = ClassicScheme;
  * ReteManager: Manages Rete.js editor and synchronization with BreadboardState
  */
 export class ReteManager {
-  private editor: NodeEditor<Schemes>;
+  private readonly editor: NodeEditor<Schemes>;
   private area: AreaPlugin<Schemes, unknown> | null = null;
   private connection: ConnectionPlugin<Schemes, unknown> | null = null;
-  private componentNodeMap: Map<string, NodeId> = new Map();
-  private holeNodeMap: Map<string, NodeId> = new Map();
+  private readonly componentNodeMap: Map<string, NodeId> = new Map();
+  private readonly holeNodeMap: Map<string, NodeId> = new Map();
   private syncInProgress = false;
   private initialized = false;
+
+  // Phase 2+: Optional flag for extracting BreadboardState from the Rete graph.
+  // Defaults to off because BreadboardState is currently the source of truth.
+  private syncToStateEnabled = false;
 
   // Phase 3: Connection event handlers
   private onConnectionCreatedHandler: ConnectionEventHandler | null = null;
@@ -120,7 +124,7 @@ export class ReteManager {
   private connectionValidatorHandler: ((connection: Connection) => ConnectionValidation) | null =
     null;
 
-  constructor(private container?: HTMLElement) {
+  constructor(private readonly container?: HTMLElement) {
     // Initialize Rete editor (always create, even without container)
     this.editor = new NodeEditor<Schemes>();
   }
@@ -165,39 +169,44 @@ export class ReteManager {
 
     // Listen for connection creation events
     this.editor.addPipe((context) => {
-      // Intercept connection add events
       if (context.type === 'connectioncreated') {
-        const connection = context.data as Connection;
-
-        // Validate connection before allowing it
-        if (this.connectionValidatorHandler) {
-          const validation = this.connectionValidatorHandler(connection);
-          if (!validation.valid) {
-            // Connection invalid - prevent it by not calling the handler
-            console.warn(`Connection rejected: ${validation.reason || 'Unknown reason'}`);
-            // Remove the connection immediately
-            void this.editor.removeConnection(connection.id);
-            return;
-          }
-        }
-
-        // Call onCreate handler if registered
-        if (this.onConnectionCreatedHandler) {
-          void this.onConnectionCreatedHandler(connection);
-        }
-      }
-
-      // Intercept connection remove events
-      if (context.type === 'connectionremoved') {
-        const connection = context.data as Connection;
-
-        // Call onRemove handler if registered
-        if (this.onConnectionRemovedHandler) {
-          void this.onConnectionRemovedHandler(connection);
-        }
+        this.handleConnectionCreated(context.data as Connection);
+      } else if (context.type === 'connectionremoved') {
+        this.handleConnectionRemoved(context.data as Connection);
       }
 
       return context;
+    });
+  }
+
+  private handleConnectionCreated(connection: Connection): void {
+    if (this.connectionValidatorHandler) {
+      const validation = this.connectionValidatorHandler(connection);
+      if (!validation.valid) {
+        console.warn(`Connection rejected: ${validation.reason || 'Unknown reason'}`);
+        this.editor.removeConnection(connection.id).catch((err) => {
+          console.warn('Failed to remove rejected connection', err);
+        });
+        return;
+      }
+    }
+
+    if (!this.onConnectionCreatedHandler) {
+      return;
+    }
+
+    Promise.resolve(this.onConnectionCreatedHandler(connection)).catch((err) => {
+      console.warn('onConnectionCreated handler failed', err);
+    });
+  }
+
+  private handleConnectionRemoved(connection: Connection): void {
+    if (!this.onConnectionRemovedHandler) {
+      return;
+    }
+
+    Promise.resolve(this.onConnectionRemovedHandler(connection)).catch((err) => {
+      console.warn('onConnectionRemoved handler failed', err);
     });
   }
 
@@ -216,100 +225,120 @@ export class ReteManager {
     this.syncInProgress = true;
 
     try {
-      // Clear existing Rete nodes and connections
-      for (const node of this.editor.getNodes()) {
-        await this.editor.removeNode(node.id);
-      }
+      await this.clearGraph();
 
       this.componentNodeMap.clear();
       this.holeNodeMap.clear();
 
-      // Step 1: Create BreadboardHoleNodes for all occupied positions
-      // We need to collect all unique positions first
-      const occupiedPositions = new Map<string, Position>();
-
-      for (const component of state.components) {
-        for (const pos of component.positions) {
-          const key = this.positionToKey(pos);
-          if (!occupiedPositions.has(key)) {
-            occupiedPositions.set(key, pos);
-          }
-        }
-      }
-
-      // Create hole nodes
-      for (const [key, pos] of occupiedPositions) {
-        const holeNode = new BreadboardHoleNode(pos);
-        await this.editor.addNode(holeNode);
-        this.holeNodeMap.set(key, holeNode.id);
-
-        // Position hole node if area available
-        if (this.area) {
-          await this.area.translate(holeNode.id, {
-            x: pos.col * 50,
-            y: pos.row * 50,
-          });
-        }
-      }
-
-      // Step 2: Create ComponentNodes for each component
-      for (const component of state.components) {
-        // Determine leg count based on component type
-        const legCount = this.getComponentLegCount(component.type);
-
-        const componentNode = new ComponentNode(component.id, component.type, legCount);
-
-        await this.editor.addNode(componentNode);
-        this.componentNodeMap.set(component.id, componentNode.id);
-
-        // Position node based on first component position (only if area available)
-        if (this.area && component.positions.length > 0) {
-          const pos = component.positions[0];
-          await this.area.translate(componentNode.id, {
-            x: pos.col * 50 + 100, // Offset to not overlap with hole nodes
-            y: pos.row * 50,
-          });
-        }
-
-        // Step 3: Create connections between component legs and holes
-        // Each position corresponds to a component leg in order
-        for (let i = 0; i < component.positions.length && i < legCount; i++) {
-          const pos = component.positions[i];
-          const posKey = this.positionToKey(pos);
-          const holeNodeId = this.holeNodeMap.get(posKey);
-
-          if (holeNodeId) {
-            // Get the hole node
-            const holeNode = this.editor.getNode(holeNodeId);
-
-            if (holeNode && holeNode instanceof BreadboardHoleNode) {
-              // Create connection from hole to component leg
-              // Connection direction: hole (output) -> component leg (input)
-              const connection = new ClassicPreset.Connection(
-                holeNode as ComponentNode | BreadboardHoleNode,
-                'hole', // output socket
-                componentNode as ComponentNode | BreadboardHoleNode,
-                `leg${i}` // input socket
-              ) as Connection;
-
-              // NodeEditor is typed with ClassicScheme; connection generic parameters are invariant,
-              // so we cast here to the scheme connection type expected by addConnection.
-              await this.editor.addConnection(connection as unknown as Schemes['Connection']);
-            }
-          }
-        }
-      }
-
-      // Zoom to fit nodes if any exist and area is available
-      if (this.area) {
-        const nodes = this.editor.getNodes();
-        if (nodes.length > 0) {
-          await AreaExtensions.zoomAt(this.area, nodes);
-        }
-      }
+      const occupiedPositions = this.collectOccupiedPositions(state);
+      await this.createHoleNodes(occupiedPositions);
+      await this.createComponentNodesAndConnections(state);
+      await this.zoomToFitIfPossible();
     } finally {
       this.syncInProgress = false;
     }
+  }
+
+  private async clearGraph(): Promise<void> {
+    for (const node of this.editor.getNodes()) {
+      await this.editor.removeNode(node.id);
+    }
+  }
+
+  private collectOccupiedPositions(state: BreadboardState): Map<string, Position> {
+    const occupiedPositions = new Map<string, Position>();
+    for (const component of state.components) {
+      for (const pos of component.positions) {
+        const key = this.positionToKey(pos);
+        if (!occupiedPositions.has(key)) {
+          occupiedPositions.set(key, pos);
+        }
+      }
+    }
+    return occupiedPositions;
+  }
+
+  private async createHoleNodes(occupiedPositions: Map<string, Position>): Promise<void> {
+    for (const [key, pos] of occupiedPositions) {
+      const holeNode = new BreadboardHoleNode(pos);
+      await this.editor.addNode(holeNode);
+      this.holeNodeMap.set(key, holeNode.id);
+
+      if (this.area) {
+        await this.area.translate(holeNode.id, {
+          x: pos.col * 50,
+          y: pos.row * 50,
+        });
+      }
+    }
+  }
+
+  private async createComponentNodesAndConnections(state: BreadboardState): Promise<void> {
+    for (const component of state.components) {
+      const legCount = this.getComponentLegCount(component.type);
+      const componentNode = new ComponentNode(component.id, component.type, legCount);
+
+      await this.editor.addNode(componentNode);
+      this.componentNodeMap.set(component.id, componentNode.id);
+
+      await this.positionComponentNode(componentNode, component.positions);
+      await this.createConnectionsForComponent(componentNode, component.positions, legCount);
+    }
+  }
+
+  private async positionComponentNode(
+    componentNode: ComponentNode,
+    positions: Position[]
+  ): Promise<void> {
+    if (!this.area || positions.length === 0) {
+      return;
+    }
+
+    const pos = positions[0];
+    await this.area.translate(componentNode.id, {
+      x: pos.col * 50 + 100, // Offset to not overlap with hole nodes
+      y: pos.row * 50,
+    });
+  }
+
+  private async createConnectionsForComponent(
+    componentNode: ComponentNode,
+    positions: Position[],
+    legCount: number
+  ): Promise<void> {
+    const connectionCount = Math.min(positions.length, legCount);
+    for (let i = 0; i < connectionCount; i++) {
+      const holeNode = this.getHoleNode(positions[i]);
+      if (!holeNode) {
+        continue;
+      }
+
+      // Create connection from hole to component leg
+      // Connection direction: hole (output) -> component leg (input)
+      const connection = new ClassicPreset.Connection(
+        holeNode as ComponentNode | BreadboardHoleNode,
+        'hole',
+        componentNode as ComponentNode | BreadboardHoleNode,
+        `leg${i}`
+      ) as Connection;
+
+      // NodeEditor is typed with ClassicScheme; connection generic parameters are invariant,
+      // so we cast here to the scheme connection type expected by addConnection.
+      await this.editor.addConnection(connection as unknown as Schemes['Connection']);
+    }
+  }
+
+  private async zoomToFitIfPossible(): Promise<void> {
+    if (!this.area) {
+      return;
+    }
+
+    const nodes = this.editor.getNodes();
+    if (nodes.length === 0) {
+      return;
+    }
+
+    await AreaExtensions.zoomAt(this.area, nodes);
   }
 
   /**
@@ -326,10 +355,19 @@ export class ReteManager {
   syncToBreadboardState(_currentState: BreadboardState): BreadboardState | null {
     if (this.syncInProgress) return null;
 
-    // Phase 2: Return null as we're using hybrid approach
-    // BreadboardState is source of truth for component properties
-    // Rete graph is source of truth for connectivity
-    return null;
+    if (!this.syncToStateEnabled) {
+      // Phase 2: Return null as we're using hybrid approach
+      // BreadboardState is source of truth for component properties
+      // Rete graph is source of truth for connectivity
+      return null;
+    }
+
+    return this.extractBreadboardStateFromReteGraph(_currentState);
+  }
+
+  private extractBreadboardStateFromReteGraph(currentState: BreadboardState): BreadboardState {
+    // Placeholder for future state extraction. When enabled, callers expect a non-null state.
+    return currentState;
   }
 
   /**
@@ -465,6 +503,14 @@ export class ReteManager {
   }
 
   /**
+   * Enable/disable extracting BreadboardState from the Rete graph.
+   * Defaults to disabled.
+   */
+  setSyncToStateEnabled(enabled: boolean): void {
+    this.syncToStateEnabled = enabled;
+  }
+
+  /**
    * Phase 3: Validate one-connector-per-hole constraint
    * Checks if a hole already has a connection before allowing a new one
    */
@@ -491,7 +537,7 @@ export class ReteManager {
     const existingConnections = this.editor.getConnections();
     const holeHasConnection = existingConnections.some(
       (conn) =>
-        (conn.source === holeNode!.id || conn.target === holeNode!.id) && conn.id !== connection.id // Don't count the current connection
+        (conn.source === holeNode.id || conn.target === holeNode.id) && conn.id !== connection.id // Don't count the current connection
     );
 
     if (holeHasConnection) {

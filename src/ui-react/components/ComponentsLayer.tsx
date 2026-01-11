@@ -21,7 +21,11 @@ export interface ComponentsLayerProps {
 /**
  * ComponentsLayer - Renders all components and manages interactions
  */
-export const ComponentsLayer: React.FC<ComponentsLayerProps> = ({ controller, svgRef, substrateRef }) => {
+export const ComponentsLayer: React.FC<ComponentsLayerProps> = ({
+  controller,
+  svgRef,
+  substrateRef,
+}) => {
   const [state, setState] = useState<AppState>(controller.getState());
   const [hoveredComponentId, setHoveredComponentId] = useState<string | null>(null);
   const isDraggingRef = useRef(false);
@@ -263,7 +267,14 @@ export const ComponentsLayer: React.FC<ComponentsLayerProps> = ({ controller, sv
       document.removeEventListener('pointermove', handlePointerMove);
       document.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [state.componentDrag.dragState, state.connectionDrag.dragState, state.breadboard.components, controller, screenToBoard, state]);
+  }, [
+    state.componentDrag.dragState,
+    state.connectionDrag.dragState,
+    state.breadboard.components,
+    controller,
+    screenToBoard,
+    state,
+  ]);
 
   // Render components
   const components = state.breadboard.components;
@@ -321,10 +332,13 @@ export const ComponentsLayer: React.FC<ComponentsLayerProps> = ({ controller, sv
                 isHovered={component.id === hoveredComponentId}
                 onPointerDown={handleComponentPointerDown}
                 onPointerEnter={setHoveredComponentId}
-                onPointerLeave={(id) => setHoveredComponentId((prev) => (prev === id ? null : prev))}
+                onPointerLeave={(id) =>
+                  setHoveredComponentId((prev) => (prev === id ? null : prev))
+                }
               />
               {/* Interactive leg circles for connection drag */}
-              {component.id === selectedId && !isDragging &&
+              {component.id === selectedId &&
+                !isDragging &&
                 component.positions.map((pos, legIndex) => {
                   const pixels = positionToPixels(pos);
                   return (

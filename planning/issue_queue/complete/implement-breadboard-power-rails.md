@@ -17,7 +17,7 @@ interface BreadboardTopology {
   rows: number;
   columns: number;
   strips: Strip[];
-  rails: Rail[];  // ← Rails are part of the core model
+  rails: Rail[]; // ← Rails are part of the core model
 }
 
 interface Rail {
@@ -29,6 +29,7 @@ interface Rail {
 ```
 
 The planning document specifies:
+
 - Rails are distinct from terminal strips
 - Rails have explicit type (positive/negative) and placement (top/bottom)
 - Rails consist of multiple hole positions with internal connectivity
@@ -37,6 +38,7 @@ The planning document specifies:
 **Current state** (planning/state/system_capabilities.md, lines 38-55):
 
 The breadboard model has:
+
 - ✅ 30 rows × 10 columns grid
 - ✅ Terminal strip connectivity (columns 0-4 left, 5-9 right)
 - ✅ Center gap isolation
@@ -91,11 +93,13 @@ Extend the breadboard model to include power rails:
 ### Technical Approach
 
 **Phase 1: Data model and types**
+
 - Define `Rail` interface in `src/core/types.ts`
 - Add `rails` property to `BreadboardTopology`
 - Define standard rail configuration (2 per side, covering all 30 rows)
 
 **Phase 2: Core connectivity logic**
+
 - Extend `BreadboardLayout` class to include rail positions
 - Add method `isPositionInRail(position: Position): boolean`
 - Add method `getRailForPosition(position: Position): Rail | null`
@@ -103,11 +107,13 @@ Extend the breadboard model to include power rails:
 - Update `arePositionsConnected()` to check rail membership
 
 **Phase 3: Circuit extraction**
+
 - Update `CircuitExtractor` to include rail positions in union-find
 - Ensure rail holes connect to same net during initialization
 - Test extraction with components spanning rails and strips
 
 **Phase 4: Visual rendering**
+
 - Extend grid from 10 columns to 14 columns (2 rail columns per side)
   - Columns 0-1: Left rails (-, +)
   - Columns 2-6: Left terminal strips (was 0-4)
@@ -118,12 +124,14 @@ Extend the breadboard model to include power rails:
 - Update coordinate mapping for new column layout
 
 **Phase 5: Interaction updates**
+
 - Update component placement to recognize rail columns
 - Update drag-and-drop to snap to rail positions
 - Update hover effects to highlight entire rail
 - Update voltage overlay to work with rail nets
 
 **Phase 6: Testing and examples**
+
 - Write unit tests for rail connectivity logic
 - Test circuit extraction with rail-connected components
 - Update visual regression baselines with new grid
@@ -186,6 +194,7 @@ This is the most important next task because:
 ### Estimated Effort
 
 3-4 days of focused development:
+
 - **Day 1**: Data model updates, types, and `BreadboardLayout` connectivity logic with unit tests
 - **Day 2**: Circuit extraction integration, component placement updates, testing
 - **Day 3**: Visual rendering with 14-column grid, rail styling, color coding
@@ -194,6 +203,7 @@ This is the most important next task because:
 ### Dependencies
 
 No blockers — all required infrastructure exists:
+
 - ✅ BreadboardLayout architecture supports extension
 - ✅ Circuit extraction uses union-find (naturally handles rails)
 - ✅ Visual rendering supports adding columns
@@ -203,23 +213,29 @@ No blockers — all required infrastructure exists:
 ### Risks and Mitigations
 
 **Risk**: Breaking existing tests due to column renumbering (0-9 → 2-6 and 7-11)
-- *Mitigation*: Update tests systematically; maintain backward compatibility initially with coordinate mapping
+
+- _Mitigation_: Update tests systematically; maintain backward compatibility initially with coordinate mapping
 
 **Risk**: Visual regression tests fail due to layout changes
-- *Mitigation*: Expected — regenerate baselines after visual review; this is intentional improvement
+
+- _Mitigation_: Expected — regenerate baselines after visual review; this is intentional improvement
 
 **Risk**: Example circuits need to be rewritten
-- *Mitigation*: Examples are JSON files; coordinate updates are straightforward; opportunity to improve realism
+
+- _Mitigation_: Examples are JSON files; coordinate updates are straightforward; opportunity to improve realism
 
 **Risk**: Performance impact from 40% more holes (300 → 420 holes)
-- *Mitigation*: Union-find scales well; circuit extraction is O(n log n); 420 holes is still trivial
+
+- _Mitigation_: Union-find scales well; circuit extraction is O(n log n); 420 holes is still trivial
 
 **Risk**: User confusion if rails are added mid-project
-- *Mitigation*: Clear visual distinction; documentation update; educational examples showing rail usage
+
+- _Mitigation_: Clear visual distinction; documentation update; educational examples showing rail usage
 
 ### Non-Goals
 
 This task specifically does **NOT** include:
+
 - Rail gap at midpoint (some breadboards split rails vertically; defer to future)
 - Configurable rail lengths (assume full-length rails for simplicity)
 - Multiple rail voltages (keep simple: one + rail, one - rail per side)
@@ -258,7 +274,7 @@ Extend `src/core/breadboard-layout.ts`:
 export class BreadboardLayout {
   readonly rows = 30;
   readonly columns = 14; // Was 10; now includes 4 rail columns
-  
+
   // Rail column indices
   readonly railColumns = {
     leftNegative: 0,
@@ -266,7 +282,7 @@ export class BreadboardLayout {
     rightPositive: 12,
     rightNegative: 13,
   };
-  
+
   // Terminal strip column ranges (adjusted for rails)
   readonly stripColumns = {
     leftStart: 2,
@@ -274,15 +290,15 @@ export class BreadboardLayout {
     rightStart: 7,
     rightEnd: 11,
   };
-  
+
   getRailForPosition(pos: Position): Rail | null {
     // Return rail if position is in rail column
   }
-  
+
   isPositionInRail(pos: Position): boolean {
     // Check if column is a rail column
   }
-  
+
   getConnectedPositions(pos: Position): Position[] {
     // Include rail connectivity
     // If in rail, return all positions in that rail
@@ -314,9 +330,9 @@ private renderBreadboard() {
   // Adjust grid to 14 columns
   // Columns 0-1: Left rails (styled differently)
   // Columns 2-6: Left terminal strips
-  // Columns 7-11: Right terminal strips  
+  // Columns 7-11: Right terminal strips
   // Columns 12-13: Right rails
-  
+
   // Add rail styling classes
   // Add +/- labels to rail columns
 }
@@ -345,7 +361,7 @@ describe('BreadboardLayout with rails', () => {
   test('all holes in a rail are connected', () => {
     // Test vertical connectivity in rail column
   });
-  
+
   test('rail positions are distinct from terminal strips', () => {
     // Test that rail column 0 is not connected to strip column 2
   });
@@ -355,23 +371,25 @@ describe('BreadboardLayout with rails', () => {
 ### Step 6: Update Examples
 
 Modify example JSON files to:
+
 - Use rail positions for power supply and ground
 - Adjust component positions for new column indices
 - Demonstrate power distribution via rails
 
 Example structure:
+
 ```json
 {
   "components": [
     {
       "type": "POWER_SUPPLY",
-      "position1": { "row": 5, "column": 1 },  // Left positive rail
-      "position2": { "row": 5, "column": 2 }   // Left terminal strip
+      "position1": { "row": 5, "column": 1 }, // Left positive rail
+      "position2": { "row": 5, "column": 2 } // Left terminal strip
     },
     {
       "type": "GROUND",
       "position1": { "row": 10, "column": 0 }, // Left negative rail
-      "position2": { "row": 10, "column": 0 }  // Single-position component
+      "position2": { "row": 10, "column": 0 } // Single-position component
     }
   ]
 }
@@ -388,6 +406,7 @@ Review new screenshots showing 14-column layout with colored rails.
 ### Step 8: Documentation
 
 Update:
+
 - `README.md`: Mention power rails in features
 - `ARCHITECTURE.md`: Document rail connectivity model
 - `planning/state/system_capabilities.md`: Update to reflect rail implementation
@@ -395,6 +414,7 @@ Update:
 ## Success Metrics
 
 After implementation:
+
 1. ✅ Breadboard displays 14 columns (4 rails + 10 terminal strip columns)
 2. ✅ Rails visually distinguished with color coding (red +, blue -)
 3. ✅ All holes within a rail are electrically connected
@@ -434,6 +454,7 @@ Without power rails, Breadboard Lab is teaching an artificial breadboard that do
 ## Next Steps After This Task
 
 Once power rails are implemented:
+
 1. Enhanced component library with rail-aware power components
 2. Real-world resistor color code rendering (depends on realistic breadboard)
 3. More sophisticated example circuits using proper power distribution

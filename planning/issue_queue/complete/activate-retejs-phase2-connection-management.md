@@ -10,6 +10,7 @@ The **explicit goal** defined in `/planning/vision/goal.md` (Section 2: "Archite
 
 **Critical Gap Identified:**
 The target state (goal.md) requires Rete.js to act as the "interaction and connectivity backbone," but the current system (system_capabilities.md, PR #219 section) explicitly states:
+
 - "Feature flag disabled (USE_RETE=false) - no user-facing changes"
 - "Connection creation UI not yet implemented"
 - "Circuit extraction from Rete graph not yet active"
@@ -24,6 +25,7 @@ This task addresses the **most fundamental deficiency** preventing full alignmen
 Enable Rete.js Phase 2 by activating the graph-based connection management system and migrating circuit extraction to use the Rete graph as the source of truth for electrical connectivity. This represents the architectural pivot described in goal.md Section 2.
 
 **Success Criteria:**
+
 1. `USE_RETE` feature flag set to `true` and all existing functionality preserved
 2. Breadboard holes represented as Rete nodes with connection capability
 3. Component legs represented as Rete connectors (sockets) with snapping and constraint enforcement
@@ -39,6 +41,7 @@ Enable Rete.js Phase 2 by activating the graph-based connection management syste
 ## Current State Assessment
 
 **What Exists (Phase 1 Foundation):**
+
 - `ReteManager` class with editor lifecycle management (`src/core/rete-manager.ts`, 256 lines)
 - `ComponentNode` and `BreadboardHoleNode` Rete node classes with socket types
 - `legSocket` and `holeSocket` definitions for component-to-hole connections
@@ -50,6 +53,7 @@ Enable Rete.js Phase 2 by activating the graph-based connection management syste
 - Zero breaking changes to existing functionality
 
 **What Must Be Built (Phase 2):**
+
 1. **Full bidirectional state synchronization:**
    - `syncFromBreadboardState()` must create Rete connections (edges) between component legs and holes
    - `syncToBreadboardState()` must extract component topology from Rete graph
@@ -86,6 +90,7 @@ Enable Rete.js Phase 2 by activating the graph-based connection management syste
 ## Architectural Design
 
 **Hybrid Architecture (Established in Phase 1):**
+
 - **Rete.js**: Manages connection graph logic (nodes, sockets, edges, constraints)
 - **PixiJS**: Continues rendering all visuals (breadboard, components, overlays)
 - **ReteManager**: Coordinates bidirectional state synchronization
@@ -93,6 +98,7 @@ Enable Rete.js Phase 2 by activating the graph-based connection management syste
 **Data Flow (After Phase 2):**
 
 **Component Placement Flow:**
+
 ```
 User clicks library component
   → BreadboardApp creates AnyComponent with positions
@@ -101,6 +107,7 @@ User clicks library component
 ```
 
 **Connection Creation Flow:**
+
 ```
 User drags from component leg socket
   → Rete ConnectionPlugin validates target hole
@@ -113,6 +120,7 @@ User drags from component leg socket
 ```
 
 **Circuit Extraction Flow (New):**
+
 ```
 extractCircuitFromReteGraph(reteManager)
   1. Get all Rete connections (edges)
@@ -126,6 +134,7 @@ extractCircuitFromReteGraph(reteManager)
 ```
 
 **State Synchronization:**
+
 - **Rete → Breadboard:** Extract component positions and connections
 - **Breadboard → Rete:** Update node positions and create connections
 - **Trigger points:** Component placement, connection creation, rotation, deletion
@@ -230,6 +239,7 @@ extractCircuitFromReteGraph(reteManager)
 The system has 422 passing tests that assume position-based component placement. Rete-based extraction must produce identical circuits.
 
 **Mitigation:**
+
 - Implement Rete extraction alongside position-based extraction (dual-path)
 - Feature flag allows gradual migration and easy rollback
 - Extensive testing comparing both extraction methods
@@ -240,6 +250,7 @@ The system has 422 passing tests that assume position-based component placement.
 Breadboard holes within the same terminal strip or rail are internally connected. Rete connections represent explicit wires, but internal connectivity is implicit.
 
 **Mitigation:**
+
 - Circuit extraction must apply breadboard topology rules after reading Rete graph
 - BreadboardLayout.getConnectedPositions() used to expand electrical nets
 - Union-find algorithm groups nodes considering both Rete connections AND internal connectivity
@@ -250,6 +261,7 @@ Breadboard holes within the same terminal strip or rail are internally connected
 When a component rotates, its leg positions change, requiring Rete connections to update to different hole nodes.
 
 **Mitigation:**
+
 - On rotation, delete existing leg-to-hole connections
 - Recalculate rotated leg positions
 - Create new connections to newly occupied holes
@@ -261,6 +273,7 @@ When a component rotates, its leg positions change, requiring Rete connections t
 PixiJS renders breadboard visuals, but Rete manages connection graph. Keeping them synchronized requires careful coordination.
 
 **Mitigation:**
+
 - Rete graph is source of truth for connectivity
 - PixiJS reads from Rete graph to render wires
 - Sync triggered after every Rete graph mutation
@@ -271,6 +284,7 @@ PixiJS renders breadboard visuals, but Rete manages connection graph. Keeping th
 Current system allows multiple component legs to share a hole (they're automatically electrically connected). Rete socket system must enforce exactly one connection per hole.
 
 **Mitigation:**
+
 - Hole nodes have single output socket (inherently enforces one connection)
 - Before creating connection, check socket.connections.length
 - If socket already connected, reject new connection
@@ -432,7 +446,7 @@ Current system allows multiple component legs to share a hole (they're automatic
 
 **Testing Documentation:**
 
-1. **Test README (src/core/__tests__/README.md or similar):**
+1. **Test README (src/core/**tests**/README.md or similar):**
    - Document Rete-specific testing strategies
    - Explain circuit extraction equivalence testing
    - Provide examples of integration tests
@@ -442,6 +456,7 @@ Current system allows multiple component legs to share a hole (they're automatic
 ## Dependencies and Prerequisites
 
 **Technical Prerequisites:**
+
 - ✅ Rete.js dependencies already installed (rete@^2.0.6, plugins)
 - ✅ ReteManager Phase 1 foundation complete (PR #219)
 - ✅ PixiJS rendering system stable and performant (PR #167, PR #203)
@@ -449,6 +464,7 @@ Current system allows multiple component legs to share a hole (they're automatic
 - ✅ All 422 tests passing at 100% rate
 
 **Knowledge Prerequisites:**
+
 - Understanding of Rete.js node-edge graph model
 - Understanding of socket-based connection validation
 - Understanding of breadboard internal connectivity rules
@@ -456,6 +472,7 @@ Current system allows multiple component legs to share a hole (they're automatic
 - Understanding of PixiJS rendering pipeline
 
 **No External Blockers:**
+
 - No dependencies on upstream library changes
 - No dependencies on other in-flight PRs
 - Can begin implementation immediately
@@ -501,6 +518,7 @@ Current system allows multiple component legs to share a hole (they're automatic
 **Rollback Plan:**
 
 If critical issues arise:
+
 1. Set `USE_RETE = false` to disable Rete integration
 2. Revert to position-based circuit extraction
 3. All existing functionality restored immediately
@@ -513,23 +531,28 @@ If critical issues arise:
 Completing Phase 2 unlocks the architectural capabilities required for subsequent features described in goal.md:
 
 **Phase 3 (Continuous Rotation):**
+
 - Rete connections can update dynamically as components rotate continuously
 - No longer constrained to 90° increments
 
 **Phase 4 (Wire Re-Routing):**
+
 - Rete connections can be reparented (drag endpoint to new hole)
 - Control points can be added for custom wire paths
 
 **Phase 5 (Component Instantiation Model):**
+
 - Components can be created as disconnected Rete nodes
 - User explicitly connects legs to holes via Rete UI
 - No longer requires immediate two-click placement
 
 **Phase 6 (Advanced Constraints):**
+
 - Socket types can enforce electrical compatibility (e.g., power vs signal)
 - Connection validation can reject incompatible connections
 
 **Phase 7 (Graph-Based Analysis):**
+
 - Rete graph can be analyzed for circuit patterns
 - Enable smarter error detection and suggestions
 
@@ -540,6 +563,7 @@ All of these depend on Phase 2 establishing Rete as the active connection manage
 ## Estimated Effort
 
 **Development Time:**
+
 - Phase 2.1 (State Sync): 3-5 days
 - Phase 2.2 (Circuit Extraction): 2-3 days
 - Phase 2.3 (Connection UI): 3-4 days
@@ -547,12 +571,14 @@ All of these depend on Phase 2 establishing Rete as the active connection manage
 - Total: 10-15 days (2-3 weeks)
 
 **Testing Time:**
+
 - Unit test development: 2-3 days
 - Integration test development: 2-3 days
 - Manual verification: 1-2 days
 - Total: 5-8 days (1 week)
 
 **Documentation Time:**
+
 - Code documentation: 1 day
 - Architecture documentation: 1-2 days
 - Testing documentation: 1 day
@@ -567,21 +593,25 @@ All of these depend on Phase 2 establishing Rete as the active connection manage
 ## References
 
 **Planning Documents:**
+
 - `/planning/vision/goal.md` (Section 2: Architectural Change, Section 3: Core Conceptual Model)
 - `/planning/state/system_capabilities.md` (Rete.js Phase 1 Implementation section)
 - `/planning/issue_queue/complete/migrate-from-pixijs-to-retejs-architecture.md` (Phase 1 task)
 
 **Implementation:**
+
 - `src/core/rete-manager.ts` (256 lines, Phase 1 foundation)
 - `src/core/circuit-extractor.ts` (175 lines, position-based extraction)
 - `src/ui/breadboard-app.ts` (2403 lines, Rete integration points)
 
 **Tests:**
+
 - `src/core/__tests__/rete-manager.test.ts` (12 tests, Phase 1 coverage)
 - `src/core/__tests__/circuit-extractor.test.ts` (6 tests, position-based extraction)
 - `src/ui/__tests__/breadboard-app.test.ts` (25 tests, app integration)
 
 **Dependencies:**
+
 - Rete.js documentation: https://rete.js.org/
 - Rete ConnectionPlugin docs: https://rete.js.org/docs/plugins/connection-plugin
 

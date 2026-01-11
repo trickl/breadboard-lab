@@ -8,6 +8,7 @@
 Following PRs #303, #309, and #321, a known limitation was identified: visual overlays may not render correctly when the breadboard is rotated to non-zero orientations (90°, 180°, 270°). This document records the verification testing results.
 
 **Related Documentation:**
+
 - `planning/reviews/review-2026-01-08.actions.md` lines 1101-1150 (Known Limitation #2)
 - `planning/reviews/review-2026-01-08.actions.md` lines 1867-1892 (X-ray mode limitation)
 - PR #309: Mouse coordinate transformation fix
@@ -23,9 +24,11 @@ Following PRs #303, #309, and #321, a known limitation was identified: visual ov
 ## X-Ray Mode Testing Results
 
 ### Test 1: X-Ray Mode at 0° (Baseline)
+
 **Status:** ✅ **PASS**
 
 **Observations:**
+
 - Gold traces visible for 4 vertical power rails (columns 0, 1, 12, 13)
 - Gold traces visible for 60 horizontal terminal strips (30 rows × 2 sides)
 - Internal connectivity overlay appears behind holes (correct z-ordering)
@@ -39,9 +42,11 @@ Following PRs #303, #309, and #321, a known limitation was identified: visual ov
 ---
 
 ### Test 2: X-Ray Mode at 90° Rotation
+
 **Status:** ❌ **FAIL**
 
 **Observations:**
+
 - **NO gold traces visible** for power rails
 - **NO gold traces visible** for terminal strips
 - Components and wires still show transparency effect (X-ray mode is active)
@@ -58,9 +63,11 @@ Following PRs #303, #309, and #321, a known limitation was identified: visual ov
 ---
 
 ### Test 3: X-Ray Mode at 180° Rotation
+
 **Status:** ❌ **FAIL**
 
 **Observations:**
+
 - **NO gold traces visible** for power rails
 - **NO gold traces visible** for terminal strips
 - Components and wires still show transparency effect (X-ray mode is active)
@@ -75,9 +82,11 @@ Following PRs #303, #309, and #321, a known limitation was identified: visual ov
 ---
 
 ### Test 4: X-Ray Mode at 270° Rotation
+
 **Status:** ❌ **FAIL**
 
 **Observations:**
+
 - **NO gold traces visible** for power rails
 - **NO gold traces visible** for terminal strips
 - Components and wires still show transparency effect (X-ray mode is active)
@@ -94,9 +103,11 @@ Following PRs #303, #309, and #321, a known limitation was identified: visual ov
 ## Voltage Heatmap Testing Results
 
 ### Test 5: Voltage Heatmap at 0° (Baseline)
+
 **Status:** ⚠️ **PARTIAL TEST**
 
 **Observations:**
+
 - Test circuit has power supply but no active simulation running
 - Voltage colors visible on power rails (silver metallic for rails)
 - Holes render with appropriate colors
@@ -119,7 +130,7 @@ The X-ray mode internal connectivity overlay rendering in `pixi-renderer.ts` (li
 ```typescript
 private renderInternalConnectivity(): void {
   const overlay = new Graphics();
-  
+
   // Vertical power rails rendered with absolute pixel coordinates
   overlay.rect(
     railX - railWidth / 2,
@@ -162,17 +173,17 @@ private renderInternalConnectivity(): void {
   const overlay = new Graphics();
   const traceColor = 0xFFD700;
   overlay.alpha = 0.8;
-  
+
   // Render vertical power rails using logical column positions
   const railColumns = [0, 1, 12, 13];
   for (const col of railColumns) {
     // Calculate bounding box in logical space
     const topPos = { row: 0, col };
     const bottomPos = { row: BreadboardLayout.ROWS - 1, col };
-    
+
     const topPixels = this.positionToPixels(topPos);
     const bottomPixels = this.positionToPixels(bottomPos);
-    
+
     // Draw rail trace connecting top to bottom
     const railWidth = PixiRenderer.HOLE_SPACING * 0.7;
     overlay.rect(
@@ -183,7 +194,7 @@ private renderInternalConnectivity(): void {
     );
     overlay.fill({ color: traceColor });
   }
-  
+
   // Render horizontal terminal strips using logical row positions
   for (let row = 0; row < BreadboardLayout.ROWS; row++) {
     // Left strip
@@ -191,7 +202,7 @@ private renderInternalConnectivity(): void {
     const leftEnd = { row, col: BreadboardLayout.STRIP_LEFT_END };
     const leftStartPixels = this.positionToPixels(leftStart);
     const leftEndPixels = this.positionToPixels(leftEnd);
-    
+
     const stripHeight = PixiRenderer.HOLE_SPACING * 0.4;
     overlay.rect(
       leftStartPixels.x,
@@ -200,13 +211,13 @@ private renderInternalConnectivity(): void {
       stripHeight
     );
     overlay.fill({ color: traceColor });
-    
+
     // Right strip (similar logic)
     const rightStart = { row, col: BreadboardLayout.STRIP_RIGHT_START };
     const rightEnd = { row, col: BreadboardLayout.STRIP_RIGHT_END };
     const rightStartPixels = this.positionToPixels(rightStart);
     const rightEndPixels = this.positionToPixels(rightEnd);
-    
+
     overlay.rect(
       rightStartPixels.x,
       rightStartPixels.y - stripHeight / 2,
@@ -215,18 +226,20 @@ private renderInternalConnectivity(): void {
     );
     overlay.fill({ color: traceColor });
   }
-  
+
   this.breadboardContainer.addChild(overlay);
 }
 ```
 
 **Key Changes:**
+
 1. Convert rail and strip endpoints from absolute pixels to logical grid positions
 2. Use `positionToPixels(pos)` to get rendered pixel coordinates
 3. Calculate trace dimensions based on pixel positions of grid endpoints
 4. This ensures traces rotate naturally with the breadboard since they're defined relative to grid positions
 
 **Benefits:**
+
 - Rotation-agnostic: overlay defined in logical space
 - Consistent with existing rendering patterns (holes, components)
 - No special coordinate transformation needed
@@ -236,13 +249,13 @@ private renderInternalConnectivity(): void {
 
 ## Summary
 
-| Feature | 0° | 90° | 180° | 270° | Status |
-|---------|-----|-----|------|------|--------|
-| **X-Ray Mode Gold Traces** | ✅ Pass | ❌ Fail | ❌ Fail | ❌ Fail | **BROKEN** |
-| **X-Ray Mode Transparency** | ✅ Pass | ✅ Pass | ✅ Pass | ✅ Pass | **WORKING** |
-| **Voltage Heatmap** | ✅ Pass | ✅ Expected | ✅ Expected | ✅ Expected | **WORKING** |
-| **Component Rendering** | ✅ Pass | ✅ Pass | ✅ Pass | ✅ Pass | **WORKING** |
-| **Interaction (Mouse)** | ✅ Pass | ✅ Pass | ✅ Pass | ✅ Pass | **WORKING** |
+| Feature                     | 0°      | 90°         | 180°        | 270°        | Status      |
+| --------------------------- | ------- | ----------- | ----------- | ----------- | ----------- |
+| **X-Ray Mode Gold Traces**  | ✅ Pass | ❌ Fail     | ❌ Fail     | ❌ Fail     | **BROKEN**  |
+| **X-Ray Mode Transparency** | ✅ Pass | ✅ Pass     | ✅ Pass     | ✅ Pass     | **WORKING** |
+| **Voltage Heatmap**         | ✅ Pass | ✅ Expected | ✅ Expected | ✅ Expected | **WORKING** |
+| **Component Rendering**     | ✅ Pass | ✅ Pass     | ✅ Pass     | ✅ Pass     | **WORKING** |
+| **Interaction (Mouse)**     | ✅ Pass | ✅ Pass     | ✅ Pass     | ✅ Pass     | **WORKING** |
 
 ### Critical Finding
 
@@ -263,6 +276,7 @@ The gold traces that show internal power rail and terminal strip connections are
 **Implementation completed:** 2026-01-09
 
 **Changes made:**
+
 - Modified `src/ui/pixi-renderer.ts` method `renderInternalConnectivity()` (lines 519-589)
 - Refactored from absolute pixel coordinates to logical grid position system
 - Power rails now calculated using logical endpoints: `{row: 0, col}` to `{row: 29, col}`
@@ -272,6 +286,7 @@ The gold traces that show internal power rail and terminal strip connections are
 ### Post-Fix Testing Results
 
 #### After Fix: X-Ray Mode at 0°
+
 **Status:** ✅ **PASS**
 
 **Screenshot:** after-fix-01-xray-0deg.png  
@@ -282,9 +297,11 @@ The gold traces that show internal power rail and terminal strip connections are
 ---
 
 #### After Fix: X-Ray Mode at 90°
+
 **Status:** ✅ **PASS**
 
 **Observations:**
+
 - ✅ Gold traces visible for all 4 vertical power rails
 - ✅ Gold traces visible for all 60 horizontal terminal strips
 - ✅ Traces correctly aligned with breadboard holes at 90° rotation
@@ -299,9 +316,11 @@ The gold traces that show internal power rail and terminal strip connections are
 ---
 
 #### After Fix: X-Ray Mode at 180°
+
 **Status:** ✅ **PASS**
 
 **Observations:**
+
 - ✅ Gold traces visible for all 4 vertical power rails
 - ✅ Gold traces visible for all 60 horizontal terminal strips
 - ✅ Traces correctly aligned with breadboard holes at 180° rotation
@@ -316,9 +335,11 @@ The gold traces that show internal power rail and terminal strip connections are
 ---
 
 #### After Fix: X-Ray Mode at 270°
+
 **Status:** ✅ **PASS**
 
 **Observations:**
+
 - ✅ Gold traces visible for all 4 vertical power rails
 - ✅ Gold traces visible for all 60 horizontal terminal strips
 - ✅ Traces correctly aligned with breadboard holes at 270° rotation
@@ -334,13 +355,13 @@ The gold traces that show internal power rail and terminal strip connections are
 
 ### Final Results Summary
 
-| Feature | 0° | 90° | 180° | 270° | Status |
-|---------|-----|-----|------|------|--------|
-| **X-Ray Mode Gold Traces** | ✅ Pass | ✅ Pass | ✅ Pass | ✅ Pass | **✅ FIXED** |
-| **X-Ray Mode Transparency** | ✅ Pass | ✅ Pass | ✅ Pass | ✅ Pass | **WORKING** |
-| **Voltage Heatmap** | ✅ Pass | ✅ Pass | ✅ Pass | ✅ Pass | **WORKING** |
-| **Component Rendering** | ✅ Pass | ✅ Pass | ✅ Pass | ✅ Pass | **WORKING** |
-| **Interaction (Mouse)** | ✅ Pass | ✅ Pass | ✅ Pass | ✅ Pass | **WORKING** |
+| Feature                     | 0°      | 90°     | 180°    | 270°    | Status       |
+| --------------------------- | ------- | ------- | ------- | ------- | ------------ |
+| **X-Ray Mode Gold Traces**  | ✅ Pass | ✅ Pass | ✅ Pass | ✅ Pass | **✅ FIXED** |
+| **X-Ray Mode Transparency** | ✅ Pass | ✅ Pass | ✅ Pass | ✅ Pass | **WORKING**  |
+| **Voltage Heatmap**         | ✅ Pass | ✅ Pass | ✅ Pass | ✅ Pass | **WORKING**  |
+| **Component Rendering**     | ✅ Pass | ✅ Pass | ✅ Pass | ✅ Pass | **WORKING**  |
+| **Interaction (Mouse)**     | ✅ Pass | ✅ Pass | ✅ Pass | ✅ Pass | **WORKING**  |
 
 **✅ ALL TESTS PASSING - Issue fully resolved!**
 
@@ -354,7 +375,7 @@ When adding new visual overlays to the breadboard renderer:
 - [ ] Use `positionToPixels(pos)` for coordinate conversion
 - [ ] Test at 0° orientation (baseline)
 - [ ] Test at 90° orientation
-- [ ] Test at 180° orientation  
+- [ ] Test at 180° orientation
 - [ ] Test at 270° orientation
 - [ ] Verify z-ordering (overlays should appear behind holes but above substrate)
 - [ ] Verify overlay responds to breadboard rotation without special handling

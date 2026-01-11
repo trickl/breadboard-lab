@@ -32,6 +32,7 @@ The EDU-8 is an educational 8-bit microprocessor designed for teaching computati
 ## Instruction Format
 
 Each instruction is 8 bits:
+
 - **Bits 7-4:** Opcode (4-bit instruction identifier)
 - **Bits 3-0:** Operand (4-bit immediate value or address)
 
@@ -49,6 +50,7 @@ Example: `0x35` = opcode `0x3` (OUT), operand `0x5` (unused by OUT)
 Loads a 4-bit immediate value into the accumulator (extended to 8 bits).
 
 **Example:**
+
 ```assembly
 0x05  ; LDA #5    → A = 5, Z = 0
 0x00  ; LDA #0    → A = 0, Z = 1
@@ -111,6 +113,7 @@ Stops execution until reset.
 ## Example Programs
 
 ### Blink (Toggle OUT0)
+
 ```
 0x01  ; LDA #1
 0x30  ; OUT
@@ -120,6 +123,7 @@ Stops execution until reset.
 ```
 
 ### Counter (0-15)
+
 ```
 0x00  ; LDA #0
 0x30  ; OUT
@@ -128,6 +132,7 @@ Stops execution until reset.
 ```
 
 ### Echo (Input → Output)
+
 ```
 0x20  ; IN
 0x30  ; OUT

@@ -8,7 +8,8 @@ describe('inner rails (terminal strips)', () => {
   it('groups each strip row into 5 visible holes per side (60 rails total)', () => {
     const all = getAllHolePositions();
 
-    const expectedLeftCount = BreadboardLayout.STRIP_LEFT_END - BreadboardLayout.STRIP_LEFT_START + 1;
+    const expectedLeftCount =
+      BreadboardLayout.STRIP_LEFT_END - BreadboardLayout.STRIP_LEFT_START + 1;
     const expectedRightCount =
       BreadboardLayout.STRIP_RIGHT_END - BreadboardLayout.STRIP_RIGHT_START + 1;
 

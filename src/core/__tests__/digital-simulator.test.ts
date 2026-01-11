@@ -5,11 +5,25 @@ import {
   getMicroprocessorOutputVoltages,
   analogVoltagesToInputs,
   resetDigitalSimulation,
+  type DigitalSimulationState,
 } from '../digital-simulator';
 import { createInitialEDU8State, loadProgram, PRESET_PROGRAMS } from '../edu8-simulator';
 import { ComponentType } from '../types';
-import type { Microprocessor, Circuit, CircuitNode } from '../types';
+import type { Microprocessor, Circuit, CircuitNode, AnyComponent } from '../types';
 import { TTL_THRESHOLDS } from '../digital-signals';
+
+function pulseClockOnce(
+  circuit: Circuit,
+  components: AnyComponent[],
+  digitalState: DigitalSimulationState,
+  clockNode: CircuitNode,
+  clockNodeId = 'clk'
+): AnyComponent[] {
+  clockNode.voltage = 5.0;
+  const afterRising = stepDigitalSimulation(circuit, components, digitalState, clockNodeId);
+  clockNode.voltage = 0.0;
+  return stepDigitalSimulation(circuit, afterRising, digitalState, clockNodeId);
+}
 
 describe('Digital Simulator', () => {
   describe('createDigitalSimulationState', () => {
@@ -200,42 +214,32 @@ describe('Digital Simulator', () => {
       const digitalState = createDigitalSimulationState();
       let components = [cpu];
 
-      // Helper to pulse clock
-      const pulseClock = () => {
-        // Rising edge
-        clockNode.voltage = 5.0;
-        components = stepDigitalSimulation(circuit, components, digitalState, 'clk');
-        // Falling edge
-        clockNode.voltage = 0.0;
-        components = stepDigitalSimulation(circuit, components, digitalState, 'clk');
-      };
-
       // Pulse 1: LDA #1
-      pulseClock();
+      components = pulseClockOnce(circuit, components, digitalState, clockNode);
       expect(components[0].state.programCounter).toBe(1);
       expect(components[0].state.accumulator).toBe(1);
 
       // Pulse 2: OUT
-      pulseClock();
+      components = pulseClockOnce(circuit, components, digitalState, clockNode);
       expect(components[0].state.programCounter).toBe(2);
       expect(components[0].state.outputs).toBe(1);
 
       // Pulse 3: LDA #0
-      pulseClock();
+      components = pulseClockOnce(circuit, components, digitalState, clockNode);
       expect(components[0].state.programCounter).toBe(3);
       expect(components[0].state.accumulator).toBe(0);
 
       // Pulse 4: OUT
-      pulseClock();
+      components = pulseClockOnce(circuit, components, digitalState, clockNode);
       expect(components[0].state.programCounter).toBe(4);
       expect(components[0].state.outputs).toBe(0);
 
       // Pulse 5: JMP 0
-      pulseClock();
+      components = pulseClockOnce(circuit, components, digitalState, clockNode);
       expect(components[0].state.programCounter).toBe(0); // Jumped back
 
       // Pulse 6: LDA #1 (loop repeats)
-      pulseClock();
+      components = pulseClockOnce(circuit, components, digitalState, clockNode);
       expect(components[0].state.programCounter).toBe(1);
       expect(components[0].state.outputs).toBe(0); // Previous output still 0
     });
@@ -266,28 +270,20 @@ describe('Digital Simulator', () => {
       const digitalState = createDigitalSimulationState();
       let components = [cpu];
 
-      // Helper to pulse clock
-      const pulseClock = () => {
-        clockNode.voltage = 5.0;
-        components = stepDigitalSimulation(circuit, components, digitalState, 'clk');
-        clockNode.voltage = 0.0;
-        components = stepDigitalSimulation(circuit, components, digitalState, 'clk');
-      };
-
       // Initial state: outputs = 0
-      let voltages = getMicroprocessorOutputVoltages(components[0] as Microprocessor);
+      let voltages = getMicroprocessorOutputVoltages(components[0]);
       expect(voltages[0]).toBe(TTL_THRESHOLDS.V_OL); // OUT0 low
 
       // Execute until first OUT instruction
-      pulseClock(); // LDA #1
-      pulseClock(); // OUT
-      voltages = getMicroprocessorOutputVoltages(components[0] as Microprocessor);
+      components = pulseClockOnce(circuit, components, digitalState, clockNode); // LDA #1
+      components = pulseClockOnce(circuit, components, digitalState, clockNode); // OUT
+      voltages = getMicroprocessorOutputVoltages(components[0]);
       expect(voltages[0]).toBe(TTL_THRESHOLDS.V_OH); // OUT0 high
 
       // Execute until second OUT instruction
-      pulseClock(); // LDA #0
-      pulseClock(); // OUT
-      voltages = getMicroprocessorOutputVoltages(components[0] as Microprocessor);
+      components = pulseClockOnce(circuit, components, digitalState, clockNode); // LDA #0
+      components = pulseClockOnce(circuit, components, digitalState, clockNode); // OUT
+      voltages = getMicroprocessorOutputVoltages(components[0]);
       expect(voltages[0]).toBe(TTL_THRESHOLDS.V_OL); // OUT0 low again
     });
   });

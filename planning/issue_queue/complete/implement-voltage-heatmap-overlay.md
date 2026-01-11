@@ -19,6 +19,7 @@ Breadboard Lab simulates circuits and computes node voltages internally, but the
 ### Scope
 
 Create a visual overlay system that:
+
 1. Reads solved voltage values from simulation results
 2. Maps circuit nodes back to breadboard hole positions
 3. Renders colored overlays on all holes belonging to each net
@@ -47,6 +48,7 @@ This feature directly enables the core learning experience: students see immedia
 ### Alignment with Roadmap
 
 This task is part of MVP milestone (planning/vision/goal.md, lines 1041-1069):
+
 - 🎯 "Voltage heatmap overlay" is listed as MVP requirement
 - Enables subsequent features (current animation, error overlays)
 - Prerequisite for educational "Explain" panel
@@ -54,6 +56,7 @@ This task is part of MVP milestone (planning/vision/goal.md, lines 1041-1069):
 ### Estimated Effort
 
 2-3 days of focused development
+
 - Day 1: Implement color mapping and overlay rendering
 - Day 2: Polish visual design, add tooltips
 - Day 3: Test with various circuits, accessibility review
@@ -80,6 +83,7 @@ This is the most important gap because:
 ## Next Steps After This Task
 
 Once voltage visualization works:
+
 1. Add current animation on wires (planning/vision/goal.md, lines 792-815)
 2. Implement error detection overlays (planning/vision/goal.md, lines 832-849)
 3. Create "Explain" panel for educational context (planning/vision/goal.md, lines 851-881)

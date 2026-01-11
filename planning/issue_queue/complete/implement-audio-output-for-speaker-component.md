@@ -11,11 +11,13 @@ The planning document explicitly requires audio output capability as a core educ
 **Long-term goal** (`planning/vision/goal.md`, lines 353-364):
 
 > "Audio output capability (speaker) — required"
+>
 > - Speaker components produce real audio via the browser (Web Audio API)
 > - Audio is disabled by default; users must explicitly enable sound
 > - Audio waveform is derived from solver output across speaker terminals
-> 
+>
 > Acceptance criteria:
+>
 > - [ ] Enabling sound produces audible output for a driven speaker circuit
 > - [ ] Disabling sound mutes output immediately
 > - [ ] Drive frequency changes the audible pitch
@@ -58,6 +60,7 @@ Create an audio output system that:
 ### Technical Approach
 
 **Phase 1: Audio Infrastructure**
+
 - Create `AudioManager` class (`src/audio/audio-manager.ts`)
   - Initialize Web Audio API context
   - Manage oscillator nodes per speaker component
@@ -65,6 +68,7 @@ Create an audio output system that:
   - Cleanup and resource management
 
 **Phase 2: Circuit-to-Audio Mapping**
+
 - Extend `BreadboardApp` to detect speaker components
 - After simulation, compute voltage/current across each speaker
 - Map electrical values to audio parameters:
@@ -74,6 +78,7 @@ Create an audio output system that:
 - Initial simple mapping: 0-5V maps to 200-2000Hz frequency range
 
 **Phase 3: UI Controls**
+
 - Add sound control panel to toolbar:
   - 🔇/🔊 Enable/Disable button
   - Volume slider (0-100%)
@@ -82,6 +87,7 @@ Create an audio output system that:
 - Handle keyboard shortcut for mute/unmute (M key)
 
 **Phase 4: Real-time Updates**
+
 - Audio updates automatically when:
   - Component added/removed/moved
   - Circuit topology changes
@@ -91,6 +97,7 @@ Create an audio output system that:
 - Debounce rapid changes to avoid audio glitches
 
 **Phase 5: Multi-speaker Support**
+
 - Support multiple independent speakers in same circuit
 - Each speaker gets its own oscillator node
 - Mix audio signals when multiple speakers active
@@ -114,21 +121,25 @@ Create an audio output system that:
 ### Educational and User Experience Impact
 
 **Transforms passive simulation into active experience:**
+
 - Students **hear** the circuit working, not just see simulation numbers
 - Immediate feedback: change a resistor value → hear pitch/volume change
 - Multi-sensory learning reinforces understanding of electrical concepts
 
 **Real-world connection:**
+
 - Students learn that speaker impedance matters (8Ω in library specs)
 - Demonstrates power concepts (wattage limits, voltage-to-sound relationship)
 - Prepares students for actual breadboard prototyping with real speakers
 
 **Unique differentiator:**
+
 - Most circuit simulators have visual output only
 - Audio output makes Breadboard Lab memorable and engaging
 - Particularly effective for teaching oscillators, 555 timers, audio circuits
 
 **Example educational circuits enabled:**
+
 - Simple buzzer circuit (speaker + switch + battery)
 - Tone generator with variable frequency (potentiometer → pitch)
 - Alarm circuit (capacitor charge/discharge → beep pattern)
@@ -188,6 +199,7 @@ Initial implementation focuses on **proof of concept**: speaker produces sound d
 ### Step 1: Create Audio Manager Infrastructure
 
 Create `src/audio/audio-manager.ts`:
+
 ```typescript
 export class AudioManager {
   private audioContext: AudioContext | null = null;
@@ -225,6 +237,7 @@ export class AudioManager {
 ### Step 2: Integrate Audio Manager into BreadboardApp
 
 Extend `src/ui/breadboard-app.ts`:
+
 - Add AudioManager instance
 - Detect speaker components after each render
 - Call `updateSpeaker()` for each speaker with simulation results
@@ -233,15 +246,17 @@ Extend `src/ui/breadboard-app.ts`:
 ### Step 3: Add UI Controls
 
 Add to toolbar in `breadboard-app.ts`:
+
 ```html
 <div class="audio-controls">
   <button id="toggle-audio" class="btn-audio">🔇 Enable Sound</button>
-  <input type="range" id="volume-slider" min="0" max="100" value="50" disabled>
+  <input type="range" id="volume-slider" min="0" max="100" value="50" disabled />
   <span id="audio-indicator" class="hidden">🔊 Audio Active</span>
 </div>
 ```
 
 Add event listeners:
+
 - Toggle button: enable/disable audio
 - Volume slider: adjust audio level
 - Update button icon when audio state changes
@@ -249,6 +264,7 @@ Add event listeners:
 ### Step 4: Implement Voltage-to-Audio Mapping
 
 Simple initial mapping:
+
 - **Voltage** (0-5V) → **Frequency** (200-2000Hz) using logarithmic scale
 - **Current** (0-20mA) → **Amplitude** (0-1.0) using linear scale
 - Use sine wave oscillator for smooth tone
@@ -257,6 +273,7 @@ Simple initial mapping:
 ### Step 5: Test with Example Circuits
 
 Create test circuits:
+
 1. **Simple buzzer**: 5V power supply → speaker → ground (constant tone)
 2. **Variable tone**: Power supply → resistor (variable) → speaker → ground (pitch changes with resistance)
 3. **Two speakers**: Two independent speaker circuits (test multi-speaker mixing)
@@ -266,17 +283,20 @@ Add to example library or create as visual regression tests.
 ### Step 6: Documentation
 
 Update README.md:
+
 - Add "Audio Output" section explaining speaker component
 - Document how to enable sound and adjust volume
 - Include example circuit for testing audio
 
 Create inline help:
+
 - Tooltip on Enable Sound button explaining user interaction requirement
 - Warning when speaker has no voltage (circuit not complete)
 
 ## Estimated Effort
 
 3-4 days of focused development:
+
 - **Day 1**: Audio manager infrastructure, Web Audio API setup, basic oscillator integration
 - **Day 2**: Circuit-to-audio mapping, speaker detection, voltage/current handling
 - **Day 3**: UI controls, volume/enable/disable, visual indicators, keyboard shortcuts
@@ -285,6 +305,7 @@ Create inline help:
 ## Dependencies
 
 All required infrastructure already exists:
+
 - ✅ Speaker component in library with electrical specifications
 - ✅ DC circuit simulator computes voltage and current
 - ✅ Component placement and rendering system
@@ -295,25 +316,32 @@ All required infrastructure already exists:
 ## Risks and Mitigations
 
 **Risk**: Web Audio API requires user gesture to initialize
-- *Mitigation*: Audio disabled by default; explicit "Enable Sound" button provides gesture; show clear messaging to user
+
+- _Mitigation_: Audio disabled by default; explicit "Enable Sound" button provides gesture; show clear messaging to user
 
 **Risk**: Audio glitches or clicks when circuit changes rapidly
-- *Mitigation*: Use AudioParam.linearRampToValueAtTime() for smooth transitions; debounce rapid changes; stop oscillator cleanly before removing
+
+- _Mitigation_: Use AudioParam.linearRampToValueAtTime() for smooth transitions; debounce rapid changes; stop oscillator cleanly before removing
 
 **Risk**: Browser compatibility differences (Safari, Firefox)
-- *Mitigation*: Test on all major browsers; use standard Web Audio API features only; provide fallback messaging if audio context fails
+
+- _Mitigation_: Test on all major browsers; use standard Web Audio API features only; provide fallback messaging if audio context fails
 
 **Risk**: DC voltage doesn't naturally map to audio frequency
-- *Mitigation*: Use simple heuristic for initial implementation (voltage → frequency mapping); document as "audio demonstration mode" not "physically accurate speaker model"; can be refined later with SPICE integration
+
+- _Mitigation_: Use simple heuristic for initial implementation (voltage → frequency mapping); document as "audio demonstration mode" not "physically accurate speaker model"; can be refined later with SPICE integration
 
 **Risk**: Multiple speakers cause audio clipping or distortion
-- *Mitigation*: Mix signals at lower gain per speaker; implement master limiter/compressor; warn user if too many speakers active
+
+- _Mitigation_: Mix signals at lower gain per speaker; implement master limiter/compressor; warn user if too many speakers active
 
 **Risk**: Audio continues when page hidden (battery drain)
-- *Mitigation*: Use Page Visibility API to pause audio when tab backgrounded; resume when tab active again
+
+- _Mitigation_: Use Page Visibility API to pause audio when tab backgrounded; resume when tab active again
 
 **Risk**: Users expect realistic speaker response (bass, treble, resonance)
-- *Mitigation*: Clearly document that this is "audio output demonstration" not "high-fidelity speaker simulation"; focus on educational value (hear the circuit work) not audio quality
+
+- _Mitigation_: Clearly document that this is "audio output demonstration" not "high-fidelity speaker simulation"; focus on educational value (hear the circuit work) not audio quality
 
 ## References
 
@@ -326,6 +354,7 @@ All required infrastructure already exists:
 ## Success Metrics
 
 After implementation:
+
 1. ✅ Speaker component produces audible tone when circuit has voltage across terminals
 2. ✅ "Enable Sound" button starts audio (user control)
 3. ✅ Volume slider adjusts output level

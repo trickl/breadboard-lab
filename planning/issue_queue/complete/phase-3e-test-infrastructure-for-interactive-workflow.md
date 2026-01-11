@@ -7,6 +7,7 @@ Enable interactive component placement workflow by completing Phase 3e test infr
 This task is the **critical blocker** preventing activation of the Rete.js-based interactive component placement workflow required by `goal.md` Section 5.3.1. The workflow implementation (Phase 3d, PR #243) is **complete and functional**, but the feature flag `USE_RETE_INTERACTIVE` remains disabled (false) because 44 tests fail when the flag is enabled.
 
 **Goal.md Requirement (Section 5.3.1 - Component Instantiation):**
+
 ```
 - Selecting a component does **not** immediately place it on the breadboard.
 - The component appears **adjacent to the board**, floating beside it.
@@ -18,6 +19,7 @@ This avoids visual occlusion and improves comprehension in dense circuits.
 ```
 
 **Current State:**
+
 - ✅ Phase 3d implementation complete (PR #243)
 - ✅ Interactive workflow fully functional when enabled
 - ✅ All core features implemented:
@@ -40,6 +42,7 @@ This avoids visual occlusion and improves comprehension in dense circuits.
 Complete Phase 3e test infrastructure updates to enable the interactive component placement workflow, bringing the system into full alignment with goal.md Section 5.3.1 requirements.
 
 **Definition of Done:**
+
 1. All 441+ tests pass with `USE_RETE_INTERACTIVE = true`
 2. Visual regression baselines updated to reflect interactive workflow
 3. Feature flag `USE_RETE_INTERACTIVE` set to `true` by default
@@ -57,15 +60,15 @@ The 44 failing tests use the **legacy two-click placement API**:
 
 ```typescript
 // Legacy API (currently used in tests)
-app.clickHole(row1, col1);  // First click sets placementStart
-app.clickHole(row2, col2);  // Second click creates component
+app.clickHole(row1, col1); // First click sets placementStart
+app.clickHole(row2, col2); // Second click creates component
 ```
 
 With `USE_RETE_INTERACTIVE = true`, the workflow changes to:
 
 ```typescript
 // Interactive workflow (goal.md Section 5.3.1)
-app.selectComponentType('resistor');  // Creates floating component
+app.selectComponentType('resistor'); // Creates floating component
 // User drags floating component body (not hole clicks)
 // User clicks leg 1, then hole 1 (connects leg 1)
 // User clicks leg 2, then hole 2 (connects leg 2)
@@ -81,6 +84,7 @@ app.selectComponentType('resistor');  // Creates floating component
 ### 1. Test API Updates
 
 **Files to update:**
+
 - `src/ui/__tests__/breadboard-app.test.ts` (25 tests)
 - `src/ui/__tests__/property-editor.test.ts` (12 tests)
 - `src/core/__tests__/circuit-extractor.test.ts` (potential, verify)
@@ -139,7 +143,7 @@ public connectLegToHole(legIndex: number, row: number, col: number): void {
   if (!this.floatingComponent) {
     throw new Error('No floating component to connect');
   }
-  
+
   // Simulate click on leg, then click on hole
   this.clickComponentLeg(legIndex);
   this.clickHole(row, col);
@@ -156,12 +160,12 @@ public placeComponentInteractive(
 ): void {
   // Select component (creates floating component)
   this.selectComponentType(componentType);
-  
+
   // Connect each leg to specified hole
   legPositions.forEach((pos, index) => {
     this.connectLegToHole(index, pos.row, pos.col);
   });
-  
+
   // Component auto-places when all legs connected
   // Verify component was placed
   if (this.floatingComponent !== null) {
@@ -175,6 +179,7 @@ public placeComponentInteractive(
 Replace legacy two-click patterns with interactive workflow:
 
 **Before:**
+
 ```typescript
 // Legacy two-click placement
 app.selectComponentType('resistor');
@@ -183,11 +188,12 @@ app.clickHole(5, 6);
 ```
 
 **After:**
+
 ```typescript
 // Interactive workflow (goal.md Section 5.3.1)
 app.placeComponentInteractive('resistor', [
   { row: 5, col: 2 },
-  { row: 5, col: 6 }
+  { row: 5, col: 6 },
 ]);
 
 // Or for more granular control:
@@ -199,6 +205,7 @@ expect(app.getFloatingComponent()).toBeNull(); // Auto-placed
 ```
 
 **Test updates required:**
+
 1. Component placement tests (25+ tests)
 2. Property editor tests (component placement setup code)
 3. Drag-and-drop tests (placement setup)
@@ -207,6 +214,7 @@ expect(app.getFloatingComponent()).toBeNull(); // Auto-placed
 6. Any integration tests using programmatic placement
 
 **Approach:**
+
 - Add new helper methods to public API (backward compatible)
 - Update tests incrementally (file by file)
 - Maintain both APIs during transition (feature flag approach)
@@ -215,6 +223,7 @@ expect(app.getFloatingComponent()).toBeNull(); // Auto-placed
 ### 2. Visual Regression Test Updates
 
 **Files to update:**
+
 - `tests/visual/examples.spec.ts` (7 tests)
 - Baseline screenshots in `tests/visual/examples.spec.ts-snapshots/`
 
@@ -223,11 +232,13 @@ expect(app.getFloatingComponent()).toBeNull(); // Auto-placed
 #### A. Update Test Expectations
 
 The interactive workflow may produce **subtle visual differences**:
+
 - Component creation shows floating component briefly (before legs connected)
 - Connection animation/feedback may differ
 - Timing differences in test execution
 
 **Approach:**
+
 1. Run visual tests with `USE_RETE_INTERACTIVE = true`
 2. Manually inspect diff images to verify differences are expected
 3. Update baselines using `npm run test:visual:update`
@@ -241,14 +252,14 @@ The `loadExample()` helper in `tests/visual/helpers.ts` uses programmatic placem
 // In tests/visual/helpers.ts
 export async function loadExample(page: Page, exampleName: string) {
   await page.goto('/');
-  
+
   // Wait for app initialization
   await page.waitForSelector('#breadboard-container');
-  
+
   // Load example using Examples modal (UI-based, no API changes needed)
   await page.click('button:has-text("Examples")');
   await page.click(`button:has-text("${exampleName}")`);
-  
+
   // Wait for example to load and render
   await page.waitForTimeout(500);
 }
@@ -259,6 +270,7 @@ export async function loadExample(page: Page, exampleName: string) {
 ### 3. Feature Flag Activation
 
 **Files to update:**
+
 - `src/ui/breadboard-app.ts` (line 63)
 
 **Change required:**
@@ -272,6 +284,7 @@ const USE_RETE_INTERACTIVE = true;
 ```
 
 **When to activate:**
+
 - Only after all tests pass with flag enabled
 - Only after visual regression baselines updated
 - Only after manual verification of all example circuits
@@ -279,6 +292,7 @@ const USE_RETE_INTERACTIVE = true;
 ### 4. Documentation Updates
 
 **Files to update:**
+
 - `README.md` (Update "How to Use" section)
 - `planning/state/system_capabilities.md` (Update feature flag status, Phase 3e completion)
 - `RETE_MIGRATION_PHASE3_SUMMARY.md` (potential update)
@@ -290,16 +304,20 @@ const USE_RETE_INTERACTIVE = true;
 Update component placement instructions to reflect interactive workflow:
 
 **Before:**
+
 ```markdown
 ### Placing Components
+
 1. Click a component type button in the toolbar
 2. Click a breadboard hole for the first leg
 3. Click another hole for the second leg
 ```
 
 **After:**
+
 ```markdown
 ### Placing Components
+
 1. Click a component type in the Component Library (📦 button)
 2. The component appears floating next to the breadboard
 3. Drag the component body to position it (optional)
@@ -322,6 +340,7 @@ Update feature flag status and Phase 3e completion:
 - `USE_RETE_INTERACTIVE` feature flag **ACTIVE** (`true`) — enables interactive connection UI
 
 **Interactive Workflow (Active):**
+
 - Floating component placement workflow (goal.md Section 5.3.1) ✅
 - Component legs as interactive targets ✅
 - One-connector-per-hole validation ✅
@@ -346,6 +365,7 @@ Update feature flag status and Phase 3e completion:
 3. Test API additions separately before test updates
 
 **Acceptance Criteria:**
+
 - New methods added to public API section
 - Methods documented with JSDoc comments
 - No breaking changes to existing public API
@@ -377,6 +397,7 @@ Update feature flag status and Phase 3e completion:
    - Address any remaining failures
 
 **Acceptance Criteria:**
+
 - All unit and integration tests pass with flag enabled
 - No test uses legacy two-click API when flag enabled
 - Tests verify interactive workflow behaves correctly
@@ -400,6 +421,7 @@ Update feature flag status and Phase 3e completion:
 6. Re-run visual tests to verify baselines match
 
 **Acceptance Criteria:**
+
 - All visual tests pass with new baselines
 - Diff images reviewed and documented
 - Baselines committed with clear explanation
@@ -424,6 +446,7 @@ Update feature flag status and Phase 3e completion:
    - Check bundle size (should be similar)
 
 **Acceptance Criteria:**
+
 - Feature flag permanently enabled
 - All automated tests passing
 - All example circuits verified manually
@@ -446,6 +469,7 @@ Update feature flag status and Phase 3e completion:
    - Verification results
 
 **Acceptance Criteria:**
+
 - User-facing documentation reflects interactive workflow
 - System capabilities document accurate
 - No outdated information in docs
@@ -457,11 +481,13 @@ Update feature flag status and Phase 3e completion:
 ### Unit Test Coverage
 
 **Minimum requirements:**
+
 - All 441+ existing tests pass with `USE_RETE_INTERACTIVE = true`
 - No reduction in code coverage
 - No new untested code paths introduced
 
 **New test scenarios:**
+
 - Floating component state lifecycle (create → connect → place)
 - Partial connection handling (leg 1 connected, leg 2 not)
 - Escape key cancellation at various stages
@@ -471,11 +497,13 @@ Update feature flag status and Phase 3e completion:
 ### Visual Regression Coverage
 
 **Minimum requirements:**
+
 - All 7 existing visual tests pass with new baselines
 - Baselines reviewed and approved
 - Diff images documented
 
 **New visual scenarios (optional future work):**
+
 - Floating component rendering (with instructions)
 - Component leg interaction targets (yellow circles)
 - Connection line rendering during drag
@@ -484,6 +512,7 @@ Update feature flag status and Phase 3e completion:
 ### Integration Testing
 
 **Manual verification required:**
+
 1. **Example circuits:** Load each example, verify simulation
 2. **Component placement:** Place all component types using interactive workflow
 3. **Component operations:** Selection, rotation, deletion, property editing
@@ -493,6 +522,7 @@ Update feature flag status and Phase 3e completion:
 7. **Error handling:** Invalid placements, short circuits, floating nodes
 
 **Acceptance criteria:**
+
 - All operations work identically to legacy workflow
 - Interactive workflow feels natural and responsive
 - No performance degradation observed
@@ -628,6 +658,7 @@ Update feature flag status and Phase 3e completion:
 ## Definition of Done Checklist
 
 ### Code Changes
+
 - [ ] Test API methods added to `BreadboardApp` public API
 - [ ] All test files updated to use interactive workflow API
 - [ ] Feature flag `USE_RETE_INTERACTIVE = true` in source code
@@ -635,6 +666,7 @@ Update feature flag status and Phase 3e completion:
 - [ ] No TypeScript errors in build
 
 ### Testing
+
 - [ ] All 441+ unit/integration tests passing with flag enabled
 - [ ] All 7 visual regression tests passing with new baselines
 - [ ] Manual verification checklist completed (all example circuits)
@@ -642,6 +674,7 @@ Update feature flag status and Phase 3e completion:
 - [ ] No visual glitches during component placement workflow
 
 ### Documentation
+
 - [ ] README.md updated with interactive workflow instructions
 - [ ] system_capabilities.md updated (Phase 3e complete, flag status)
 - [ ] Visual regression changes documented in commit message
@@ -649,6 +682,7 @@ Update feature flag status and Phase 3e completion:
 - [ ] Optional: Phase 3e summary document created
 
 ### Verification
+
 - [ ] Production build successful (`npm run build`)
 - [ ] Dev server works correctly (`npm run dev`)
 - [ ] All example circuits verified manually
@@ -658,6 +692,7 @@ Update feature flag status and Phase 3e completion:
 - [ ] View switching (Breadboard ↔ Schematic) verified
 
 ### Approval
+
 - [ ] All automated tests passing
 - [ ] Manual verification complete
 - [ ] Documentation reviewed
@@ -669,17 +704,20 @@ Update feature flag status and Phase 3e completion:
 ## References
 
 ### Source Files
+
 - `src/ui/breadboard-app.ts` (line 63: feature flag)
 - `src/ui/__tests__/breadboard-app.test.ts` (25 tests to update)
 - `src/ui/__tests__/property-editor.test.ts` (12 tests to update)
 - `tests/visual/examples.spec.ts` (7 visual tests)
 
 ### Planning Documents
+
 - `planning/vision/goal.md` (Section 5.3.1: Component Instantiation requirement)
 - `planning/state/system_capabilities.md` (Phase 3d/3e status, lines 2468-2551)
 - `planning/00-planning.md` (Rete.js migration plan)
 
 ### Prior Work
+
 - **PR #243** (Phase 3d implementation): Interactive connection workflow
 - **PR #237** (Phase 3b-3c partial): Floating components, hole hover, connection rendering
 - **PR #231** (Phase 3a): Connection events and validation
@@ -689,18 +727,22 @@ Update feature flag status and Phase 3e completion:
 ### Goal.md Quotes
 
 **Section 5.3.1 (Component Instantiation):**
+
 > "Selecting a component does **not** immediately place it on the breadboard.  
 > The component appears **adjacent to the board**, floating beside it.  
 > The user:
->   1. Drags the component body into position
->   2. Connects individual legs to breadboard holes
-> 
+>
+> 1. Drags the component body into position
+> 2. Connects individual legs to breadboard holes
+>
 > This avoids visual occlusion and improves comprehension in dense circuits."
 
 **Section 2.1 (Rationale):**
+
 > "The existing PixiJS implementation makes **connector management, snapping, routing, and interaction state** increasingly complex and fragile."
 
 **Section 3.2 (Connectors):**
+
 > "A hole may only accept **one connector**."
 
 ---

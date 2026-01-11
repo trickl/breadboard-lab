@@ -1,6 +1,7 @@
 Improve X-Ray Mode to clearly reveal breadboard internal connections
 
 ## Review Source
+
 `planning/reviews/review-2026-01-08.md` — Section 8 (Lines 148-168)
 
 ## Problem Statement
@@ -12,6 +13,7 @@ The current X-Ray mode does not fulfill its educational purpose. When enabled, i
 ### Section 8: X-Ray Mode (Lines 148-168)
 
 **Issue 8.1: Current Behaviour (Lines 149-152)**
+
 - X-ray mode changes the background to grey
 - It does **not clearly reveal breadboard rails**
 - The intent of the mode is therefore unclear
@@ -19,6 +21,7 @@ The current X-Ray mode does not fulfill its educational purpose. When enabled, i
 **Issue 8.2: Intended Purpose (Lines 154-161)**
 
 X-ray mode should:
+
 - Reveal **hidden internal breadboard connections**
 - Show horizontal row connections (how holes in the same row are connected)
 - Show vertical rail connections (how power/ground rails run the length of the board)
@@ -27,6 +30,7 @@ X-ray mode should:
 **Issue 8.3: Visual Recommendations (Lines 163-168)**
 
 When X-ray is enabled:
+
 - Components and wires should become **monochromatic** (desaturated/greyscale)
 - Components should be **partially transparent** (allow seeing through them)
 - Breadboard internal wiring should be **visually emphasised**
@@ -35,6 +39,7 @@ When X-ray is enabled:
 ### Section 12: Priority Summary (Lines 222-226)
 
 This is listed under **"High Priority UX Improvements"** along with:
+
 - Quick Select redesign (completed in PR #285)
 - Sidebar rebalancing (completed in PR #315)
 - Component and board rotation (completed in PR #303, #309)
@@ -76,6 +81,7 @@ Before making changes, thoroughly understand the existing implementation:
 Define the visual language for X-ray mode before implementing:
 
 **Educational Goals:**
+
 - Users should immediately understand which holes are electrically connected
 - Internal connections that are normally hidden inside the breadboard plastic should be visible
 - The mode should teach users about breadboard topology
@@ -104,6 +110,7 @@ Define the visual language for X-ray mode before implementing:
    - May darken slightly to provide better contrast for yellow/green internal traces
 
 **Visual Hierarchy in X-Ray Mode:**
+
 - MOST PROMINENT: Internal connection traces (yellow/green)
 - MODERATE: Breadboard holes (connection points)
 - LEAST PROMINENT: Components and wires (transparent, desaturated)
@@ -157,12 +164,14 @@ Add rendering of internal breadboard connections:
 **Implementation Approach:**
 
 Option A: **Add to PixiJS renderer** (likely best)
+
 - Add methods to `pixi-renderer.ts` or `breadboard-renderer.ts`
 - `renderInternalConnections(xrayEnabled: boolean)` method
 - Create new PixiJS Graphics objects for connection traces
 - Control visibility based on X-ray mode toggle
 
 Option B: **Overlay layer**
+
 - Create a separate overlay specifically for X-ray mode
 - Similar to voltage heatmap overlay approach
 - Toggle visibility when X-ray mode changes
@@ -224,6 +233,7 @@ function applyXrayEffect(container: PIXI.Container, enabled: boolean) {
 ```
 
 **Apply this to:**
+
 - Component containers
 - Wire containers
 - Any user-placed elements that should become less prominent
@@ -237,30 +247,32 @@ Ensure the toggle button properly triggers all visual changes:
    - Identify the state property that tracks X-ray mode (e.g., `xrayModeEnabled`)
 
 2. **Update toggle logic:**
+
    ```typescript
    toggleXrayMode() {
      this.xrayModeEnabled = !this.xrayModeEnabled;
-     
+
      // Update all visual elements
      this.updateXrayModeVisuals();
-     
+
      // Update button appearance (active state)
      this.updateXrayModeButton();
    }
    ```
 
 3. **Implement visual update method:**
+
    ```typescript
    updateXrayModeVisuals() {
      // Show/hide internal connection traces
      this.renderer.setInternalConnectionsVisible(this.xrayModeEnabled);
-     
+
      // Apply transparency and desaturation to components
      this.renderer.applyXrayEffectToComponents(this.xrayModeEnabled);
-     
+
      // Apply transparency and desaturation to wires
      this.renderer.applyXrayEffectToWires(this.xrayModeEnabled);
-     
+
      // Re-render to apply changes
      this.renderer.render();
    }
@@ -345,6 +357,7 @@ Consider adding a help tooltip or info icon next to X-Ray Mode button:
 "X-Ray Mode reveals the hidden internal connections inside the breadboard. Terminal strip rows (5 connected holes) and power rails are highlighted, while components become transparent."
 
 **Implementation:**
+
 - Add `title` attribute to button
 - Or add info icon (ℹ️) that shows explanation
 - Or show brief message in UI when first enabling X-ray mode
@@ -366,12 +379,14 @@ Since PR #309 added breadboard rotation with coordinate transformation, ensure X
 ## Expected Outcome
 
 **When X-Ray Mode is Disabled (default):**
+
 - Breadboard appears normal
 - Components and wires fully opaque with normal colors
 - No internal connection traces visible
 - Grey background may remain (or use normal background)
 
 **When X-Ray Mode is Enabled:**
+
 - **Internal connections prominently visible:**
   - Bright yellow/green horizontal traces showing connected holes in each row
   - Bright yellow/green vertical traces along power rails
@@ -386,6 +401,7 @@ Since PR #309 added breadboard rotation with coordinate transformation, ensure X
   - Clear teaching tool for breadboard topology
 
 **User Experience:**
+
 - "Now I understand how this breadboard actually works!"
 - "I can see which holes are connected without having to memorize the layout"
 - "This helps me understand why my circuit works (or doesn't work)"
@@ -393,14 +409,17 @@ Since PR #309 added breadboard rotation with coordinate transformation, ensure X
 ## Files to Modify
 
 **Primary files:**
+
 - `src/ui/pixi-renderer.ts` or `src/ui/breadboard-renderer.ts` - Add internal connection rendering
 - `src/ui/breadboard-app.ts` - Update X-ray mode toggle logic, apply effects to components/wires
 
 **Possible additional files:**
+
 - `src/style.css` - Update X-ray mode button active state styling
 - `src/types.ts` - Add any new types for internal connection data (if needed)
 
 **Do NOT modify:**
+
 - Data model or netlist generation (X-ray mode is purely visual)
 - Electrical simulation logic
 - Save/load functionality
@@ -439,6 +458,7 @@ Since PR #309 added breadboard rotation with coordinate transformation, ensure X
 ## Acceptance Criteria
 
 Visual & Educational:
+
 - [ ] X-ray mode clearly reveals horizontal row connections (terminal strips)
 - [ ] X-ray mode clearly reveals vertical power rail connections
 - [ ] Internal connection traces are visually prominent and easy to see
@@ -449,6 +469,7 @@ Visual & Educational:
 - [ ] Users can understand breadboard internal topology from the visualization
 
 Functional:
+
 - [ ] X-ray mode toggle button works correctly
 - [ ] Toggling X-ray mode on shows internal connections
 - [ ] Toggling X-ray mode off returns to normal view
@@ -459,6 +480,7 @@ Functional:
 - [ ] X-ray mode works correctly at all breadboard orientations (0°, 90°, 180°, 270°)
 
 Technical:
+
 - [ ] Internal connection traces render at correct positions
 - [ ] Transparency/desaturation effects apply correctly to all components
 - [ ] Z-index/layer ordering is correct (traces behind components, above background)
@@ -468,6 +490,7 @@ Technical:
 - [ ] No breaking changes to existing functionality
 
 Polish:
+
 - [ ] Visual design is clean and professional
 - [ ] Color choices provide good contrast and visibility
 - [ ] Tooltip or help text explains what X-ray mode does (optional but recommended)
@@ -480,6 +503,7 @@ Polish:
 ## Complexity
 
 **MEDIUM** - Requires:
+
 - Understanding breadboard topology and internal connections
 - Adding new rendering logic for internal traces
 - Applying visual effects (transparency, desaturation) to existing elements
@@ -487,6 +511,7 @@ Polish:
 - Testing at multiple breadboard orientations
 
 However:
+
 - No data model changes required
 - No electrical simulation changes required
 - Pure visual/rendering changes

@@ -13,6 +13,7 @@ This is not an optional enhancement—it is the **foundational architectural shi
 > "The existing PixiJS implementation makes **connector management, snapping, routing, and interaction state** increasingly complex and fragile."
 >
 > "Rete.js provides:
+>
 > - Native **node–connector–edge abstractions**
 > - Built-in **connection constraints**
 > - Support for **re-routing**, **animated edges**, and **custom socket logic**
@@ -33,12 +34,15 @@ The current system implements these features through custom PixiJS code, which g
 This migration affects the **core interaction and connectivity layer** of the application. It requires:
 
 ### 1. Dependency Changes
+
 - Add `rete` and `rete-react-plugin` (or appropriate rendering plugin) as production dependencies
 - Decide on Rete rendering approach: use Rete's built-in React/Vue renderers, or create custom PixiJS-based node rendering while leveraging Rete's connection management
 - Consider hybrid approach: Rete for connection logic + PixiJS for visual rendering
 
 ### 2. Data Model Refactoring
+
 Current model (from `src/core/types.ts`):
+
 ```typescript
 interface Component {
   id: string;
@@ -51,6 +55,7 @@ interface Component {
 ```
 
 Needs to become Rete-compatible:
+
 ```typescript
 interface BreadboardNode extends Node {
   // Component body with fixed leg positions
@@ -71,12 +76,14 @@ interface BreadboardHole {
 ### 3. Interaction Layer Restructuring
 
 **Current PixiJS interaction** (from `src/ui/breadboard-app.ts`):
+
 - Custom pointer event handlers
 - Manual drag state management
 - Custom snapping logic
 - Manual connection validation
 
 **Target Rete.js interaction**:
+
 - Rete's built-in connection manager
 - Native drag-and-drop with snap-to-socket
 - Automatic connection validation via socket rules
@@ -87,6 +94,7 @@ interface BreadboardHole {
 Three possible approaches:
 
 **Option A: Full Rete Renderer**
+
 - Use Rete's React/Vue rendering plugins
 - Customize node appearance via templates
 - PixiJS removed or relegated to background rendering only
@@ -94,18 +102,21 @@ Three possible approaches:
 - **Cons**: May lose PixiJS performance benefits; large visual refactor
 
 **Option B: Hybrid Architecture**
+
 - Rete for connection graph logic (nodes, sockets, edges)
 - PixiJS for visual rendering (read Rete state, render components)
 - **Pros**: Keep PixiJS performance; leverage Rete's connection management
 - **Cons**: More complex integration; potential state synchronization issues
 
 **Option C: Custom Rete Renderer with PixiJS**
+
 - Implement Rete rendering plugin for PixiJS
 - Rete manages graph, custom plugin renders to PixiJS canvas
 - **Pros**: Best of both worlds; clean separation of concerns
 - **Cons**: Most implementation work; requires Rete plugin development
 
 **Recommendation**: Start with **Option B (Hybrid)** as it minimizes risk:
+
 - Rete manages connection graph internally
 - PixiJS continues to render visuals
 - BreadboardApp coordinates between Rete state and PixiJS rendering
@@ -116,9 +127,11 @@ Three possible approaches:
 This is a **major architectural migration** that should be broken into phases:
 
 ### Phase 1: Proof of Concept (Minimal Viable Rete Integration)
+
 **Goal**: Establish Rete.js integration without breaking existing functionality
 
 **Tasks**:
+
 1. Add Rete.js dependencies to `package.json`
 2. Create `src/core/rete-manager.ts` to manage Rete editor instance
 3. Implement bidirectional sync between Rete graph and existing component array:
@@ -129,6 +142,7 @@ This is a **major architectural migration** that should be broken into phases:
 6. Verify all existing functionality still works (378 tests must pass)
 
 **Success Criteria**:
+
 - Rete editor instance runs alongside PixiJS renderer
 - Component placement creates Rete nodes
 - Component connections create Rete edges
@@ -137,9 +151,11 @@ This is a **major architectural migration** that should be broken into phases:
 - No visual regression
 
 ### Phase 2: Rete-First Interaction Model
+
 **Goal**: Shift primary interaction logic to Rete
 
 **Tasks**:
+
 1. Implement component legs as Rete sockets:
    - Component body = Rete node
    - Legs = fixed sockets at realistic positions
@@ -152,6 +168,7 @@ This is a **major architectural migration** that should be broken into phases:
 6. Update tests to verify Rete-driven interactions
 
 **Success Criteria**:
+
 - Component placement works via Rete node creation
 - Legs snap to holes using Rete socket constraints
 - Cannot place multiple components on same hole (Rete validates)
@@ -159,9 +176,11 @@ This is a **major architectural migration** that should be broken into phases:
 - All tests pass with new interaction model
 
 ### Phase 3: Advanced Rete Features
+
 **Goal**: Leverage Rete capabilities for goal.md requirements
 
 **Tasks**:
+
 1. Implement component placement model:
    - Component appears adjacent to board on selection
    - User drags body, then connects individual legs
@@ -171,15 +190,18 @@ This is a **major architectural migration** that should be broken into phases:
 5. Consider Rete mini-map for circuit overview
 
 **Success Criteria**:
+
 - Component placement follows goal.md interaction model
 - Rotation is continuous (not 90° increments)
 - Wires route intelligently around components
 - All goal.md interaction requirements met
 
 ### Phase 4: Cleanup and Documentation
+
 **Goal**: Remove technical debt and document architecture
 
 **Tasks**:
+
 1. Remove redundant custom connection logic from `breadboard-app.ts`
 2. Archive deprecated PixiJS-specific interaction code
 3. Update architecture documentation
@@ -190,22 +212,26 @@ This is a **major architectural migration** that should be broken into phases:
 ## Technical Considerations
 
 ### Rete.js Version and Compatibility
+
 - Current stable: Rete.js v2.x
 - Consider v1.x vs v2.x tradeoffs (v2 is React 18+ compatible)
 - Evaluate TypeScript support quality
 
 ### Performance Implications
+
 - Rete.js adds overhead for connection management
 - Should not significantly impact rendering (PixiJS continues to render)
 - Test with large circuits (50+ components) to verify performance
 
 ### State Management Complexity
+
 - Current: Single `BreadboardState` with component array
 - With Rete: Two sources of truth (Rete editor + component array)
 - Must establish clear ownership and sync patterns
 - Consider making Rete graph the primary source of truth
 
 ### Testing Strategy
+
 - Unit tests for Rete integration layer (`rete-manager.test.ts`)
 - Integration tests for Rete ↔ component array sync
 - Interaction tests for Rete-driven placement/connection
@@ -213,12 +239,14 @@ This is a **major architectural migration** that should be broken into phases:
 - Performance tests for large circuits
 
 ### Backward Compatibility
+
 - Existing saved circuits use position-based model
 - Need migration path from positions to Rete graph
 - Consider versioned circuit format
 - Ensure old circuits can be loaded and auto-migrated
 
 ### Risk Mitigation
+
 - Implement behind feature flag initially
 - Maintain parallel code paths during transition
 - Extensive testing at each phase before proceeding
@@ -255,6 +283,7 @@ Many other goal.md features can be implemented in parallel, but the interaction 
 ## Estimated Complexity
 
 **Very High** - This is a foundational architectural change that touches:
+
 - Core data model (`types.ts`)
 - Interaction layer (`breadboard-app.ts` - 2400+ lines)
 - Circuit extraction (must read from Rete graph)
@@ -264,6 +293,7 @@ Many other goal.md features can be implemented in parallel, but the interaction 
 **Estimated Effort**: 3-5 weeks for experienced developer familiar with both PixiJS and Rete.js
 
 **Risk Level**: High - architectural migrations always carry risk of:
+
 - Unexpected Rete.js limitations
 - Performance degradation
 - State synchronization bugs

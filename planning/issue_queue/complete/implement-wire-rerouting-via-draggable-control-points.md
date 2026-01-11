@@ -7,6 +7,7 @@ The current implementation of Breadboard Lab has completed Phase 3e of the Rete.
 This represents a critical gap between the target state and current capabilities. Section 6.2 states:
 
 > **6.2 Wire Interaction**
+>
 > - Wires are draggable via control points.
 > - **Re-routing must be supported** (Rete re-root pattern):
 >   - Dragging a segment recalculates the path
@@ -67,6 +68,7 @@ However, the connection objects are currently **write-only** after creation: the
 Implement wire re-routing as a **connection endpoint modification workflow** using Rete.js connection manipulation APIs and PixiJS interaction events.
 
 This approach:
+
 - Leverages existing Rete connection validation pipeline
 - Maintains one-connector-per-hole constraint enforcement
 - Provides immediate visual feedback during drag operations
@@ -99,6 +101,7 @@ This approach:
    - Update Explain panel to show connection/net information when connection selected
 
 **Acceptance Criteria**:
+
 - [ ] Clicking a wire selects it (visual feedback: blue glow or increased stroke width)
 - [ ] Clicking another wire switches selection
 - [ ] Clicking background or component deselects wire
@@ -173,6 +176,7 @@ This approach:
    - Push command to HistoryManager on successful re-route
 
 **Acceptance Criteria**:
+
 - [ ] Selected wire displays draggable handles at both endpoints
 - [ ] Dragging a handle shows ghost preview connection to cursor
 - [ ] Ghost connection snaps to nearest breadboard hole
@@ -192,7 +196,7 @@ These features are referenced in `goal.md` Section 6.2 but can be deferred to a 
 
 1. **Path Optimization**:
    - Implement pathfinding algorithm to avoid component overlap
-   - Use A* or Dijkstra on breadboard grid graph
+   - Use A\* or Dijkstra on breadboard grid graph
    - Consider routing preferences (orthogonal paths, minimal bends)
 
 2. **Control Point Editing**:
@@ -211,6 +215,7 @@ These features are referenced in `goal.md` Section 6.2 but can be deferred to a 
 ### Rete.js Connection API
 
 Rete.js `Connection` objects have these key properties:
+
 - `id`: Unique connection identifier
 - `source`: Source node ID
 - `target`: Target node ID
@@ -238,16 +243,19 @@ To re-route a connection, we modify `source` or `target` and update the graph. R
 ### Visual Design Decisions
 
 **Endpoint Handle Appearance**:
+
 - Recommend: Small circles (8px radius) with white fill and dark border
 - Should be clearly visible against breadboard but not visually overwhelming
 - Consider scaling with zoom level (if zoom is ever implemented)
 
 **Ghost Preview Style**:
+
 - Recommend: 50% opacity, dashed line pattern
 - Use same color as original wire (preserve user's wire color choice)
 - Highlight target hole with glow to indicate valid/invalid drop
 
 **Selection Feedback**:
+
 - Recommend: Increase stroke width by 2-3px and add blue glow filter
 - Ensure selected wire stands out from unselected wires without obscuring nearby components
 
@@ -258,12 +266,14 @@ To re-route a connection, we modify `source` or `target` and update the graph. R
 ### Unit Tests
 
 Add to `src/core/__tests__/rete-manager.test.ts`:
+
 - [ ] `rerouteConnection()` updates connection endpoints correctly
 - [ ] Re-routing validation respects hole occupancy constraints
 - [ ] Re-routing to same hole is no-op
 - [ ] Re-routing to invalid hole fails with error message
 
 Add to `src/ui/__tests__/breadboard-app.test.ts`:
+
 - [ ] Connection selection via `clickConnection()` test helper
 - [ ] Connection deselection on background click
 - [ ] Drag state tracking during connection re-route
@@ -330,11 +340,13 @@ This feature will be considered complete when:
 Instead of modifying connection endpoints, implement re-routing as atomic delete-then-create operation.
 
 **Pros**:
+
 - Simpler implementation (reuse existing connection creation and deletion code)
 - No need for connection modification API
 - History command can wrap existing AddComponent/RemoveComponent commands
 
 **Cons**:
+
 - Loses semantic meaning of "re-routing" (appears as two separate operations in history)
 - Cannot provide smooth visual transition (connection disappears then reappears)
 - May confuse users (connection ID changes)
@@ -348,11 +360,13 @@ Instead of modifying connection endpoints, implement re-routing as atomic delete
 Instead of dragging endpoints, allow dragging any point along the wire path to add/modify bezier control points.
 
 **Pros**:
+
 - More flexible routing control (users can shape curves precisely)
 - Better for complex layouts with many overlapping wires
 - Industry-standard pattern (seen in Inkscape, Illustrator)
 
 **Cons**:
+
 - Significantly more complex interaction model
 - Requires bezier curve hit-testing and control point manipulation
 - May be overkill for breadboard layout (holes are discrete grid)
@@ -367,11 +381,13 @@ Instead of dragging endpoints, allow dragging any point along the wire path to a
 Instead of implementing re-routing, first implement connection deletion via context menu or dedicated UI control.
 
 **Pros**:
+
 - Simpler than re-routing
 - Provides immediate value (currently no way to delete individual wires)
 - Can be stepping stone toward re-routing
 
 **Cons**:
+
 - Does not satisfy goal.md Section 6.2 requirement
 - Forces destructive workflow (delete-and-recreate instead of modify)
 - Does not leverage Rete.js re-routing capabilities

@@ -470,7 +470,7 @@ describe('BreadboardController', () => {
   describe('Connection drag actions', () => {
     it('should start connection drag', () => {
       const controller = new BreadboardController(createTestState());
-      
+
       controller.dispatch({
         type: 'CONNECTION_DRAG_STARTED',
         componentId: 'comp-1',
@@ -487,7 +487,7 @@ describe('BreadboardController', () => {
 
     it('should update connection drag position', () => {
       const controller = new BreadboardController(createTestState());
-      
+
       // Start drag first
       controller.dispatch({
         type: 'CONNECTION_DRAG_STARTED',
@@ -511,7 +511,7 @@ describe('BreadboardController', () => {
 
     it('should complete connection drag and create connection', () => {
       const controller = new BreadboardController(createTestState());
-      
+
       controller.dispatch({
         type: 'CONNECTION_DRAG_STARTED',
         componentId: 'comp-1',
@@ -535,7 +535,7 @@ describe('BreadboardController', () => {
 
     it('should cancel connection drag', () => {
       const controller = new BreadboardController(createTestState());
-      
+
       controller.dispatch({
         type: 'CONNECTION_DRAG_STARTED',
         componentId: 'comp-1',
@@ -552,7 +552,7 @@ describe('BreadboardController', () => {
 
     it('should track occupied holes', () => {
       const controller = new BreadboardController(createTestState());
-      
+
       controller.dispatch({
         type: 'CONNECTION_DRAG_STARTED',
         componentId: 'comp-1',
@@ -571,7 +571,7 @@ describe('BreadboardController', () => {
 
     it('should delete connection and clear occupied hole', () => {
       const controller = new BreadboardController(createTestState());
-      
+
       // Create connection
       controller.dispatch({
         type: 'CONNECTION_DRAG_STARTED',
@@ -601,7 +601,7 @@ describe('BreadboardController', () => {
 
     it('should allow multiple connections from same leg to different holes', () => {
       const controller = new BreadboardController(createTestState());
-      
+
       // First connection from leg 0 to hole A
       controller.dispatch({
         type: 'CONNECTION_DRAG_STARTED',
@@ -636,7 +636,7 @@ describe('BreadboardController', () => {
 
     it('should mark circuit as changed when connection is created', () => {
       const controller = new BreadboardController(createTestState());
-      
+
       controller.dispatch({
         type: 'CONNECTION_DRAG_STARTED',
         componentId: 'comp-1',
@@ -655,7 +655,7 @@ describe('BreadboardController', () => {
 
     it('should mark circuit as changed when connection is deleted', () => {
       const controller = new BreadboardController(createTestState());
-      
+
       // Create connection
       controller.dispatch({
         type: 'CONNECTION_DRAG_STARTED',

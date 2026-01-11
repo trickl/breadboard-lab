@@ -5,11 +5,14 @@ Implement Default Example Circuit on Initial Load
 **Current State**: The breadboard application loads with an empty board. Users must manually click "Examples" in the toolbar and select a circuit to see any functionality.
 
 **Goal Requirement** (Section 13 of goal.md):
+
 > On first load, users must see:
+>
 > - A **working example circuit**
 > - At least one interactive element (e.g. switch + LED)
-> 
+>
 > This immediately communicates:
+>
 > - Purpose
 > - Interaction model
 > - Educational value
@@ -19,6 +22,7 @@ This is a **critical usability gap**. The tool is designed to be "usable within 
 ## Problem Statement
 
 New users opening the application for the first time see:
+
 1. An empty breadboard grid
 2. A single "📦 Component Library" button
 3. No indication of what the tool does or how to use it
@@ -64,6 +68,7 @@ This violates the explicit requirement in goal.md Section 13 and undermines the 
 **EDU-8 Blink Circuit** (existing example: `src/examples/edu8-blink.json`)
 
 This circuit satisfies all requirements:
+
 - ✅ Working circuit (tested, no errors)
 - ✅ Interactive element: Clock controls (Step, Run/Pause, Reset buttons)
 - ✅ Demonstrates voltage overlays (power rail connections)
@@ -73,6 +78,7 @@ This circuit satisfies all requirements:
 - ✅ Invites experimentation: "Press Space or click Step to see LED toggle"
 
 Components:
+
 - EDU-8 Microprocessor (with Blink program loaded)
 - LED (yellow, 3mm)
 - Resistor (220Ω)
@@ -80,6 +86,7 @@ Components:
 - Ground
 
 Interaction model:
+
 - Clock controls visible on load
 - User can immediately press Space or click Step button
 - LED toggles state on each clock cycle
@@ -93,6 +100,7 @@ If EDU-8 Blink is deemed too advanced for first-time users, consider:
 **LED and Resistor Circuit** (existing example: `src/examples/led-resistor.json`)
 
 This circuit:
+
 - ✅ Working circuit
 - ❌ No interactive element (violates goal.md requirement)
 - ✅ Demonstrates voltage overlays
@@ -188,6 +196,7 @@ This circuit:
 ### Code Locations
 
 **Files to Modify**:
+
 1. `src/examples/index.ts` (~96 lines)
    - Add `getDefaultExample()` function
    - Export default example identifier
@@ -198,9 +207,11 @@ This circuit:
    - Check for empty board state before loading
 
 **Files to Add**:
+
 - None (uses existing example circuit infrastructure)
 
 **Files to Test**:
+
 1. `src/examples/__tests__/examples.test.ts` (new test file)
    - Test `getDefaultExample()` returns valid circuit
    - Test default circuit data structure
@@ -216,6 +227,7 @@ This circuit:
 ### Dependencies
 
 **No new dependencies required**. This feature uses existing infrastructure:
+
 - Example circuit storage (JSON files in `src/examples/`)
 - Circuit loading mechanism (`loadCircuit()` method)
 - Circuit deserialization (`CircuitSerializer.deserialize()`)
@@ -290,6 +302,7 @@ This circuit:
 ### Unit Tests
 
 1. **Example Registry Tests**
+
    ```typescript
    describe('getDefaultExample', () => {
      it('returns a valid circuit object', () => {
@@ -301,13 +314,14 @@ This circuit:
 
      it('returns edu8-blink circuit', () => {
        const defaultCircuit = getDefaultExample();
-       const hasEDU8 = defaultCircuit.components.some(c => c.type === 'MICROPROCESSOR');
+       const hasEDU8 = defaultCircuit.components.some((c) => c.type === 'MICROPROCESSOR');
        expect(hasEDU8).toBe(true);
      });
    });
    ```
 
 2. **BreadboardApp Initialization Tests**
+
    ```typescript
    describe('BreadboardApp initialization', () => {
      it('loads default circuit on empty board', () => {
@@ -319,7 +333,7 @@ This circuit:
      it('default circuit includes microprocessor', () => {
        const app = new BreadboardApp();
        const components = app.getComponents();
-       const hasEDU8 = components.some(c => c.type === 'MICROPROCESSOR');
+       const hasEDU8 = components.some((c) => c.type === 'MICROPROCESSOR');
        expect(hasEDU8).toBe(true);
      });
    });
@@ -328,6 +342,7 @@ This circuit:
 ### Integration Tests
 
 1. **Simulation Test**
+
    ```typescript
    it('default circuit simulates successfully', () => {
      const app = new BreadboardApp();
@@ -351,13 +366,14 @@ This circuit:
 ### Visual Regression Tests
 
 1. **Default Circuit Screenshot**
+
    ```typescript
    test('default circuit renders correctly on load', async ({ page }) => {
      await page.goto('/');
-     
+
      // Wait for circuit to load and render
      await page.waitForSelector('.component-overlay', { timeout: 5000 });
-     
+
      // Take screenshot
      const breadboard = await page.locator('.breadboard-container');
      await expect(breadboard).toHaveScreenshot('default-circuit-on-load.png');
@@ -408,6 +424,7 @@ After implementation, manually verify:
 ## Related Work
 
 ### Completed Dependencies
+
 - ✅ Example circuit infrastructure (PR #119)
 - ✅ Circuit serialization/deserialization (PR #119)
 - ✅ EDU-8 Blink example circuit (PR #197)
@@ -417,14 +434,17 @@ After implementation, manually verify:
 - ✅ LED glow effects (PR #203)
 
 ### Blocked By
+
 - ❌ None. All dependencies are complete.
 
 ### Blocks
+
 - This feature unblocks usability testing with real users
 - This feature unblocks user documentation (can reference default circuit)
 - This feature is prerequisite for onboarding tutorial (future)
 
 ### Related Future Work
+
 - Implement switch component (goal.md Section 8) — would enable switch + LED default circuit
 - Implement quick select component bar (goal.md Section 12) — complements default circuit
 - Implement welcome overlay tutorial — builds on default circuit
@@ -433,12 +453,14 @@ After implementation, manually verify:
 ## Risk Assessment
 
 ### Low Risks ✅
+
 - **Technical feasibility**: Uses existing infrastructure, minimal new code
 - **Testing**: Straightforward unit and integration tests
 - **Performance**: No performance concerns (circuit already loads fast via Examples menu)
 - **Compatibility**: No breaking changes to existing functionality
 
 ### Medium Risks ⚠️
+
 - **User preference**: Some users may prefer empty board on load
   - **Mitigation**: Allow clearing via "Clear All" button
   - **Future mitigation**: Add preference setting
@@ -452,6 +474,7 @@ After implementation, manually verify:
   - **Future mitigation**: Check localStorage before loading default
 
 ### High Risks 🚫
+
 - None identified
 
 ## Estimated Effort
@@ -459,12 +482,14 @@ After implementation, manually verify:
 **Complexity**: Low-Medium
 
 **Estimated Time**:
+
 - Core implementation: 2-4 hours
 - Testing: 2-3 hours
 - Documentation: 1-2 hours
 - **Total**: 5-9 hours (approximately 1 development day)
 
 **Lines of Code Estimate**:
+
 - `src/examples/index.ts`: +10 lines (getDefaultExample function)
 - `src/ui/breadboard-app.ts`: +15 lines (initialization logic)
 - Test files: +50 lines (unit and integration tests)

@@ -1,7 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import { Box, Button, Text } from 'theme-ui';
 import type { BreadboardController } from '@/ui-controller';
-import { ComponentType, type AnyComponent, type Resistor, type LED, type PowerSupply, type Ground, type Wire } from '@/core/types';
+import {
+  ComponentType,
+  type AnyComponent,
+  type Resistor,
+  type LED,
+  type PowerSupply,
+  type Ground,
+  type Wire,
+} from '@/core/types';
 import { deserializeCircuit } from '@/core/circuit-serializer';
 import { ExamplesModal } from './ExamplesModal';
 import type { ExampleCircuit } from '@/examples';
@@ -134,13 +142,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({ controller }) => {
       </Text>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {([
-          ['Resistor', ComponentType.RESISTOR],
-          ['LED', ComponentType.LED],
-          ['Wire', ComponentType.WIRE],
-          ['Power Supply', ComponentType.POWER_SUPPLY],
-          ['Ground', ComponentType.GROUND],
-        ] as const).map(([label, type]) => (
+        {(
+          [
+            ['Resistor', ComponentType.RESISTOR],
+            ['LED', ComponentType.LED],
+            ['Wire', ComponentType.WIRE],
+            ['Power Supply', ComponentType.POWER_SUPPLY],
+            ['Ground', ComponentType.GROUND],
+          ] as const
+        ).map(([label, type]) => (
           <Button
             key={type}
             className="component-button"
@@ -205,12 +215,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({ controller }) => {
           Run simulation
         </Button>
 
-        {([
-          ['Toggle X-Ray', () => controller.dispatch({ type: 'XRAY_MODE_TOGGLED' })],
-          ['Toggle voltage overlay (V)', () => controller.dispatch({ type: 'VOLTAGE_OVERLAY_TOGGLED' })],
-          ['Toggle current animation (C)', () => controller.dispatch({ type: 'CURRENT_ANIMATION_TOGGLED' })],
-          ['Clear circuit', () => controller.dispatch({ type: 'CIRCUIT_CLEARED' })],
-        ] as const).map(([label, onClick]) => (
+        {(
+          [
+            ['Toggle X-Ray', () => controller.dispatch({ type: 'XRAY_MODE_TOGGLED' })],
+            [
+              'Toggle voltage overlay (V)',
+              () => controller.dispatch({ type: 'VOLTAGE_OVERLAY_TOGGLED' }),
+            ],
+            [
+              'Toggle current animation (C)',
+              () => controller.dispatch({ type: 'CURRENT_ANIMATION_TOGGLED' }),
+            ],
+            ['Clear circuit', () => controller.dispatch({ type: 'CIRCUIT_CLEARED' })],
+          ] as const
+        ).map(([label, onClick]) => (
           <Button
             key={label}
             onClick={onClick}
@@ -235,7 +253,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({ controller }) => {
 
       <ClockControls controller={controller} />
 
-      <ExamplesModal visible={examplesOpen} onClose={() => setExamplesOpen(false)} onSelectExample={loadExample} />
+      <ExamplesModal
+        visible={examplesOpen}
+        onClose={() => setExamplesOpen(false)}
+        onSelectExample={loadExample}
+      />
     </Box>
   );
 };

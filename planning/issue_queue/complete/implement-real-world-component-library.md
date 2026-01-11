@@ -13,6 +13,7 @@ The current abstract approach limits educational authenticity and doesn't reflec
 > "The system provides a first-class Component Library containing real, purchasable components. Component selection is by specification (package/size/ratings/characteristics), not only by abstract type."
 
 Required capabilities:
+
 - Library entries with stable IDs
 - Physical attributes: package size, form factor, footprint/pin roles
 - Electrical characteristics required by solver
@@ -37,6 +38,7 @@ Required capabilities:
 ## Proposed Task
 
 Implement a component library system that replaces abstract component types with real, physically accurate parts that have:
+
 1. Defined package types and physical dimensions
 2. Specific electrical characteristics
 3. Manufacturer/part family information (where applicable)
@@ -110,12 +112,14 @@ Implement a component library system that replaces abstract component types with
 ### Implementation Approach
 
 **Phase 1: Data Model and Library Infrastructure**
+
 - Define `ComponentLibraryEntry` interface in `src/core/types.ts`
 - Create `src/core/component-library.ts` module
 - Implement library registry and lookup functions
 - Add initial library entries (JSON or TypeScript data)
 
 **Phase 2: Library Content**
+
 - Add resistor entries (E12 series, multiple tolerances)
 - Add LED entries (multiple colors and sizes)
 - Add speaker module entry
@@ -123,6 +127,7 @@ Implement a component library system that replaces abstract component types with
 - Include physical dimensions and electrical specs from datasheets
 
 **Phase 3: UI Integration**
+
 - Create component library browser UI (modal or panel)
 - Replace abstract type buttons with "Browse Components" button
 - Implement filtering and search
@@ -130,18 +135,21 @@ Implement a component library system that replaces abstract component types with
 - Update placement workflow to use library IDs
 
 **Phase 4: Rendering and Display Updates**
+
 - Extend `ComponentRenderer` to use library specifications
 - Update resistor rendering to use library tolerance (4-band vs 5-band)
 - Scale component visuals based on package dimensions
 - Update explain panel to show library metadata
 
 **Phase 5: Serialization and Migration**
+
 - Extend serialization format to include library references
 - Implement migration function for old circuits
 - Update example circuits to use library parts
 - Test backward compatibility
 
 **Phase 6: Testing and Polish**
+
 - Unit tests for library lookup functions
 - UI tests for component browser
 - Visual regression tests for library-specified rendering
@@ -154,7 +162,7 @@ This task directly addresses multiple goals from the planning document:
 - **Educational authenticity** (goal.md): "Component selection is by specification (package/size/ratings/characteristics), not only by abstract type"
 - **Real-world bridging**: Students learn which actual parts to purchase for physical prototyping
 - **Explicit requirement**: Three specific components are mandated in goal.md Section 4
-- **Foundation for future features**: 
+- **Foundation for future features**:
   - Speaker component enables audio output (goal.md Section 7)
   - Structured library enables more component types (transistors, ICs)
   - Physical dimensions enable realistic rendering requirements (goal.md Section 3)
@@ -176,6 +184,7 @@ The system has strong fundamentals (interaction model, simulation, visualization
 ### Estimated Effort
 
 1-2 weeks of focused development:
+
 - Days 1-2: Data model and library infrastructure
 - Days 3-4: Library content (resistors, LEDs, speaker)
 - Days 5-6: Component browser UI
@@ -193,17 +202,18 @@ The system has strong fundamentals (interaction model, simulation, visualization
 ### Risks
 
 - **Library data maintenance**: Large component catalogs need curation
-  - *Mitigation*: Start small (10-20 parts), expand incrementally
+  - _Mitigation_: Start small (10-20 parts), expand incrementally
 - **UI complexity**: Component browser may clutter interface
-  - *Mitigation*: Modal/drawer design keeps main UI clean
+  - _Mitigation_: Modal/drawer design keeps main UI clean
 - **Backward compatibility**: Old circuits need migration
-  - *Mitigation*: Implement automatic migration with fallbacks
+  - _Mitigation_: Implement automatic migration with fallbacks
 - **Datasheet accuracy**: Physical/electrical specs must be correct
-  - *Mitigation*: Use standard datasheets, cite sources in library entries
+  - _Mitigation_: Use standard datasheets, cite sources in library entries
 
 ### Deferred Features
 
 This task does **NOT** include:
+
 - Audio output implementation (future task, requires Web Audio API integration)
 - User-defined custom components (v0.2+)
 - Component marketplace or sharing (v0.3+)

@@ -117,7 +117,8 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
     const rowLabels = useMemo(() => {
       const labels = [];
 
-      const stripStartX = positionToPixels({ row: 0, col: BreadboardLayout.STRIP_LEFT_START }).x - HOLE_SPACING / 2;
+      const stripStartX =
+        positionToPixels({ row: 0, col: BreadboardLayout.STRIP_LEFT_START }).x - HOLE_SPACING / 2;
       const stripEndX =
         positionToPixels({ row: 0, col: BreadboardLayout.STRIP_RIGHT_END }).x + HOLE_SPACING / 2;
 
@@ -174,7 +175,11 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
       const footerLabelY = dimensions.height - FOOTER_HEIGHT + 16;
 
       const labels = [];
-      for (let col = BreadboardLayout.STRIP_LEFT_START; col <= BreadboardLayout.STRIP_RIGHT_END; col++) {
+      for (
+        let col = BreadboardLayout.STRIP_LEFT_START;
+        col <= BreadboardLayout.STRIP_RIGHT_END;
+        col++
+      ) {
         const label = getColumnLabel(col);
         if (label) {
           const pos = positionToPixels({ row: 0, col });
@@ -269,8 +274,10 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
     const centerDivider = useMemo(() => {
       // Compute trench center from the boundary between E (col 6) and F (col 7).
       // Using the centers keeps this correct even when gutters are applied.
-      const leftEdge = positionToPixels({ row: 0, col: BreadboardLayout.STRIP_LEFT_END }).x + HOLE_SPACING / 2;
-      const rightEdge = positionToPixels({ row: 0, col: BreadboardLayout.STRIP_RIGHT_START }).x - HOLE_SPACING / 2;
+      const leftEdge =
+        positionToPixels({ row: 0, col: BreadboardLayout.STRIP_LEFT_END }).x + HOLE_SPACING / 2;
+      const rightEdge =
+        positionToPixels({ row: 0, col: BreadboardLayout.STRIP_RIGHT_START }).x - HOLE_SPACING / 2;
       const centerX = (leftEdge + rightEdge) / 2;
       return (
         <g>
@@ -436,111 +443,129 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
         />
 
         <g clipPath="url(#bb-body-clip)">
+          {/* Sub-panels: rail blocks and terminal region (very subtle) */}
+          {(() => {
+            const leftRailX =
+              positionToPixels({ row: 0, col: BreadboardLayout.RAIL_LEFT_NEGATIVE }).x -
+              HOLE_SPACING / 2;
+            const stripX =
+              positionToPixels({ row: 0, col: BreadboardLayout.STRIP_LEFT_START }).x -
+              HOLE_SPACING / 2;
+            const rightRailX =
+              positionToPixels({ row: 0, col: BreadboardLayout.RAIL_RIGHT_POSITIVE }).x -
+              HOLE_SPACING / 2;
 
-        {/* Sub-panels: rail blocks and terminal region (very subtle) */}
-        {(() => {
-          const leftRailX = positionToPixels({ row: 0, col: BreadboardLayout.RAIL_LEFT_NEGATIVE }).x - HOLE_SPACING / 2;
-          const stripX =
-            positionToPixels({ row: 0, col: BreadboardLayout.STRIP_LEFT_START }).x - HOLE_SPACING / 2;
-          const rightRailX =
-            positionToPixels({ row: 0, col: BreadboardLayout.RAIL_RIGHT_POSITIVE }).x - HOLE_SPACING / 2;
+            return (
+              <>
+                <rect
+                  x={leftRailX}
+                  y={0}
+                  width={2 * HOLE_SPACING}
+                  height={dimensions.height}
+                  fill={BreadboardSkin.colors.panelSlightDark}
+                  opacity={0.6}
+                />
+                <rect
+                  x={stripX}
+                  y={0}
+                  width={10 * HOLE_SPACING}
+                  height={dimensions.height}
+                  fill={BreadboardSkin.colors.panelSlightLight}
+                  opacity={0.55}
+                />
+                <rect
+                  x={rightRailX}
+                  y={0}
+                  width={2 * HOLE_SPACING}
+                  height={dimensions.height}
+                  fill={BreadboardSkin.colors.panelSlightDark}
+                  opacity={0.6}
+                />
+              </>
+            );
+          })()}
 
-          return (
-            <>
-              <rect
-                x={leftRailX}
-                y={0}
-                width={2 * HOLE_SPACING}
-                height={dimensions.height}
-                fill={BreadboardSkin.colors.panelSlightDark}
-                opacity={0.6}
-              />
-              <rect
-                x={stripX}
-                y={0}
-                width={10 * HOLE_SPACING}
-                height={dimensions.height}
-                fill={BreadboardSkin.colors.panelSlightLight}
-                opacity={0.55}
-              />
-              <rect
-                x={rightRailX}
-                y={0}
-                width={2 * HOLE_SPACING}
-                height={dimensions.height}
-                fill={BreadboardSkin.colors.panelSlightDark}
-                opacity={0.6}
-              />
-            </>
-          );
-        })()}
+          {/* Rail stripes (printed) */}
+          {(() => {
+            const railBlockWidth = 2 * HOLE_SPACING;
+            const leftX =
+              positionToPixels({ row: 0, col: BreadboardLayout.RAIL_LEFT_NEGATIVE }).x -
+              HOLE_SPACING / 2;
+            const rightX =
+              positionToPixels({ row: 0, col: BreadboardLayout.RAIL_RIGHT_POSITIVE }).x -
+              HOLE_SPACING / 2;
 
-        {/* Rail stripes (printed) */}
-        {(() => {
-          const railBlockWidth = 2 * HOLE_SPACING;
-          const leftX = positionToPixels({ row: 0, col: BreadboardLayout.RAIL_LEFT_NEGATIVE }).x - HOLE_SPACING / 2;
-          const rightX = positionToPixels({ row: 0, col: BreadboardLayout.RAIL_RIGHT_POSITIVE }).x - HOLE_SPACING / 2;
+            const stripeW = BreadboardSkin.geometry.railStripeWidth;
+            const inset = BreadboardSkin.geometry.railStripeInset;
 
-          const stripeW = BreadboardSkin.geometry.railStripeWidth;
-          const inset = BreadboardSkin.geometry.railStripeInset;
+            return (
+              <>
+                {/* Left rail block stripes */}
+                <rect
+                  x={leftX + inset - stripeW / 2}
+                  y={0}
+                  width={stripeW}
+                  height={dimensions.height}
+                  fill={BreadboardSkin.colors.railRed}
+                />
+                <rect
+                  x={leftX + railBlockWidth - inset - stripeW / 2}
+                  y={0}
+                  width={stripeW}
+                  height={dimensions.height}
+                  fill={BreadboardSkin.colors.railBlue}
+                />
 
-          return (
-            <>
-              {/* Left rail block stripes */}
-              <rect x={leftX + inset - stripeW / 2} y={0} width={stripeW} height={dimensions.height} fill={BreadboardSkin.colors.railRed} />
-              <rect
-                x={leftX + railBlockWidth - inset - stripeW / 2}
-                y={0}
-                width={stripeW}
-                height={dimensions.height}
-                fill={BreadboardSkin.colors.railBlue}
-              />
+                {/* Right rail block stripes */}
+                <rect
+                  x={rightX + inset - stripeW / 2}
+                  y={0}
+                  width={stripeW}
+                  height={dimensions.height}
+                  fill={BreadboardSkin.colors.railRed}
+                />
+                <rect
+                  x={rightX + railBlockWidth - inset - stripeW / 2}
+                  y={0}
+                  width={stripeW}
+                  height={dimensions.height}
+                  fill={BreadboardSkin.colors.railBlue}
+                />
+              </>
+            );
+          })()}
 
-              {/* Right rail block stripes */}
-              <rect x={rightX + inset - stripeW / 2} y={0} width={stripeW} height={dimensions.height} fill={BreadboardSkin.colors.railRed} />
-              <rect
-                x={rightX + railBlockWidth - inset - stripeW / 2}
-                y={0}
-                width={stripeW}
-                height={dimensions.height}
-                fill={BreadboardSkin.colors.railBlue}
-              />
-            </>
-          );
-        })()}
+          {/* Center trench */}
+          {centerDivider}
 
-        {/* Center trench */}
-        {centerDivider}
+          {/* Highlight overlay (rendered before holes) */}
+          {interactive && highlightBounds && (
+            <rect
+              x={highlightBounds.x}
+              y={highlightBounds.y}
+              width={highlightBounds.width}
+              height={highlightBounds.height}
+              fill={BreadboardSkin.colors.hoverFill}
+              opacity={0.2}
+              stroke={BreadboardSkin.colors.hoverFill}
+              strokeWidth={2}
+              rx={4}
+            />
+          )}
 
-        {/* Highlight overlay (rendered before holes) */}
-        {interactive && highlightBounds && (
-          <rect
-            x={highlightBounds.x}
-            y={highlightBounds.y}
-            width={highlightBounds.width}
-            height={highlightBounds.height}
-            fill={BreadboardSkin.colors.hoverFill}
-            opacity={0.2}
-            stroke={BreadboardSkin.colors.hoverFill}
-            strokeWidth={2}
-            rx={4}
-          />
-        )}
+          {/* Holes (using symbol reuse) */}
+          {holePositions.map((pos) => {
+            const { x, y } = positionToPixels(pos);
+            return <use key={`hole-${pos.row}-${pos.col}`} href="#breadboard-hole" x={x} y={y} />;
+          })}
 
-        {/* Holes (using symbol reuse) */}
-        {holePositions.map((pos) => {
-          const { x, y } = positionToPixels(pos);
-          return <use key={`hole-${pos.row}-${pos.col}`} href="#breadboard-hole" x={x} y={y} />;
-        })}
-
-        {/* Labels (row/column/rail). Kept in a dedicated group so tests can hide/mask them to
+          {/* Labels (row/column/rail). Kept in a dedicated group so tests can hide/mask them to
             avoid cross-environment font rendering diffs in screenshots. */}
-        <g data-testid="breadboard-labels">
-          {rowLabels}
-          {columnLabels}
-          {railLabels}
-        </g>
-
+          <g data-testid="breadboard-labels">
+            {rowLabels}
+            {columnLabels}
+            {railLabels}
+          </g>
         </g>
 
         {/* Single transparent overlay for event handling (only when interactive) */}

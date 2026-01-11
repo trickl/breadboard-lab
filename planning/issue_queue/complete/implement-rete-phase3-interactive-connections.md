@@ -7,6 +7,7 @@ Implement Rete.js Phase 3: Interactive Connection Creation with Drag-and-Drop Co
 The goal.md specification for the current iteration explicitly requires a **Rete.js-based visual programming graph** to act as the "interaction and connectivity backbone" (Section 2.1). While Phases 1 and 2 successfully established the architectural foundation and activated graph-based circuit extraction (USE_RETE=true), the system still lacks the **user-facing interactive features** that are central to the iteration's requirements.
 
 **Current State:**
+
 - ✅ Rete.js Phase 1 complete: ReteManager, node classes (ComponentNode, BreadboardHoleNode), socket types
 - ✅ Rete.js Phase 2 complete: Graph-based circuit extraction active, full state synchronization, equivalence verified
 - ❌ Rete.js Phase 3 NOT implemented: No interactive connection creation UI
@@ -17,6 +18,7 @@ The goal.md specification for the current iteration explicitly requires a **Rete
 The goal.md "Component Placement Model" (Section 5.3.1) explicitly states:
 
 > "Selecting a component does **not** immediately place it on the breadboard. The component appears **adjacent to the board**, floating beside it. The user:
+>
 > 1. Drags the component body into position
 > 2. Connects individual legs to breadboard holes"
 
@@ -471,26 +473,31 @@ Phase 3 is a significant UX change. To enable safe rollback:
 ## Risks and Mitigation
 
 **Risk 1: Rete + PixiJS rendering conflict**
+
 - **Impact:** High (visual glitches, event conflicts)
 - **Mitigation:** Early prototype of hybrid rendering, clear event ownership boundaries
 - **Fallback:** Use Rete headless mode, manage all rendering via PixiJS
 
 **Risk 2: Performance degradation**
+
 - **Impact:** Medium (poor UX if laggy)
 - **Mitigation:** Performance testing early, optimize rendering pipeline
 - **Fallback:** Limit max components/connections, add performance warnings
 
 **Risk 3: Breaking existing circuits**
+
 - **Impact:** High (user data loss)
 - **Mitigation:** Backward compatibility testing, circuit serializer supports both models
 - **Fallback:** Feature flag allows rollback to old system
 
 **Risk 4: UX confusion**
+
 - **Impact:** Medium (users don't understand new workflow)
 - **Mitigation:** In-app tutorial, clear visual feedback, user testing
 - **Fallback:** Improve onboarding, add help tooltips
 
 **Risk 5: Scope creep**
+
 - **Impact:** Medium (delayed delivery)
 - **Mitigation:** Strict scope definition, defer stretch goals
 - **Fallback:** Ship minimal Phase 3, iterate in Phase 3.1
@@ -521,6 +528,7 @@ Phase 3 is a significant UX change. To enable safe rollback:
 ## References
 
 **Goal.md sections:**
+
 - Section 1: Purpose of This Iteration
 - Section 2: Architectural Change: PixiJS → Rete.js
 - Section 3: Core Conceptual Model
@@ -528,6 +536,7 @@ Phase 3 is a significant UX change. To enable safe rollback:
 - Section 5.4: Snapping and Constraints
 
 **System documentation:**
+
 - `/planning/vision/goal.md`: Current iteration specification
 - `/planning/state/system_capabilities.md`: Current system state (Phase 2 complete)
 - `RETE_MIGRATION_PHASE1_SUMMARY.md`: Phase 1 foundation
@@ -535,12 +544,14 @@ Phase 3 is a significant UX change. To enable safe rollback:
 - `ARCHITECTURE.md`: System architecture overview
 
 **Code locations:**
+
 - `src/core/rete-manager.ts`: ReteManager class (Phase 1 & 2 implementation)
 - `src/ui/breadboard-app.ts`: Main UI application (integration point)
 - `src/ui/pixi-renderer.ts`: PixiJS renderer (rendering integration)
 - `src/core/circuit-extractor.ts`: Circuit extraction (uses Rete graph when USE_RETE=true)
 
 **Dependencies:**
+
 - `rete@^2.0.6`: Core Rete.js framework
 - `rete-area-plugin@^2.1.5`: Viewport management (pan, zoom, drag)
 - `rete-connection-plugin@^2.0.5`: Connection creation UI (to be activated)
@@ -610,6 +621,7 @@ Phase 3 is a significant UX change. To enable safe rollback:
 This task represents the **most critical missing capability** to fulfill the goal.md iteration specification. While Phases 1 and 2 successfully established the Rete.js architectural foundation, Phase 3 is necessary to deliver the **user-facing interactive connection model** that is explicitly required.
 
 Implementing Phase 3 will:
+
 - ✅ Align the system with goal.md Section 5.3 (Component Placement Model)
 - ✅ Complete the "Rete.js as interaction backbone" architectural goal (Section 2)
 - ✅ Enable explicit teaching of breadboard connectivity constraints (Section 5.4)

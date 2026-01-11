@@ -1,6 +1,7 @@
 Fix drag-and-drop and breadboard interaction blocking issues
 
 ## Source Review
+
 - **Review Document:** `planning/reviews/review-2026-01-08.md`
 - **Sections Addressed:** Section 5 (Component Interaction & Manipulation), Section 11 (Critical Functional Blocker - partial), Section 12 (Priority Summary - Blocking Issues)
 
@@ -9,17 +10,22 @@ Fix drag-and-drop and breadboard interaction blocking issues
 The review identifies critical functional blockers that prevent meaningful circuit editing. These are the **highest priority issues** in the entire review, classified as "Blocking Issues" that must be resolved before other improvements can be meaningfully evaluated.
 
 ### Current State
+
 According to the review (Section 11, lines 203-210):
+
 > "The most serious issue is that **core interaction does not currently work**."
 
 Specifically:
+
 - Components cannot be reliably dragged
 - Horizontal dragging does not work correctly
 - Individual component legs cannot be repositioned
 - Breadboard holes/slots cannot always be selected
 
 ### Impact
+
 Until these issues are resolved, meaningful editing is not possible. Users cannot:
+
 - Freely position components on the breadboard
 - Adjust component leg positions independently
 - Reliably select breadboard holes for wiring or component placement
@@ -31,6 +37,7 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
 ### Section 5.1: Drag-and-Drop Issues (lines 101-107)
 
 **Exact quote from review:**
+
 > - Dragging components is unreliable or broken.
 > - Horizontal dragging does not work correctly.
 > - It is not possible to:
@@ -39,6 +46,7 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
 > - The interaction feels frustrating and inconsistent.
 
 **Required outcomes:**
+
 1. Components must drag reliably in all directions (horizontal and vertical)
 2. Users must be able to drag an entire component as a unit
 3. The dragging interaction must be consistent and predictable
@@ -46,12 +54,14 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
 ### Section 5.2: Expected Interaction Model (lines 109-113)
 
 **Exact quote from review:**
+
 > - Users should be able to:
 >   - Drag an entire component as a unit
 >   - Select and move individual legs independently
 > - This is essential for realistic breadboard usage.
 
 **Required outcomes:**
+
 1. Implement full-component dragging (move all legs together)
 2. Implement individual leg dragging (reposition one pin at a time)
 3. Both interaction modes must work reliably
@@ -59,20 +69,24 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
 ### Section 5.3: Breadboard Slot Selection Bug (lines 115-118)
 
 **Exact quote from review:**
+
 > - Users should be able to select **any breadboard hole or slot** directly.
 > - This does not appear to work reliably.
 > - This appears to be a bug rather than a design decision.
 
 **Required outcome:**
+
 1. All breadboard holes must be reliably selectable via click
 2. Selection should provide clear visual feedback
 
 ### Section 11: Critical Functional Blocker (lines 201-210)
 
 **Exact quote from review:**
+
 > The most serious issue is that **core interaction does not currently work**.
 >
 > Specifically:
+>
 > - Clicking Quick Select does nothing [RESOLVED ✅]
 > - Components cannot be reliably dragged
 > - Legs cannot be repositioned
@@ -81,6 +95,7 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
 > Until these issues are resolved, meaningful editing is not possible.
 
 **Status:**
+
 - Quick Select clicking: RESOLVED in PR #285 ✅
 - **Component dragging: UNRESOLVED** ❌
 - **Leg repositioning: UNRESOLVED** ❌
@@ -89,12 +104,15 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
 ### Section 12: Priority Summary - Blocking Issues (lines 217-220)
 
 **Exact quote from review:**
+
 > ### Blocking Issues
+>
 > - Drag-and-drop failures
 > - Quick Select click produces no component [RESOLVED ✅]
 > - Unreliable breadboard hole selection
 
 **Status:**
+
 - Quick Select: RESOLVED in PR #285 ✅
 - **Drag-and-drop failures: UNRESOLVED** ❌
 - **Unreliable breadboard hole selection: UNRESOLVED** ❌
@@ -147,6 +165,7 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
 **Goal:** Users can click and drag any component to freely reposition it on the breadboard, moving all legs as a unit.
 
 **Steps:**
+
 1. Identify the component drag handler
 2. Ensure drag events work in both horizontal and vertical directions
 3. Fix any coordinate transformation bugs that prevent horizontal movement
@@ -166,6 +185,7 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
    - Ensure components can be dragged from any initial position
 
 **Acceptance criteria:**
+
 - ✅ Components can be dragged smoothly in all directions
 - ✅ Horizontal dragging works as well as vertical dragging
 - ✅ Ghost preview shows during drag
@@ -178,6 +198,7 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
 **Goal:** Users can select and drag individual component legs/pins to different breadboard holes.
 
 **Steps:**
+
 1. Implement pin/leg hit detection:
    - Each pin should be individually clickable
    - Pin selection should take priority over component selection (smaller hit area, higher z-index)
@@ -200,6 +221,7 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
    - Ensure netlist/electrical model updates correctly when pins move
 
 **Acceptance criteria:**
+
 - ✅ Individual pins are selectable (distinct from selecting the entire component)
 - ✅ Pins can be dragged to different breadboard holes
 - ✅ Component body and other pins adjust appropriately
@@ -211,6 +233,7 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
 **Goal:** Every breadboard hole is reliably selectable by clicking on it.
 
 **Steps:**
+
 1. Identify breadboard hole rendering and hit detection:
    - Find where breadboard holes are drawn
    - Locate hole click/pointer event handlers
@@ -234,6 +257,7 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
    - Test with wires connected (ensure holes remain selectable)
 
 **Acceptance criteria:**
+
 - ✅ All breadboard holes are clickable
 - ✅ Holes show hover feedback
 - ✅ Holes show selection feedback
@@ -243,6 +267,7 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
 #### 4. Testing & Validation
 
 **Manual testing checklist:**
+
 - [ ] Create a new circuit from scratch
 - [ ] Add multiple components from Quick Select
 - [ ] Drag each component to different positions
@@ -257,6 +282,7 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
 - [ ] Verify undo/redo works correctly with all drag operations
 
 **Automated testing (if applicable):**
+
 - Add unit tests for drag event handlers
 - Add integration tests for component placement
 - Add tests for breadboard hole hit detection
@@ -267,11 +293,13 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
 ## Technical Requirements
 
 ### Rendering Stack Clarity
+
 - If the application is mid-migration from PixiJS to React-Konva, determine which system handles interactions
 - Ensure drag-and-drop logic is consistent with the intended rendering architecture
 - If mixed rendering exists, document it clearly and plan for consistency
 
 ### Performance Considerations
+
 - Drag operations must be smooth (60fps target)
 - Hit detection should be fast (< 16ms per frame)
 - If performance is an issue, consider:
@@ -280,6 +308,7 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
   - Optimizing render updates during drag
 
 ### Accessibility
+
 - Ensure keyboard users can also reposition components (not just mouse/touch)
 - Provide ARIA labels for draggable elements
 - Consider screen reader announcements for drag operations
@@ -289,6 +318,7 @@ Until these issues are resolved, meaningful editing is not possible. Users canno
 ## Refactor Safety Rules (MANDATORY)
 
 If this task requires moving drag-and-drop code between files:
+
 1. **Move code verbatim first** into its new location
 2. **Update imports/call sites** to make it run, address visibility, scope, and parameterization as a fix on the migrated code
 3. **Only then do targeted improvements**
@@ -307,6 +337,7 @@ If this task requires moving drag-and-drop code between files:
 ## Expected Outcome
 
 After this PR is merged:
+
 - ✅ Components can be dragged freely and reliably in all directions
 - ✅ Individual component legs can be repositioned independently (where physically appropriate)
 - ✅ All breadboard holes are reliably selectable
@@ -320,6 +351,7 @@ This resolves the **most critical functional blocker** identified in the review 
 ## Related Review Sections (for context, not in scope)
 
 These are mentioned in the review but are **not part of this PR**:
+
 - Section 1: Sidebar layout rebalancing
 - Section 3: Examples/Load/Save control placement
 - Section 4: Right sidebar panel removal/reorganization

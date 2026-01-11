@@ -9,18 +9,21 @@ This gap between showing circuit behavior and teaching circuit understanding is 
 ## Gap Analysis
 
 **What we have:**
+
 - Voltage heatmap showing voltage at each net
 - Current animation showing current magnitude and direction
 - Basic simulation failure detection (missing ground, short circuits)
 - Hover tooltips showing exact voltage values
 
 **What we're missing:**
+
 - Visual indicators when circuits have errors (short circuits, floating nodes, reversed components)
 - Contextual explanations of circuit behavior (why voltages/currents are what they are)
 - Actionable guidance on how to fix common mistakes
 - Educational insights into circuit principles
 
 **From the planning document (goal.md):**
+
 > "The Explain panel is a contextual help panel that explains circuit behavior. Trigger: Click on a net, component, or error icon. For errors: Problem description, why it's a problem, how to fix it."
 
 This feature was explicitly planned as part of the "Electricity Flow Visualisation" system but has not been implemented.
@@ -128,6 +131,7 @@ Before moving to v0.2 features (schematic view, more components, undo/redo), com
 ## Non-Goals
 
 This task specifically does NOT include:
+
 - Schematic view implementation
 - Additional component types
 - Undo/redo functionality

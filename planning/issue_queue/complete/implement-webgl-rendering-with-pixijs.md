@@ -7,6 +7,7 @@ The system currently uses SVG-based rendering for all breadboard and schematic v
 ## Gap Analysis
 
 **Goal requirements (from planning/vision/goal.md, lines 84-103):**
+
 - Rendering uses a WebGL-capable pipeline (PixiJS recommended)
 - Breadboard rendering is 2D (top-down) and photorealistic
 - Overlapping wires have shading/lighting to indicate overlap ordering
@@ -15,6 +16,7 @@ The system currently uses SVG-based rendering for all breadboard and schematic v
 - LED glow varies continuously with simulated current/power
 
 **Current state (from planning/state/system_capabilities.md):**
+
 - All rendering uses SVG via `document.createElementNS`
 - Component renderer creates SVG elements for breadboard components
 - Schematic renderer creates SVG elements for schematic diagrams
@@ -25,6 +27,7 @@ The system currently uses SVG-based rendering for all breadboard and schematic v
 ## Impact
 
 This is a **foundational architectural gap** that affects:
+
 1. Visual quality and photorealism
 2. Ability to implement LED glow effects
 3. Wire overlap disambiguation
@@ -36,6 +39,7 @@ This is a **foundational architectural gap** that affects:
 **Objective:** Migrate the breadboard rendering pipeline from SVG to PixiJS (WebGL-capable renderer) while maintaining all existing functional capabilities.
 
 **Scope:**
+
 1. Install and configure PixiJS as a dependency
 2. Replace SVG-based breadboard grid rendering with PixiJS graphics
 3. Replace SVG-based component rendering with PixiJS sprites/graphics
@@ -48,12 +52,14 @@ This is a **foundational architectural gap** that affects:
 10. Update visual regression tests with new baseline screenshots
 
 **Non-goals for this task:**
+
 - Schematic view can remain SVG-based initially (separate follow-up task)
 - Do not change any circuit simulation logic
 - Do not change any interaction logic (placement, selection, drag, rotation)
 - Do not add new components or features beyond rendering improvements
 
 **Technical approach:**
+
 - Use PixiJS Graphics API for procedural shapes (holes, wires, resistors, ground symbols)
 - Use PixiJS Sprites for components where bitmap assets improve quality
 - Use PixiJS filters for LED glow effect (BlurFilter or GlowFilter)
@@ -62,6 +68,7 @@ This is a **foundational architectural gap** that affects:
 - Keep core logic layer unchanged (only UI layer affected)
 
 **Acceptance criteria:**
+
 1. Breadboard grid renders using PixiJS WebGL canvas
 2. All component types render correctly in PixiJS
 3. Voltage overlays display with correct colors
@@ -75,21 +82,25 @@ This is a **foundational architectural gap** that affects:
 11. Performance is equal or better than SVG rendering
 
 **Estimated complexity:** Large (4-6 days)
+
 - Significant architectural change affecting entire rendering layer
 - Requires learning PixiJS API and WebGL rendering concepts
 - Needs careful migration to maintain existing functionality
 - Extensive testing required (unit, integration, visual regression)
 
 **Risks:**
+
 - Performance regression if not implemented carefully
 - Compatibility issues with browsers/devices
 - Breaking existing tests and visual regression baselines
 - Interaction event handling may need adjustments for PixiJS event model
 
 **Dependencies:**
+
 - None (can be implemented immediately)
 
 **Why this is the most important next step:**
+
 1. It's explicitly marked as "required" in the goal document
 2. It's foundational to other visual features (LED glow, wire depth cues)
 3. It unblocks future rendering enhancements

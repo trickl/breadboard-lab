@@ -94,8 +94,7 @@ export interface ConnectionAppearance {
   };
 }
 
-export type ConnectionCommand =
-  | { type: 'delete-connection'; connectionId: string; nonce: number };
+export type ConnectionCommand = { type: 'delete-connection'; connectionId: string; nonce: number };
 
 export interface DragState {
   componentId: string;
@@ -154,7 +153,12 @@ export interface ConnectionDragState {
 export type Action =
   | { type: 'COMPONENT_ADDED'; component: AnyComponent }
   | { type: 'COMPONENT_MOVED'; componentId: string; positions: Position[] }
-  | { type: 'COMPONENT_ROTATED'; componentId: string; rotation: 0 | 90 | 180 | 270; positions: Position[] }
+  | {
+      type: 'COMPONENT_ROTATED';
+      componentId: string;
+      rotation: 0 | 90 | 180 | 270;
+      positions: Position[];
+    }
   | { type: 'COMPONENT_DELETED'; componentId: string }
   | { type: 'COMPONENT_SELECTED'; componentId: string | null }
   | { type: 'COMPONENT_PROPERTY_CHANGED'; componentId: string; property: string; value: unknown }
@@ -169,18 +173,42 @@ export type Action =
       };
     }
   | { type: 'CONNECTION_DRAG_STARTED'; componentId: string; legIndex: number; position: Position }
-  | { type: 'CONNECTION_DRAG_MOVED'; pointerPosition: { x: number; y: number }; hoveredHole: Position | null; isValid: boolean }
+  | {
+      type: 'CONNECTION_DRAG_MOVED';
+      pointerPosition: { x: number; y: number };
+      hoveredHole: Position | null;
+      isValid: boolean;
+    }
   | { type: 'CONNECTION_DRAG_COMPLETED'; targetPosition: Position }
   | { type: 'CONNECTION_DRAG_CANCELLED' }
-  | { type: 'CONNECTION_REROUTE_STARTED'; connectionId: string; endpointType: 'source' | 'target'; position: Position; mousePos: { x: number; y: number } }
+  | {
+      type: 'CONNECTION_REROUTE_STARTED';
+      connectionId: string;
+      endpointType: 'source' | 'target';
+      position: Position;
+      mousePos: { x: number; y: number };
+    }
   | { type: 'CONNECTION_REROUTE_MOVED'; mousePos: { x: number; y: number }; targetHole?: Position }
   | { type: 'CONNECTION_REROUTE_COMPLETED' }
   | { type: 'CONNECTION_REROUTE_CANCELLED' }
-  | { type: 'DRAG_STARTED'; componentId: string; mousePos: { x: number; y: number }; originalPositions: Position[]; offsetFromFirstPin: { x: number; y: number } }
+  | {
+      type: 'DRAG_STARTED';
+      componentId: string;
+      mousePos: { x: number; y: number };
+      originalPositions: Position[];
+      offsetFromFirstPin: { x: number; y: number };
+    }
   | { type: 'DRAG_MOVED'; mousePos: { x: number; y: number }; previewPositions: Position[] | null }
   | { type: 'DRAG_COMPLETED' }
   | { type: 'DRAG_CANCELLED' }
-  | { type: 'PIN_DRAG_STARTED'; componentId: string; pinIndex: number; mousePos: { x: number; y: number }; originalPosition: Position; offsetFromPin: { x: number; y: number } }
+  | {
+      type: 'PIN_DRAG_STARTED';
+      componentId: string;
+      pinIndex: number;
+      mousePos: { x: number; y: number };
+      originalPosition: Position;
+      offsetFromPin: { x: number; y: number };
+    }
   | { type: 'PIN_DRAG_MOVED'; mousePos: { x: number; y: number }; previewPosition: Position | null }
   | { type: 'PIN_DRAG_COMPLETED' }
   | { type: 'PIN_DRAG_CANCELLED' }
@@ -190,10 +218,21 @@ export type Action =
   | { type: 'FLOATING_COMPONENT_LEG_CONNECTED'; legIndex: number; holePosition: Position }
   | { type: 'FLOATING_COMPONENT_PLACED' }
   | { type: 'FLOATING_COMPONENT_CANCELLED' }
-  | { type: 'FLOATING_DRAG_STARTED'; floatingComponentId: string; mousePos: { x: number; y: number }; offsetFromCenter: { x: number; y: number }; isDraggingConnection: boolean; connectionSourceLegIndex?: number }
+  | {
+      type: 'FLOATING_DRAG_STARTED';
+      floatingComponentId: string;
+      mousePos: { x: number; y: number };
+      offsetFromCenter: { x: number; y: number };
+      isDraggingConnection: boolean;
+      connectionSourceLegIndex?: number;
+    }
   | { type: 'FLOATING_DRAG_MOVED'; targetHole?: Position }
   | { type: 'FLOATING_DRAG_COMPLETED' }
-  | { type: 'PLACEMENT_TYPE_SELECTED'; componentType: ComponentType | null; libraryId: string | null }
+  | {
+      type: 'PLACEMENT_TYPE_SELECTED';
+      componentType: ComponentType | null;
+      libraryId: string | null;
+    }
   | { type: 'PLACEMENT_STARTED'; position: Position }
   | { type: 'PLACEMENT_COMPLETED' }
   | { type: 'PLACEMENT_CANCELLED' }

@@ -1,13 +1,13 @@
 /**
  * ReteGraphLayer - Integrates Rete.js editor into React UI
- * 
+ *
  * This component:
  * - Creates and manages Rete editor instance
  * - Synchronizes component nodes with controller state
  * - Renders connections between component legs and breadboard holes
  * - Aligns Rete coordinate space with breadboard world space
  * - Manages pan/zoom synchronization (Rete as source of truth per DR-3)
- * 
+ *
  * Architecture Decision (DR-3): One shared coordinate system
  * - Rete's AreaPlugin manages viewport transform (pan/zoom)
  * - Rete transform is synchronized to parent SVG viewBox
@@ -33,12 +33,20 @@ import { ConnectionPathPlugin } from 'rete-connection-path-plugin';
 import { curveBundle, curveLinear } from 'd3-shape';
 import { SmoothZoom } from './SmoothZoom';
 import type { BreadboardController } from '@/ui-controller';
-import type { AppState, ConnectionAppearance, ConnectionEndpointOrientation } from '@/ui-controller/types';
+import type {
+  AppState,
+  ConnectionAppearance,
+  ConnectionEndpointOrientation,
+} from '@/ui-controller/types';
 import type { AnyComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
 import { getAllHolePositions } from '../geometry/breadboard-layout';
 import { BreadboardLayout } from '@/core/breadboard-layout';
-import { getBreadboardWorld, positionToWorld, type BoardRotation } from '@/ui-react/world/breadboard-world';
+import {
+  getBreadboardWorld,
+  positionToWorld,
+  type BoardRotation,
+} from '@/ui-react/world/breadboard-world';
 import { BreadboardSvg } from '@/ui-react/BreadboardSvg';
 import { LABEL_PADDING_X, LABEL_PADDING_Y } from '@/ui-react/geometry/breadboard-layout';
 
@@ -171,7 +179,7 @@ type NodeRendererProps = {
 };
 
 function isRailNodePayload(payload: unknown): payload is RailNode {
-  // NOTE: Avoid relying on `instanceof RailNode`.
+  // Note: Avoid relying on `instanceof RailNode`.
   // In dev, React Fast Refresh / HMR can replace the RailNode class identity while keeping
   // existing node instances alive, making `instanceof` fail and breaking rail logic.
   if (!payload || typeof payload !== 'object') return false;
@@ -232,7 +240,11 @@ export function resolveSourceTarget(
   editor: NodeEditor<Schemes>
 ): { source: SocketData; target: SocketData } | null {
   // Disallow self-connection to the same exact port.
-  if (initial.nodeId === socket.nodeId && initial.side === socket.side && initial.key === socket.key) {
+  if (
+    initial.nodeId === socket.nodeId &&
+    initial.side === socket.side &&
+    initial.key === socket.key
+  ) {
     return null;
   }
 
@@ -313,9 +325,9 @@ function parseHexColor(color: string): { r: number; g: number; b: number } | nul
   return null;
 }
 
-function parsePathEndpoints(path: string):
-  | { start: { x: number; y: number }; end: { x: number; y: number } }
-  | null {
+function parsePathEndpoints(
+  path: string
+): { start: { x: number; y: number }; end: { x: number; y: number } } | null {
   // This is a pragmatic parser for typical SVG path strings Rete emits.
   // We only need the start (M x y) and the final coordinate pair.
   const startMatch = /^\s*M\s*([-0-9.]+)[,\s]+([-0-9.]+)/i.exec(path);
@@ -476,10 +488,7 @@ function getComponentLegCount(type: ComponentType): number {
 /**
  * ReteGraphLayer - Renders Rete editor aligned with breadboard coordinate system
  */
-export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({ 
-  controller,
-  rotation = 0,
-}) => {
+export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({ controller, rotation = 0 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<NodeEditor<Schemes> | null>(null);
   const areaRef = useRef<AreaPlugin<Schemes, AreaExtra> | null>(null);
@@ -591,7 +600,9 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
         String(import.meta.env.VITE_CONNECTION_LOGS ?? '') === '1';
       if (!logEnabled) return context;
 
-      const asConnLike = (data: unknown): {
+      const asConnLike = (
+        data: unknown
+      ): {
         id?: unknown;
         source?: unknown;
         sourceOutput?: unknown;
@@ -764,7 +775,8 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                 const rail = data as unknown as RailNode;
                 const rot = rotationRef.current;
                 const socketOuterSize =
-                  ReactPresets.classic.vars.$socketsize + 2 * ReactPresets.classic.vars.$socketmargin;
+                  ReactPresets.classic.vars.$socketsize +
+                  2 * ReactPresets.classic.vars.$socketmargin;
                 const socketOuterHalf = socketOuterSize / 2;
 
                 // Label placement: use the first visible hole as anchor.
@@ -932,11 +944,12 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
                           onPointerLeave={(e) => {
                             if (debugUiRef.current.showDebugOverlays) return;
                             const next = e.relatedTarget as HTMLElement | null;
-                            const nextRail = next?.closest?.('[data-rail-hole="1"][data-rail-id]') as
-                              | HTMLElement
-                              | null;
+                            const nextRail = next?.closest?.(
+                              '[data-rail-hole="1"][data-rail-id]'
+                            ) as HTMLElement | null;
                             // If moving between holes on the same rail, keep the highlight.
-                            if (nextRail && nextRail.getAttribute('data-rail-id') === rail.railId) return;
+                            if (nextRail && nextRail.getAttribute('data-rail-id') === rail.railId)
+                              return;
                             setRailHover({ railId: rail.railId, primaryEl: null, enabled: false });
                           }}
                           style={{
@@ -1012,11 +1025,12 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
 
               const id = String(data.id);
               const isInModel = Boolean(
-                editorRef
-                  .current?.getConnections()
+                editorRef.current
+                  ?.getConnections()
                   .some((c) => String((c as { id: string }).id) === id)
               );
-              const appearance = connectionUiRef.current.appearanceById[id] ?? getDefaultConnectionAppearance();
+              const appearance =
+                connectionUiRef.current.appearanceById[id] ?? getDefaultConnectionAppearance();
               const isSelected = connectionUiRef.current.selectedConnectionId === id;
 
               const endpoints = DEBUG_RENDER_CONNECTIONS ? parsePathEndpoints(path) : null;
@@ -1231,8 +1245,16 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
               socket: { nodeId: socket.nodeId, side: socket.side, key: socket.key },
               resolved: resolved
                 ? {
-                    source: { nodeId: resolved.source.nodeId, side: resolved.source.side, key: resolved.source.key },
-                    target: { nodeId: resolved.target.nodeId, side: resolved.target.side, key: resolved.target.key },
+                    source: {
+                      nodeId: resolved.source.nodeId,
+                      side: resolved.source.side,
+                      key: resolved.source.key,
+                    },
+                    target: {
+                      nodeId: resolved.target.nodeId,
+                      side: resolved.target.side,
+                      key: resolved.target.key,
+                    },
                   }
                 : null,
             });
@@ -1240,7 +1262,11 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
 
           return Boolean(resolved);
         },
-        makeConnection: (initial: SocketData, socket: SocketData, context: { editor: NodeEditor<Schemes> }) => {
+        makeConnection: (
+          initial: SocketData,
+          socket: SocketData,
+          context: { editor: NodeEditor<Schemes> }
+        ) => {
           const logEnabled =
             Boolean(debugUiRef.current.showDebugOverlays) ||
             String(import.meta.env.VITE_CONNECTION_LOGS ?? '').toLowerCase() === 'true' ||
@@ -1255,7 +1281,9 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
           const resolved = resolveSourceTarget(initial, socket, context.editor);
           if (!resolved) {
             if (logEnabled) {
-              console.log('[ReteGraphLayer] makeConnection rejected: resolveSourceTarget returned null');
+              console.log(
+                '[ReteGraphLayer] makeConnection rejected: resolveSourceTarget returned null'
+              );
             }
             return false;
           }
@@ -1270,8 +1298,12 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
           }
 
           // Ensure the corresponding ports exist.
-          const sourceNode = context.editor.getNode(source.nodeId) as unknown as NodeWithPorts | undefined;
-          const targetNode = context.editor.getNode(target.nodeId) as unknown as NodeWithPorts | undefined;
+          const sourceNode = context.editor.getNode(source.nodeId) as unknown as
+            | NodeWithPorts
+            | undefined;
+          const targetNode = context.editor.getNode(target.nodeId) as unknown as
+            | NodeWithPorts
+            | undefined;
           if (!sourceNode?.outputs?.[source.key]) {
             if (logEnabled) {
               console.log('[ReteGraphLayer] makeConnection rejected: missing source output', {
@@ -1438,200 +1470,203 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
   }, []);
 
   // Synchronize component nodes with controller state
-  const syncNodes = useCallback(async (state: AppState) => {
-    const editor = editorRef.current;
-    const area = areaRef.current;
-    if (!editor || !area) {
-      console.warn('[ReteGraphLayer] Editor or area not initialized, skipping sync');
-      return;
-    }
-
-    // --- Breadboard root node (single node) ---
-    if (!breadboardNodeIdRef.current) {
-      const bb = new BreadboardNode('Breadboard');
-      // Give the breadboard node a stable id so we can reliably apply per-node DOM tweaks.
-      // (Also makes debugging easier.)
-      bb.id = 'breadboard';
-      await editor.addNode(bb);
-      breadboardNodeIdRef.current = bb.id;
-      await area.translate(bb.id, { x: 0, y: 0 });
-
-      // The breadboard background should never be draggable as a node.
-      // If it is draggable, it can drift away from the rail socket clouds.
-      // By disabling pointer events on the NodeView element, pointer input falls through
-      // to the area and results in panning (moving everything together).
-      const disableBreadboardNodeInteraction = () => {
-        const view = area.nodeViews.get(bb.id);
-        if (!view) return;
-        view.element.style.pointerEvents = 'none';
-      };
-
-      disableBreadboardNodeInteraction();
-      // Defensive: in case the view is attached after this tick.
-      setTimeout(disableBreadboardNodeInteraction, 0);
-    }
-
-    // --- Breadboard rails (static nodes) ---
-    // We model each connected breadboard "net cloud" as one node with one socket per physical hole.
-    // - Outer power rails: 4 nodes (vertical columns)
-    // - Inner terminal-strip rails: 60 nodes (30 rows × 2 sides), each with 5 holes
-    // This matches the electrical reality (one net) while preserving per-hole attachment constraints.
-    const railNodeMap = railNodeMapRef.current;
-    const allHoles = getAllHolePositions();
-
-    const ensureRailNode = async (def: {
-      id: string;
-      label: string;
-      holePositions: Array<{ row: number; col: number }>;
-    }) => {
-      // Fast path: already tracked.
-      const existingId = railNodeMap.get(def.id);
-      if (existingId && editor.getNode(existingId)) return;
-
-      // Defensive: across HMR/dev remounts we may have nodes in the editor but an empty map.
-      const byPayload = editor
-        .getNodes()
-        .find((n) => isRailNodePayload(n) && (n as unknown as RailNode).railId === def.id);
-      if (byPayload) {
-        railNodeMap.set(def.id, byPayload.id);
-        // Keep anchored.
-        await area.translate(byPayload.id, { x: 0, y: 0 });
+  const syncNodes = useCallback(
+    async (state: AppState) => {
+      const editor = editorRef.current;
+      const area = areaRef.current;
+      if (!editor || !area) {
+        console.warn('[ReteGraphLayer] Editor or area not initialized, skipping sync');
         return;
       }
 
-      const railNode = new RailNode(def.id, def.label, def.holePositions);
-      await editor.addNode(railNode);
-      railNodeMap.set(def.id, railNode.id);
-      // Keep anchored at (0,0). The custom renderer positions sockets in world space.
-      await area.translate(railNode.id, { x: 0, y: 0 });
-    };
+      // --- Breadboard root node (single node) ---
+      if (!breadboardNodeIdRef.current) {
+        const bb = new BreadboardNode('Breadboard');
+        // Give the breadboard node a stable id so we can reliably apply per-node DOM tweaks.
+        // (Also makes debugging easier.)
+        bb.id = 'breadboard';
+        await editor.addNode(bb);
+        breadboardNodeIdRef.current = bb.id;
+        await area.translate(bb.id, { x: 0, y: 0 });
 
-    // Outer power rails (columns).
-    const outerRailDefs: Array<{ id: string; label: string; col: number }> = [
-      {
-        id: 'rail-left-positive',
-        label: 'Rail L +',
-        col: BreadboardLayout.RAIL_LEFT_POSITIVE,
-      },
-      {
-        id: 'rail-left-negative',
-        label: 'Rail L −',
-        col: BreadboardLayout.RAIL_LEFT_NEGATIVE,
-      },
-      {
-        id: 'rail-right-positive',
-        label: 'Rail R +',
-        col: BreadboardLayout.RAIL_RIGHT_POSITIVE,
-      },
-      {
-        id: 'rail-right-negative',
-        label: 'Rail R −',
-        col: BreadboardLayout.RAIL_RIGHT_NEGATIVE,
-      },
-    ];
+        // The breadboard background should never be draggable as a node.
+        // If it is draggable, it can drift away from the rail socket clouds.
+        // By disabling pointer events on the NodeView element, pointer input falls through
+        // to the area and results in panning (moving everything together).
+        const disableBreadboardNodeInteraction = () => {
+          const view = area.nodeViews.get(bb.id);
+          if (!view) return;
+          view.element.style.pointerEvents = 'none';
+        };
 
-    for (const def of outerRailDefs) {
-      const holePositions = allHoles
-        .filter((p) => p.col === def.col)
-        // Stable ordering: rails are conceptually indexed by row.
-        .sort((a, b) => a.row - b.row)
-        .map((p) => ({ row: p.row, col: p.col }));
-
-      await ensureRailNode({ id: def.id, label: def.label, holePositions });
-    }
-
-    // Inner rails (terminal strips): 30 rows × 2 sides = 60 rails.
-    // Each rail is a row-connected group of 5 holes.
-    for (let row = 0; row < BreadboardLayout.ROWS; row++) {
-      const left = allHoles
-        .filter(
-          (p) =>
-            p.row === row &&
-            p.col >= BreadboardLayout.STRIP_LEFT_START &&
-            p.col <= BreadboardLayout.STRIP_LEFT_END
-        )
-        .sort((a, b) => a.col - b.col)
-        .map((p) => ({ row: p.row, col: p.col }));
-
-      const right = allHoles
-        .filter(
-          (p) =>
-            p.row === row &&
-            p.col >= BreadboardLayout.STRIP_RIGHT_START &&
-            p.col <= BreadboardLayout.STRIP_RIGHT_END
-        )
-        .sort((a, b) => a.col - b.col)
-        .map((p) => ({ row: p.row, col: p.col }));
-
-      // Only create the rail if holes are present in the skin.
-      if (left.length > 0) {
-        await ensureRailNode({
-          id: `inner-rail-left-${row}`,
-          label: `Inner L ${row + 1}`,
-          holePositions: left,
-        });
+        disableBreadboardNodeInteraction();
+        // Defensive: in case the view is attached after this tick.
+        setTimeout(disableBreadboardNodeInteraction, 0);
       }
 
-      if (right.length > 0) {
-        await ensureRailNode({
-          id: `inner-rail-right-${row}`,
-          label: `Inner R ${row + 1}`,
-          holePositions: right,
-        });
-      }
-    }
+      // --- Breadboard rails (static nodes) ---
+      // We model each connected breadboard "net cloud" as one node with one socket per physical hole.
+      // - Outer power rails: 4 nodes (vertical columns)
+      // - Inner terminal-strip rails: 60 nodes (30 rows × 2 sides), each with 5 holes
+      // This matches the electrical reality (one net) while preserving per-hole attachment constraints.
+      const railNodeMap = railNodeMapRef.current;
+      const allHoles = getAllHolePositions();
 
-    const components = state.breadboard.components;
-    const componentNodeMap = componentNodeMapRef.current;
+      const ensureRailNode = async (def: {
+        id: string;
+        label: string;
+        holePositions: Array<{ row: number; col: number }>;
+      }) => {
+        // Fast path: already tracked.
+        const existingId = railNodeMap.get(def.id);
+        if (existingId && editor.getNode(existingId)) return;
 
-    // Track which components should exist
-    const currentComponentIds = new Set(components.map((c) => c.id));
-
-    // Remove nodes for deleted components
-    for (const [componentId, nodeId] of componentNodeMap.entries()) {
-      if (!currentComponentIds.has(componentId)) {
-        const node = editor.getNode(nodeId);
-        if (node) {
-          await editor.removeNode(nodeId);
+        // Defensive: across HMR/dev remounts we may have nodes in the editor but an empty map.
+        const byPayload = editor
+          .getNodes()
+          .find((n) => isRailNodePayload(n) && (n as unknown as RailNode).railId === def.id);
+        if (byPayload) {
+          railNodeMap.set(def.id, byPayload.id);
+          // Keep anchored.
+          await area.translate(byPayload.id, { x: 0, y: 0 });
+          return;
         }
-        componentNodeMap.delete(componentId);
+
+        const railNode = new RailNode(def.id, def.label, def.holePositions);
+        await editor.addNode(railNode);
+        railNodeMap.set(def.id, railNode.id);
+        // Keep anchored at (0,0). The custom renderer positions sockets in world space.
+        await area.translate(railNode.id, { x: 0, y: 0 });
+      };
+
+      // Outer power rails (columns).
+      const outerRailDefs: Array<{ id: string; label: string; col: number }> = [
+        {
+          id: 'rail-left-positive',
+          label: 'Rail L +',
+          col: BreadboardLayout.RAIL_LEFT_POSITIVE,
+        },
+        {
+          id: 'rail-left-negative',
+          label: 'Rail L −',
+          col: BreadboardLayout.RAIL_LEFT_NEGATIVE,
+        },
+        {
+          id: 'rail-right-positive',
+          label: 'Rail R +',
+          col: BreadboardLayout.RAIL_RIGHT_POSITIVE,
+        },
+        {
+          id: 'rail-right-negative',
+          label: 'Rail R −',
+          col: BreadboardLayout.RAIL_RIGHT_NEGATIVE,
+        },
+      ];
+
+      for (const def of outerRailDefs) {
+        const holePositions = allHoles
+          .filter((p) => p.col === def.col)
+          // Stable ordering: rails are conceptually indexed by row.
+          .sort((a, b) => a.row - b.row)
+          .map((p) => ({ row: p.row, col: p.col }));
+
+        await ensureRailNode({ id: def.id, label: def.label, holePositions });
       }
-    }
 
-    // Add or update nodes for current components
-    for (const component of components) {
-      const nodeId = componentNodeMap.get(component.id);
-      let node: ComponentNode;
+      // Inner rails (terminal strips): 30 rows × 2 sides = 60 rails.
+      // Each rail is a row-connected group of 5 holes.
+      for (let row = 0; row < BreadboardLayout.ROWS; row++) {
+        const left = allHoles
+          .filter(
+            (p) =>
+              p.row === row &&
+              p.col >= BreadboardLayout.STRIP_LEFT_START &&
+              p.col <= BreadboardLayout.STRIP_LEFT_END
+          )
+          .sort((a, b) => a.col - b.col)
+          .map((p) => ({ row: p.row, col: p.col }));
 
-      if (nodeId) {
-        // Node exists, get it
-        const existingNode = editor.getNode(nodeId);
-        if (existingNode && existingNode instanceof ComponentNode) {
-          node = existingNode;
+        const right = allHoles
+          .filter(
+            (p) =>
+              p.row === row &&
+              p.col >= BreadboardLayout.STRIP_RIGHT_START &&
+              p.col <= BreadboardLayout.STRIP_RIGHT_END
+          )
+          .sort((a, b) => a.col - b.col)
+          .map((p) => ({ row: p.row, col: p.col }));
+
+        // Only create the rail if holes are present in the skin.
+        if (left.length > 0) {
+          await ensureRailNode({
+            id: `inner-rail-left-${row}`,
+            label: `Inner L ${row + 1}`,
+            holePositions: left,
+          });
+        }
+
+        if (right.length > 0) {
+          await ensureRailNode({
+            id: `inner-rail-right-${row}`,
+            label: `Inner R ${row + 1}`,
+            holePositions: right,
+          });
+        }
+      }
+
+      const components = state.breadboard.components;
+      const componentNodeMap = componentNodeMapRef.current;
+
+      // Track which components should exist
+      const currentComponentIds = new Set(components.map((c) => c.id));
+
+      // Remove nodes for deleted components
+      for (const [componentId, nodeId] of componentNodeMap.entries()) {
+        if (!currentComponentIds.has(componentId)) {
+          const node = editor.getNode(nodeId);
+          if (node) {
+            await editor.removeNode(nodeId);
+          }
+          componentNodeMap.delete(componentId);
+        }
+      }
+
+      // Add or update nodes for current components
+      for (const component of components) {
+        const nodeId = componentNodeMap.get(component.id);
+        let node: ComponentNode;
+
+        if (nodeId) {
+          // Node exists, get it
+          const existingNode = editor.getNode(nodeId);
+          if (existingNode && existingNode instanceof ComponentNode) {
+            node = existingNode;
+          } else {
+            // Node missing, recreate
+            node = await createComponentNode(editor, component);
+            componentNodeMap.set(component.id, node.id);
+          }
         } else {
-          // Node missing, recreate
+          // Create new node
           node = await createComponentNode(editor, component);
           componentNodeMap.set(component.id, node.id);
         }
-      } else {
-        // Create new node
-        node = await createComponentNode(editor, component);
-        componentNodeMap.set(component.id, node.id);
-      }
 
-      // Update node position based on component's first position (world space)
-      if (component.positions.length > 0) {
-        const firstPos = component.positions[0];
-        const rotatedAnchor = positionToWorld(firstPos, rotation);
+        // Update node position based on component's first position (world space)
+        if (component.positions.length > 0) {
+          const firstPos = component.positions[0];
+          const rotatedAnchor = positionToWorld(firstPos, rotation);
 
-        // Position the node at the component's location (centered)
-        await area.translate(node.id, {
-          x: rotatedAnchor.x - node.width / 2,
-          y: rotatedAnchor.y - node.height / 2,
-        });
+          // Position the node at the component's location (centered)
+          await area.translate(node.id, {
+            x: rotatedAnchor.x - node.width / 2,
+            y: rotatedAnchor.y - node.height / 2,
+          });
+        }
       }
-    }
-  }, [rotation]);
+    },
+    [rotation]
+  );
 
   // Helper to create a component node
   const createComponentNode = async (
@@ -1659,7 +1694,10 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({
       // Apply socket visibility without requiring React re-render.
       if (layerRef.current) {
         layerRef.current.setAttribute('data-debug-overlays', nextShowDebugOverlays ? 'on' : 'off');
-        layerRef.current.style.setProperty('--debug-socket-opacity', nextShowDebugOverlays ? '0.25' : '0');
+        layerRef.current.style.setProperty(
+          '--debug-socket-opacity',
+          nextShowDebugOverlays ? '0.25' : '0'
+        );
       }
 
       const nextSelectedId = state.connections.selectedConnectionId;

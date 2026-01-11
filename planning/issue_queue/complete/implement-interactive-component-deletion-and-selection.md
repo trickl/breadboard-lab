@@ -19,6 +19,7 @@ Breadboard Lab has achieved excellent core capabilities: circuit simulation work
 ### Scope
 
 Create a component interaction system that:
+
 1. Allows users to click on a rendered component to select it
 2. Shows visual feedback when a component is selected (highlight, outline, or selection handles)
 3. Enables deletion of selected component via Delete key or delete button
@@ -47,6 +48,7 @@ Create a component interaction system that:
 ### Educational Impact
 
 This feature transforms Breadboard Lab from a "place-once-and-observe" tool into an interactive learning environment where students can:
+
 - Experiment by trying different components and removing unsuccessful attempts
 - Debug circuits by selectively removing components to isolate problems
 - Iterate on designs without restarting from scratch
@@ -57,6 +59,7 @@ Without this capability, the tool cannot fulfill its educational mission of teac
 ### Alignment with Roadmap
 
 This task addresses critical MVP gaps (planning/vision/goal.md, lines 1041-1069):
+
 - Unblocks component lifecycle management (currently missing)
 - Foundation for upcoming drag-and-drop feature (requires selection)
 - Prerequisite for undo/redo system (requires tracking component operations)
@@ -66,6 +69,7 @@ This task addresses critical MVP gaps (planning/vision/goal.md, lines 1041-1069)
 ### Estimated Effort
 
 3-4 days of focused development
+
 - Day 1: Implement component hit detection and selection state management
 - Day 2: Add visual selection feedback and keyboard Delete handler
 - Day 3: Test deletion with various component types and circuits
@@ -78,11 +82,11 @@ None - builds on existing rendering and state management infrastructure
 ### Risks
 
 - **Hit detection accuracy**: Components have different shapes (rectangle for resistor, circle for LED); requires careful bounding box calculation
-  - *Mitigation*: Start with simple rectangular hit boxes; refine if needed
+  - _Mitigation_: Start with simple rectangular hit boxes; refine if needed
 - **Pointer events blocking hole interaction**: Components render with `pointer-events: none`; enabling events may interfere with hole clicks
-  - *Mitigation*: Use event delegation or separate interaction layer; test thoroughly
+  - _Mitigation_: Use event delegation or separate interaction layer; test thoroughly
 - **State synchronization**: Selection state must stay synchronized with component state after operations
-  - *Mitigation*: Clear selection after deletion; validate selection ID exists before rendering
+  - _Mitigation_: Clear selection after deletion; validate selection ID exists before rendering
 
 ## Why This Task Now
 
@@ -99,7 +103,9 @@ This is the most important gap because:
 ## Alternative Approaches Considered
 
 ### Why not drag-and-drop first?
+
 Drag-and-drop is more complex and requires:
+
 - Selection (must select before dragging)
 - Position validation (snap-to-hole logic during drag)
 - Ghost preview rendering
@@ -108,7 +114,9 @@ Drag-and-drop is more complex and requires:
 Deletion is simpler and provides immediate value while building the selection foundation needed for drag-and-drop.
 
 ### Why not undo/redo first?
+
 Undo/redo requires:
+
 - Operation history tracking
 - State snapshots or command pattern
 - More complex state management
@@ -116,7 +124,9 @@ Undo/redo requires:
 Deletion is a prerequisite operation that undo/redo would need to support. Building deletion first validates the operation model before adding history complexity.
 
 ### Why not component value editing first?
+
 Value editing requires:
+
 - UI for input (modal, inline editor, or property panel)
 - Validation logic
 - Type-specific controls (slider for resistance, dropdown for voltage)
@@ -126,6 +136,7 @@ Deletion is more fundamental - users need to fix mistakes before they need to tu
 ## Next Steps After This Task
 
 Once selection and deletion work:
+
 1. Implement component dragging and repositioning (planning/vision/goal.md, lines 232-254)
 2. Add rotation via keyboard `R` key (planning/vision/goal.md, lines 246-254)
 3. Implement undo/redo for component operations (planning/vision/goal.md, lines 296-303)
@@ -135,6 +146,7 @@ Once selection and deletion work:
 ## Acceptance Criteria for Gap Analysis
 
 This document:
+
 - ✅ Identifies exactly one development task (component selection and deletion)
 - ✅ Compares long-term goal to current capabilities with specific citations
 - ✅ Explains why this is the most important gap

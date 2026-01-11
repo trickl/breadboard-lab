@@ -13,12 +13,14 @@
 ### What PR #213 Added
 
 PR #213 added two planning documents:
+
 1. `planning/00-planning.md` (1,496 lines) - Comprehensive Rete.js migration planning
 2. `planning/README.md` - Navigation guide for planning directory
 
 ### Why No Capability Update is Needed
 
 Per the issue instructions:
+
 > "Do not speculate or describe future work."
 > "If no update is required, explicitly state why and leave the document unchanged."
 
@@ -50,6 +52,7 @@ Per the issue instructions:
 ### What Changed
 
 The only change is **documentation of a plan for future architectural work**. The plan itself is thorough and well-documented in:
+
 - `planning/00-planning.md` - The migration specification
 - `planning/README.md` - Navigation to the planning document
 
