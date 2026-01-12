@@ -1,9 +1,6 @@
 import type { MutableRefObject } from 'react';
 import type { NodeEditor } from 'rete';
-import type { Area2D } from 'rete-area-plugin';
 import type { AreaPlugin } from 'rete-area-plugin';
-import type { RerouteExtra } from 'rete-connection-reroute-plugin';
-import type { ClassicScheme, ReactArea2D } from 'rete-react-plugin';
 
 import type { AppState } from '@/ui-controller/types';
 import type { AnyComponent } from '@/core/types';
@@ -18,13 +15,7 @@ import {
 import { BreadboardNode } from '@/ui-react/rete/nodes/BreadboardNode';
 import { ComponentNode } from '@/ui-react/rete/nodes/ComponentNode';
 import { RailNode } from '@/ui-react/rete/nodes/RailNode';
-
-type Schemes = ClassicScheme;
-
-// Rete plugin typing note:
-// Some plugins (e.g. reroute/path) are typed against a parent scope that includes Area2D signals.
-// The official docs recommend including Area2D + renderer extras + plugin extras in one union.
-type AreaExtra = Area2D<Schemes> | ReactArea2D<Schemes> | RerouteExtra;
+import type { AreaExtra, Schemes } from '@/ui-react/rete/reteTypes';
 
 export type CreateSyncNodesOptions = {
   editorRef: MutableRefObject<NodeEditor<Schemes> | null>;

@@ -1,15 +1,10 @@
 import type { MutableRefObject } from 'react';
 import type { NodeEditor } from 'rete';
-import type { Area2D } from 'rete-area-plugin';
 import type { AreaPlugin } from 'rete-area-plugin';
-import type { RerouteExtra } from 'rete-connection-reroute-plugin';
-import type { ClassicScheme, ReactArea2D } from 'rete-react-plugin';
 
 import type { BreadboardController } from '@/ui-controller';
 import type { AppState } from '@/ui-controller/types';
-
-type Schemes = ClassicScheme;
-type AreaExtra = Area2D<Schemes> | ReactArea2D<Schemes> | RerouteExtra;
+import type { AreaExtra, Schemes } from '@/ui-react/rete/reteTypes';
 
 export type SubscribeReteToControllerOptions = {
   controller: BreadboardController;
