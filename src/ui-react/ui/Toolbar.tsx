@@ -8,7 +8,6 @@ import {
   type LED,
   type PowerSupply,
   type Ground,
-  type Wire,
 } from '@/core/types';
 import { deserializeCircuit } from '@/core/circuit-serializer';
 import { ExamplesModal } from './ExamplesModal';
@@ -20,7 +19,13 @@ export interface ToolbarProps {
   controller: BreadboardController;
 }
 
-function createDefaultComponent(type: ComponentType, id: string): AnyComponent {
+type ToolbarComponentType =
+  | ComponentType.RESISTOR
+  | ComponentType.LED
+  | ComponentType.POWER_SUPPLY
+  | ComponentType.GROUND;
+
+function createDefaultComponent(type: ToolbarComponentType, id: string): AnyComponent {
   // Chosen to be safely inside typical breadboard bounds.
   const baseRow = 6;
   const baseCol = 8;
@@ -51,18 +56,6 @@ function createDefaultComponent(type: ComponentType, id: string): AnyComponent {
         rotation: 0,
       } satisfies LED;
 
-    case ComponentType.WIRE:
-      return {
-        id,
-        type: ComponentType.WIRE,
-        resistance: 0.01,
-        positions: [
-          { row: baseRow + 1, col: baseCol - 2 },
-          { row: baseRow + 1, col: baseCol + 2 },
-        ],
-        rotation: 0,
-      } satisfies Wire;
-
     case ComponentType.POWER_SUPPLY:
       return {
         id,
@@ -79,19 +72,6 @@ function createDefaultComponent(type: ComponentType, id: string): AnyComponent {
         positions: [{ row: 12, col: 2 }],
         rotation: 0,
       } satisfies Ground;
-
-    default:
-      // Fallback to a wire
-      return {
-        id,
-        type: ComponentType.WIRE,
-        resistance: 0.01,
-        positions: [
-          { row: baseRow, col: baseCol },
-          { row: baseRow, col: baseCol + 1 },
-        ],
-        rotation: 0,
-      } satisfies Wire;
   }
 }
 
@@ -100,7 +80,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ controller }) => {
 
   const simulationRunner = useMemo(() => new SimulationRunner(controller, null), [controller]);
 
-  const addComponent = (type: ComponentType) => {
+  const addComponent = (type: ToolbarComponentType) => {
     const id = `cmp-${type.toLowerCase()}-${Date.now()}`;
     const component = createDefaultComponent(type, id);
 
@@ -146,7 +126,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ controller }) => {
           [
             ['Resistor', ComponentType.RESISTOR],
             ['LED', ComponentType.LED],
-            ['Wire', ComponentType.WIRE],
             ['Power Supply', ComponentType.POWER_SUPPLY],
             ['Ground', ComponentType.GROUND],
           ] as const

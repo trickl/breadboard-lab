@@ -209,9 +209,38 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({ controller, rota
         // Make classic node UI much less intrusive.
         // These attributes exist in the classic preset implementation.
         '[data-testid="node"]': {
+          // Rete classic preset uses styled-components for node layout; ensure we have a stable
+          // positioning context for absolutely-positioned labels.
+          position: 'relative',
+          overflow: 'visible',
           background: 'rgba(78, 88, 191, 0.08) !important',
           border: '1px solid rgba(78, 88, 191, 0.25) !important',
           boxShadow: 'none !important',
+        },
+        // Component node labels (classic preset title). Match the breadboard/rail debug label style.
+        // Note: breadboard/rail nodes are custom renderers and are not affected by this selector.
+        // IMPORTANT: rete-react-plugin ships `.title { font-size: 18px; padding: 8px; }`.
+        // Use a more specific selector than `.title` so we win even if its CSS is injected later.
+        '&[data-debug-overlays] [data-testid="node"] .title, &[data-debug-overlays] [data-testid="node"] [data-testid="title"]': {
+          position: 'absolute',
+          left: '8px',
+          top: '8px',
+          padding: '2px 6px',
+          borderRadius: '4px',
+          background: 'rgba(0,0,0,0.55)',
+          color: 'white',
+          fontSize: '12px',
+          fontFamily:
+            'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial',
+          lineHeight: '16px',
+          pointerEvents: 'none',
+          margin: 0,
+          width: 'auto',
+          whiteSpace: 'nowrap',
+        },
+        // Debug overlays toggle should also hide *all* component labels.
+        '&[data-debug-overlays="off"] [data-testid="title"]': {
+          display: 'none',
         },
         '[data-testid="input-title"], [data-testid="output-title"]': {
           display: 'none',

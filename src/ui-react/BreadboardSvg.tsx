@@ -25,6 +25,11 @@ import { BreadboardSkin } from './skins/breadboard-skin';
 export interface BreadboardSvgProps {
   orientation?: 0 | 90 | 180 | 270;
   /**
+   * Whether to render printed board labels (row/column/rail markers).
+   * Defaults to true.
+   */
+  showLabels?: boolean;
+  /**
    * Whether breadboard holes/ports should respond to hover/click.
    * Default is false: only components are interactive.
    */
@@ -44,7 +49,7 @@ export interface BreadboardSvgProps {
  * - Memoized hole positions to avoid recalculation
  */
 export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
-  ({ interactive = false, onHoleClick, onHoleHover, onHoleLeave }) => {
+  ({ showLabels = true, interactive = false, onHoleClick, onHoleHover, onHoleLeave }) => {
     const [hoveredPosition, setHoveredPosition] = useState<Position | null>(null);
 
     const COLUMN_LABEL_FONT_SIZE = 13.2; // 11 * 1.2
@@ -562,9 +567,9 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
           {/* Labels (row/column/rail). Kept in a dedicated group so tests can hide/mask them to
             avoid cross-environment font rendering diffs in screenshots. */}
           <g data-testid="breadboard-labels">
-            {rowLabels}
-            {columnLabels}
-            {railLabels}
+            {showLabels ? rowLabels : null}
+            {showLabels ? columnLabels : null}
+            {showLabels ? railLabels : null}
           </g>
         </g>
 

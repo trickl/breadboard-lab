@@ -79,7 +79,7 @@ export function createBreadboardNodeRenderer(options: {
               transform: world.substrateTransform,
             }}
           >
-            <BreadboardSvg />
+            <BreadboardSvg showLabels={debugUiRef.current.showDebugOverlays} />
           </div>
         </div>
       </div>
