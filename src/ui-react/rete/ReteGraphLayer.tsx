@@ -31,11 +31,11 @@ import {
   removeConflictingConnections,
   resolveSourceTarget,
 } from '@/ui-react/rete/graph/connectionRules';
-import { BreadboardNode } from '@/ui-react/rete/nodes/BreadboardNode';
 import { RailNode } from '@/ui-react/rete/nodes/RailNode';
 import { createSyncNodes } from '@/ui-react/rete/sync/createSyncNodes';
 import { subscribeReteToController } from '@/ui-react/rete/sync/subscribeReteToController';
 import { initializeReteEditor } from '@/ui-react/rete/init/initializeReteEditor';
+import { syncReteToRotation } from '@/ui-react/rete/sync/syncReteToRotation';
 import type { AreaExtra, Schemes } from '@/ui-react/rete/reteTypes';
 
 // Back-compat: these helpers were historically exported from this module.
@@ -115,52 +115,13 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({ controller, rota
   // Rotation changes are *not* a native Rete state change, so the React renderer won't re-render
   // our custom RailNode socket-clouds unless we explicitly request an update.
   useEffect(() => {
-    const editor = editorRef.current;
-    const area = areaRef.current;
-    if (!editor || !area) return;
-
-    // Keep the rotated board centered in the visible viewport.
-    // This makes rotation feel like it happens around the screen center.
-    const container = containerRef.current;
-    if (container) {
-      const bounds = container.getBoundingClientRect();
-      const w = bounds.width || 1;
-      const h = bounds.height || 1;
-      const world = getBreadboardWorld(rotationRef.current);
-
-      // Don't unexpectedly zoom *in* on rotate; only clamp down if we're currently zoomed in beyond fit.
-      const kw = w / (world.total.width || 1);
-      const kh = h / (world.total.height || 1);
-      const fitK = Math.min(kw, kh) * 0.95;
-      if (Number.isFinite(fitK) && fitK > 0) {
-        const currentK = area.area.transform.k;
-        area.area.transform.k = Math.min(currentK, fitK);
-      }
-
-      area.area.transform.x = (w - world.total.width * area.area.transform.k) / 2;
-      area.area.transform.y = (h - world.total.height * area.area.transform.k) / 2;
-      (area.area as unknown as { update: () => void }).update();
-    }
-
-    // Keep the breadboard node's size in sync with the rotated world bounds.
-    // (This is what makes the node's bounding box match the rotated graphic.)
-    const bbId = breadboardNodeIdRef.current;
-    if (bbId) {
-      const bbNode = editor.getNode(bbId);
-      if (bbNode && bbNode instanceof BreadboardNode) {
-        const world = getBreadboardWorld(rotationRef.current);
-        bbNode.width = world.total.width;
-        bbNode.height = world.total.height;
-      }
-    }
-
-    // Update all nodes (rail sockets + component nodes) and all connections so paths recompute.
-    for (const node of editor.getNodes()) {
-      void area.update('node', node.id);
-    }
-    for (const connection of editor.getConnections()) {
-      void area.update('connection', connection.id);
-    }
+    syncReteToRotation({
+      rotationRef,
+      containerRef,
+      editorRef,
+      areaRef,
+      breadboardNodeIdRef,
+    });
   }, [rotation]);
 
   // Initialize Rete editor
