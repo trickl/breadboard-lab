@@ -1,9 +1,43 @@
 import { ComponentType } from '@/core/types';
+import { HOLE_SPACING } from '@/ui-react/geometry/breadboard-layout';
 
 export const DEFAULT_COMPONENT_NODE_SIZE = {
   width: 100,
   height: 60,
 } as const;
+
+const MIN_NODE_W = DEFAULT_COMPONENT_NODE_SIZE.width;
+const MIN_NODE_H = DEFAULT_COMPONENT_NODE_SIZE.height;
+
+// Keep sockets comfortably inside the node box so the anchor math remains stable.
+// (Sockets themselves can still overflow visually because the renderer uses `overflow: visible`.)
+const SOCKET_INSET_PX = 16;
+
+/**
+ * Returns the default node size used for rendering + anchoring + snapping.
+ *
+ * IMPORTANT: Any place that computes a leg anchor must use the SAME width/height.
+ */
+export function getDefaultComponentNodeSize(options: {
+  type: ComponentType;
+  legs: number;
+}): { width: number; height: number } {
+  const { type } = options;
+
+  switch (type) {
+    case ComponentType.RESISTOR: {
+      // Default: 5-hole span (5 × 0.1" pitch).
+      const spanPx = 5 * HOLE_SPACING;
+      return {
+        width: Math.max(MIN_NODE_W, spanPx + SOCKET_INSET_PX * 2),
+        height: MIN_NODE_H,
+      };
+    }
+
+    default:
+      return { width: MIN_NODE_W, height: MIN_NODE_H };
+  }
+}
 
 export function getComponentLegPositionsInNode(options: {
   type: ComponentType;
@@ -13,65 +47,81 @@ export function getComponentLegPositionsInNode(options: {
 }): Array<{ x: number; y: number }> {
   const { type, legs, width, height } = options;
 
-  // Some reasonable defaults (pixels within the node box).
-  const inset = 10;
+  const inset = SOCKET_INSET_PX;
+  const cx = width / 2;
+  const cy = height / 2;
+  const pitch = HOLE_SPACING;
 
   switch (type) {
     case ComponentType.LED:
-      // Two pins at the bottom.
+      // Through-hole LED legs are typically 0.1" (2.54mm) apart.
+      // Render legs 1 breadboard pitch apart.
       return [
-        { x: width * 0.35, y: height - inset },
-        { x: width * 0.65, y: height - inset },
+        { x: cx - pitch / 2, y: height - inset },
+        { x: cx + pitch / 2, y: height - inset },
       ].slice(0, legs);
 
     case ComponentType.RESISTOR:
-      // Two pins on the long sides.
+      // Default: 5 holes apart (5 × 0.1" pitch). Keep centered.
       return [
-        { x: inset, y: height * 0.5 },
-        { x: width - inset, y: height * 0.5 },
+        { x: cx - (5 * pitch) / 2, y: cy },
+        { x: cx + (5 * pitch) / 2, y: cy },
       ].slice(0, legs);
 
     case ComponentType.POWER_SUPPLY:
       // Two pins on one side (left): + and GND.
+      // Render 1 breadboard pitch apart.
       return [
-        { x: inset, y: height * 0.4 },
-        { x: inset, y: height * 0.6 },
+        { x: inset, y: cy - pitch / 2 },
+        { x: inset, y: cy + pitch / 2 },
       ].slice(0, legs);
 
     case ComponentType.SWITCH:
       if (legs <= 2) {
         // Legacy SPST (2 terminals).
         return [
-          { x: inset, y: height * 0.5 },
-          { x: width - inset, y: height * 0.5 },
+          { x: inset, y: cy },
+          { x: width - inset, y: cy },
         ].slice(0, legs);
       }
 
-      // 4-pin tactile style: two on top, two on bottom.
+      // Default tactile: 3x3 grid corners (2 pitches apart in X and Y).
+      // (Often described as a 3×3 pattern with legs in each corner.)
       return [
-        { x: width * 0.35, y: inset },
-        { x: width * 0.65, y: inset },
-        { x: width * 0.35, y: height - inset },
-        { x: width * 0.65, y: height - inset },
+        { x: cx - pitch, y: cy - pitch },
+        { x: cx + pitch, y: cy - pitch },
+        { x: cx - pitch, y: cy + pitch },
+        { x: cx + pitch, y: cy + pitch },
       ].slice(0, legs);
 
     case ComponentType.GROUND:
-      return [{ x: width * 0.5, y: height - inset }].slice(0, legs);
+      return [{ x: cx, y: height - inset }].slice(0, legs);
 
     case ComponentType.MICROPROCESSOR: {
       // DIP-ish: 8 pins on left + 8 on right.
       const leftCount = Math.min(8, legs);
       const rightCount = Math.max(0, Math.min(8, legs - leftCount));
 
-      const spacingL = leftCount > 1 ? (height - 2 * inset) / (leftCount - 1) : 0;
-      const spacingR = rightCount > 1 ? (height - 2 * inset) / (rightCount - 1) : 0;
+      // Prefer 0.1" pitch for pin spacing where possible.
+      const spacingL = leftCount > 1 ? pitch : 0;
+      const spacingR = rightCount > 1 ? pitch : 0;
+
+      // If the node height is too small to fit all pins at pitch, fall back to evenly spaced.
+      const available = height - 2 * inset;
+      const requiredL = (leftCount - 1) * pitch;
+      const requiredR = (rightCount - 1) * pitch;
+      const useEvenL = leftCount > 1 && requiredL > available;
+      const useEvenR = rightCount > 1 && requiredR > available;
+
+      const finalSpacingL = useEvenL && leftCount > 1 ? available / (leftCount - 1) : spacingL;
+      const finalSpacingR = useEvenR && rightCount > 1 ? available / (rightCount - 1) : spacingR;
 
       const pts: Array<{ x: number; y: number }> = [];
       for (let i = 0; i < leftCount; i++) {
-        pts.push({ x: inset, y: inset + i * spacingL });
+        pts.push({ x: inset, y: inset + i * finalSpacingL });
       }
       for (let i = 0; i < rightCount; i++) {
-        pts.push({ x: width - inset, y: inset + i * spacingR });
+        pts.push({ x: width - inset, y: inset + i * finalSpacingR });
       }
       return pts;
     }

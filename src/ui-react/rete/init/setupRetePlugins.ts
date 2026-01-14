@@ -41,6 +41,7 @@ import type { Position } from '@/core/types';
 import { ComponentNode } from '@/ui-react/rete/nodes/ComponentNode';
 import {
   DEFAULT_COMPONENT_NODE_SIZE,
+  getDefaultComponentNodeSize,
   getComponentLegAnchorInNode,
 } from '@/ui-react/rete/layout/componentNodeLayout';
 
@@ -223,9 +224,6 @@ export function setupRetePlugins({
     };
   };
 
-  const nodeW = DEFAULT_COMPONENT_NODE_SIZE.width;
-  const nodeH = DEFAULT_COMPONENT_NODE_SIZE.height;
-
   const isNodeWired = (nodeId: string) =>
     editor.getConnections().some((c) => c.source === nodeId || c.target === nodeId);
 
@@ -257,13 +255,15 @@ export function setupRetePlugins({
     if (!component || component.positions.length === 0) return false;
 
     // This must match `createSyncNodes` anchoring.
-    const nodeW = DEFAULT_COMPONENT_NODE_SIZE.width;
-    const nodeH = DEFAULT_COMPONENT_NODE_SIZE.height;
+    const size = getDefaultComponentNodeSize({
+      type: component.type,
+      legs: component.positions.length,
+    });
     const anchorInNode = getComponentLegAnchorInNode({
       type: component.type,
       legs: component.positions.length,
-      width: nodeW,
-      height: nodeH,
+      width: size.width,
+      height: size.height,
     });
 
     // IMPORTANT: node width/height are in Rete world axes. Under board rotation, you cannot
@@ -404,14 +404,26 @@ export function setupRetePlugins({
 
       // Unwired + free-float enabled: decide whether to snap (near board) or persist freeform.
       const component = st.breadboard.components.find((c) => c.id === commit.componentId);
-      const anchorInNode = component
-        ? getComponentLegAnchorInNode({
-            type: component.type,
-            legs: component.positions.length,
-            width: nodeW,
-            height: nodeH,
-          })
-        : { x: nodeW / 2, y: nodeH / 2 };
+      const anchorInNode = (() => {
+        if (!component) {
+          return {
+            x: DEFAULT_COMPONENT_NODE_SIZE.width / 2,
+            y: DEFAULT_COMPONENT_NODE_SIZE.height / 2,
+          };
+        }
+
+        const size = getDefaultComponentNodeSize({
+          type: component.type,
+          legs: component.positions.length,
+        });
+
+        return getComponentLegAnchorInNode({
+          type: component.type,
+          legs: component.positions.length,
+          width: size.width,
+          height: size.height,
+        });
+      })();
 
       const nodeWorldAnchor = {
         x: commit.nodeWorldTopLeft.x + anchorInNode.x,

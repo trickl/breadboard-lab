@@ -1,6 +1,6 @@
 import React from 'react';
 import type { BreadboardController } from '@/ui-controller';
-import { Box, Button, Input, Select, Text } from 'theme-ui';
+import { Box, Button, Select, Text } from 'theme-ui';
 
 import type {
   ConnectionAppearance,
@@ -14,11 +14,24 @@ export interface WireInspectorProps {
   appearance: ConnectionAppearance | null;
 }
 
+const WIRE_COLOR_PRESETS: Array<{ label: string; color: string }> = [
+  // Slightly muted palette (less saturated than the default Tailwind-like hues)
+  // to avoid “neon” wires while keeping clear, conventional breadboard colors.
+  { label: 'Red', color: '#d25555' },
+  { label: 'Black', color: '#111827' },
+  { label: 'Yellow', color: '#d1ab14' },
+  { label: 'Green', color: '#2f8f5a' },
+  { label: 'Blue', color: '#3f6fb5' },
+  { label: 'Orange', color: '#d57a2a' },
+  { label: 'White', color: '#f9fafb' },
+  { label: 'Purple', color: '#7a5bd6' },
+];
+
 export const WireInspector: React.FC<WireInspectorProps> = ({ controller, connectionId, appearance }) => {
   const id = connectionId;
   const resolvedAppearance: ConnectionAppearance = appearance ?? {
     style: 'curved',
-    color: '#3b82f6',
+    color: '#3f6fb5',
     curved: { startOrientation: 'auto', endOrientation: 'auto' },
   };
 
@@ -172,24 +185,71 @@ export const WireInspector: React.FC<WireInspectorProps> = ({ controller, connec
           >
             Color
           </label>
-          <Input
+
+          {/* Preset swatches: faster than a free-form color picker and encourages consistent wiring colors. */}
+          <Box
             id="prop-wire-color"
-            type="color"
-            value={resolvedAppearance.color}
-            onChange={(e) => setColor(String(e.target.value))}
             sx={{
-              width: '100%',
-              p: 1,
-              bg: 'inputBg',
-              border: '2px solid',
-              borderColor: 'border',
-              borderRadius: 4,
-              color: 'text',
-              fontSize: 1,
-              height: 40,
-              ':focus': { outline: 'none', borderColor: 'primary' },
+              display: 'grid',
+              gridTemplateColumns: 'repeat(8, 1fr)',
+              gap: 2,
+              alignItems: 'center',
             }}
-          />
+          >
+            {WIRE_COLOR_PRESETS.map((p) => {
+              const isSelected =
+                String(resolvedAppearance.color).toLowerCase() === String(p.color).toLowerCase();
+
+              return (
+                <Button
+                  key={p.color}
+                  type="button"
+                  onClick={() => setColor(p.color)}
+                  title={p.label}
+                  aria-label={`Wire color: ${p.label}`}
+                  sx={{
+                    p: 0,
+                    width: 28,
+                    height: 28,
+                    minWidth: 28,
+                    borderRadius: 8,
+                    bg: p.color,
+                    border: '2px solid',
+                    borderColor: isSelected ? 'primary' : 'border',
+                    boxShadow: isSelected
+                      ? '0 0 0 2px rgba(59, 130, 246, 0.35)'
+                      : '0 1px 0 rgba(0,0,0,0.06)',
+                    cursor: 'pointer',
+                    ':hover': {
+                      transform: 'translateY(-1px)',
+                    },
+                    ':active': {
+                      transform: 'translateY(0px)',
+                    },
+                    ':focus': {
+                      outline: 'none',
+                      boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.45)',
+                    },
+                  }}
+                />
+              );
+            })}
+          </Box>
+
+          <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box
+              aria-hidden="true"
+              sx={{
+                width: 16,
+                height: 16,
+                borderRadius: 6,
+                bg: resolvedAppearance.color,
+                border: '1px solid',
+                borderColor: 'border',
+              }}
+            />
+            <Text sx={{ fontSize: 0, color: 'secondaryText' }}>{resolvedAppearance.color}</Text>
+          </Box>
         </Box>
 
         {resolvedAppearance.style === 'curved' && (

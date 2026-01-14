@@ -6,7 +6,7 @@ import { Presets as ReactPresets } from 'rete-react-plugin';
 import type { ComponentNode } from '@/ui-react/rete/nodes/ComponentNode';
 import {
   getComponentLegPositionsInNode,
-  DEFAULT_COMPONENT_NODE_SIZE,
+  getDefaultComponentNodeSize,
 } from '@/ui-react/rete/layout/componentNodeLayout';
 
 type Schemes = ClassicScheme;
@@ -30,8 +30,13 @@ export function createComponentNodeRenderer(options: {
   const ComponentNodeRenderer = ({ data, emit }: NodeRendererProps) => {
     const node = data as unknown as ComponentNode;
 
-    const width = typeof node.width === 'number' ? node.width : DEFAULT_COMPONENT_NODE_SIZE.width;
-    const height = typeof node.height === 'number' ? node.height : DEFAULT_COMPONENT_NODE_SIZE.height;
+    const fallbackSize = getDefaultComponentNodeSize({
+      type: node.componentType,
+      legs: node.legs,
+    });
+
+    const width = typeof node.width === 'number' ? node.width : fallbackSize.width;
+    const height = typeof node.height === 'number' ? node.height : fallbackSize.height;
 
     const socketOuterHalf = getSocketOuterHalf();
 

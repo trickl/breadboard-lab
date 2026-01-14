@@ -39,7 +39,7 @@ function createDefaultComponent(type: ToolbarComponentType, id: string): AnyComp
         positions: [
           { row: baseRow, col: baseCol },
           // Give the resistor a more realistic span (pins on the long sides).
-          { row: baseRow, col: baseCol + 4 },
+          { row: baseRow, col: baseCol + 5 },
         ],
         rotation: 0,
       } satisfies Resistor;

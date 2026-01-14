@@ -22,7 +22,7 @@ import { ComponentNode } from '@/ui-react/rete/nodes/ComponentNode';
 import { RailNode } from '@/ui-react/rete/nodes/RailNode';
 import type { AreaExtra, Schemes } from '@/ui-react/rete/reteTypes';
 import {
-  DEFAULT_COMPONENT_NODE_SIZE,
+  getDefaultComponentNodeSize,
   getComponentLegAnchorInNode,
 } from '@/ui-react/rete/layout/componentNodeLayout';
 
@@ -291,16 +291,24 @@ export function createSyncNodes({
         // The classic preset can effectively change the rendered node size as DOM content changes
         // (e.g. when new nodes are added and styles/layout settle). If we anchor based on a
         // measured node width/height, existing components can "jump" when another component is
-        // created. We intentionally anchor using a fixed model size.
-        const nodeW = DEFAULT_COMPONENT_NODE_SIZE.width;
-        const nodeH = DEFAULT_COMPONENT_NODE_SIZE.height;
+        // created. We intentionally anchor using a fixed model size (but *per component type*).
+
+        const legs =
+          component.positions.length > 0 ? component.positions.length : getComponentLegCount(component.type);
+
+        const size = getDefaultComponentNodeSize({
+          type: component.type,
+          legs,
+        });
+
+        const nodeW = size.width;
+        const nodeH = size.height;
 
         // Also enforce these values on the node object to avoid future translation using
         // mutated widths/heights.
         node.width = nodeW;
         node.height = nodeH;
 
-        const legs = component.positions.length > 0 ? component.positions.length : getComponentLegCount(component.type);
         const anchorInNode = getComponentLegAnchorInNode({
           type: component.type,
           legs,
