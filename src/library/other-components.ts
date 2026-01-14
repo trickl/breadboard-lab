@@ -321,4 +321,44 @@ export const SWITCH_LIBRARY: ComponentLibraryEntry[] = [
       'Series/parallel switch configurations',
     ],
   },
+  {
+    id: 'switch-tactile-4pin',
+    name: 'Tactile Pushbutton Switch (4-pin)',
+    category: 'interconnect',
+    manufacturer: 'Generic',
+    partFamily: 'Tactile Switch',
+    package: {
+      kind: 'header',
+      pinCount: 4,
+      leadSpacingMm: 2.54, // 0.1" grid
+      body: {
+        lengthMm: 6,
+        widthMm: 6,
+        heightMm: 5,
+      },
+    },
+    footprint: {
+      pins: [
+        { pinId: 'p1', role: 'terminal' },
+        { pinId: 'p2', role: 'terminal' },
+        { pinId: 'p3', role: 'terminal' },
+        { pinId: 'p4', role: 'terminal' },
+      ],
+    },
+    electrical: {
+      contactResistance: 0.05, // Ohms when closed (typical)
+      voltageRating: 12, // V (typical small tactile switch)
+      currentRating: 0.05, // A
+      lifeCycles: 100000,
+    },
+    visuals: {
+      renderer: 'procedural',
+    },
+    flexibility: 'rigid',
+    maxPinSpan: 6,
+    minPinSpan: 2,
+    description:
+      'Momentary tactile switch with 4 pins (two pins per side are internally common). Used in beginner breadboard circuits as a pushbutton input.',
+    typicalUses: ['Pushbutton input', 'Digital logic experiments', 'User input for microcontroller projects'],
+  },
 ];

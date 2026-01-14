@@ -33,6 +33,8 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = React.memo(
     return (
       <g
         data-component-id={component.id}
+        data-component-type={component.type}
+        data-testid="svg-component"
         onPointerDown={handlePointerDown}
         onPointerEnter={() => onPointerEnter?.(component.id)}
         onPointerLeave={() => onPointerLeave?.(component.id)}

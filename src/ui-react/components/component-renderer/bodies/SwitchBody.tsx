@@ -3,6 +3,7 @@ import React from 'react';
 import type { AnyComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
 import { positionToPixels } from '@/ui-react/geometry/breadboard-layout';
+import { getComponentBoundsPixels } from '@/ui-react/components/component-renderer/geometry';
 
 /**
  * SwitchBody - Renders switch component
@@ -10,10 +11,17 @@ import { positionToPixels } from '@/ui-react/geometry/breadboard-layout';
 export const SwitchBody: React.FC<{ component: AnyComponent }> = ({ component }) => {
   if (component.type !== ComponentType.SWITCH || component.positions.length < 2) return null;
 
-  const start = positionToPixels(component.positions[0]);
-  const end = positionToPixels(component.positions[1]);
-  const centerX = (start.x + end.x) / 2;
-  const centerY = (start.y + end.y) / 2;
+  // IMPORTANT:
+  // Our switch can be either legacy 2-pin or the newer 4-pin tactile footprint.
+  // Using only the first two pins to compute the visual center places the body on the top row
+  // for a 4-pin switch, which makes it hard to grab because leg hit targets can cover it.
+  // Compute the center from the full footprint in pixel space.
+  const bounds = getComponentBoundsPixels(component.positions);
+  if (!bounds) return null;
+  const centerX = bounds.cx;
+  const centerY = bounds.cy;
+
+  const pins = component.positions.map(positionToPixels);
 
   const isOpen = component.switchState === 'open';
 
@@ -33,27 +41,23 @@ export const SwitchBody: React.FC<{ component: AnyComponent }> = ({ component })
         strokeLinecap="round"
       />
 
-      {/* Leads */}
-      <line
-        x1={start.x}
-        y1={start.y}
-        x2={centerX - 15}
-        y2={centerY}
-        stroke="#888"
-        strokeWidth="2"
-      />
-      <line
-        x1={centerX + 15}
-        y1={centerY}
-        x2={end.x}
-        y2={end.y}
-        stroke="#888"
-        strokeWidth="2"
-      />
+      {/* Leads + pins */}
+      {pins.map((p, idx) => {
+        // Shorten the lead so it doesn't draw over the body.
+        const dx = centerX - p.x;
+        const dy = centerY - p.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const inset = 18;
+        const x2 = centerX - (dx / len) * inset;
+        const y2 = centerY - (dy / len) * inset;
 
-      {/* Pins */}
-      <circle cx={start.x} cy={start.y} r="4" fill="#888" />
-      <circle cx={end.x} cy={end.y} r="4" fill="#888" />
+        return (
+          <g key={idx}>
+            <line x1={p.x} y1={p.y} x2={x2} y2={y2} stroke="#888" strokeWidth="2" />
+            <circle cx={p.x} cy={p.y} r="4" fill="#888" />
+          </g>
+        );
+      })}
     </>
   );
 };

@@ -13,6 +13,11 @@ export type BreadboardNodePayload = {
   labelText?: unknown;
 };
 
+export type ComponentNodePayload = {
+  componentId: unknown;
+  componentType: unknown;
+};
+
 export function isRailNodePayload(payload: unknown): payload is RailNodePayload {
   // Note: Avoid relying on `instanceof`.
   // In dev, React Fast Refresh / HMR can replace the class identity while keeping
@@ -27,6 +32,13 @@ export function isBreadboardNodePayload(payload: unknown): payload is Breadboard
   if (!payload || typeof payload !== 'object') return false;
   const p = payload as Record<string, unknown>;
   return p.id === 'breadboard' || p.labelText === 'Breadboard';
+}
+
+export function isComponentNodePayload(payload: unknown): payload is ComponentNodePayload {
+  // Avoid relying on `instanceof` across Fast Refresh.
+  if (!payload || typeof payload !== 'object') return false;
+  const p = payload as Record<string, unknown>;
+  return typeof p.componentId === 'string' && typeof p.componentType === 'string';
 }
 
 export function isRailNode(editor: NodeEditor<Schemes>, nodeId: string): boolean {

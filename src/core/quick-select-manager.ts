@@ -13,10 +13,9 @@ import type { QuickSelectComponent, QuickSelectState } from './types';
  */
 const DEFAULT_COMPONENTS: QuickSelectComponent[] = [
   { libraryId: 'led-3mm-yellow', isDefault: true, order: 0 },
-  { libraryId: 'wire-22awg-red', isDefault: true, order: 1 },
-  { libraryId: 'resistor-220-5pct', isDefault: true, order: 2 },
-  { libraryId: 'switch-spst', isDefault: true, order: 3 },
-  { libraryId: 'power-5v', isDefault: true, order: 4 },
+  { libraryId: 'resistor-220-5pct', isDefault: true, order: 1 },
+  { libraryId: 'switch-tactile-4pin', isDefault: true, order: 2 },
+  { libraryId: 'power-5v', isDefault: true, order: 3 },
 ];
 
 const STORAGE_KEY = 'quickSelectComponents';
@@ -135,6 +134,12 @@ export class QuickSelectManager {
    * Ensures defaults exist and library IDs are valid
    */
   private validateAndRepair(): void {
+    const defaultIds = new Set(DEFAULT_COMPONENTS.map((d) => d.libraryId));
+
+    // Remove any persisted defaults that are no longer considered defaults.
+    // (This is how we migrate away from older default lists across releases.)
+    this.components = this.components.filter((c) => !(c.isDefault && !defaultIds.has(c.libraryId)));
+
     // Ensure all default components exist
     const defaults = DEFAULT_COMPONENTS.filter(
       (d) => !this.components.some((c) => c.libraryId === d.libraryId)

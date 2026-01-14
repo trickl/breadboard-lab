@@ -65,6 +65,15 @@ describe('QuickSelectManager', () => {
         visuals: { renderer: 'procedural' },
       },
       {
+        id: 'switch-tactile-4pin',
+        name: 'Tactile Switch (4-pin)',
+        category: 'interconnect',
+        package: { kind: 'header', pinCount: 4, body: {} },
+        footprint: { pins: [{ pinId: 'p1' }, { pinId: 'p2' }, { pinId: 'p3' }, { pinId: 'p4' }] },
+        electrical: { contactResistance: 0.01 },
+        visuals: { renderer: 'procedural' },
+      },
+      {
         id: 'switch-spst',
         name: 'SPST Switch',
         category: 'interconnect',
@@ -108,14 +117,13 @@ describe('QuickSelectManager', () => {
   });
 
   describe('initialization', () => {
-    it('should initialize with default 5 components when localStorage is empty', () => {
+    it('should initialize with default components when localStorage is empty', () => {
       const components = manager.getComponents();
-      expect(components).toHaveLength(5);
+      expect(components).toHaveLength(4);
       expect(components[0].libraryId).toBe('led-3mm-yellow');
-      expect(components[1].libraryId).toBe('wire-22awg-red');
-      expect(components[2].libraryId).toBe('resistor-220-5pct');
-      expect(components[3].libraryId).toBe('switch-spst');
-      expect(components[4].libraryId).toBe('power-5v');
+      expect(components[1].libraryId).toBe('resistor-220-5pct');
+      expect(components[2].libraryId).toBe('switch-tactile-4pin');
+      expect(components[3].libraryId).toBe('power-5v');
     });
 
     it('should mark default components as default', () => {
@@ -142,8 +150,8 @@ describe('QuickSelectManager', () => {
       const newManager = new QuickSelectManager();
       const components = newManager.getComponents();
 
-      expect(components).toHaveLength(6);
-      expect(components[5].libraryId).toBe('resistor-1k-5pct');
+      expect(components).toHaveLength(5);
+      expect(components[4].libraryId).toBe('resistor-1k-5pct');
     });
 
     it('should save state to localStorage after adding component', () => {
@@ -157,7 +165,7 @@ describe('QuickSelectManager', () => {
       }
 
       const state = JSON.parse(stored);
-      expect(state.components).toHaveLength(6);
+      expect(state.components).toHaveLength(5);
     });
 
     it('should save state to localStorage after removing component', () => {
@@ -172,7 +180,7 @@ describe('QuickSelectManager', () => {
       }
 
       const state = JSON.parse(stored);
-      expect(state.components).toHaveLength(5);
+      expect(state.components).toHaveLength(4);
     });
 
     it('should handle JSON parse errors gracefully', () => {
@@ -181,7 +189,7 @@ describe('QuickSelectManager', () => {
       const newManager = new QuickSelectManager();
       const components = newManager.getComponents();
 
-      expect(components).toHaveLength(5); // Falls back to defaults
+      expect(components).toHaveLength(4); // Falls back to defaults
     });
   });
 
@@ -191,11 +199,11 @@ describe('QuickSelectManager', () => {
 
       expect(result).toBe(true);
       expect(manager.hasComponent('resistor-1k-5pct')).toBe(true);
-      expect(manager.getComponents()).toHaveLength(6);
+      expect(manager.getComponents()).toHaveLength(5);
     });
 
     it('should reject adding when at capacity (8 components max)', () => {
-      // Add 3 more components to reach max (5 defaults + 3 = 8)
+      // Add 4 more components to reach max (4 defaults + 4 = 8)
       manager.addComponent('resistor-1k-5pct');
       componentLibrary.register({
         id: 'test-component-1',
@@ -215,13 +223,6 @@ describe('QuickSelectManager', () => {
         electrical: {},
         visuals: { renderer: 'procedural' },
       });
-      manager.addComponent('test-component-1');
-      manager.addComponent('test-component-2');
-
-      expect(manager.getComponents()).toHaveLength(8);
-      expect(manager.isAtCapacity()).toBe(true);
-
-      // Try to add 9th component
       componentLibrary.register({
         id: 'test-component-3',
         name: 'Test 3',
@@ -231,7 +232,24 @@ describe('QuickSelectManager', () => {
         electrical: {},
         visuals: { renderer: 'procedural' },
       });
-      const result = manager.addComponent('test-component-3');
+      manager.addComponent('test-component-1');
+      manager.addComponent('test-component-2');
+      manager.addComponent('test-component-3');
+
+      expect(manager.getComponents()).toHaveLength(8);
+      expect(manager.isAtCapacity()).toBe(true);
+
+      // Try to add 9th component
+      componentLibrary.register({
+        id: 'test-component-4',
+        name: 'Test 4',
+        category: 'passive',
+        package: { kind: 'axial', pinCount: 2, body: {} },
+        footprint: { pins: [{ pinId: 'p1' }, { pinId: 'p2' }] },
+        electrical: {},
+        visuals: { renderer: 'procedural' },
+      });
+      const result = manager.addComponent('test-component-4');
 
       expect(result).toBe(false);
       expect(manager.getComponents()).toHaveLength(8);
@@ -242,14 +260,14 @@ describe('QuickSelectManager', () => {
       const result = manager.addComponent('resistor-1k-5pct');
 
       expect(result).toBe(false);
-      expect(manager.getComponents()).toHaveLength(6);
+      expect(manager.getComponents()).toHaveLength(5);
     });
 
     it('should reject adding component with invalid library ID', () => {
       const result = manager.addComponent('non-existent-component');
 
       expect(result).toBe(false);
-      expect(manager.getComponents()).toHaveLength(5);
+      expect(manager.getComponents()).toHaveLength(4);
     });
 
     it('should mark added components as non-default', () => {
@@ -265,7 +283,7 @@ describe('QuickSelectManager', () => {
       const components = manager.getComponents();
       const addedComponent = components.find((c) => c.libraryId === 'resistor-1k-5pct');
 
-      expect(addedComponent?.order).toBe(5);
+      expect(addedComponent?.order).toBe(4);
     });
   });
 
@@ -276,7 +294,7 @@ describe('QuickSelectManager', () => {
 
       expect(result).toBe(true);
       expect(manager.hasComponent('resistor-1k-5pct')).toBe(false);
-      expect(manager.getComponents()).toHaveLength(5);
+      expect(manager.getComponents()).toHaveLength(4);
     });
 
     it('should reject removing default components', () => {
@@ -284,7 +302,7 @@ describe('QuickSelectManager', () => {
 
       expect(result).toBe(false);
       expect(manager.hasComponent('led-3mm-yellow')).toBe(true);
-      expect(manager.getComponents()).toHaveLength(5);
+      expect(manager.getComponents()).toHaveLength(4);
     });
 
     it('should reorder components after removal', () => {
@@ -312,7 +330,7 @@ describe('QuickSelectManager', () => {
   describe('hasComponent', () => {
     it('should return true for default components', () => {
       expect(manager.hasComponent('led-3mm-yellow')).toBe(true);
-      expect(manager.hasComponent('wire-22awg-red')).toBe(true);
+      expect(manager.hasComponent('resistor-220-5pct')).toBe(true);
     });
 
     it('should return false for non-existent components', () => {
@@ -331,7 +349,7 @@ describe('QuickSelectManager', () => {
     });
 
     it('should return true when at capacity (8 components)', () => {
-      // Add 3 more components
+      // Add 4 more components (4 defaults + 4 = 8)
       manager.addComponent('resistor-1k-5pct');
       componentLibrary.register({
         id: 'test-1',
@@ -351,8 +369,18 @@ describe('QuickSelectManager', () => {
         electrical: {},
         visuals: { renderer: 'procedural' },
       });
+      componentLibrary.register({
+        id: 'test-3',
+        name: 'Test 3',
+        category: 'passive',
+        package: { kind: 'axial', pinCount: 2, body: {} },
+        footprint: { pins: [{ pinId: 'p1' }, { pinId: 'p2' }] },
+        electrical: {},
+        visuals: { renderer: 'procedural' },
+      });
       manager.addComponent('test-1');
       manager.addComponent('test-2');
+      manager.addComponent('test-3');
 
       expect(manager.isAtCapacity()).toBe(true);
     });
@@ -365,8 +393,7 @@ describe('QuickSelectManager', () => {
         'quickSelectComponents',
         JSON.stringify({
           components: [
-            { libraryId: 'wire-22awg-red', isDefault: true, order: 0 },
-            { libraryId: 'resistor-220-5pct', isDefault: true, order: 1 },
+            { libraryId: 'resistor-220-5pct', isDefault: true, order: 0 },
           ],
         })
       );
@@ -374,7 +401,26 @@ describe('QuickSelectManager', () => {
       const newManager = new QuickSelectManager();
       const components = newManager.getComponents();
 
-      expect(components.length).toBeGreaterThanOrEqual(5); // All defaults restored
+      expect(components.length).toBeGreaterThanOrEqual(4); // All defaults restored
+    });
+
+    it('should remove obsolete default components (e.g. legacy wire default)', () => {
+      // Simulate older persisted defaults from a previous release.
+      localStorage.setItem(
+        'quickSelectComponents',
+        JSON.stringify({
+          components: [
+            { libraryId: 'led-3mm-yellow', isDefault: true, order: 0 },
+            { libraryId: 'wire-22awg-red', isDefault: true, order: 1 },
+            { libraryId: 'resistor-220-5pct', isDefault: true, order: 2 },
+            { libraryId: 'power-5v', isDefault: true, order: 3 },
+          ],
+        })
+      );
+
+      const newManager = new QuickSelectManager();
+      const components = newManager.getComponents();
+      expect(components.some((c) => c.libraryId === 'wire-22awg-red')).toBe(false);
     });
 
     it('should remove components with invalid library IDs', () => {
@@ -399,12 +445,10 @@ describe('QuickSelectManager', () => {
       // Create state with too many components
       const tooManyComponents = Array.from({ length: 10 }, (_, i) => ({
         libraryId:
-          i < 5
-            ? ['led-3mm-yellow', 'wire-22awg-red', 'resistor-220-5pct', 'switch-spst', 'power-5v'][
-                i
-              ]
+          i < 4
+            ? ['led-3mm-yellow', 'resistor-220-5pct', 'switch-tactile-4pin', 'power-5v'][i]
             : 'resistor-1k-5pct',
-        isDefault: i < 5,
+        isDefault: i < 4,
         order: i,
       }));
 

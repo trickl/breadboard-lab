@@ -16,10 +16,12 @@ import { type Pointer } from '@/ui-react/rete/graph/pointerDrag';
 import { DEBUG_RENDER_CONNECTIONS } from '@/ui-react/rete/graph/envFlags';
 import {
   isBreadboardNodePayload,
+  isComponentNodePayload,
   isRailNodePayload,
 } from '@/ui-react/rete/graph/payloadGuards';
 import { getDefaultConnectionAppearance } from '@/ui-react/rete/graph/defaultConnectionAppearance';
 import { createBreadboardNodeRenderer } from '@/ui-react/rete/renderers/BreadboardNodeRenderer';
+import { createComponentNodeRenderer } from '@/ui-react/rete/renderers/ComponentNodeRenderer';
 import { createRailNodeRenderer } from '@/ui-react/rete/renderers/RailNodeRenderer';
 import { createSelectableConnectionRenderer } from '@/ui-react/rete/renderers/SelectableConnection';
 import { createReroutePinsPreset } from '@/ui-react/rete/presets/reroutePinsPreset';
@@ -37,6 +39,10 @@ import {
 } from '@/ui-react/geometry/breadboard-layout';
 import type { Position } from '@/core/types';
 import { ComponentNode } from '@/ui-react/rete/nodes/ComponentNode';
+import {
+  DEFAULT_COMPONENT_NODE_SIZE,
+  getComponentLegAnchorInNode,
+} from '@/ui-react/rete/layout/componentNodeLayout';
 
 export function setupRetePlugins({
   editor,
@@ -71,6 +77,9 @@ export function setupRetePlugins({
     rotationRef,
     debugUiRef,
     layerRef,
+  });
+  const ComponentNodeRenderer = createComponentNodeRenderer({
+    debugUiRef,
   });
   const SelectableConnection = createSelectableConnectionRenderer({
     controller,
@@ -142,6 +151,9 @@ export function setupRetePlugins({
           if (isRailNodePayload(payload)) {
             return RailNodeRenderer;
           }
+          if (isComponentNodePayload(payload)) {
+            return ComponentNodeRenderer;
+          }
 
           // Default classic renderer for other nodes
           return ReactPresets.classic.Node;
@@ -211,8 +223,8 @@ export function setupRetePlugins({
     };
   };
 
-  const nodeW = 100;
-  const nodeH = 60;
+  const nodeW = DEFAULT_COMPONENT_NODE_SIZE.width;
+  const nodeH = DEFAULT_COMPONENT_NODE_SIZE.height;
 
   const isNodeWired = (nodeId: string) =>
     editor.getConnections().some((c) => c.source === nodeId || c.target === nodeId);
@@ -245,17 +257,23 @@ export function setupRetePlugins({
     if (!component || component.positions.length === 0) return false;
 
     // This must match `createSyncNodes` anchoring.
-    const nodeW = 100;
-    const nodeH = 60;
+    const nodeW = DEFAULT_COMPONENT_NODE_SIZE.width;
+    const nodeH = DEFAULT_COMPONENT_NODE_SIZE.height;
+    const anchorInNode = getComponentLegAnchorInNode({
+      type: component.type,
+      legs: component.positions.length,
+      width: nodeW,
+      height: nodeH,
+    });
 
     // IMPORTANT: node width/height are in Rete world axes. Under board rotation, you cannot
     // add (nodeW/2,nodeH/2) in *local* space and expect it to match the user's drag.
     // Instead, compute the centroid point in world space, then map that point to local.
-    const nodeWorldCentroid = {
-      x: nodeWorldTopLeft.x + nodeW / 2,
-      y: nodeWorldTopLeft.y + nodeH / 2,
+    const nodeWorldAnchor = {
+      x: nodeWorldTopLeft.x + anchorInNode.x,
+      y: nodeWorldTopLeft.y + anchorInNode.y,
     };
-    const newCentroidLocal = worldPointToLocal(nodeWorldCentroid);
+    const newCentroidLocal = worldPointToLocal(nodeWorldAnchor);
 
     const oldPinPixels = component.positions.map(positionToPixels);
     const oldCentroid = oldPinPixels.reduce(
@@ -385,11 +403,21 @@ export function setupRetePlugins({
       }
 
       // Unwired + free-float enabled: decide whether to snap (near board) or persist freeform.
-      const nodeWorldCentroid = {
-        x: commit.nodeWorldTopLeft.x + nodeW / 2,
-        y: commit.nodeWorldTopLeft.y + nodeH / 2,
+      const component = st.breadboard.components.find((c) => c.id === commit.componentId);
+      const anchorInNode = component
+        ? getComponentLegAnchorInNode({
+            type: component.type,
+            legs: component.positions.length,
+            width: nodeW,
+            height: nodeH,
+          })
+        : { x: nodeW / 2, y: nodeH / 2 };
+
+      const nodeWorldAnchor = {
+        x: commit.nodeWorldTopLeft.x + anchorInNode.x,
+        y: commit.nodeWorldTopLeft.y + anchorInNode.y,
       };
-      const centroidLocal = worldPointToLocal(nodeWorldCentroid);
+      const centroidLocal = worldPointToLocal(nodeWorldAnchor);
       const inSnapZone =
         centroidLocal.x >= snapZoneLocal.left &&
         centroidLocal.x <= snapZoneLocal.right &&

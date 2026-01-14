@@ -21,6 +21,10 @@ import { BreadboardNode } from '@/ui-react/rete/nodes/BreadboardNode';
 import { ComponentNode } from '@/ui-react/rete/nodes/ComponentNode';
 import { RailNode } from '@/ui-react/rete/nodes/RailNode';
 import type { AreaExtra, Schemes } from '@/ui-react/rete/reteTypes';
+import {
+  DEFAULT_COMPONENT_NODE_SIZE,
+  getComponentLegAnchorInNode,
+} from '@/ui-react/rete/layout/componentNodeLayout';
 
 export type CreateSyncNodesOptions = {
   editorRef: MutableRefObject<NodeEditor<Schemes> | null>;
@@ -38,7 +42,7 @@ async function createComponentNode(
   component: AnyComponent,
   getLegCount: (type: ComponentType) => number
 ): Promise<ComponentNode> {
-  const legCount = getLegCount(component.type);
+  const legCount = component.positions.length > 0 ? component.positions.length : getLegCount(component.type);
   const node = new ComponentNode(component.id, component.type, legCount);
   await editor.addNode(node);
   return node;
@@ -266,10 +270,13 @@ export function createSyncNodes({
           continue;
         }
 
-        // Use the centroid of the component's pin positions as the anchor.
-        // IMPORTANT: compute the node's origin in *local* board coordinates first, then transform
-        // to world. This makes the node move/rotate around the exact same pivot/axis as the
-        // breadboard and rail socket clouds.
+        // Use the centroid of the component's pin positions as the *world anchor*.
+        // Then position the node such that the centroid of its rendered leg sockets aligns to
+        // that anchor.
+        //
+        // IMPORTANT: compute anchor in *local* board coordinates first, then transform to world.
+        // This makes the node move/rotate around the exact same pivot/axis as the breadboard and
+        // rail socket clouds.
 
         const pinPoints = component.positions.map(positionToPixels);
         const centroid = pinPoints.reduce(
@@ -285,21 +292,29 @@ export function createSyncNodes({
         // (e.g. when new nodes are added and styles/layout settle). If we anchor based on a
         // measured node width/height, existing components can "jump" when another component is
         // created. We intentionally anchor using a fixed model size.
-        const nodeW = 100;
-        const nodeH = 60;
+        const nodeW = DEFAULT_COMPONENT_NODE_SIZE.width;
+        const nodeH = DEFAULT_COMPONENT_NODE_SIZE.height;
 
         // Also enforce these values on the node object to avoid future translation using
         // mutated widths/heights.
         node.width = nodeW;
         node.height = nodeH;
 
-        // Convert the *centroid point* to world, then offset by half node size in world axes.
+        const legs = component.positions.length > 0 ? component.positions.length : getComponentLegCount(component.type);
+        const anchorInNode = getComponentLegAnchorInNode({
+          type: component.type,
+          legs,
+          width: nodeW,
+          height: nodeH,
+        });
+
+        // Convert the *pin centroid* to world, then offset by the socket-anchor within the node.
         // (The node itself is axis-aligned in Rete world space; do not treat its width/height
         // as local vectors under rotation.)
         const worldCentroid = localPointToWorld({ x: cx, y: cy });
         await area.translate(node.id, {
-          x: worldCentroid.x - nodeW / 2,
-          y: worldCentroid.y - nodeH / 2,
+          x: worldCentroid.x - anchorInNode.x,
+          y: worldCentroid.y - anchorInNode.y,
         });
       }
     }

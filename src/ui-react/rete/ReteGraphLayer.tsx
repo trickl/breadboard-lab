@@ -60,13 +60,13 @@ function getComponentLegCount(type: ComponentType): number {
     case ComponentType.WIRE:
       return 2;
     case ComponentType.POWER_SUPPLY:
-      return 1;
+      return 2;
     case ComponentType.GROUND:
       return 1;
     case ComponentType.MICROPROCESSOR:
       return 16;
     case ComponentType.SWITCH:
-      return 2;
+      return 4;
     default:
       return 2;
   }

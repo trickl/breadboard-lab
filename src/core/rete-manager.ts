@@ -382,11 +382,13 @@ export class ReteManager {
       case ComponentType.WIRE:
         return 2;
       case ComponentType.POWER_SUPPLY:
-        return 1;
+        return 2;
       case ComponentType.GROUND:
         return 1;
       case ComponentType.MICROPROCESSOR:
         return 16; // EDU-8 has 16 pins
+      case ComponentType.SWITCH:
+        return 4;
       default:
         return 2;
     }

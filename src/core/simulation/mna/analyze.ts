@@ -39,6 +39,13 @@ export function analyzeCircuit(circuit: Circuit): {
     }
   }
 
+  // Beginner-friendly default: if the circuit has no explicit ground symbol but does have
+  // at least one power supply, treat the negative terminal of the first supply as 0V.
+  // This matches typical breadboard practice where the battery negative is the reference.
+  if (groundNodes.size === 0 && voltageSources.length > 0) {
+    groundNodes.add(voltageSources[0].negativeNode);
+  }
+
   return { groundNodes, voltageSources };
 }
 

@@ -1,5 +1,6 @@
 import type { BreadboardState, Circuit, CircuitNode, CircuitEdge, Position } from './types';
 import { BreadboardLayout } from './breadboard-layout';
+import { ComponentType } from './types';
 import type { ReteManager } from './rete-manager';
 
 /**
@@ -15,6 +16,7 @@ export class CircuitExtractor {
   extract(state: BreadboardState): Circuit {
     const uf = new UnionFind();
     this.addBreadboardInternalConnectivity(uf);
+    this.addComponentInternalConnectivity(uf, state.components);
 
     const nodeGroups = this.groupPositionsByRoot(uf, this.allValidBreadboardPositions());
     const nodes = this.createNodes(nodeGroups);
@@ -37,6 +39,7 @@ export class CircuitExtractor {
   extractFromReteGraph(reteManager: ReteManager, state: BreadboardState): Circuit {
     const uf = new UnionFind();
     this.addBreadboardInternalConnectivity(uf);
+    this.addComponentInternalConnectivity(uf, state.components);
 
     const occupiedPositions = this.getOccupiedPositionsFromRete(reteManager);
     const nodeGroups = this.groupPositionsByRoot(uf, occupiedPositions);
@@ -67,6 +70,27 @@ export class CircuitExtractor {
     for (const col of this.getRailColumns()) {
       for (let row = 1; row < BreadboardLayout.ROWS; row++) {
         uf.union(this.positionToKey({ row: 0, col }), this.positionToKey({ row, col }));
+      }
+    }
+  }
+
+  /**
+   * Add always-on internal connectivity provided by certain component packages.
+   *
+   * Most 2-terminal components (resistors, LEDs, etc.) are modeled as edges, so we do NOT
+   * union their terminals here.
+   *
+   * However, some packages expose duplicate terminals for the *same* electrical node.
+   * Example: 4-pin tactile switch footprint where each side has two pins that are always
+   * shorted together, regardless of switch state.
+   */
+  private addComponentInternalConnectivity(uf: UnionFind, components: BreadboardState['components']): void {
+    for (const component of components) {
+      if (component.type === ComponentType.SWITCH && component.positions.length >= 4) {
+        // Treat positions[0..1] as the top pair and positions[2..3] as the bottom pair.
+        // These pairs are always connected internally.
+        uf.union(this.positionToKey(component.positions[0]), this.positionToKey(component.positions[1]));
+        uf.union(this.positionToKey(component.positions[2]), this.positionToKey(component.positions[3]));
       }
     }
   }

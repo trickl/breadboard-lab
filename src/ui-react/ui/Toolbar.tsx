@@ -7,7 +7,7 @@ import {
   type Resistor,
   type LED,
   type PowerSupply,
-  type Ground,
+  type Switch,
 } from '@/core/types';
 import { deserializeCircuit } from '@/core/circuit-serializer';
 import { ExamplesModal } from './ExamplesModal';
@@ -23,7 +23,7 @@ type ToolbarComponentType =
   | ComponentType.RESISTOR
   | ComponentType.LED
   | ComponentType.POWER_SUPPLY
-  | ComponentType.GROUND;
+  | ComponentType.SWITCH;
 
 function createDefaultComponent(type: ToolbarComponentType, id: string): AnyComponent {
   // Chosen to be safely inside typical breadboard bounds.
@@ -38,7 +38,8 @@ function createDefaultComponent(type: ToolbarComponentType, id: string): AnyComp
         resistance: 220,
         positions: [
           { row: baseRow, col: baseCol },
-          { row: baseRow, col: baseCol + 1 },
+          // Give the resistor a more realistic span (pins on the long sides).
+          { row: baseRow, col: baseCol + 4 },
         ],
         rotation: 0,
       } satisfies Resistor;
@@ -61,17 +62,28 @@ function createDefaultComponent(type: ToolbarComponentType, id: string): AnyComp
         id,
         type: ComponentType.POWER_SUPPLY,
         voltage: 5,
-        positions: [{ row: 2, col: 2 }],
+        // Two terminals on one side: + and GND.
+        positions: [
+          { row: 2, col: 2 },
+          { row: 3, col: 2 },
+        ],
         rotation: 0,
       } satisfies PowerSupply;
 
-    case ComponentType.GROUND:
+    case ComponentType.SWITCH:
       return {
         id,
-        type: ComponentType.GROUND,
-        positions: [{ row: 12, col: 2 }],
+        type: ComponentType.SWITCH,
+        // 4-pin tactile style: two pins on top, two on bottom.
+        positions: [
+          { row: baseRow + 9, col: baseCol + 1 },
+          { row: baseRow + 9, col: baseCol + 3 },
+          { row: baseRow + 11, col: baseCol + 1 },
+          { row: baseRow + 11, col: baseCol + 3 },
+        ],
         rotation: 0,
-      } satisfies Ground;
+        switchState: 'open',
+      } satisfies Switch;
   }
 }
 
@@ -127,7 +139,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ controller }) => {
             ['Resistor', ComponentType.RESISTOR],
             ['LED', ComponentType.LED],
             ['Power Supply', ComponentType.POWER_SUPPLY],
-            ['Ground', ComponentType.GROUND],
+            ['Switch', ComponentType.SWITCH],
           ] as const
         ).map(([label, type]) => (
           <Button

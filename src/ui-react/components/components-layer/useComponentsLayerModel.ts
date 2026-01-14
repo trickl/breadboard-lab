@@ -190,22 +190,35 @@ export function useComponentsLayerModel({
       // Convert to grid position
       const newFirstPinGridPos = pixelsToPosition(newFirstPinX, newFirstPinY);
 
+      // IMPORTANT: Do NOT translate pins using (row,col) deltas.
+      // The breadboard uses two different row coordinate systems:
+      // - Terminal strips: 30 uniform rows
+      // - Rails: fewer visible rows with clustered spacing (skin-dependent)
+      // A simple row/col delta works within the same region but breaks when a component is
+      // dragged between strips and rails (historically affecting resistors, and now power/switch).
+      //
+      // Instead, compute the translation in pixel space and then re-snap each pin to the
+      // nearest hole. This keeps the interaction generic for all current/future components.
+      const originalFirstPinPixels = positionToPixels(dragState.originalPositions[0]);
+      const snappedFirstPinPixels = positionToPixels(newFirstPinGridPos);
+      const deltaPixels = {
+        x: snappedFirstPinPixels.x - originalFirstPinPixels.x,
+        y: snappedFirstPinPixels.y - originalFirstPinPixels.y,
+      };
+
       // Calculate all new positions based on offset from first pin
       const component = state.breadboard.components.find((c) => c.id === dragState.componentId);
       if (!component) return;
 
-      const previewPositions: Position[] = component.positions.map((origPos, index) => {
-        if (index === 0) {
-          return newFirstPinGridPos;
-        }
-        const offset = {
-          row: origPos.row - dragState.originalPositions[0].row,
-          col: origPos.col - dragState.originalPositions[0].col,
+      const previewPositions: Position[] = dragState.originalPositions.map((origPos, index) => {
+        if (index === 0) return newFirstPinGridPos;
+
+        const origPixels = positionToPixels(origPos);
+        const nextPixels = {
+          x: origPixels.x + deltaPixels.x,
+          y: origPixels.y + deltaPixels.y,
         };
-        return {
-          row: newFirstPinGridPos.row + offset.row,
-          col: newFirstPinGridPos.col + offset.col,
-        };
+        return pixelsToPosition(nextPixels.x, nextPixels.y);
       });
 
       // Validate all positions
