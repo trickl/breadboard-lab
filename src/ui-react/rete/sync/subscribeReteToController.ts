@@ -37,12 +37,37 @@ export function subscribeReteToController({
   connectionUiRef,
   debugUiRef,
 }: SubscribeReteToControllerOptions) {
+  // `syncNodes` is async and can be triggered multiple times in quick succession (e.g.
+  // toolbar dispatches COMPONENT_ADDED then COMPONENT_SELECTED). If we run sync concurrently,
+  // both invocations can observe missing nodes/maps and create duplicates, leaving a "ghost"
+  // node behind. Serialize sync to guarantee idempotent behavior.
+  let disposed = false;
+  let syncQueue: Promise<void> = Promise.resolve();
+
+  const enqueueSync = (state: AppState) => {
+    syncQueue = syncQueue
+      .then(async () => {
+        if (disposed) return;
+        await syncNodes(state);
+      })
+      .catch((err) => {
+        // Keep the queue alive even if a sync throws.
+        console.error('[ReteGraphLayer] syncNodes failed', err);
+      });
+  };
+
   let previousSelectedId = connectionUiRef.current.selectedConnectionId;
   let previousAppearanceById = connectionUiRef.current.appearanceById;
   let previousShowDebugOverlays = debugUiRef.current.showDebugOverlays;
+  let previousComponents = controller.getState().breadboard.components;
 
   const unsubscribe = controller.subscribe((state) => {
-    void syncNodes(state);
+    // Only resync nodes when the underlying component list changes.
+    // UI-only changes (debug overlays, selection, etc.) should not affect node positions.
+    if (state.breadboard.components !== previousComponents) {
+      previousComponents = state.breadboard.components;
+      enqueueSync(state);
+    }
 
     const nextShowDebugOverlays = Boolean(state.ui.showDebugOverlays);
     debugUiRef.current.showDebugOverlays = nextShowDebugOverlays;
@@ -112,7 +137,7 @@ export function subscribeReteToController({
   });
 
   // Initial sync
-  void syncNodes(controller.getState());
+  enqueueSync(controller.getState());
 
   // Initial UI cache
   const state = controller.getState();
@@ -131,5 +156,8 @@ export function subscribeReteToController({
     );
   }
 
-  return unsubscribe;
+  return () => {
+    disposed = true;
+    unsubscribe();
+  };
 }

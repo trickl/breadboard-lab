@@ -62,6 +62,26 @@ export interface AppState {
      * Intended to be easy to toggle at runtime.
      */
     showDebugOverlays: boolean;
+
+    /**
+     * Option B (free-float when unwired):
+     * When enabled, components that have no connections may be placed anywhere (including off-board)
+     * and will persist that freeform position.
+     *
+     * Once a component becomes "wired" (any connection exists to one of its legs), we stop allowing
+     * free-floating placement and force it to snap to valid breadboard holes.
+     */
+    allowUnwiredComponentsToFreeFloat: boolean;
+
+    /**
+     * Stored freeform placement for components that are currently unwired.
+     *
+     * Coordinates are in breadboard *local* space (the same space as `positionToPixels`), so they
+     * rotate consistently with the board.
+     *
+     * Value represents the Rete node's top-left corner.
+     */
+    freeformComponentTopLeftById: Record<string, { x: number; y: number }>;
   };
 
   circuit: {
@@ -153,6 +173,11 @@ export interface ConnectionDragState {
 export type Action =
   | { type: 'COMPONENT_ADDED'; component: AnyComponent }
   | { type: 'COMPONENT_MOVED'; componentId: string; positions: Position[] }
+  | {
+      type: 'COMPONENT_FREEFORM_POSITION_SET';
+      componentId: string;
+      topLeft: { x: number; y: number } | null;
+    }
   | {
       type: 'COMPONENT_ROTATED';
       componentId: string;

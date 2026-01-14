@@ -73,6 +73,23 @@ export class BreadboardControllerReducer {
           },
         };
 
+      case 'COMPONENT_FREEFORM_POSITION_SET': {
+        // UI-only placement metadata. Does not affect simulation/circuit dirty state.
+        const next = { ...state.ui.freeformComponentTopLeftById };
+        if (action.topLeft) {
+          next[action.componentId] = action.topLeft;
+        } else {
+          delete next[action.componentId];
+        }
+        return {
+          ...state,
+          ui: {
+            ...state.ui,
+            freeformComponentTopLeftById: next,
+          },
+        };
+      }
+
       case 'COMPONENT_MOVED':
         return {
           ...state,
@@ -82,6 +99,13 @@ export class BreadboardControllerReducer {
               c.id === action.componentId ? { ...c, positions: action.positions } : c
             ),
           },
+          ui: state.ui.freeformComponentTopLeftById[action.componentId]
+            ? (() => {
+                const next = { ...state.ui.freeformComponentTopLeftById };
+                delete next[action.componentId];
+                return { ...state.ui, freeformComponentTopLeftById: next };
+              })()
+            : state.ui,
           circuit: {
             ...state.circuit,
             hasUnsavedChanges: true,
@@ -99,6 +123,13 @@ export class BreadboardControllerReducer {
                 : c
             ),
           },
+          ui: state.ui.freeformComponentTopLeftById[action.componentId]
+            ? (() => {
+                const next = { ...state.ui.freeformComponentTopLeftById };
+                delete next[action.componentId];
+                return { ...state.ui, freeformComponentTopLeftById: next };
+              })()
+            : state.ui,
           circuit: {
             ...state.circuit,
             hasUnsavedChanges: true,
@@ -111,6 +142,9 @@ export class BreadboardControllerReducer {
         );
         if (!componentExists) return state;
 
+        const nextFreeform = { ...state.ui.freeformComponentTopLeftById };
+        delete nextFreeform[action.componentId];
+
         return {
           ...state,
           breadboard: {
@@ -120,6 +154,10 @@ export class BreadboardControllerReducer {
               state.breadboard.selectedComponentId === action.componentId
                 ? null
                 : state.breadboard.selectedComponentId,
+          },
+          ui: {
+            ...state.ui,
+            freeformComponentTopLeftById: nextFreeform,
           },
           circuit: {
             ...state.circuit,
@@ -782,6 +820,10 @@ export class BreadboardControllerReducer {
             selectedComponentId: null,
             selectedPinIndex: null,
           },
+          ui: {
+            ...state.ui,
+            freeformComponentTopLeftById: {},
+          },
           circuit: {
             metadata: action.metadata,
             hasUnsavedChanges: false,
@@ -800,6 +842,10 @@ export class BreadboardControllerReducer {
             components: [],
             selectedComponentId: null,
             selectedPinIndex: null,
+          },
+          ui: {
+            ...state.ui,
+            freeformComponentTopLeftById: {},
           },
           circuit: {
             metadata: null,

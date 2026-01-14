@@ -6,8 +6,13 @@ import type { AppState } from '@/ui-controller/types';
 import type { AnyComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
 import { getAllHolePositions } from '@/ui-react/geometry/breadboard-layout';
+import { positionToPixels, LABEL_PADDING_X, LABEL_PADDING_Y } from '@/ui-react/geometry/breadboard-layout';
 import { BreadboardLayout } from '@/core/breadboard-layout';
-import { positionToWorld, type BoardRotation } from '@/ui-react/world/breadboard-world';
+import {
+  getBreadboardWorld,
+  rotatePoint,
+  type BoardRotation,
+} from '@/ui-react/world/breadboard-world';
 import {
   isRailNodePayload,
   type RailNodePayload,
@@ -195,6 +200,17 @@ export function createSyncNodes({
     const components = state.breadboard.components;
     const componentNodeMap = componentNodeMapRef.current;
 
+    // Helper: map a local SVG point (BreadboardSvg coordinate space) into the unified world.
+    // This matches how the breadboard substrate itself is transformed.
+    const world = getBreadboardWorld(rotation);
+    const localPointToWorld = (p: { x: number; y: number }) => {
+      const rotated = rotatePoint(p, world.combinedRotation, world.pivotLocal);
+      return {
+        x: LABEL_PADDING_X + rotated.x + world.rotatedOffset.x,
+        y: LABEL_PADDING_Y + rotated.y + world.rotatedOffset.y,
+      };
+    };
+
     // Track which components should exist
     const currentComponentIds = new Set(components.map((c) => c.id));
 
@@ -232,13 +248,58 @@ export function createSyncNodes({
 
       // Update node position based on component's first position (world space)
       if (component.positions.length > 0) {
-        const firstPos = component.positions[0];
-        const rotatedAnchor = positionToWorld(firstPos, rotation);
+        const freeform = state.ui.freeformComponentTopLeftById[component.id];
+        const allowFreeFloat = Boolean(state.ui.allowUnwiredComponentsToFreeFloat);
 
-        // Position the node at the component's location (centered)
+        // If the component is unwired and has a stored freeform placement, use it.
+        // "Wired" here means the Rete graph contains at least one connection involving this node.
+        const isWired = editor
+          .getConnections()
+          .some((c) => c.source === node.id || c.target === node.id);
+
+        if (!isWired && allowFreeFloat && freeform) {
+          const worldTopLeft = localPointToWorld(freeform);
+          await area.translate(node.id, {
+            x: worldTopLeft.x,
+            y: worldTopLeft.y,
+          });
+          continue;
+        }
+
+        // Use the centroid of the component's pin positions as the anchor.
+        // IMPORTANT: compute the node's origin in *local* board coordinates first, then transform
+        // to world. This makes the node move/rotate around the exact same pivot/axis as the
+        // breadboard and rail socket clouds.
+
+        const pinPoints = component.positions.map(positionToPixels);
+        const centroid = pinPoints.reduce(
+          (acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }),
+          { x: 0, y: 0 }
+        );
+
+        const cx = centroid.x / pinPoints.length;
+        const cy = centroid.y / pinPoints.length;
+
+        // Keep node sizing stable.
+        // The classic preset can effectively change the rendered node size as DOM content changes
+        // (e.g. when new nodes are added and styles/layout settle). If we anchor based on a
+        // measured node width/height, existing components can "jump" when another component is
+        // created. We intentionally anchor using a fixed model size.
+        const nodeW = 100;
+        const nodeH = 60;
+
+        // Also enforce these values on the node object to avoid future translation using
+        // mutated widths/heights.
+        node.width = nodeW;
+        node.height = nodeH;
+
+        // Convert the *centroid point* to world, then offset by half node size in world axes.
+        // (The node itself is axis-aligned in Rete world space; do not treat its width/height
+        // as local vectors under rotation.)
+        const worldCentroid = localPointToWorld({ x: cx, y: cy });
         await area.translate(node.id, {
-          x: rotatedAnchor.x - node.width / 2,
-          y: rotatedAnchor.y - node.height / 2,
+          x: worldCentroid.x - nodeW / 2,
+          y: worldCentroid.y - nodeH / 2,
         });
       }
     }

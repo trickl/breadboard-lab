@@ -64,6 +64,10 @@ export function createInitialState(): AppState {
       showVoltageOverlay: false,
       showCurrentAnimation: false,
       showDebugOverlays: getDefaultDebugOverlaysEnabled(),
+
+      // Option B default: allow unconnected components to be parked off-board.
+      allowUnwiredComponentsToFreeFloat: true,
+      freeformComponentTopLeftById: {},
     },
     circuit: {
       metadata: null,
