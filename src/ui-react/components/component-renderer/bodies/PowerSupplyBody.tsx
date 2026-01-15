@@ -3,6 +3,8 @@ import React from 'react';
 import type { AnyComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
 import { positionToPixels } from '@/ui-react/geometry/breadboard-layout';
+import powerSupplyPlaceholderUrl from '@/images/power-supply-placeholder.svg';
+import { computeTwoPointMatrixFromViewBoxAnchors } from '@/ui-react/components/component-renderer/svg/alignTwoPointImage';
 
 /**
  * PowerSupplyBody - Renders power supply/battery symbol
@@ -15,73 +17,38 @@ export const PowerSupplyBody: React.FC<{ component: AnyComponent }> = ({ compone
   const centerX = (start.x + end.x) / 2;
   const centerY = (start.y + end.y) / 2;
 
-  const batteryWidth = 50;
-  const batteryHeight = 30;
+  const iconLayout = {
+    width: 160,
+    height: 64,
+    viewBox: { minX: 0, minY: 0, width: 160, height: 64 },
+    preserveAspectRatio: 'xMidYMid meet' as const,
+  };
+
+  const legAnchors = {
+    a0: { x: 0, y: 32 },
+    a1: { x: 160, y: 32 },
+  };
+
+  const transform = computeTwoPointMatrixFromViewBoxAnchors(start, end, iconLayout, legAnchors);
 
   return (
     <>
-      {/* Main body */}
-      <rect
-        x={centerX - batteryWidth / 2}
-        y={centerY - batteryHeight / 2}
-        width={batteryWidth}
-        height={batteryHeight}
-        fill="#4488ff"
-        stroke="#2266cc"
-        strokeWidth="2"
-        rx="5"
-      />
-
-      {/* Leads */}
-      <line
-        x1={start.x}
-        y1={start.y}
-        x2={centerX - batteryWidth / 2}
-        y2={centerY}
-        stroke="#888"
-        strokeWidth="2"
-      />
-      <line
-        x1={centerX + batteryWidth / 2}
-        y1={centerY}
-        x2={end.x}
-        y2={end.y}
-        stroke="#888"
-        strokeWidth="2"
-      />
-
-      {/* Positive terminal marker (+) */}
-      <line
-        x1={centerX - 15}
-        y1={centerY}
-        x2={centerX - 5}
-        y2={centerY}
-        stroke="#fff"
-        strokeWidth="2"
-      />
-      <line
-        x1={centerX - 10}
-        y1={centerY - 5}
-        x2={centerX - 10}
-        y2={centerY + 5}
-        stroke="#fff"
-        strokeWidth="2"
-      />
-
-      {/* Negative terminal marker (-) */}
-      <line
-        x1={centerX + 5}
-        y1={centerY}
-        x2={centerX + 15}
-        y2={centerY}
-        stroke="#fff"
-        strokeWidth="2"
-      />
+      {/* Full-legged power supply icon */}
+      <g transform={transform} style={{ pointerEvents: 'none' }}>
+        <image
+          href={powerSupplyPlaceholderUrl}
+          x={0}
+          y={0}
+          width={iconLayout.width}
+          height={iconLayout.height}
+          preserveAspectRatio="xMidYMid meet"
+        />
+      </g>
 
       {/* Voltage label */}
       <text
         x={centerX}
-        y={centerY + 20}
+        y={centerY + 24}
         textAnchor="middle"
         fill="#fff"
         fontSize="10"
@@ -89,10 +56,6 @@ export const PowerSupplyBody: React.FC<{ component: AnyComponent }> = ({ compone
       >
         {component.voltage}V
       </text>
-
-      {/* Pins */}
-      <circle cx={start.x} cy={start.y} r="4" fill="#888" />
-      <circle cx={end.x} cy={end.y} r="4" fill="#888" />
     </>
   );
 };

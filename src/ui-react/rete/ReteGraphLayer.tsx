@@ -213,6 +213,13 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({ controller, rota
           // positioning context for absolutely-positioned labels.
           position: 'relative',
           overflow: 'visible',
+          // Default (debug overlays OFF): no component outline box.
+          background: 'transparent !important',
+          border: 'none !important',
+          boxShadow: 'none !important',
+        },
+        // Debug overlays ON: show the component outline box.
+        '&[data-debug-overlays="on"] [data-testid="node"]': {
           background: 'rgba(78, 88, 191, 0.08) !important',
           border: '1px solid rgba(78, 88, 191, 0.25) !important',
           boxShadow: 'none !important',

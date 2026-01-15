@@ -4,6 +4,8 @@ import type { AnyComponent } from '@/core/types';
 import { ComponentType } from '@/core/types';
 import { positionToPixels } from '@/ui-react/geometry/breadboard-layout';
 import { resistanceToColorBands, COLOR_TO_RGB } from '@/core/resistor-color-code';
+import resistorPlaceholderUrl from '@/images/resistor-placeholder.svg';
+import { computeTwoPointMatrixFromViewBoxAnchors } from '@/ui-react/components/component-renderer/svg/alignTwoPointImage';
 
 /**
  * ResistorBody - Renders resistor with color bands
@@ -13,12 +15,26 @@ export const ResistorBody: React.FC<{ component: AnyComponent }> = ({ component 
 
   const start = positionToPixels(component.positions[0]);
   const end = positionToPixels(component.positions[1]);
-  const centerX = (start.x + end.x) / 2;
-  const centerY = (start.y + end.y) / 2;
-  const angle = Math.atan2(end.y - start.y, end.x - start.x) * (180 / Math.PI);
+  // The resistor SVG placeholder includes full legs. We align the leg tips to the two
+  // socket points using a similarity transform.
+  const iconLayout = {
+    width: 160,
+    height: 64,
+    viewBox: { minX: 0, minY: 0, width: 160, height: 64 },
+    preserveAspectRatio: 'xMidYMid meet' as const,
+  };
 
-  const bodyWidth = 60;
-  const bodyHeight = 20;
+  const legAnchors = {
+    a0: { x: 0, y: 32 },
+    a1: { x: 160, y: 32 },
+  };
+
+  const transform = computeTwoPointMatrixFromViewBoxAnchors(start, end, iconLayout, legAnchors);
+
+  // Band overlay coordinates in the icon's local coordinate space.
+  const bandY = 19;
+  const bandH = 24;
+  const bandXs = [66, 78, 90, 102, 112];
 
   // Get color bands
   let bands: ReturnType<typeof resistanceToColorBands> = [];
@@ -30,59 +46,31 @@ export const ResistorBody: React.FC<{ component: AnyComponent }> = ({ component 
 
   return (
     <>
-      {/* Leads */}
-      <line
-        x1={start.x}
-        y1={start.y}
-        x2={centerX - bodyWidth / 2}
-        y2={centerY}
-        stroke="#888"
-        strokeWidth="2"
-        transform={`rotate(${angle} ${centerX} ${centerY})`}
-      />
-      <line
-        x1={centerX + bodyWidth / 2}
-        y1={centerY}
-        x2={end.x}
-        y2={end.y}
-        stroke="#888"
-        strokeWidth="2"
-        transform={`rotate(${angle} ${centerX} ${centerY})`}
-      />
+      <g transform={transform} style={{ pointerEvents: 'none' }}>
+        {/* Full-legged resistor icon */}
+        <image
+          href={resistorPlaceholderUrl}
+          x={0}
+          y={0}
+          width={iconLayout.width}
+          height={iconLayout.height}
+          preserveAspectRatio="xMidYMid meet"
+        />
 
-      {/* Body */}
-      <rect
-        x={centerX - bodyWidth / 2}
-        y={centerY - bodyHeight / 2}
-        width={bodyWidth}
-        height={bodyHeight}
-        fill="#d4a574"
-        stroke="#8b6f47"
-        strokeWidth="2"
-        rx="4"
-        transform={`rotate(${angle} ${centerX} ${centerY})`}
-      />
-
-      {/* Color bands */}
-      {bands.map((band, index) => {
-        const bandX = centerX - bodyWidth / 2 + 12 + index * 12;
-        return (
+        {/* Dynamic color bands (temporary overlay until photorealistic icons encode them) */}
+        {bands.slice(0, bandXs.length).map((band, index) => (
           <rect
             key={index}
-            x={bandX}
-            y={centerY - bodyHeight / 2}
-            width={8}
-            height={bodyHeight}
+            x={bandXs[index]}
+            y={bandY}
+            width={6}
+            height={bandH}
+            rx={1}
             fill={COLOR_TO_RGB[band.color]}
-            stroke="none"
-            transform={`rotate(${angle} ${centerX} ${centerY})`}
+            opacity={0.95}
           />
-        );
-      })}
-
-      {/* Pins */}
-      <circle cx={start.x} cy={start.y} r="4" fill="#888" />
-      <circle cx={end.x} cy={end.y} r="4" fill="#888" />
+        ))}
+      </g>
     </>
   );
 };

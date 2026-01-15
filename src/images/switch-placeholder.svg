@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" fill="none">
+  <!-- Placeholder tactile switch WITH legs.
+       Anchor/leg tips in viewBox coordinates:
+         TL (40,40), TR (120,40), BL (40,120), BR (120,120)
+       These match the 4-pin footprint corners (3x3-corner pattern).
+  -->
+  <defs>
+    <radialGradient id="sTop" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(72 62) rotate(55) scale(70)">
+      <stop stop-color="#C8CCD1"/>
+      <stop offset="1" stop-color="#7E858D"/>
+    </radialGradient>
+  </defs>
+
+  <!-- legs -->
+  <g stroke="#8A8A8A" stroke-width="4" stroke-linecap="round">
+    <path d="M40 40L60 60" />
+    <path d="M120 40L100 60" />
+    <path d="M40 120L60 100" />
+    <path d="M120 120L100 100" />
+  </g>
+
+  <!-- outer bezel -->
+  <circle cx="80" cy="80" r="44" fill="#6D737A" stroke="#1B1F23" stroke-width="3"/>
+  <!-- top cap -->
+  <circle cx="80" cy="80" r="30" fill="url(#sTop)" stroke="#1B1F23" stroke-width="3"/>
+
+  <!-- small highlight -->
+  <path d="M58 74c6-12 22-18 38-14" stroke="#FFFFFF" stroke-opacity="0.30" stroke-width="5" stroke-linecap="round"/>
+</svg>

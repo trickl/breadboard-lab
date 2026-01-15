@@ -79,9 +79,7 @@ export function setupRetePlugins({
     debugUiRef,
     layerRef,
   });
-  const ComponentNodeRenderer = createComponentNodeRenderer({
-    debugUiRef,
-  });
+  const ComponentNodeRenderer = createComponentNodeRenderer();
   const SelectableConnection = createSelectableConnectionRenderer({
     controller,
     editorRef: editorRef as unknown as React.MutableRefObject<{

@@ -1,13 +1,21 @@
-import React from 'react';
 import type { ClassicPreset } from 'rete';
 import type { ClassicScheme, RenderEmit } from 'rete-react-plugin';
 import { Presets as ReactPresets } from 'rete-react-plugin';
 
 import type { ComponentNode } from '@/ui-react/rete/nodes/ComponentNode';
+import { ComponentType } from '@/core/types';
 import {
   getComponentLegPositionsInNode,
   getDefaultComponentNodeSize,
 } from '@/ui-react/rete/layout/componentNodeLayout';
+import ledLampRedOffUrl from '@/images/led-lamp-red-off-cropped.svg';
+import resistorPlaceholderUrl from '@/images/resistor-placeholder.svg';
+import powerSupplyPlaceholderUrl from '@/images/power-supply-placeholder.svg';
+import switchPlaceholderUrl from '@/images/switch-placeholder.svg';
+import {
+  computeBestFitSimilarityMatrixFromViewBoxAnchors,
+  computeTwoPointMatrixFromViewBoxAnchors,
+} from '@/ui-react/components/component-renderer/svg/alignTwoPointImage';
 
 type Schemes = ClassicScheme;
 
@@ -22,10 +30,78 @@ function getSocketOuterHalf(): number {
   return outerSize / 2;
 }
 
-export function createComponentNodeRenderer(options: {
-  debugUiRef: React.MutableRefObject<{ showDebugOverlays: boolean }>;
-}) {
-  const { debugUiRef } = options;
+export function createComponentNodeRenderer() {
+
+  function getIconSpec(type: ComponentType) {
+    switch (type) {
+      case ComponentType.LED:
+        return {
+          url: ledLampRedOffUrl,
+          layout: {
+            width: 64,
+            height: 160,
+            viewBox: { minX: 310, minY: 40, width: 210, height: 520 },
+            preserveAspectRatio: 'xMidYMid meet' as const,
+          },
+          anchors2: {
+            a0: { x: 395.128, y: 543.794 },
+            a1: { x: 458.761, y: 543.794 },
+          },
+        };
+
+      case ComponentType.RESISTOR:
+        return {
+          url: resistorPlaceholderUrl,
+          layout: {
+            width: 160,
+            height: 64,
+            viewBox: { minX: 0, minY: 0, width: 160, height: 64 },
+            preserveAspectRatio: 'xMidYMid meet' as const,
+          },
+          anchors2: {
+            a0: { x: 0, y: 32 },
+            a1: { x: 160, y: 32 },
+          },
+        };
+
+      case ComponentType.POWER_SUPPLY:
+        return {
+          url: powerSupplyPlaceholderUrl,
+          layout: {
+            width: 160,
+            height: 64,
+            viewBox: { minX: 0, minY: 0, width: 160, height: 64 },
+            preserveAspectRatio: 'xMidYMid meet' as const,
+          },
+          anchors2: {
+            a0: { x: 0, y: 32 },
+            a1: { x: 160, y: 32 },
+          },
+        };
+
+      case ComponentType.SWITCH:
+        return {
+          url: switchPlaceholderUrl,
+          layout: {
+            width: 160,
+            height: 160,
+            viewBox: { minX: 0, minY: 0, width: 160, height: 160 },
+            preserveAspectRatio: 'xMidYMid meet' as const,
+          },
+          anchorsN: {
+            anchors: [
+              { x: 40, y: 40 },
+              { x: 120, y: 40 },
+              { x: 40, y: 120 },
+              { x: 120, y: 120 },
+            ],
+          },
+        };
+
+      default:
+        return null;
+    }
+  }
 
   const ComponentNodeRenderer = ({ data, emit }: NodeRendererProps) => {
     const node = data as unknown as ComponentNode;
@@ -46,6 +122,36 @@ export function createComponentNodeRenderer(options: {
       width,
       height,
     });
+
+    const outputsEntries = Object.entries(node.outputs);
+    const socketEntries = outputsEntries
+      .map(([key, output], idx) => {
+        if (!output) return null;
+        const pos = legPositions[idx] ?? { x: width - 10, y: height / 2 };
+        return { key, output, pos, idx };
+      })
+      .filter((x): x is NonNullable<typeof x> => Boolean(x));
+
+    // Icon transform: align leg-tip anchors to socket points.
+    const iconSpec = getIconSpec(node.componentType);
+    let iconTransform: string | null = null;
+    if (iconSpec) {
+      if (iconSpec.anchors2 && socketEntries.length >= 2) {
+        iconTransform = computeTwoPointMatrixFromViewBoxAnchors(
+          socketEntries[0].pos,
+          socketEntries[1].pos,
+          iconSpec.layout,
+          iconSpec.anchors2
+        );
+      } else if (iconSpec.anchorsN && socketEntries.length >= iconSpec.anchorsN.anchors.length) {
+        const n = iconSpec.anchorsN.anchors.length;
+        iconTransform = computeBestFitSimilarityMatrixFromViewBoxAnchors(
+          socketEntries.slice(0, n).map((s) => s.pos),
+          iconSpec.layout,
+          iconSpec.anchorsN
+        );
+      }
+    }
 
     // "Prefer drag" UX:
     // Rete sockets can have a larger-than-expected hit area (depending on styling), which can make
@@ -69,32 +175,66 @@ export function createComponentNodeRenderer(options: {
           margin: 0,
         }}
       >
-        {debugUiRef.current.showDebugOverlays && (
+        {/* Always render; layer CSS hides it when debug overlays are off. */}
+        <div
+          data-testid="title"
+          style={{
+            position: 'absolute',
+            left: 8,
+            top: 8,
+            padding: '2px 6px',
+            borderRadius: 4,
+            background: 'rgba(0,0,0,0.55)',
+            color: 'white',
+            fontSize: 12,
+            fontFamily:
+              'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial',
+            pointerEvents: 'none',
+          }}
+        >
+          {data.label}
+        </div>
+
+        {/* Icon (behind sockets): this is what users expect to see when adding components. */}
+        {iconSpec && iconTransform && (
           <div
-            data-testid="title"
+            data-testid="component-icon"
             style={{
               position: 'absolute',
-              left: 8,
-              top: 8,
-              padding: '2px 6px',
-              borderRadius: 4,
-              background: 'rgba(0,0,0,0.55)',
-              color: 'white',
-              fontSize: 12,
-              fontFamily:
-                'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial',
+              left: 0,
+              top: 0,
+              width,
+              height,
+              zIndex: 1,
               pointerEvents: 'none',
             }}
           >
-            {data.label}
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                width: iconSpec.layout.width,
+                height: iconSpec.layout.height,
+                transformOrigin: '0 0',
+                transform: iconTransform,
+              }}
+            >
+              <img
+                src={iconSpec.url}
+                width={iconSpec.layout.width}
+                height={iconSpec.layout.height}
+                draggable={false}
+                style={{ display: 'block' }}
+                alt=""
+              />
+            </div>
           </div>
         )}
 
         {/* Sockets */}
         <div style={{ position: 'absolute', left: 0, top: 0, width, height }}>
-          {Object.entries(node.outputs).map(([key, output], idx) => {
-            if (!output) return null;
-            const pos = legPositions[idx] ?? { x: width - 10, y: height / 2 };
+          {socketEntries.map(({ key, output, pos }) => {
 
             // IMPORTANT: DOMSocketPosition relies on offsetLeft/offsetTop.
             // Avoid centering via CSS transforms; center by explicit subtraction.
@@ -139,9 +279,9 @@ export function createComponentNodeRenderer(options: {
             bottom: dragHotspotPaddingY,
             zIndex: 3,
             pointerEvents: 'auto',
-            background: debugUiRef.current.showDebugOverlays
-              ? 'rgba(255, 0, 0, 0.25)'
-              : 'transparent',
+            // Driven by a CSS variable on the Rete layer so toggling debug overlays
+            // does not require a React re-render for component nodes.
+            background: 'var(--debug-drag-hotspot-bg, transparent)',
             cursor: 'grab',
             borderRadius: 8,
           }}

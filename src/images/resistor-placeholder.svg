@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="64" viewBox="0 0 160 64" fill="none">
+  <!-- Placeholder resistor icon WITH legs.
+       Leg tips are at (0,32) and (160,32) in viewBox coordinates for anchor alignment. -->
+  <defs>
+    <linearGradient id="rBody" x1="52" y1="18" x2="108" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E7C39A"/>
+      <stop offset="1" stop-color="#D2A574"/>
+    </linearGradient>
+  </defs>
+
+  <!-- legs -->
+  <path d="M0 32H52" stroke="#8A8A8A" stroke-width="3" stroke-linecap="round" />
+  <path d="M108 32H160" stroke="#8A8A8A" stroke-width="3" stroke-linecap="round" />
+
+  <!-- subtle body shadow -->
+  <rect x="54" y="22" width="56" height="24" rx="8" fill="#000" opacity="0.10"/>
+
+  <!-- main body -->
+  <rect x="52" y="18" width="56" height="26" rx="9" fill="url(#rBody)" stroke="#8B6F47" stroke-width="2"/>
+
+  <!-- faint band placeholders (real bands rendered dynamically on top in code for now) -->
+  <rect x="66" y="19" width="4" height="24" rx="1" fill="#5B4B3A" opacity="0.18"/>
+  <rect x="78" y="19" width="4" height="24" rx="1" fill="#5B4B3A" opacity="0.12"/>
+  <rect x="90" y="19" width="4" height="24" rx="1" fill="#5B4B3A" opacity="0.10"/>
+  <rect x="102" y="19" width="4" height="24" rx="1" fill="#5B4B3A" opacity="0.08"/>
+</svg>

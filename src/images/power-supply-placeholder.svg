@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="64" viewBox="0 0 160 64" fill="none">
+  <!-- Placeholder power supply / battery icon WITH legs.
+       Leg tips are at (0,32) and (160,32) in viewBox coordinates for anchor alignment. -->
+  <defs>
+    <linearGradient id="pBody" x1="52" y1="16" x2="120" y2="48" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4A8CFF"/>
+      <stop offset="1" stop-color="#2B62C9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- legs -->
+  <path d="M0 32H52" stroke="#8A8A8A" stroke-width="3" stroke-linecap="round" />
+  <path d="M120 32H160" stroke="#8A8A8A" stroke-width="3" stroke-linecap="round" />
+
+  <!-- body -->
+  <rect x="52" y="16" width="68" height="32" rx="8" fill="url(#pBody)" stroke="#1E4FAE" stroke-width="2"/>
+  <!-- battery nub -->
+  <rect x="120" y="24" width="6" height="16" rx="3" fill="#1E4FAE"/>
+
+  <!-- + and - marks (static) -->
+  <g opacity="0.92" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round">
+    <!-- plus (left) -->
+    <path d="M70 32h10"/>
+    <path d="M75 27v10"/>
+    <!-- minus (right) -->
+    <path d="M94 32h10"/>
+  </g>
+</svg>

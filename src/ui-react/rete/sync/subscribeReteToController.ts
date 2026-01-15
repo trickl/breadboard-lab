@@ -79,6 +79,10 @@ export function subscribeReteToController({
         '--debug-socket-opacity',
         nextShowDebugOverlays ? '0.25' : '0'
       );
+      layerRef.current.style.setProperty(
+        '--debug-drag-hotspot-bg',
+        nextShowDebugOverlays ? 'rgba(255, 0, 0, 0.25)' : 'transparent'
+      );
     }
 
     const nextSelectedId = state.connections.selectedConnectionId;
@@ -153,6 +157,10 @@ export function subscribeReteToController({
     layerRef.current.style.setProperty(
       '--debug-socket-opacity',
       debugUiRef.current.showDebugOverlays ? '0.25' : '0'
+    );
+    layerRef.current.style.setProperty(
+      '--debug-drag-hotspot-bg',
+      debugUiRef.current.showDebugOverlays ? 'rgba(255, 0, 0, 0.25)' : 'transparent'
     );
   }
 
