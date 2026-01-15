@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Original LED icon for Breadboard Lab.
+
+  Coordinate system:
+  - viewBox: 0 0 64 128
+  - Leg tips (anchor points for alignment):
+      left  = (24,124)
+      right = (40,124)
+
+  These are intended to map to the two breadboard socket centers.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="128" viewBox="0 0 64 128">
+  <defs>
+    <!-- Metals -->
+    <linearGradient id="legMetal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9aa3ad"/>
+      <stop offset="0.18" stop-color="#e7edf4"/>
+      <stop offset="0.5" stop-color="#b3bcc6"/>
+      <stop offset="0.82" stop-color="#f7fbff"/>
+      <stop offset="1" stop-color="#8f98a3"/>
+    </linearGradient>
+    <linearGradient id="legShadow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Plastic / epoxy lens -->
+    <radialGradient id="lensRed" cx="34%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#ff7b7b" stop-opacity="0.95"/>
+      <stop offset="0.35" stop-color="#ff3d3d" stop-opacity="0.90"/>
+      <stop offset="0.7" stop-color="#c51111" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#7a0c0c" stop-opacity="0.98"/>
+    </radialGradient>
+    <linearGradient id="lensEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.30"/>
+      <stop offset="0.35" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.18"/>
+    </linearGradient>
+
+    <!-- Lens highlight -->
+    <radialGradient id="highlight" cx="30%" cy="22%" r="55%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="0.35" stop-color="#ffffff" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Soft drop shadow -->
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur"/>
+      <feOffset dx="0" dy="1" result="off"/>
+      <feColorMatrix in="off" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.22 0" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Legs (behind lens) -->
+  <g>
+    <!-- Leg shadows to give separation from lens -->
+    <rect x="21.4" y="58" width="5.2" height="66" rx="2.2" fill="url(#legShadow)" opacity="0.35"/>
+    <rect x="37.4" y="58" width="5.2" height="66" rx="2.2" fill="url(#legShadow)" opacity="0.35"/>
+
+    <!-- Legs: anchor tip centers at (24,124) and (40,124) -->
+    <rect x="22" y="54" width="4" height="72" rx="1.6" fill="url(#legMetal)"/>
+    <rect x="38" y="54" width="4" height="72" rx="1.6" fill="url(#legMetal)"/>
+
+    <!-- Small notch on the right leg to hint at cathode/anode distinction -->
+    <rect x="38" y="78" width="4" height="6" fill="#7e8792" opacity="0.25"/>
+  </g>
+
+  <!-- LED body (lens + base) -->
+  <g filter="url(#softShadow)">
+    <!-- Base flange -->
+    <path
+      d="M16 56 C16 48, 22 43, 32 43 C42 43, 48 48, 48 56 L48 60 C48 63, 46 65, 43 66 L21 66 C18 65, 16 63, 16 60 Z"
+      fill="#3a3a3a"
+      opacity="0.95"
+    />
+
+    <!-- Lens dome (rounded top + straight sides) -->
+    <path
+      d="M20 54 C20 41, 24.5 22, 32 22 C39.5 22, 44 41, 44 54 L44 58 C44 62.5, 41 66, 36.5 66 L27.5 66 C23 66, 20 62.5, 20 58 Z"
+      fill="url(#lensRed)"
+      stroke="#520909"
+      stroke-opacity="0.55"
+      stroke-width="1"
+    />
+
+    <!-- Subtle edge sheen -->
+    <path
+      d="M20 54 C20 41, 24.5 22, 32 22 C39.5 22, 44 41, 44 54 L44 58 C44 62.5, 41 66, 36.5 66 L27.5 66 C23 66, 20 62.5, 20 58 Z"
+      fill="none"
+      stroke="url(#lensEdge)"
+      stroke-width="2"
+      stroke-opacity="0.65"
+    />
+
+    <!-- Inner emitter cup -->
+    <path
+      d="M26 56 C26 52, 28.5 49.5, 32 49.5 C35.5 49.5, 38 52, 38 56 C38 60, 35.5 62.5, 32 62.5 C28.5 62.5, 26 60, 26 56 Z"
+      fill="#1b1b1b"
+      opacity="0.25"
+    />
+
+    <!-- Highlight blob -->
+    <ellipse cx="28" cy="34" rx="9" ry="13" fill="url(#highlight)"/>
+
+    <!-- Flat edge hint (LED cathode flat) on left side -->
+    <path
+      d="M20.3 54 C20.3 47, 21.7 38, 24.4 30 C22.0 32.8, 20.8 37.8, 20.3 42.5 Z"
+      fill="#ffffff"
+      opacity="0.08"
+    />
+  </g>
+</svg>

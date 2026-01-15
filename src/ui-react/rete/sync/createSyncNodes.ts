@@ -255,6 +255,17 @@ export function createSyncNodes({
         const freeform = state.ui.freeformComponentTopLeftById[component.id];
         const allowFreeFloat = Boolean(state.ui.allowUnwiredComponentsToFreeFloat);
 
+        // Keep node sizing stable.
+        // IMPORTANT: do this *before* the free-float early return, otherwise nodes can remain at
+        // the ClassicPreset default (100×60) which collapses the drag hotspot for tall components
+        // like LEDs.
+        const legs = component.positions.length;
+        const size = getDefaultComponentNodeSize({ type: component.type, legs });
+        const nodeW = size.width;
+        const nodeH = size.height;
+        node.width = nodeW;
+        node.height = nodeH;
+
         // If the component is unwired and has a stored freeform placement, use it.
         // "Wired" here means the Rete graph contains at least one connection involving this node.
         const isWired = editor
@@ -293,21 +304,7 @@ export function createSyncNodes({
         // measured node width/height, existing components can "jump" when another component is
         // created. We intentionally anchor using a fixed model size (but *per component type*).
 
-        const legs =
-          component.positions.length > 0 ? component.positions.length : getComponentLegCount(component.type);
-
-        const size = getDefaultComponentNodeSize({
-          type: component.type,
-          legs,
-        });
-
-        const nodeW = size.width;
-        const nodeH = size.height;
-
-        // Also enforce these values on the node object to avoid future translation using
-        // mutated widths/heights.
-        node.width = nodeW;
-        node.height = nodeH;
+        // `nodeW/nodeH` are enforced above.
 
         const anchorInNode = getComponentLegAnchorInNode({
           type: component.type,

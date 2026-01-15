@@ -8,7 +8,7 @@ import {
   getComponentLegPositionsInNode,
   getDefaultComponentNodeSize,
 } from '@/ui-react/rete/layout/componentNodeLayout';
-import ledLampRedOffUrl from '@/images/led-lamp-red-off-cropped.svg';
+import ledRedUrl from '@/images/led-red.svg';
 import resistorPlaceholderUrl from '@/images/resistor-placeholder.svg';
 import powerSupplyPlaceholderUrl from '@/images/power-supply-placeholder.svg';
 import switchPlaceholderUrl from '@/images/switch-placeholder.svg';
@@ -36,16 +36,17 @@ export function createComponentNodeRenderer() {
     switch (type) {
       case ComponentType.LED:
         return {
-          url: ledLampRedOffUrl,
+          url: ledRedUrl,
           layout: {
             width: 64,
-            height: 160,
-            viewBox: { minX: 310, minY: 40, width: 210, height: 520 },
+            height: 128,
+            viewBox: { minX: 0, minY: 0, width: 64, height: 128 },
             preserveAspectRatio: 'xMidYMid meet' as const,
           },
           anchors2: {
-            a0: { x: 395.128, y: 543.794 },
-            a1: { x: 458.761, y: 543.794 },
+            // Leg tip centers in `src/images/led-red.svg` viewBox coordinates.
+            a0: { x: 24, y: 124 },
+            a1: { x: 40, y: 124 },
           },
         };
 
@@ -111,8 +112,21 @@ export function createComponentNodeRenderer() {
       legs: node.legs,
     });
 
-    const width = typeof node.width === 'number' ? node.width : fallbackSize.width;
-    const height = typeof node.height === 'number' ? node.height : fallbackSize.height;
+    // In normal operation, `createSyncNodes` enforces a stable width/height on the node.
+    // However, during dev/HMR or in edge-cases (e.g. free-float nodes that skip a sizing pass),
+    // nodes can remain at the ClassicPreset default 100×60 which makes tall components (LED)
+    // appear to have a tiny outline/hotspot.
+    const hasDefaultSize = node.width === 100 && node.height === 60;
+
+    const width =
+      typeof node.width === 'number' && !(hasDefaultSize && fallbackSize.width !== 100)
+        ? node.width
+        : fallbackSize.width;
+
+    const height =
+      typeof node.height === 'number' && !(hasDefaultSize && fallbackSize.height !== 60)
+        ? node.height
+        : fallbackSize.height;
 
     const socketOuterHalf = getSocketOuterHalf();
 
@@ -158,8 +172,31 @@ export function createComponentNodeRenderer() {
     // it annoyingly easy to start a connection when you intended to drag the component.
     // We provide a central drag hotspot that sits above sockets, but leaves the corners usable for
     // wiring. This keeps wiring easy while eliminating pixel-hunting to grab the node.
-    const dragHotspotPaddingX = Math.max(14, Math.round(width * 0.18));
-    const dragHotspotPaddingY = Math.max(10, Math.round(height * 0.18));
+    const basePadX = Math.max(14, Math.round(width * 0.18));
+    const basePadY = Math.max(10, Math.round(height * 0.18));
+
+    const dragHotspotPadLeft = basePadX;
+    const dragHotspotPadRight = basePadX;
+    let dragHotspotPadTop = basePadY;
+    let dragHotspotPadBottom = basePadY;
+
+    // LED: people pick it up by the bulb, not the legs.
+    // Move the hotspot upward so it sits on the bulb area, while leaving the lower area for
+    // wiring/leg sockets.
+    if (node.componentType === ComponentType.LED) {
+      // Target: roughly the upper half of the node.
+      // - Keep a small top inset so the hotspot covers the bulb highlight area.
+      // - Keep a large bottom inset so sockets/legs remain easy to wire.
+      dragHotspotPadTop = Math.max(8, Math.round(height * 0.06));
+      dragHotspotPadBottom = Math.max(72, Math.round(height * 0.42));
+    }
+
+    // Switch: slightly taller hotspot feels nicer without blocking corner sockets.
+    if (node.componentType === ComponentType.SWITCH) {
+      const y = Math.max(8, Math.round(height * 0.14));
+      dragHotspotPadTop = y;
+      dragHotspotPadBottom = y;
+    }
 
     return (
       <div
@@ -273,15 +310,16 @@ export function createComponentNodeRenderer() {
           data-testid="drag-hotspot"
           style={{
             position: 'absolute',
-            left: dragHotspotPaddingX,
-            top: dragHotspotPaddingY,
-            right: dragHotspotPaddingX,
-            bottom: dragHotspotPaddingY,
+            left: dragHotspotPadLeft,
+            top: dragHotspotPadTop,
+            right: dragHotspotPadRight,
+            bottom: dragHotspotPadBottom,
             zIndex: 3,
             pointerEvents: 'auto',
             // Driven by a CSS variable on the Rete layer so toggling debug overlays
             // does not require a React re-render for component nodes.
             background: 'var(--debug-drag-hotspot-bg, transparent)',
+            border: 'var(--debug-drag-hotspot-border, none)',
             cursor: 'grab',
             borderRadius: 8,
           }}

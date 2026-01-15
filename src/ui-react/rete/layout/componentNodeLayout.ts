@@ -25,6 +25,22 @@ export function getDefaultComponentNodeSize(options: {
   const { type } = options;
 
   switch (type) {
+    case ComponentType.LED: {
+      // LEDs are visually tall (bulb above the board, legs down into the board).
+      // Our SVG LED icon is scaled by leg spacing (0.1" pitch), so it can easily overflow a
+      // short default node. Give it a taller box so the bulb is inside the node outline and the
+      // drag hotspot can live on the bulb rather than the legs.
+      //
+      // Use pitch-based sizing so it stays consistent with other geometry changes.
+      return {
+        // The LED icon in `src/images/led-red.svg` is 64×128 in its own viewBox, and we scale it
+        // so its 16px anchor spacing maps to one breadboard pitch (HOLE_SPACING = 26px).
+        // That yields an on-board visual size of ~104×208, so match the node box to that.
+        width: 4 * HOLE_SPACING,
+        height: 8 * HOLE_SPACING,
+      };
+    }
+
     case ComponentType.RESISTOR: {
       // Default: 5-hole span (5 × 0.1" pitch).
       const spanPx = 5 * HOLE_SPACING;
