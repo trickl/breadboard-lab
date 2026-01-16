@@ -143,6 +143,7 @@ function serializeComponent(component: AnyComponent): SerializedComponent {
       break;
     case ComponentType.LED:
       serialized.metadata = {
+        color: component.color ?? 'red',
         forwardVoltage: component.forwardVoltage,
         maxCurrent: component.maxCurrent,
       };
@@ -199,6 +200,11 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
     return typeof value === 'number' ? value : defaultValue;
   };
 
+  const readString = (key: keyof typeof metadata, defaultValue: string): string => {
+    const value = metadata[key];
+    return typeof value === 'string' ? value : defaultValue;
+  };
+
   const deserializeResistor = (): AnyComponent => ({
     id,
     type: ComponentType.RESISTOR,
@@ -212,6 +218,7 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
     type: ComponentType.LED,
     positions,
     rotation,
+    color: readString('color', 'red'),
     forwardVoltage: readNumber('forwardVoltage', DEFAULT_LED_FORWARD_VOLTAGE),
     maxCurrent: readNumber('maxCurrent', DEFAULT_LED_MAX_CURRENT),
   });

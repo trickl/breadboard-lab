@@ -256,7 +256,11 @@ export class BreadboardControllerReducer {
           },
           breadboard: {
             ...state.breadboard,
-            selectedComponentId: null,
+            // Selecting a wire should deselect components, but *clearing* wire selection
+            // (connectionId=null) should not implicitly clear the selected component.
+            selectedComponentId: action.connectionId
+              ? null
+              : state.breadboard.selectedComponentId,
           },
         };
 

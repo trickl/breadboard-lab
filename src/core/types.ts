@@ -81,6 +81,11 @@ export interface Resistor extends Component {
  */
 export interface LED extends Component {
   type: ComponentType.LED;
+  /**
+   * Visual/semantic representation (e.g. 'red', 'green', '#ff0000').
+   * Optional for backward compatibility with older saved circuits.
+   */
+  color?: string;
   forwardVoltage: number; // in Volts
   maxCurrent: number; // in Amperes
 }

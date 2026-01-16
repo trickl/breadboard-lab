@@ -199,6 +199,59 @@ export function setupRetePlugins({
         nodeId: string;
       } = null;
 
+  // NOTE: NodeView installs a drag handler and may stop propagation, which can prevent
+  // per-node listeners from firing. Use a window-level *capture* handler so we see the event
+  // before any stopImmediatePropagation.
+  type HotspotSelectionCaptureGlobal = {
+    installed: boolean;
+    dispatchSelection: ((componentId: string) => void) | null;
+  };
+
+  const getHotspotSelectionCaptureGlobal = (): HotspotSelectionCaptureGlobal => {
+    const key = Symbol.for('breadboard-lab.rete.hotspotSelectionCapture');
+    const w = window as unknown as Record<symbol, HotspotSelectionCaptureGlobal | undefined>;
+    if (!w[key]) {
+      w[key] = { installed: false, dispatchSelection: null };
+    }
+    return w[key] as HotspotSelectionCaptureGlobal;
+  };
+
+  // Keep the callback fresh (supports dev/HMR without duplicating handlers).
+  getHotspotSelectionCaptureGlobal().dispatchSelection = (componentId: string) => {
+    controller.dispatch({ type: 'COMPONENT_SELECTED', componentId });
+  };
+
+  {
+    const g = getHotspotSelectionCaptureGlobal();
+    if (!g.installed) {
+      g.installed = true;
+      const handler = (evt: MouseEvent | PointerEvent) => {
+        // Only primary click/tap.
+        if ('button' in evt && typeof evt.button === 'number' && evt.button !== 0) return;
+
+        const target = evt.target as HTMLElement | null;
+        if (!target) return;
+
+        // Ignore wiring/connection interactions.
+        const isInteractive =
+          Boolean(target.closest('[data-testid="connection"]')) ||
+          Boolean(target.closest('[data-testid="pin"]')) ||
+          Boolean(target.closest('.input-socket')) ||
+          Boolean(target.closest('.output-socket'));
+        if (isInteractive) return;
+
+        const hotspot = target.closest('[data-testid="drag-hotspot"]') as HTMLElement | null;
+        const componentId = hotspot?.dataset?.componentId;
+        if (!componentId) return;
+
+        g.dispatchSelection?.(componentId);
+      };
+
+      window.addEventListener('pointerdown', handler, { capture: true });
+      window.addEventListener('mousedown', handler, { capture: true });
+    }
+  }
+
   const worldPointToLocal = (pWorld: { x: number; y: number }) => {
     const world = getBreadboardWorld(rotationRef.current);
 
@@ -333,12 +386,11 @@ export function setupRetePlugins({
 
       const srcNode = editor.getNode(src);
       const tgtNode = editor.getNode(tgt);
-      const compNode =
-        srcNode && srcNode instanceof ComponentNode
-          ? srcNode
-          : tgtNode && tgtNode instanceof ComponentNode
-            ? tgtNode
-            : null;
+      const compNode = isComponentNodePayload(srcNode)
+        ? (srcNode as ComponentNode)
+        : isComponentNodePayload(tgtNode)
+          ? (tgtNode as ComponentNode)
+          : null;
 
       if (compNode) {
         const st = controller.getState();
@@ -362,10 +414,15 @@ export function setupRetePlugins({
           Boolean(target.closest('[data-testid="connection"]')) ||
           Boolean(target.closest('[data-testid="pin"]')) ||
           Boolean(target.closest('.input-socket')) ||
-          Boolean(target.closest('.output-socket'));
+          Boolean(target.closest('.output-socket')) ||
+          // Component nodes (and their drag hotspots) should not be treated as empty space.
+          // Otherwise a click meant to select can be immediately cleared by this handler.
+          Boolean(target.closest('[data-component-node="1"]'));
 
+        // Empty space click: clear selections.
         if (!isInteractive) {
           controller.dispatch({ type: 'CONNECTION_SELECTED', connectionId: null });
+          controller.dispatch({ type: 'COMPONENT_SELECTED', componentId: null });
         }
       }
     }
@@ -376,9 +433,9 @@ export function setupRetePlugins({
       const pos = (context.data as unknown as { position?: { x: number; y: number } }).position;
       if (movedNodeId && pos) {
         const node = editor.getNode(movedNodeId);
-        if (node && node instanceof ComponentNode) {
+        if (node && isComponentNodePayload(node)) {
           pendingComponentMove = {
-            componentId: node.componentId,
+            componentId: (node as ComponentNode).componentId,
             nodeWorldTopLeft: { x: pos.x, y: pos.y },
             nodeId: movedNodeId,
           };

@@ -204,6 +204,15 @@ export function createSyncNodes({
     const components = state.breadboard.components;
     const componentNodeMap = componentNodeMapRef.current;
 
+    // Ensure the actual NodeView DOM element is tagged with component identity.
+    // This makes pointer hit-testing robust even if a wrapper element intercepts clicks.
+    const tagComponentNodeView = (nodeId: string, componentId: string) => {
+      const view = area.nodeViews.get(nodeId);
+      if (!view) return;
+      view.element.dataset.componentId = componentId;
+      view.element.dataset.componentNode = '1';
+    };
+
     // Helper: map a local SVG point (BreadboardSvg coordinate space) into the unified world.
     // This matches how the breadboard substrate itself is transformed.
     const world = getBreadboardWorld(rotation);
@@ -249,6 +258,10 @@ export function createSyncNodes({
         node = await createComponentNode(editor, component, getComponentLegCount);
         componentNodeMap.set(component.id, node.id);
       }
+
+      // Tag view element now (if available) and defensively after the current tick.
+      tagComponentNodeView(node.id, component.id);
+      setTimeout(() => tagComponentNodeView(node.id, component.id), 0);
 
       // Update node position based on component's first position (world space)
       if (component.positions.length > 0) {

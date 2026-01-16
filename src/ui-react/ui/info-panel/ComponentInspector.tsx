@@ -1,8 +1,131 @@
 import React from 'react';
 import type { BreadboardController } from '@/ui-controller';
 import { ComponentType, type AnyComponent, type LED, type PowerSupply, type Resistor } from '@/core/types';
-import { Box, Button, Input, Text } from 'theme-ui';
+import { Box, Button, Input, Select, Text } from 'theme-ui';
 import { formatComponentTitle } from '@/ui-react/ui/info-panel/formatComponentTitle';
+
+type ResistanceUnit = 'ohm' | 'kohm' | 'mohm';
+
+function unitToMultiplier(unit: ResistanceUnit): number {
+  switch (unit) {
+    case 'ohm':
+      return 1;
+    case 'kohm':
+      return 1_000;
+    case 'mohm':
+      return 1_000_000;
+  }
+}
+
+function formatUnitLabel(unit: ResistanceUnit): string {
+  switch (unit) {
+    case 'ohm':
+      return 'Ω';
+    case 'kohm':
+      return 'kΩ';
+    case 'mohm':
+      return 'MΩ';
+  }
+}
+
+function pickUnitForOhms(ohms: number): ResistanceUnit {
+  const abs = Math.abs(ohms);
+  if (abs >= 1_000_000) return 'mohm';
+  if (abs >= 1_000) return 'kohm';
+  return 'ohm';
+}
+
+const ResistanceEditor: React.FC<{
+  controller: BreadboardController;
+  componentId: string;
+  resistanceOhms: number;
+}> = ({ controller, componentId, resistanceOhms }) => {
+  const [unit, setUnit] = React.useState<ResistanceUnit>(() => pickUnitForOhms(resistanceOhms));
+  const [valueText, setValueText] = React.useState<string>(() => {
+    const u = pickUnitForOhms(resistanceOhms);
+    return String(resistanceOhms / unitToMultiplier(u));
+  });
+
+  // If selection changes / resistance changes externally, resync editor.
+  React.useEffect(() => {
+    const nextUnit = pickUnitForOhms(resistanceOhms);
+    setUnit(nextUnit);
+    setValueText(String(resistanceOhms / unitToMultiplier(nextUnit)));
+  }, [resistanceOhms]);
+
+  const commitIfValid = (nextText: string, nextUnit: ResistanceUnit) => {
+    const parsed = Number(nextText);
+    if (!Number.isFinite(parsed)) return;
+    const ohms = parsed * unitToMultiplier(nextUnit);
+    if (!Number.isFinite(ohms) || ohms < 0) return;
+
+    controller.dispatch({
+      type: 'COMPONENT_PROPERTY_CHANGED',
+      componentId,
+      property: 'resistance',
+      value: ohms,
+    });
+  };
+
+  return (
+    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+      <Input
+        id="prop-resistance-value"
+        type="number"
+        value={valueText}
+        min={0}
+        step={1}
+        onChange={(e) => {
+          const next = e.target.value;
+          setValueText(next);
+          commitIfValid(next, unit);
+        }}
+        sx={{
+          flex: '1 1 auto',
+          p: 2,
+          bg: 'inputBg',
+          border: '2px solid',
+          borderColor: 'border',
+          borderRadius: 4,
+          color: 'text',
+          fontSize: 1,
+          ':focus': { outline: 'none', borderColor: 'primary' },
+        }}
+      />
+      <Select
+        id="prop-resistance-unit"
+        value={unit}
+        onChange={(e) => {
+          const nextUnit = e.target.value as ResistanceUnit;
+          setUnit(nextUnit);
+
+          // Preserve actual resistance when switching units by rescaling display value.
+          const parsed = Number(valueText);
+          const currentOhms = Number.isFinite(parsed) ? parsed * unitToMultiplier(unit) : resistanceOhms;
+          const nextText = String(currentOhms / unitToMultiplier(nextUnit));
+          setValueText(nextText);
+
+          commitIfValid(nextText, nextUnit);
+        }}
+        sx={{
+          width: 96,
+          p: 2,
+          bg: 'inputBg',
+          border: '2px solid',
+          borderColor: 'border',
+          borderRadius: 4,
+          color: 'text',
+          fontSize: 1,
+          ':focus': { outline: 'none', borderColor: 'primary' },
+        }}
+      >
+        <option value="ohm">{formatUnitLabel('ohm')}</option>
+        <option value="kohm">{formatUnitLabel('kohm')}</option>
+        <option value="mohm">{formatUnitLabel('mohm')}</option>
+      </Select>
+    </Box>
+  );
+};
 
 export interface ComponentInspectorProps {
   controller: BreadboardController;
@@ -47,7 +170,7 @@ export const ComponentInspector: React.FC<ComponentInspectorProps> = ({
         {selected.type === ComponentType.RESISTOR && (
           <Box sx={{ mb: 3 }}>
             <label
-              htmlFor="prop-resistance"
+              htmlFor="prop-resistance-value"
               sx={{
                 display: 'block',
                 fontSize: 0,
@@ -57,39 +180,63 @@ export const ComponentInspector: React.FC<ComponentInspectorProps> = ({
                 letterSpacing: '0.05em',
               }}
             >
-              Resistance (Ω)
+              Resistance
             </label>
-            <Input
-              id="prop-resistance"
-              type="number"
-              value={(selected as Resistor).resistance}
-              min={0}
-              step={10}
-              onChange={(e) =>
-                controller.dispatch({
-                  type: 'COMPONENT_PROPERTY_CHANGED',
-                  componentId: selected.id,
-                  property: 'resistance',
-                  value: Number(e.target.value),
-                })
-              }
-              sx={{
-                width: '100%',
-                p: 2,
-                bg: 'inputBg',
-                border: '2px solid',
-                borderColor: 'border',
-                borderRadius: 4,
-                color: 'text',
-                fontSize: 1,
-                ':focus': { outline: 'none', borderColor: 'primary' },
-              }}
+            <ResistanceEditor
+              controller={controller}
+              componentId={selected.id}
+              resistanceOhms={(selected as Resistor).resistance}
             />
           </Box>
         )}
 
         {selected.type === ComponentType.LED && (
           <>
+            <Box sx={{ mb: 3 }}>
+              <label
+                htmlFor="prop-led-color"
+                sx={{
+                  display: 'block',
+                  fontSize: 0,
+                  color: 'secondaryText',
+                  mb: 2,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Color
+              </label>
+              <Select
+                id="prop-led-color"
+                value={(selected as LED).color ?? 'red'}
+                onChange={(e) =>
+                  controller.dispatch({
+                    type: 'COMPONENT_PROPERTY_CHANGED',
+                    componentId: selected.id,
+                    property: 'color',
+                    value: e.target.value,
+                  })
+                }
+                sx={{
+                  width: '100%',
+                  p: 2,
+                  bg: 'inputBg',
+                  border: '2px solid',
+                  borderColor: 'border',
+                  borderRadius: 4,
+                  color: 'text',
+                  fontSize: 1,
+                  ':focus': { outline: 'none', borderColor: 'primary' },
+                }}
+              >
+                <option value="red">Red</option>
+                <option value="yellow">Yellow</option>
+                <option value="green">Green</option>
+                <option value="blue">Blue</option>
+                <option value="white">White</option>
+              </Select>
+            </Box>
+
             <Box sx={{ mb: 3 }}>
               <label
                 htmlFor="prop-led-vf"
@@ -247,11 +394,11 @@ export const ComponentInspector: React.FC<ComponentInspectorProps> = ({
                 sx={{
                   px: 2,
                   py: 1,
-                  bg: 'panelBg',
+                  bg: selected.switchState === 'open' ? 'primary' : 'panelBg',
                   border: '1px solid',
-                  borderColor: 'border',
+                  borderColor: selected.switchState === 'open' ? 'primary' : 'border',
                   borderRadius: 4,
-                  color: 'text',
+                  color: selected.switchState === 'open' ? 'background' : 'text',
                   fontSize: 0,
                   cursor: 'pointer',
                   ':hover': { bg: 'hoverBg' },
@@ -272,11 +419,11 @@ export const ComponentInspector: React.FC<ComponentInspectorProps> = ({
                 sx={{
                   px: 2,
                   py: 1,
-                  bg: 'panelBg',
+                  bg: selected.switchState === 'closed' ? 'primary' : 'panelBg',
                   border: '1px solid',
-                  borderColor: 'border',
+                  borderColor: selected.switchState === 'closed' ? 'primary' : 'border',
                   borderRadius: 4,
-                  color: 'text',
+                  color: selected.switchState === 'closed' ? 'background' : 'text',
                   fontSize: 0,
                   cursor: 'pointer',
                   ':hover': { bg: 'hoverBg' },

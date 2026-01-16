@@ -201,6 +201,8 @@ export function createComponentNodeRenderer() {
     return (
       <div
         data-testid="node"
+        data-component-node="1"
+        data-component-id={node.componentId}
         style={{
           position: 'relative',
           width,
@@ -308,6 +310,7 @@ export function createComponentNodeRenderer() {
         {/* Drag hotspot (center area) */}
         <div
           data-testid="drag-hotspot"
+          data-component-id={node.componentId}
           style={{
             position: 'absolute',
             left: dragHotspotPadLeft,

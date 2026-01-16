@@ -48,6 +48,7 @@ function createDefaultComponent(type: ToolbarComponentType, id: string): AnyComp
       return {
         id,
         type: ComponentType.LED,
+        color: 'red',
         forwardVoltage: 2.0,
         maxCurrent: 0.02,
         positions: [
