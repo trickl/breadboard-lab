@@ -42,8 +42,10 @@ import { ComponentNode } from '@/ui-react/rete/nodes/ComponentNode';
 import {
   DEFAULT_COMPONENT_NODE_SIZE,
   getDefaultComponentNodeSize,
+  getComponentLegPositionsInNode,
   getComponentLegAnchorInNode,
 } from '@/ui-react/rete/layout/componentNodeLayout';
+import { pickBestLocalSnapDelta } from '@/ui-react/rete/graph/smartSnap';
 
 export function setupRetePlugins({
   editor,
@@ -278,6 +280,30 @@ export function setupRetePlugins({
   const isNodeWired = (nodeId: string) =>
     editor.getConnections().some((c) => c.source === nodeId || c.target === nodeId);
 
+  const getConnectedLegIndexes = (nodeId: string): Set<number> => {
+    const out = new Set<number>();
+    for (const c of editor.getConnections()) {
+      if (c.source === nodeId) {
+        const key = String((c as unknown as { sourceOutput?: unknown }).sourceOutput ?? '');
+        const m = /^leg(\d+)$/.exec(key);
+        if (m) out.add(Number(m[1]));
+      }
+      if (c.target === nodeId) {
+        const key = String((c as unknown as { targetInput?: unknown }).targetInput ?? '');
+        const m = /^leg(\d+)$/.exec(key);
+        if (m) out.add(Number(m[1]));
+      }
+    }
+    return out;
+  };
+
+  const SMART_SNAP_MAX_MOVE_PX = (() => {
+    const raw = Number(import.meta.env.VITE_SMART_SNAP_MAX_MOVE_PX);
+    if (Number.isFinite(raw) && raw > 0) return raw;
+    // Default: allow a modest nudge (well under one pitch) to “magnetize” to holes.
+    return HOLE_SPACING * 0.75;
+  })();
+
   // If an unwired component is dropped "near the breadboard", we snap it to holes.
   // If dropped far away, we persist it as free-floating.
   const snapZoneLocal = (() => {
@@ -297,13 +323,28 @@ export function setupRetePlugins({
     return { left: left - pad, right: right + pad, top: top - pad, bottom: bottom + pad };
   })();
 
-  const snapPinsByCentroidDelta = (
+  const commitComponentToPositions = (componentId: string, positions: Position[]) => {
+    controller.dispatch({
+      type: 'COMPONENT_MOVED',
+      componentId,
+      positions,
+    });
+
+    // This component is now explicitly on-hole, so it is no longer free-floating.
+    controller.dispatch({
+      type: 'COMPONENT_FREEFORM_POSITION_SET',
+      componentId,
+      topLeft: null,
+    });
+  };
+
+  const computePinsByCentroidDelta = (
     componentId: string,
     nodeWorldTopLeft: { x: number; y: number }
-  ): boolean => {
+  ): Position[] | null => {
     const state = controller.getState();
     const component = state.breadboard.components.find((c) => c.id === componentId);
-    if (!component || component.positions.length === 0) return false;
+    if (!component || component.positions.length === 0) return null;
 
     // This must match `createSyncNodes` anchoring.
     const size = getDefaultComponentNodeSize({
@@ -346,25 +387,137 @@ export function setupRetePlugins({
       const nextLocal = { x: p.x + delta.x, y: p.y + delta.y };
       const pos = pixelsToPosition(nextLocal.x, nextLocal.y);
       if (!isValidPosition(pos)) {
-        return false; // Invalid move; do not commit.
+        return null; // Invalid move.
       }
       nextPositions.push(pos);
     }
 
-    controller.dispatch({
-      type: 'COMPONENT_MOVED',
-      componentId,
-      positions: nextPositions,
-    });
+    // Defensive: never allow multiple pins to collapse to the same hole.
+    const uniq = new Set(nextPositions.map((p) => `${p.row},${p.col}`));
+    if (uniq.size !== nextPositions.length) return null;
 
-    // This component is now explicitly on-hole, so it is no longer free-floating.
-    controller.dispatch({
-      type: 'COMPONENT_FREEFORM_POSITION_SET',
-      componentId,
-      topLeft: null,
-    });
+    return nextPositions;
+  };
 
+  const snapPinsByCentroidDelta = (
+    componentId: string,
+    nodeWorldTopLeft: { x: number; y: number }
+  ): boolean => {
+    const next = computePinsByCentroidDelta(componentId, nodeWorldTopLeft);
+    if (!next) return false;
+    commitComponentToPositions(componentId, next);
     return true;
+  };
+
+  const computePinsBySocketProjection = (options: {
+    componentId: string;
+    nodeWorldTopLeft: { x: number; y: number };
+  }): Position[] | null => {
+    const { componentId, nodeWorldTopLeft } = options;
+    const state = controller.getState();
+    const component = state.breadboard.components.find((c) => c.id === componentId);
+    if (!component) return null;
+
+    const legs = component.positions.length;
+    if (legs <= 0) return null;
+
+    const size = getDefaultComponentNodeSize({ type: component.type, legs });
+    const legPositionsInNode = getComponentLegPositionsInNode({
+      type: component.type,
+      legs,
+      width: size.width,
+      height: size.height,
+    });
+
+    const nextPositions: Position[] = [];
+    for (let i = 0; i < legs; i++) {
+      const socket = legPositionsInNode[i];
+      if (!socket) return null;
+
+      // Socket world position → local board position → nearest hole.
+      const socketWorld = {
+        x: nodeWorldTopLeft.x + socket.x,
+        y: nodeWorldTopLeft.y + socket.y,
+      };
+      const socketLocal = worldPointToLocal(socketWorld);
+      const pos = pixelsToPosition(socketLocal.x, socketLocal.y);
+      if (!isValidPosition(pos)) return null;
+      nextPositions.push(pos);
+    }
+
+    const uniq = new Set(nextPositions.map((p) => `${p.row},${p.col}`));
+    if (uniq.size !== nextPositions.length) return null;
+
+    return nextPositions;
+  };
+
+  const snapPinsBySocketProjection = (
+    componentId: string,
+    nodeWorldTopLeft: { x: number; y: number }
+  ): boolean => {
+    const next = computePinsBySocketProjection({ componentId, nodeWorldTopLeft });
+    if (!next) return false;
+    commitComponentToPositions(componentId, next);
+    return true;
+  };
+
+  const maybeNudgeWorldTopLeftForUnconnectedSockets = (options: {
+    componentId: string;
+    nodeId: string;
+    nodeWorldTopLeft: { x: number; y: number };
+    maxMovePx: number;
+  }): { x: number; y: number } => {
+    const { componentId, nodeId, nodeWorldTopLeft, maxMovePx } = options;
+
+    const st = controller.getState();
+    const component = st.breadboard.components.find((c) => c.id === componentId);
+    if (!component) return nodeWorldTopLeft;
+
+    const legs = component.positions.length;
+    if (legs <= 0) return nodeWorldTopLeft;
+
+    const connected = getConnectedLegIndexes(nodeId);
+    const unconnected = Array.from({ length: legs }, (_, i) => i).filter((i) => !connected.has(i));
+    if (unconnected.length === 0) return nodeWorldTopLeft;
+
+    const size = getDefaultComponentNodeSize({ type: component.type, legs });
+    const legPositionsInNode = getComponentLegPositionsInNode({
+      type: component.type,
+      legs,
+      width: size.width,
+      height: size.height,
+    });
+
+    const socketLocals = unconnected
+      .map((i) => {
+        const socket = legPositionsInNode[i];
+        if (!socket) return null;
+        const socketWorld = {
+          x: nodeWorldTopLeft.x + socket.x,
+          y: nodeWorldTopLeft.y + socket.y,
+        };
+        return worldPointToLocal(socketWorld);
+      })
+      .filter((x): x is { x: number; y: number } => Boolean(x));
+
+    if (!socketLocals.length) return nodeWorldTopLeft;
+
+    const deltaLocal = pickBestLocalSnapDelta({
+      socketLocals,
+      maxMovePx,
+      nearestHoleCenterLocal: (p) => {
+        const nearest = pixelsToPosition(p.x, p.y);
+        if (!isValidPosition(nearest)) return null;
+        return positionToPixels(nearest);
+      },
+    });
+
+    // Convert a local translation to a world translation (affine transform difference).
+    const w0 = localPointToWorld({ x: 0, y: 0 });
+    const w1 = localPointToWorld(deltaLocal);
+    const deltaWorld = { x: w1.x - w0.x, y: w1.y - w0.y };
+
+    return { x: nodeWorldTopLeft.x + deltaWorld.x, y: nodeWorldTopLeft.y + deltaWorld.y };
   };
 
   const setFreeformTopLeftFromWorld = (componentId: string, worldTopLeft: { x: number; y: number }) => {
@@ -453,6 +606,30 @@ export function setupRetePlugins({
       const wired = isNodeWired(commit.nodeId);
 
       if (wired || !allowFreeFloat) {
+        // If there are unconnected sockets, help-align them to holes with a bounded nudge.
+        // Fully-wired components keep the drop location (no extra magnetism).
+        const st2 = controller.getState();
+        const component2 = st2.breadboard.components.find((c) => c.id === commit.componentId);
+        const legs2 = component2?.positions.length ?? 0;
+        const connected = getConnectedLegIndexes(commit.nodeId);
+        const hasUnconnected = legs2 > 0 && connected.size < legs2;
+
+        if (hasUnconnected) {
+          const nudged = maybeNudgeWorldTopLeftForUnconnectedSockets({
+            componentId: commit.componentId,
+            nodeId: commit.nodeId,
+            nodeWorldTopLeft: commit.nodeWorldTopLeft,
+            maxMovePx: SMART_SNAP_MAX_MOVE_PX,
+          });
+
+          const ok = snapPinsBySocketProjection(commit.componentId, nudged);
+          if (!ok) {
+            // Fall back to existing behavior.
+            void snapPinsByCentroidDelta(commit.componentId, commit.nodeWorldTopLeft);
+          }
+          return context;
+        }
+
         void snapPinsByCentroidDelta(commit.componentId, commit.nodeWorldTopLeft);
         return context;
       }
@@ -492,7 +669,15 @@ export function setupRetePlugins({
         centroidLocal.y <= snapZoneLocal.bottom;
 
       if (inSnapZone) {
-        const snapped = snapPinsByCentroidDelta(commit.componentId, commit.nodeWorldTopLeft);
+        // Unwired drop near board: try to align sockets to holes (with nudge) so the user can wire quickly.
+        const nudged = maybeNudgeWorldTopLeftForUnconnectedSockets({
+          componentId: commit.componentId,
+          nodeId: commit.nodeId,
+          nodeWorldTopLeft: commit.nodeWorldTopLeft,
+          maxMovePx: SMART_SNAP_MAX_MOVE_PX,
+        });
+
+        const snapped = snapPinsBySocketProjection(commit.componentId, nudged);
         if (!snapped) {
           // Invalid hole placement (e.g. rail gaps). Keep it free-floating.
           setFreeformTopLeftFromWorld(commit.componentId, commit.nodeWorldTopLeft);
