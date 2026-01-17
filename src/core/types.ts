@@ -274,6 +274,20 @@ export interface ComponentLibraryEntry {
   manufacturer?: string;
   partFamily?: string;
   manufacturerPartNumber?: string;
+  /**
+   * Optional UI metadata.
+   * Kept here (rather than in ui-controller) so library entries can carry UI hints without
+   * introducing cross-layer type dependencies.
+   */
+  ui?: {
+    /**
+     * When a component is auto-snapped and auto-wired, this hints how the wire should leave the
+     * component socket/pin.
+     *
+     * Note: board-end orientation is handled separately (typically vertical).
+     */
+    autoWireSocketOrientation?: 'horizontal' | 'vertical';
+  };
   package: {
     kind: PackageKind;
     pinCount: number;

@@ -27,6 +27,10 @@ function createResistorEntry(resistance: number, tolerance: number): ComponentLi
     id,
     name: `${resistanceStr} 1/4W ${toleranceStr} Resistor`,
     category: 'passive',
+    ui: {
+      // Axial resistors are visually horizontal; auto-wires should leave the body horizontally.
+      autoWireSocketOrientation: 'horizontal',
+    },
     manufacturer: 'Yageo',
     partFamily: 'CFR Series',
     package: {

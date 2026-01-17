@@ -21,6 +21,7 @@ import {
   isRailNodePayload,
 } from '@/ui-react/rete/graph/payloadGuards';
 import { getDefaultConnectionAppearance } from '@/ui-react/rete/graph/defaultConnectionAppearance';
+import { getAutoWireAppearanceForComponent } from '@/ui-react/rete/graph/autoWireDefaults';
 import { createBreadboardNodeRenderer } from '@/ui-react/rete/renderers/BreadboardNodeRenderer';
 import { createComponentNodeRenderer } from '@/ui-react/rete/renderers/ComponentNodeRenderer';
 import { createRailNodeRenderer } from '@/ui-react/rete/renderers/RailNodeRenderer';
@@ -534,8 +535,16 @@ export function setupRetePlugins({
     const { componentNodeId, connectedLegIndexes, snappedPositions } = options;
     const railIndexByPos = buildRailHoleIndexByPosition();
 
-    const compNode = editor.getNode(componentNodeId) as unknown as { outputs?: Record<string, unknown> } | null;
+    const compNode = editor.getNode(componentNodeId) as unknown as (ComponentNode & {
+      outputs?: Record<string, unknown>;
+    }) | null;
     if (!compNode) return;
+
+    const st = controller.getState();
+    const component =
+      st.breadboard.components.find((c) => c.id === (compNode as unknown as ComponentNode).componentId) ??
+      null;
+    const defaultAutoWireAppearance = getAutoWireAppearanceForComponent(component);
 
     for (let i = 0; i < snappedPositions.length; i++) {
       if (connectedLegIndexes.has(i)) continue;
@@ -562,13 +571,30 @@ export function setupRetePlugins({
       // IMPORTANT: do not remove conflicting connections here. Smart-snap must not replace wires.
       // If something changed between compute and now, addConnection may fail; that's OK.
       const id = getUID();
-      void editor.addConnection({
+      void editor
+        .addConnection({
         id,
         source: componentNodeId,
         sourceOutput: legKey,
         target: railRef.railNodeId,
         targetInput,
-      } as any);
+        } as any)
+        .then((ok) => {
+          if (!ok) return;
+          // Store default appearance for this auto-created wire so it renders with the expected
+          // endpoint curvature/orientation even before the user selects it.
+          controller.dispatch({
+            type: 'CONNECTION_APPEARANCE_UPDATED',
+            connectionId: id,
+            appearance: {
+              style: defaultAutoWireAppearance.style,
+              curved: {
+                startOrientation: defaultAutoWireAppearance.curved.startOrientation,
+                endOrientation: defaultAutoWireAppearance.curved.endOrientation,
+              },
+            },
+          });
+        });
     }
   };
 
