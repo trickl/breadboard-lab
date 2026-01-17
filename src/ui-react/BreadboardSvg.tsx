@@ -287,31 +287,31 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
       return (
         <>
           {/* Left rail block */}
-          <text x={topLeft.x} y={topY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
-            +
-          </text>
-          <text x={bottomLeft.x} y={topY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
+          <text x={topLeft.x} y={topY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
             −
           </text>
-          <text x={topLeft.x} y={bottomY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
+          <text x={bottomLeft.x} y={topY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
             +
           </text>
-          <text x={bottomLeft.x} y={bottomY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
+          <text x={topLeft.x} y={bottomY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
             −
+          </text>
+          <text x={bottomLeft.x} y={bottomY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
+            +
           </text>
 
           {/* Right rail block */}
-          <text x={topRight.x} y={topY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
-            +
-          </text>
-          <text x={bottomRight.x} y={topY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
+          <text x={topRight.x} y={topY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
             −
           </text>
-          <text x={topRight.x} y={bottomY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
+          <text x={bottomRight.x} y={topY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
             +
           </text>
-          <text x={bottomRight.x} y={bottomY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
+          <text x={topRight.x} y={bottomY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
             −
+          </text>
+          <text x={bottomRight.x} y={bottomY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
+            +
           </text>
         </>
       );
@@ -587,7 +587,7 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
                     leftX,
                     leftRailStartCol,
                     leftRailEndCol,
-                    railCols.left.top
+                    railCols.left.bottom
                   )}
                   y={0}
                   width={stripeW}
@@ -599,7 +599,7 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
                     leftX,
                     leftRailStartCol,
                     leftRailEndCol,
-                    railCols.left.bottom
+                    railCols.left.top
                   )}
                   y={0}
                   width={stripeW}
@@ -613,7 +613,7 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
                     rightX,
                     rightRailStartCol,
                     rightRailEndCol,
-                    railCols.right.top
+                    railCols.right.bottom
                   )}
                   y={0}
                   width={stripeW}
@@ -625,7 +625,7 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
                     rightX,
                     rightRailStartCol,
                     rightRailEndCol,
-                    railCols.right.bottom
+                    railCols.right.top
                   )}
                   y={0}
                   width={stripeW}
