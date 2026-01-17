@@ -85,6 +85,11 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({ controller, rota
 
   const layerRef = useRef<HTMLDivElement | null>(null);
 
+  // DevTools helper: allow temporarily disabling pointer events on the entire Rete overlay
+  // so the underlying SVG (breadboard + component bodies) can be inspected/clicked.
+  // This is intentionally local UI state (not persisted) and defaults to OFF.
+  const inspectPassthroughRef = useRef(false);
+
   const debugUiRef = useRef<{ showDebugOverlays: boolean }>({
     showDebugOverlays: Boolean(controller.getState().ui.showDebugOverlays),
   });
@@ -193,9 +198,43 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({ controller, rota
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [controller]);
 
+  // Keyboard shortcut: Ctrl+Alt+P toggles pointer-events passthrough for DevTools inspection.
+  // When ON, the Rete overlay stops intercepting mouse events, making it possible to select
+  // the underlying SVG elements in the Elements panel.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || !e.altKey) return;
+      if (e.key.toLowerCase() !== 'p') return;
+
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      const isTypingTarget =
+        tag === 'input' ||
+        tag === 'textarea' ||
+        tag === 'select' ||
+        Boolean(target?.isContentEditable);
+      if (isTypingTarget) return;
+
+      e.preventDefault();
+      inspectPassthroughRef.current = !inspectPassthroughRef.current;
+      const layer = layerRef.current;
+      if (layer) {
+        layer.setAttribute(
+          'data-inspect-passthrough',
+          inspectPassthroughRef.current ? 'on' : 'off'
+        );
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   return (
     <Box
       ref={layerRef}
+      data-testid="rete-layer"
+      data-inspect-passthrough="off"
       sx={{
         position: 'absolute',
         top: 0,
@@ -206,8 +245,35 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({ controller, rota
         // (This also prevents the underlying SVG from starting a pan when the user is trying to connect.)
         pointerEvents: 'auto',
         zIndex: 10,
+
+        // DevTools passthrough: make the entire overlay ignore pointer events so the underlying
+        // SVG elements can be inspected/selected.
+        '&[data-inspect-passthrough="on"]': {
+          pointerEvents: 'none',
+        },
+
         // Make classic node UI much less intrusive.
         // These attributes exist in the classic preset implementation.
+        // NOTE: rete-react-plugin wraps node content in a `.node` container.
+        // If we don't neutralize it, we can get an unwanted translucent gray rectangle behind
+        // components (especially noticeable for resistors). Keep it fully transparent.
+        '.node': {
+          background: 'transparent !important',
+          border: 'none !important',
+          boxShadow: 'none !important',
+        },
+        '.node::before': {
+          background: 'transparent !important',
+          border: 'none !important',
+          boxShadow: 'none !important',
+          outline: 'none !important',
+        },
+        '.node::after': {
+          background: 'transparent !important',
+          border: 'none !important',
+          boxShadow: 'none !important',
+          outline: 'none !important',
+        },
         '[data-testid="node"]': {
           // Rete classic preset uses styled-components for node layout; ensure we have a stable
           // positioning context for absolutely-positioned labels.
@@ -218,11 +284,25 @@ export const ReteGraphLayer: React.FC<ReteGraphLayerProps> = ({ controller, rota
           border: 'none !important',
           boxShadow: 'none !important',
         },
-        // Debug overlays ON: show the component outline box.
-        '&[data-debug-overlays="on"] [data-testid="node"]': {
-          background: 'rgba(78, 88, 191, 0.08) !important',
-          border: '1px solid rgba(78, 88, 191, 0.25) !important',
+        '[data-testid="node"]::before': {
+          background: 'transparent !important',
+          border: 'none !important',
           boxShadow: 'none !important',
+          outline: 'none !important',
+        },
+        '[data-testid="node"]::after': {
+          background: 'transparent !important',
+          border: 'none !important',
+          boxShadow: 'none !important',
+          outline: 'none !important',
+        },
+        // Debug overlays ON: keep nodes transparent.
+        // We still render labels/socket markers, but do not draw a node bounding box.
+        '&[data-debug-overlays="on"] [data-testid="node"]': {
+          background: 'transparent !important',
+          border: 'none !important',
+          boxShadow: 'none !important',
+          outline: 'none !important',
         },
         // Component node labels (classic preset title). Match the breadboard/rail debug label style.
         // Note: breadboard/rail nodes are custom renderers and are not affected by this selector.

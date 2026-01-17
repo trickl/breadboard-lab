@@ -32,6 +32,17 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
     const handleKeyDown = (e: KeyboardEvent) => {
       const selectedId = state.breadboard.selectedComponentId;
 
+      // Never trigger global shortcuts while the user is typing in an input.
+      // (E.g. Backspace is used to edit the resistance field and must not delete the component.)
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      const isTypingTarget =
+        tag === 'input' ||
+        tag === 'textarea' ||
+        tag === 'select' ||
+        Boolean(target?.isContentEditable);
+      if (isTypingTarget) return;
+
       // Rotate selected component (R key)
       if ((e.key === 'r' || e.key === 'R') && selectedId) {
         e.preventDefault();
@@ -47,8 +58,8 @@ export const BreadboardScene: React.FC<BreadboardSceneProps> = ({ controller }) 
         });
       }
 
-      // Delete selected component (Delete or Backspace)
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && !e.repeat) {
+      // Delete selected component (Delete key only; Backspace is reserved for text editing)
+      if (e.key === 'Delete' && selectedId && !e.repeat) {
         e.preventDefault();
         controller.dispatch({
           type: 'COMPONENT_DELETED',

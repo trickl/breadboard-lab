@@ -83,7 +83,7 @@ export function setupRetePlugins({
     debugUiRef,
     layerRef,
   });
-  const ComponentNodeRenderer = createComponentNodeRenderer();
+  const ComponentNodeRenderer = createComponentNodeRenderer({ controller });
   const SelectableConnection = createSelectableConnectionRenderer({
     controller,
     editorRef: editorRef as unknown as React.MutableRefObject<{
@@ -571,14 +571,15 @@ export function setupRetePlugins({
       // IMPORTANT: do not remove conflicting connections here. Smart-snap must not replace wires.
       // If something changed between compute and now, addConnection may fail; that's OK.
       const id = getUID();
-      void editor
-        .addConnection({
+      const connectionData = {
         id,
         source: componentNodeId,
         sourceOutput: legKey,
         target: railRef.railNodeId,
         targetInput,
-        } as any)
+      } satisfies Parameters<NodeEditor<Schemes>['addConnection']>[0];
+      void editor
+        .addConnection(connectionData)
         .then((ok) => {
           if (!ok) return;
           // Store default appearance for this auto-created wire so it renders with the expected

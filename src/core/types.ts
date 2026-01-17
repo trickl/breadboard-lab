@@ -74,6 +74,8 @@ export interface Component {
 export interface Resistor extends Component {
   type: ComponentType.RESISTOR;
   resistance: number; // in Ohms
+  /** Tolerance in percent (e.g. 5, 1, 0.1). Optional for backward compatibility. */
+  tolerance?: number;
 }
 
 /**
@@ -169,6 +171,7 @@ export interface FloatingComponent {
   rotation: number; // Continuous rotation in degrees (0-360)
   properties: {
     resistance?: number; // For resistors (Ohms)
+    tolerance?: number; // For resistors (%)
     forwardVoltage?: number; // For LEDs (Volts)
     maxCurrent?: number; // For LEDs (Amperes)
     voltage?: number; // For power supplies (Volts)

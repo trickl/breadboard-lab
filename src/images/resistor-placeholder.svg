@@ -2,25 +2,78 @@
   <!-- Placeholder resistor icon WITH legs.
        Leg tips are at (0,32) and (160,32) in viewBox coordinates for anchor alignment. -->
   <defs>
-    <linearGradient id="rBody" x1="52" y1="18" x2="108" y2="46" gradientUnits="userSpaceOnUse">
+    <linearGradient id="rBody" x1="41" y1="16" x2="125" y2="48" gradientUnits="userSpaceOnUse">
       <stop stop-color="#E7C39A"/>
       <stop offset="1" stop-color="#D2A574"/>
+    </linearGradient>
+
+    <!-- Subtle lacquer variation (micro "orange peel" feel) -->
+    <filter id="rBodyNoise" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="2" result="n" />
+      <!-- Keep the base color intact; blend a mid-gray noise field very subtly. -->
+      <feColorMatrix
+        in="n"
+        type="matrix"
+        values="
+          0.10 0    0    0 0.45
+          0    0.10 0    0 0.45
+          0    0    0.10 0 0.45
+          0    0    0    0 0.18
+        "
+        result="noise"
+      />
+      <!-- Mask the noise to the SourceGraphic alpha so the filter cannot output a faint rectangle. -->
+      <feComposite in="noise" in2="SourceGraphic" operator="in" result="noiseMasked" />
+      <feBlend in="SourceGraphic" in2="noiseMasked" mode="soft-light" />
+    </filter>
+
+    <!-- Lead shading: slightly darker near the body, brighter toward ends -->
+    <linearGradient id="rLead" x1="0" y1="0" x2="160" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d4d4d4"/>
+      <stop offset="0.22" stop-color="#b8b8b8"/>
+      <stop offset="0.5" stop-color="#e2e2e2"/>
+      <stop offset="0.78" stop-color="#b8b8b8"/>
+      <stop offset="1" stop-color="#d4d4d4"/>
     </linearGradient>
   </defs>
 
   <!-- legs -->
-  <path d="M0 32H52" stroke="#8A8A8A" stroke-width="3" stroke-linecap="round" />
-  <path d="M108 32H160" stroke="#8A8A8A" stroke-width="3" stroke-linecap="round" />
+  <path d="M0 32H37" stroke="url(#rLead)" stroke-width="3" stroke-linecap="round" />
+  <path d="M123 32H160" stroke="url(#rLead)" stroke-width="3" stroke-linecap="round" />
 
   <!-- subtle body shadow -->
-  <rect x="54" y="22" width="56" height="24" rx="8" fill="#000" opacity="0.10"/>
+  <path
+     d="M47 18.5
+       C 57 18.5 66 19.7 80 19.7
+       C 94 19.7 103 18.5 113 18.5
+       C 120 18.5 123 22.5 123 34
+       C 123 45.5 120 49.5 113 49.5
+       C 103 49.5 94 48.3 80 48.3
+       C 66 48.3 57 49.5 47 49.5
+       C 40 49.5 37 45.5 37 34
+       C 37 22.5 40 18.5 47 18.5
+       Z"
+    fill="#000"
+    opacity="0.10"
+  />
 
   <!-- main body -->
-  <rect x="52" y="18" width="56" height="26" rx="9" fill="url(#rBody)" stroke="#8B6F47" stroke-width="2"/>
-
-  <!-- faint band placeholders (real bands rendered dynamically on top in code for now) -->
-  <rect x="66" y="19" width="4" height="24" rx="1" fill="#5B4B3A" opacity="0.18"/>
-  <rect x="78" y="19" width="4" height="24" rx="1" fill="#5B4B3A" opacity="0.12"/>
-  <rect x="90" y="19" width="4" height="24" rx="1" fill="#5B4B3A" opacity="0.10"/>
-  <rect x="102" y="19" width="4" height="24" rx="1" fill="#5B4B3A" opacity="0.08"/>
+  <!-- Axial resistor body: ~6.3mm long and ~2.3mm diameter (relative to hole pitch).
+       Slight end bulge to avoid a perfect-rectangle look. -->
+  <path
+     d="M47 16.5
+       C 57 16.5 66 17.6 80 17.6
+       C 94 17.6 103 16.5 113 16.5
+       C 120 16.5 123 20.5 123 32
+       C 123 43.5 120 47.5 113 47.5
+       C 103 47.5 94 46.4 80 46.4
+       C 66 46.4 57 47.5 47 47.5
+       C 40 47.5 37 43.5 37 32
+       C 37 20.5 40 16.5 47 16.5
+       Z"
+    fill="url(#rBody)"
+    stroke="#8B6F47"
+    stroke-width="2"
+    filter="url(#rBodyNoise)"
+  />
 </svg>

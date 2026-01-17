@@ -99,13 +99,10 @@ const ResistanceEditor: React.FC<{
           const nextUnit = e.target.value as ResistanceUnit;
           setUnit(nextUnit);
 
-          // Preserve actual resistance when switching units by rescaling display value.
-          const parsed = Number(valueText);
-          const currentOhms = Number.isFinite(parsed) ? parsed * unitToMultiplier(unit) : resistanceOhms;
-          const nextText = String(currentOhms / unitToMultiplier(nextUnit));
-          setValueText(nextText);
-
-          commitIfValid(nextText, nextUnit);
+          // UX: switching units should NOT mutate the numeric text the user typed.
+          // Instead, interpret the same number under the new unit (i.e. user is changing scale).
+          // Example: "30" Ω -> switch to kΩ => becomes 30 kΩ (30,000 Ω) but the input still shows "30".
+          commitIfValid(valueText, nextUnit);
         }}
         sx={{
           width: 96,
@@ -168,26 +165,76 @@ export const ComponentInspector: React.FC<ComponentInspectorProps> = ({
         </Text>
 
         {selected.type === ComponentType.RESISTOR && (
-          <Box sx={{ mb: 3 }}>
-            <label
-              htmlFor="prop-resistance-value"
-              sx={{
-                display: 'block',
-                fontSize: 0,
-                color: 'secondaryText',
-                mb: 2,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
-              Resistance
-            </label>
-            <ResistanceEditor
-              controller={controller}
-              componentId={selected.id}
-              resistanceOhms={(selected as Resistor).resistance}
-            />
-          </Box>
+          <>
+            <Box sx={{ mb: 3 }}>
+              <label
+                htmlFor="prop-resistance-value"
+                sx={{
+                  display: 'block',
+                  fontSize: 0,
+                  color: 'secondaryText',
+                  mb: 2,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Resistance
+              </label>
+              <ResistanceEditor
+                controller={controller}
+                componentId={selected.id}
+                resistanceOhms={(selected as Resistor).resistance}
+              />
+            </Box>
+
+            <Box sx={{ mb: 3 }}>
+              <label
+                htmlFor="prop-resistance-tolerance"
+                sx={{
+                  display: 'block',
+                  fontSize: 0,
+                  color: 'secondaryText',
+                  mb: 2,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Tolerance
+              </label>
+              <Select
+                id="prop-resistance-tolerance"
+                value={String((selected as Resistor).tolerance ?? 5)}
+                onChange={(e) =>
+                  controller.dispatch({
+                    type: 'COMPONENT_PROPERTY_CHANGED',
+                    componentId: selected.id,
+                    property: 'tolerance',
+                    value: Number(e.target.value),
+                  })
+                }
+                sx={{
+                  width: '100%',
+                  p: 2,
+                  bg: 'inputBg',
+                  border: '2px solid',
+                  borderColor: 'border',
+                  borderRadius: 4,
+                  color: 'text',
+                  fontSize: 1,
+                  ':focus': { outline: 'none', borderColor: 'primary' },
+                }}
+              >
+                <option value="20">±20%</option>
+                <option value="10">±10%</option>
+                <option value="5">±5%</option>
+                <option value="2">±2%</option>
+                <option value="1">±1%</option>
+                <option value="0.5">±0.5%</option>
+                <option value="0.25">±0.25%</option>
+                <option value="0.1">±0.1%</option>
+              </Select>
+            </Box>
+          </>
         )}
 
         {selected.type === ComponentType.LED && (

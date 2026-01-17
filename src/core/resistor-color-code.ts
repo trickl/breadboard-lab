@@ -79,18 +79,20 @@ const COLOR_TO_TOLERANCE: Record<ResistorColor, number> = {
  * RGB color values for visual rendering
  */
 export const COLOR_TO_RGB: Record<ResistorColor, string> = {
-  [ResistorColor.BLACK]: '#000000',
-  [ResistorColor.BROWN]: '#8B4513',
-  [ResistorColor.RED]: '#FF0000',
-  [ResistorColor.ORANGE]: '#FF8800',
-  [ResistorColor.YELLOW]: '#FFFF00',
-  [ResistorColor.GREEN]: '#00FF00',
-  [ResistorColor.BLUE]: '#0000FF',
-  [ResistorColor.VIOLET]: '#8B00FF',
-  [ResistorColor.GRAY]: '#808080',
-  [ResistorColor.WHITE]: '#FFFFFF',
-  [ResistorColor.GOLD]: '#FFD700',
-  [ResistorColor.SILVER]: '#C0C0C0',
+  // Tuned to be closer to common IEC 60062 chart renderings (not neon/primary).
+  // These are used for UI rendering only; the code computation uses ResistorColor enums.
+  [ResistorColor.BLACK]: '#141414',
+  [ResistorColor.BROWN]: '#5C3317',
+  [ResistorColor.RED]: '#B01919',
+  [ResistorColor.ORANGE]: '#DC7814',
+  [ResistorColor.YELLOW]: '#E6C814',
+  [ResistorColor.GREEN]: '#1E7837',
+  [ResistorColor.BLUE]: '#2D4BAA',
+  [ResistorColor.VIOLET]: '#783C8C',
+  [ResistorColor.GRAY]: '#828282',
+  [ResistorColor.WHITE]: '#EBEBEB',
+  [ResistorColor.GOLD]: '#C9A43B',
+  [ResistorColor.SILVER]: '#BFC3C7',
 };
 
 /**
@@ -242,19 +244,31 @@ function calculateBandValues(
   resistance: number,
   significantDigits: number
 ): { significantFigures: number; multiplier: number } {
-  // Convert to string to handle the significant figures properly
-  const resistanceStr = resistance.toExponential();
-  const [mantissa, exponent] = resistanceStr.split('e').map((s) => parseFloat(s));
+  // IEC 60062 encoding approach:
+  // e = floor(log10(R))
+  // scaled = round(R / 10^(e-(n-1)))  -> n-digit integer
+  // normalize overflow if scaled == 10^n
+  // multiplier exponent m = e - (n-1)
+  if (resistance <= 0 || !isFinite(resistance)) {
+    throw new Error('Resistance must be a positive finite number');
+  }
 
-  // Adjust mantissa to get the right number of significant digits
-  const scale = Math.pow(10, significantDigits - 1);
-  const significantFigures = Math.round(mantissa * scale);
+  const n = significantDigits;
+  const pow10 = (k: number) => Math.pow(10, k);
 
-  // Calculate multiplier based on exponent and how we scaled the mantissa
-  const multiplierExponent = parseInt(exponent.toString()) - (significantDigits - 1);
-  const multiplier = Math.pow(10, multiplierExponent);
+  let e = Math.floor(Math.log10(resistance));
+  let scaled = Math.round(resistance / pow10(e - (n - 1)));
 
-  return { significantFigures, multiplier };
+  const overflow = pow10(n);
+  if (scaled === overflow) {
+    scaled = pow10(n - 1);
+    e += 1;
+  }
+
+  const multiplierExp = e - (n - 1);
+  const multiplier = pow10(multiplierExp);
+
+  return { significantFigures: scaled, multiplier };
 }
 
 /**

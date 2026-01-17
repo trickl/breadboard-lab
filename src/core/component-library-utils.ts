@@ -93,7 +93,7 @@ export function getDefaultLibraryId(component: AnyComponent): string | undefined
   // Otherwise, find best match in library
   switch (component.type) {
     case ComponentType.RESISTOR:
-      return findClosestResistor(component.resistance);
+      return findClosestResistor(component.resistance, component.tolerance ?? 5);
     case ComponentType.LED:
       return findClosestLED(component.forwardVoltage);
     case ComponentType.POWER_SUPPLY:
@@ -133,6 +133,11 @@ export function getComponentPropertiesFromLibrary(component: AnyComponent): Part
         const resistance = coerceElectricalNumber(entry.electrical.resistance);
         if (resistance !== undefined) {
           (props as Partial<Resistor>).resistance = resistance;
+        }
+
+        const tolerance = coerceElectricalNumber(entry.electrical.tolerance);
+        if (tolerance !== undefined && tolerance > 0) {
+          (props as Partial<Resistor>).tolerance = tolerance;
         }
       }
       break;

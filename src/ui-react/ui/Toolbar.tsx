@@ -36,6 +36,7 @@ function createDefaultComponent(type: ToolbarComponentType, id: string): AnyComp
         id,
         type: ComponentType.RESISTOR,
         resistance: 220,
+        tolerance: 5,
         positions: [
           { row: baseRow, col: baseCol },
           // Give the resistor a more realistic span (pins on the long sides).

@@ -139,7 +139,12 @@ function serializeComponent(component: AnyComponent): SerializedComponent {
   // Add component-specific properties to metadata
   switch (component.type) {
     case ComponentType.RESISTOR:
-      serialized.metadata = { resistance: component.resistance };
+      serialized.metadata = {
+        resistance: component.resistance,
+        ...(typeof component.tolerance === 'number' && isFinite(component.tolerance)
+          ? { tolerance: component.tolerance }
+          : {}),
+      };
       break;
     case ComponentType.LED:
       serialized.metadata = {
@@ -211,6 +216,7 @@ function deserializeComponent(serialized: SerializedComponent): AnyComponent {
     positions,
     rotation,
     resistance: readNumber('resistance', DEFAULT_RESISTANCE),
+    tolerance: readNumber('tolerance', 5),
   });
 
   const deserializeLed = (): AnyComponent => ({

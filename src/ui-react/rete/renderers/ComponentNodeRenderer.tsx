@@ -2,7 +2,10 @@ import type { ClassicPreset } from 'rete';
 import type { ClassicScheme, RenderEmit } from 'rete-react-plugin';
 import { Presets as ReactPresets } from 'rete-react-plugin';
 
+import type { BreadboardController } from '@/ui-controller';
+import { useControllerState } from '@/ui-react/hooks/useControllerState';
 import type { ComponentNode } from '@/ui-react/rete/nodes/ComponentNode';
+import type { Resistor } from '@/core/types';
 import { ComponentType } from '@/core/types';
 import {
   getComponentLegPositionsInNode,
@@ -12,6 +15,9 @@ import ledRedUrl from '@/images/led-red.svg';
 import resistorPlaceholderUrl from '@/images/resistor-placeholder.svg';
 import powerSupplyPlaceholderUrl from '@/images/power-supply-placeholder.svg';
 import switchPlaceholderUrl from '@/images/switch-placeholder.svg';
+import { componentLibrary } from '@/core/component-library';
+import { COLOR_TO_RGB, resistanceToColorBands } from '@/core/resistor-color-code';
+import { computeResistorBandRects } from '@/ui-react/components/component-renderer/bodies/resistorBandLayout';
 import {
   computeBestFitSimilarityMatrixFromViewBoxAnchors,
   computeTwoPointMatrixFromViewBoxAnchors,
@@ -30,7 +36,8 @@ function getSocketOuterHalf(): number {
   return outerSize / 2;
 }
 
-export function createComponentNodeRenderer() {
+export function createComponentNodeRenderer(options: { controller: BreadboardController }) {
+  const { controller } = options;
 
   function getIconSpec(type: ComponentType) {
     switch (type) {
@@ -60,6 +67,7 @@ export function createComponentNodeRenderer() {
             preserveAspectRatio: 'xMidYMid meet' as const,
           },
           anchors2: {
+            // Leg tip centers in `src/images/resistor-placeholder.svg` viewBox coordinates.
             a0: { x: 0, y: 32 },
             a1: { x: 160, y: 32 },
           },
@@ -106,6 +114,17 @@ export function createComponentNodeRenderer() {
 
   const ComponentNodeRenderer = ({ data, emit }: NodeRendererProps) => {
     const node = data as unknown as ComponentNode;
+
+    // Important: the Rete React renderer won't automatically re-render node contents when
+    // component properties change (e.g. resistance). Subscribe directly so the icon/bands
+    // stay in sync with the properties panel.
+    const appState = useControllerState(controller);
+
+    const resistorComponent: Resistor | null = (() => {
+      if (node.componentType !== ComponentType.RESISTOR) return null;
+      const c = appState.breadboard.components.find((x) => x.id === node.componentId);
+      return c && c.type === ComponentType.RESISTOR ? (c as Resistor) : null;
+    })();
 
     const fallbackSize = getDefaultComponentNodeSize({
       type: node.componentType,
@@ -259,14 +278,146 @@ export function createComponentNodeRenderer() {
                 transform: iconTransform,
               }}
             >
-              <img
-                src={iconSpec.url}
-                width={iconSpec.layout.width}
-                height={iconSpec.layout.height}
-                draggable={false}
-                style={{ display: 'block' }}
-                alt=""
-              />
+              {node.componentType === ComponentType.RESISTOR && resistorComponent ? (
+                (() => {
+                  // Mirror the breadboard renderer: prefer component-configured tolerance,
+                  // otherwise fall back to library metadata and then 5%.
+                  const tol = (() => {
+                    const explicit = (resistorComponent as unknown as { tolerance?: unknown })
+                      .tolerance;
+                    if (typeof explicit === 'number' && isFinite(explicit) && explicit > 0) {
+                      return explicit;
+                    }
+
+                    if (resistorComponent.libraryId) {
+                      const entry = componentLibrary.get(resistorComponent.libraryId);
+                      const t = (entry?.electrical as unknown as { tolerance?: unknown })
+                        ?.tolerance;
+                      if (typeof t === 'number' && isFinite(t) && t > 0) return t;
+                    }
+
+                    return 5;
+                  })();
+
+                  let bands: ReturnType<typeof resistanceToColorBands> = [];
+                  try {
+                    bands = resistanceToColorBands(resistorComponent.resistance, tol);
+                  } catch {
+                    bands = [];
+                  }
+
+                  // These match `src/images/resistor-placeholder.svg` body bounds in viewBox coords.
+                  const BODY_LEFT_X = 37;
+                  const BODY_RIGHT_X = 123;
+                  const BODY_TOP_Y = 16.5;
+                  const BODY_BOTTOM_Y = 47.5;
+
+                  const bandRects = computeResistorBandRects({
+                    bands,
+                    bodyLeftX: BODY_LEFT_X,
+                    bodyRightX: BODY_RIGHT_X,
+                    bodyTopY: BODY_TOP_Y,
+                    bodyBottomY: BODY_BOTTOM_Y,
+                    bodyLengthMm: 6.3,
+                    jitter: true,
+                    seed:
+                      (Math.floor(resistorComponent.resistance * 1000) ^
+                        (Math.floor(tol * 100) << 1)) >>>
+                      0,
+                  });
+
+                  const safeId = String(node.componentId).replace(/[^a-zA-Z0-9_-]/g, '_');
+                  const glossId = `rete-resistor-band-gloss-${safeId}`;
+                  const blurId = `rete-resistor-band-soft-${safeId}`;
+
+                  return (
+                    <svg
+                      width={iconSpec.layout.width}
+                      height={iconSpec.layout.height}
+                      viewBox={`${iconSpec.layout.viewBox.minX} ${iconSpec.layout.viewBox.minY} ${iconSpec.layout.viewBox.width} ${iconSpec.layout.viewBox.height}`}
+                      preserveAspectRatio={iconSpec.layout.preserveAspectRatio}
+                      style={{ display: 'block' }}
+                    >
+                      <defs>
+                        <linearGradient id={glossId} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0" stopColor="#ffffff" stopOpacity="0.40" />
+                          <stop offset="0.45" stopColor="#ffffff" stopOpacity="0.10" />
+                          <stop offset="1" stopColor="#000000" stopOpacity="0.00" />
+                        </linearGradient>
+
+                        <filter id={blurId} x="-20%" y="-20%" width="140%" height="140%">
+                          <feGaussianBlur in="SourceGraphic" stdDeviation="0.35" />
+                        </filter>
+                      </defs>
+
+                      <image
+                        href={iconSpec.url}
+                        x={0}
+                        y={0}
+                        width={iconSpec.layout.width}
+                        height={iconSpec.layout.height}
+                        preserveAspectRatio={iconSpec.layout.preserveAspectRatio}
+                      />
+
+                      {bandRects.map((b, index) => {
+                        const fill = COLOR_TO_RGB[b.band.color];
+                        return (
+                          <g key={index}>
+                            <rect
+                              x={b.x}
+                              y={b.y}
+                              width={b.width}
+                              height={b.height}
+                              rx={1.2}
+                              fill={fill}
+                              opacity={0.28}
+                              filter={`url(#${blurId})`}
+                            />
+                            <rect
+                              x={b.x}
+                              y={b.y}
+                              width={b.width}
+                              height={b.height}
+                              rx={1.2}
+                              fill={fill}
+                              opacity={0.96}
+                            />
+                            <rect
+                              x={b.x}
+                              y={b.y}
+                              width={b.width}
+                              height={b.height}
+                              rx={1.2}
+                              fill={`url(#${glossId})`}
+                              opacity={0.55}
+                            />
+                            <rect
+                              x={b.x + 0.2}
+                              y={b.y + 0.2}
+                              width={Math.max(0, b.width - 0.4)}
+                              height={Math.max(0, b.height - 0.4)}
+                              rx={1.1}
+                              fill="none"
+                              stroke="#000"
+                              strokeOpacity={0.18}
+                              strokeWidth={0.6}
+                            />
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  );
+                })()
+              ) : (
+                <img
+                  src={iconSpec.url}
+                  width={iconSpec.layout.width}
+                  height={iconSpec.layout.height}
+                  draggable={false}
+                  style={{ display: 'block' }}
+                  alt=""
+                />
+              )}
             </div>
           </div>
         )}
