@@ -72,8 +72,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ controller }) => {
           aria-hidden="true"
           sx={{
             position: 'absolute',
-            top: 2,
-            left: 2,
+            top: '50%',
+            left: 0,
             width: 24,
             height: 24,
             borderRadius: 'pill',
@@ -83,8 +83,9 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ controller }) => {
             justifyContent: 'center',
             fontSize: 1,
             boxShadow: 'sm',
-            transform: isLight ? 'translateX(28px)' : 'translateX(0px)',
+            transform: isLight ? 'translate(32px, -50%)' : 'translate(0px, -50%)',
             transition: 'transform 0.3s ease',
+            willChange: 'transform',
           }}
         >
           {isLight ? '☀' : '☾'}
