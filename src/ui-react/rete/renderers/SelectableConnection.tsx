@@ -8,11 +8,22 @@ import { parsePathEndpoints } from '@/ui-react/rete/graph/pathGeometry';
 type ConnectionSelectedAction = {
   type: 'CONNECTION_SELECTED';
   connectionId: string | null;
+  connectionKind?: 'jumper' | 'component-leg' | null;
 };
+
+const BARE_WIRE_COLOR = '#6b7280'; // Tailwind gray-500-ish (neutral metal)
 
 export function createSelectableConnectionRenderer(options: {
   controller: { dispatch: (action: ConnectionSelectedAction) => void };
-  editorRef: React.MutableRefObject<{ getConnections: () => Array<{ id: string }> } | null>;
+  editorRef: React.MutableRefObject<{
+    getConnections: () => Array<{
+      id: string;
+      source?: string;
+      sourceOutput?: string;
+      target?: string;
+      targetInput?: string;
+    }>;
+  } | null>;
   connectionUiRef: React.MutableRefObject<{
     selectedConnectionId: string | null;
     appearanceById: Record<string, ConnectionAppearance>;
@@ -34,17 +45,51 @@ export function createSelectableConnectionRenderer(options: {
     if (!path) return null;
 
     const id = String(data.id);
-    const isInModel = Boolean(
-      editorRef.current?.getConnections().some((c) => String((c as { id: string }).id) === id)
-    );
+
+    const modelConn = editorRef.current?.getConnections().find((c) => String(c.id) === id) ?? null;
+    const isInModel = Boolean(modelConn);
+
     const appearance = connectionUiRef.current.appearanceById[id] ?? getDefaultConnectionAppearance();
     const isSelected = connectionUiRef.current.selectedConnectionId === id;
 
+    // Connections that touch a component leg are conceptually an extension of the bare metal lead,
+    // so we always render them as bare wire.
+    const srcKey = String(modelConn?.sourceOutput ?? '');
+    const tgtKey = String(modelConn?.targetInput ?? '');
+    const isLegWire = /^leg\d+$/.test(srcKey) || /^leg\d+$/.test(tgtKey);
+    const connectionKind: 'jumper' | 'component-leg' = isLegWire ? 'component-leg' : 'jumper';
+
+    const insulation = (appearance as unknown as { insulation?: unknown }).insulation;
+    const normalizedInsulation = insulation === 'bare' || insulation === 'shielded' ? insulation : 'shielded';
+    const effectiveInsulation: 'bare' | 'shielded' = isLegWire ? 'bare' : normalizedInsulation;
+
     const endpoints = debugRenderConnections ? parsePathEndpoints(path) : null;
 
-    const stroke = debugRenderConnections ? '#ff00ff' : appearance.color || '#3b82f6';
-    const strokeWidth = debugRenderConnections ? 14 : isSelected ? 8 : 5;
-    const hitWidth = debugRenderConnections ? 18 : isSelected ? 14 : 10;
+    const stroke = debugRenderConnections
+      ? '#ff00ff'
+      : effectiveInsulation === 'bare'
+        ? BARE_WIRE_COLOR
+        : appearance.color || '#3b82f6';
+
+    const strokeWidth = debugRenderConnections
+      ? 14
+      : effectiveInsulation === 'bare'
+        ? isSelected
+          ? 5
+          : 3.2
+        : isSelected
+          ? 8
+          : 5;
+
+    const hitWidth = debugRenderConnections
+      ? 18
+      : effectiveInsulation === 'bare'
+        ? isSelected
+          ? 12
+          : 9
+        : isSelected
+          ? 14
+          : 10;
 
     const jacket = debugRenderConnections ? stroke : mixWithBlack(stroke, 0.1);
     const highlight = debugRenderConnections ? stroke : mixWithWhite(stroke, 0.35);
@@ -60,7 +105,7 @@ export function createSelectableConnectionRenderer(options: {
 
     const onPointerDown = (e: React.PointerEvent<SVGPathElement>) => {
       if (e.shiftKey && e.button === 0) {
-        controller.dispatch({ type: 'CONNECTION_SELECTED', connectionId: id });
+        controller.dispatch({ type: 'CONNECTION_SELECTED', connectionId: id, connectionKind });
         return;
       }
       if (e.button !== 0) return;
@@ -68,6 +113,7 @@ export function createSelectableConnectionRenderer(options: {
       controller.dispatch({
         type: 'CONNECTION_SELECTED',
         connectionId: isSelected ? null : id,
+        connectionKind: isSelected ? null : connectionKind,
       });
     };
 

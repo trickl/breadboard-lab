@@ -3,6 +3,7 @@ import type { AppState, Action } from '../types';
 function getDefaultConnectionAppearance() {
   return {
     style: 'curved' as const,
+    insulation: 'shielded' as const,
     color: '#3b82f6',
     curved: {
       startOrientation: 'auto' as const,
@@ -176,6 +177,7 @@ export class BreadboardControllerReducer {
           connections: {
             ...state.connections,
             selectedConnectionId: null,
+            selectedConnectionKind: null,
           },
         };
 
@@ -246,6 +248,7 @@ export class BreadboardControllerReducer {
           connections: {
             ...state.connections,
             selectedConnectionId: action.connectionId,
+            selectedConnectionKind: action.connectionId ? (action.connectionKind ?? null) : null,
             appearanceById:
               action.connectionId && !state.connections.appearanceById[action.connectionId]
                 ? {
@@ -304,6 +307,7 @@ export class BreadboardControllerReducer {
           connections: {
             ...state.connections,
             selectedConnectionId: action.connectionId,
+            selectedConnectionKind: null,
             appearanceById: !state.connections.appearanceById[action.connectionId]
               ? {
                   ...state.connections.appearanceById,
@@ -459,6 +463,10 @@ export class BreadboardControllerReducer {
           state.connections.selectedConnectionId === action.connectionId
             ? null
             : state.connections.selectedConnectionId,
+        selectedConnectionKind:
+          state.connections.selectedConnectionId === action.connectionId
+            ? null
+            : state.connections.selectedConnectionKind,
         reteCommand: {
           type: 'delete-connection',
           connectionId: action.connectionId,

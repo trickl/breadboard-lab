@@ -30,6 +30,11 @@ export interface AppState {
     list: Connection[];
     occupiedHoles: Map<string, string>;
     selectedConnectionId: string | null;
+    /**
+     * UI-only metadata for the currently selected Rete connection.
+     * Used to lock certain styling options for special connection types.
+     */
+    selectedConnectionKind: 'jumper' | 'component-leg' | null;
     rerouteDragState: ConnectionRerouteDragState | null;
     appearanceById: Record<string, ConnectionAppearance>;
     reteCommand: ConnectionCommand | null;
@@ -105,8 +110,16 @@ export type ConnectionStyle = 'curved' | 'straight';
  */
 export type ConnectionEndpointOrientation = 'auto' | 'horizontal' | 'vertical';
 
+export type ConnectionInsulation = 'shielded' | 'bare';
+
 export interface ConnectionAppearance {
   style: ConnectionStyle;
+  /**
+   * Visual insulation model.
+   * - shielded: plastic-jacket jumper wire (color-selectable)
+   * - bare: exposed metal wire (fixed grey, thinner)
+   */
+  insulation: ConnectionInsulation;
   color: string;
   curved: {
     startOrientation: ConnectionEndpointOrientation;
@@ -189,7 +202,11 @@ export type Action =
   | { type: 'COMPONENT_PROPERTY_CHANGED'; componentId: string; property: string; value: unknown }
   | { type: 'PIN_SELECTED'; componentId: string; pinIndex: number | null }
   | { type: 'CONNECTION_DELETED'; connectionId: string }
-  | { type: 'CONNECTION_SELECTED'; connectionId: string | null }
+  | {
+      type: 'CONNECTION_SELECTED';
+      connectionId: string | null;
+      connectionKind?: 'jumper' | 'component-leg' | null;
+    }
   | {
       type: 'CONNECTION_APPEARANCE_UPDATED';
       connectionId: string;

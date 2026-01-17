@@ -15,8 +15,9 @@ export class BreadboardLayout {
   // Rail column indices
   static readonly RAIL_LEFT_NEGATIVE = 0;
   static readonly RAIL_LEFT_POSITIVE = 1;
-  static readonly RAIL_RIGHT_POSITIVE = 12;
-  static readonly RAIL_RIGHT_NEGATIVE = 13;
+  // NOTE: On the right rail block, the + rail is on the outer column.
+  static readonly RAIL_RIGHT_NEGATIVE = 12;
+  static readonly RAIL_RIGHT_POSITIVE = 13;
 
   // Terminal strip column ranges (adjusted for rails)
   static readonly STRIP_LEFT_START = 2;

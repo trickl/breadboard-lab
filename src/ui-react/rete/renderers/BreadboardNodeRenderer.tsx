@@ -79,7 +79,7 @@ export function createBreadboardNodeRenderer(options: {
               transform: world.substrateTransform,
             }}
           >
-            <BreadboardSvg showLabels={true} />
+            <BreadboardSvg showLabels={true} orientation={world.combinedRotation} />
           </div>
         </div>
       </div>

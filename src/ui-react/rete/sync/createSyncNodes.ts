@@ -279,13 +279,10 @@ export function createSyncNodes({
         node.width = nodeW;
         node.height = nodeH;
 
-        // If the component is unwired and has a stored freeform placement, use it.
-        // "Wired" here means the Rete graph contains at least one connection involving this node.
-        const isWired = editor
-          .getConnections()
-          .some((c) => c.source === node.id || c.target === node.id);
-
-        if (!isWired && allowFreeFloat && freeform) {
+        // If the component has a stored freeform placement, use it.
+        // This is an explicit UI override for the node's top-left, and applies even if wired.
+        // (The freeform flag is cleared whenever we commit a component back onto holes.)
+        if (allowFreeFloat && freeform) {
           const worldTopLeft = localPointToWorld(freeform);
           await area.translate(node.id, {
             x: worldTopLeft.x,

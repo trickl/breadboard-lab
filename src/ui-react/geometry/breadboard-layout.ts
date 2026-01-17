@@ -62,11 +62,15 @@ function getRailRowCentersY(): number[] {
 function colExtraOffset(col: number): number {
   // Add a gutter between left rails (cols 0–1) and terminal strips (col 2+)
   // and between terminal strips (col 2–11) and right rails (col 12–13).
+  const rightRailStartCol = Math.min(
+    BreadboardLayout.RAIL_RIGHT_POSITIVE,
+    BreadboardLayout.RAIL_RIGHT_NEGATIVE
+  );
   let extra = 0;
   if (col >= BreadboardLayout.STRIP_LEFT_START) {
     extra += RAIL_STRIP_GUTTER;
   }
-  if (col >= BreadboardLayout.RAIL_RIGHT_POSITIVE) {
+  if (col >= rightRailStartCol) {
     extra += RAIL_STRIP_GUTTER;
   }
   return extra;

@@ -1,6 +1,7 @@
 import type React from 'react';
 import { createRoot } from 'react-dom/client';
 import type { NodeEditor } from 'rete';
+import { getUID } from 'rete';
 import type { AreaPlugin } from 'rete-area-plugin';
 import { ConnectionPlugin } from 'rete-connection-plugin';
 import { getDOMSocketPosition } from 'rete-render-utils';
@@ -85,7 +86,13 @@ export function setupRetePlugins({
   const SelectableConnection = createSelectableConnectionRenderer({
     controller,
     editorRef: editorRef as unknown as React.MutableRefObject<{
-      getConnections: () => Array<{ id: string }>;
+      getConnections: () => Array<{
+        id: string;
+        source?: string;
+        sourceOutput?: string;
+        target?: string;
+        targetInput?: string;
+      }>;
     } | null>,
     connectionUiRef: connectionUiRef as unknown as React.MutableRefObject<{
       selectedConnectionId: string | null;
@@ -280,6 +287,45 @@ export function setupRetePlugins({
   const isNodeWired = (nodeId: string) =>
     editor.getConnections().some((c) => c.source === nodeId || c.target === nodeId);
 
+  const buildRailHoleIndexByPosition = (): Map<string, { railNodeId: string; holeIndex: number }> => {
+    const map = new Map<string, { railNodeId: string; holeIndex: number }>();
+    for (const n of editor.getNodes()) {
+      if (!isRailNodePayload(n)) continue;
+      const rail = n as unknown as { id: string; holePositions?: Array<{ row: number; col: number }> };
+      const holes = rail.holePositions ?? [];
+      for (let i = 0; i < holes.length; i++) {
+        const p = holes[i];
+        map.set(`${p.row},${p.col}`, { railNodeId: rail.id, holeIndex: i });
+      }
+    }
+    return map;
+  };
+
+  const isRailHoleOccupied = (railNodeId: string, holeIndex: number): boolean => {
+    const outKey = `h${holeIndex}`;
+    const inKey = `in-h${holeIndex}`;
+    return editor.getConnections().some((c) => {
+      const srcOut = String((c as unknown as { sourceOutput?: unknown }).sourceOutput ?? '');
+      const tgtIn = String((c as unknown as { targetInput?: unknown }).targetInput ?? '');
+      return (
+        (c.source === railNodeId && (srcOut === outKey || srcOut === inKey)) ||
+        (c.target === railNodeId && (tgtIn === inKey || tgtIn === outKey))
+      );
+    });
+  };
+
+  const isComponentLegAlreadyConnected = (componentNodeId: string, legIndex: number): boolean => {
+    const legKey = `leg${legIndex}`;
+    return editor.getConnections().some((c) => {
+      const srcOut = String((c as unknown as { sourceOutput?: unknown }).sourceOutput ?? '');
+      const tgtIn = String((c as unknown as { targetInput?: unknown }).targetInput ?? '');
+      return (
+        (c.source === componentNodeId && srcOut === legKey) ||
+        (c.target === componentNodeId && tgtIn === legKey)
+      );
+    });
+  };
+
   const getConnectedLegIndexes = (nodeId: string): Set<number> => {
     const out = new Set<number>();
     for (const c of editor.getConnections()) {
@@ -411,9 +457,11 @@ export function setupRetePlugins({
 
   const computePinsBySocketProjection = (options: {
     componentId: string;
+    nodeId: string;
     nodeWorldTopLeft: { x: number; y: number };
+    requireUnoccupiedLegIndexes?: Set<number>;
   }): Position[] | null => {
-    const { componentId, nodeWorldTopLeft } = options;
+    const { componentId, nodeWorldTopLeft, requireUnoccupiedLegIndexes } = options;
     const state = controller.getState();
     const component = state.breadboard.components.find((c) => c.id === componentId);
     if (!component) return null;
@@ -430,6 +478,9 @@ export function setupRetePlugins({
     });
 
     const nextPositions: Position[] = [];
+    const railIndexByPos = requireUnoccupiedLegIndexes?.size
+      ? buildRailHoleIndexByPosition()
+      : null;
     for (let i = 0; i < legs; i++) {
       const socket = legPositionsInNode[i];
       if (!socket) return null;
@@ -442,6 +493,13 @@ export function setupRetePlugins({
       const socketLocal = worldPointToLocal(socketWorld);
       const pos = pixelsToPosition(socketLocal.x, socketLocal.y);
       if (!isValidPosition(pos)) return null;
+
+      // For smart-snap auto-wiring we must never claim an already-occupied rail hole.
+      if (requireUnoccupiedLegIndexes?.has(i)) {
+        const railRef = railIndexByPos?.get(`${pos.row},${pos.col}`) ?? null;
+        if (!railRef) return null;
+        if (isRailHoleOccupied(railRef.railNodeId, railRef.holeIndex)) return null;
+      }
       nextPositions.push(pos);
     }
 
@@ -451,14 +509,67 @@ export function setupRetePlugins({
     return nextPositions;
   };
 
-  const snapPinsBySocketProjection = (
-    componentId: string,
-    nodeWorldTopLeft: { x: number; y: number }
-  ): boolean => {
-    const next = computePinsBySocketProjection({ componentId, nodeWorldTopLeft });
-    if (!next) return false;
-    commitComponentToPositions(componentId, next);
-    return true;
+  const snapPinsBySocketProjection = (options: {
+    componentId: string;
+    nodeId: string;
+    nodeWorldTopLeft: { x: number; y: number };
+    requireUnoccupiedLegIndexes?: Set<number>;
+  }): Position[] | null => {
+    const next = computePinsBySocketProjection({
+      componentId: options.componentId,
+      nodeId: options.nodeId,
+      nodeWorldTopLeft: options.nodeWorldTopLeft,
+      requireUnoccupiedLegIndexes: options.requireUnoccupiedLegIndexes,
+    });
+    if (!next) return null;
+    commitComponentToPositions(options.componentId, next);
+    return next;
+  };
+
+  const autoConnectUnwiredLegsToSnappedHoles = (options: {
+    componentNodeId: string;
+    connectedLegIndexes: Set<number>;
+    snappedPositions: Position[];
+  }) => {
+    const { componentNodeId, connectedLegIndexes, snappedPositions } = options;
+    const railIndexByPos = buildRailHoleIndexByPosition();
+
+    const compNode = editor.getNode(componentNodeId) as unknown as { outputs?: Record<string, unknown> } | null;
+    if (!compNode) return;
+
+    for (let i = 0; i < snappedPositions.length; i++) {
+      if (connectedLegIndexes.has(i)) continue;
+
+      // Leg must still be free.
+      if (isComponentLegAlreadyConnected(componentNodeId, i)) continue;
+
+      const pos = snappedPositions[i];
+      const railRef = railIndexByPos.get(`${pos.row},${pos.col}`);
+      if (!railRef) continue;
+      if (isRailHoleOccupied(railRef.railNodeId, railRef.holeIndex)) continue;
+
+      // Defensive: ensure this leg output exists on the node.
+      const legKey = `leg${i}`;
+      if (!compNode.outputs?.[legKey]) continue;
+
+      const railNode = editor.getNode(railRef.railNodeId) as unknown as { inputs?: Record<string, unknown> } | null;
+      if (!railNode) continue;
+
+      const preferredIn = `in-h${railRef.holeIndex}`;
+      const legacyIn = `h${railRef.holeIndex}`;
+      const targetInput = railNode.inputs?.[preferredIn] ? preferredIn : legacyIn;
+
+      // IMPORTANT: do not remove conflicting connections here. Smart-snap must not replace wires.
+      // If something changed between compute and now, addConnection may fail; that's OK.
+      const id = getUID();
+      void editor.addConnection({
+        id,
+        source: componentNodeId,
+        sourceOutput: legKey,
+        target: railRef.railNodeId,
+        targetInput,
+      } as any);
+    }
   };
 
   const maybeNudgeWorldTopLeftForUnconnectedSockets = (options: {
@@ -502,12 +613,20 @@ export function setupRetePlugins({
 
     if (!socketLocals.length) return nodeWorldTopLeft;
 
+    // Exclude holes already occupied by an existing wire/connection.
+    const railIndexByPos = buildRailHoleIndexByPosition();
+
     const deltaLocal = pickBestLocalSnapDelta({
       socketLocals,
       maxMovePx,
       nearestHoleCenterLocal: (p) => {
         const nearest = pixelsToPosition(p.x, p.y);
         if (!isValidPosition(nearest)) return null;
+
+        const railRef = railIndexByPos.get(`${nearest.row},${nearest.col}`);
+        if (!railRef) return null;
+        if (isRailHoleOccupied(railRef.railNodeId, railRef.holeIndex)) return null;
+
         return positionToPixels(nearest);
       },
     });
@@ -549,6 +668,15 @@ export function setupRetePlugins({
         const st = controller.getState();
         const stored = st.ui.freeformComponentTopLeftById[compNode.componentId];
         if (stored) {
+          // If the component no longer has any free connectors (all legs are wired), do not
+          // auto-snap it. (Snapping is only meant to help align *unconnected* legs.)
+          const legs = st.breadboard.components.find((c) => c.id === compNode.componentId)?.positions
+            .length;
+          if (typeof legs === 'number' && legs > 0) {
+            const connected = getConnectedLegIndexes(compNode.id);
+            if (connected.size >= legs) return context;
+          }
+
           // Convert stored local top-left back into world and snap pins accordingly.
           const worldTopLeft = localPointToWorld(stored);
           void snapPinsByCentroidDelta(compNode.componentId, worldTopLeft);
@@ -622,14 +750,38 @@ export function setupRetePlugins({
             maxMovePx: SMART_SNAP_MAX_MOVE_PX,
           });
 
-          const ok = snapPinsBySocketProjection(commit.componentId, nudged);
-          if (!ok) {
+          const requireFree = new Set<number>();
+          for (let i = 0; i < legs2; i++) if (!connected.has(i)) requireFree.add(i);
+
+          const snappedPositions = snapPinsBySocketProjection({
+            componentId: commit.componentId,
+            nodeId: commit.nodeId,
+            nodeWorldTopLeft: nudged,
+            requireUnoccupiedLegIndexes: requireFree,
+          });
+
+          if (!snappedPositions) {
             // Fall back to existing behavior.
             void snapPinsByCentroidDelta(commit.componentId, commit.nodeWorldTopLeft);
+          } else {
+            autoConnectUnwiredLegsToSnappedHoles({
+              componentNodeId: commit.nodeId,
+              connectedLegIndexes: connected,
+              snappedPositions,
+            });
           }
           return context;
         }
 
+        // Fully wired: do not auto-snap. Persist the node's freeform placement so it doesn't
+        // "jump" back to its old on-hole anchor when other state changes (e.g. adding a component)
+        // triggers a re-sync.
+        if (wired) {
+          setFreeformTopLeftFromWorld(commit.componentId, commit.nodeWorldTopLeft);
+          return context;
+        }
+
+        // If free-floating is disabled, we still need to force unwired components onto holes.
         void snapPinsByCentroidDelta(commit.componentId, commit.nodeWorldTopLeft);
         return context;
       }
@@ -677,10 +829,27 @@ export function setupRetePlugins({
           maxMovePx: SMART_SNAP_MAX_MOVE_PX,
         });
 
-        const snapped = snapPinsBySocketProjection(commit.componentId, nudged);
-        if (!snapped) {
+        const legs = component?.positions.length ?? 0;
+        const connected = getConnectedLegIndexes(commit.nodeId);
+        const requireFree = new Set<number>();
+        for (let i = 0; i < legs; i++) if (!connected.has(i)) requireFree.add(i);
+
+        const snappedPositions = snapPinsBySocketProjection({
+          componentId: commit.componentId,
+          nodeId: commit.nodeId,
+          nodeWorldTopLeft: nudged,
+          requireUnoccupiedLegIndexes: requireFree,
+        });
+
+        if (!snappedPositions) {
           // Invalid hole placement (e.g. rail gaps). Keep it free-floating.
           setFreeformTopLeftFromWorld(commit.componentId, commit.nodeWorldTopLeft);
+        } else {
+          autoConnectUnwiredLegsToSnappedHoles({
+            componentNodeId: commit.nodeId,
+            connectedLegIndexes: connected,
+            snappedPositions,
+          });
         }
       } else {
         setFreeformTopLeftFromWorld(commit.componentId, commit.nodeWorldTopLeft);

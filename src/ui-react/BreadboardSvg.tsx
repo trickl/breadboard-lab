@@ -6,6 +6,8 @@
 import React, { useMemo, useState } from 'react';
 import { BreadboardLayout } from '@/core/breadboard-layout';
 import type { Position } from '@/core/types';
+import type { BoardRotation } from '@/ui-react/world/breadboard-world';
+import { rotatePoint } from '@/ui-react/world/breadboard-world';
 import {
   positionToPixels,
   pixelsToPosition,
@@ -23,7 +25,11 @@ import {
 import { BreadboardSkin } from './skins/breadboard-skin';
 
 export interface BreadboardSvgProps {
-  orientation?: 0 | 90 | 180 | 270;
+  /**
+   * Rotation applied to the substrate in world space (typically intrinsic + user rotation).
+   * Used so printed rail artwork can be oriented consistently (e.g. red/+ on the top rail).
+   */
+  orientation?: BoardRotation;
   /**
    * Whether to render printed board labels (row/column/rail markers).
    * Defaults to true.
@@ -49,7 +55,14 @@ export interface BreadboardSvgProps {
  * - Memoized hole positions to avoid recalculation
  */
 export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
-  ({ showLabels = true, interactive = false, onHoleClick, onHoleHover, onHoleLeave }) => {
+  ({
+    orientation = 0,
+    showLabels = true,
+    interactive = false,
+    onHoleClick,
+    onHoleHover,
+    onHoleLeave,
+  }) => {
     const [hoveredPosition, setHoveredPosition] = useState<Position | null>(null);
 
     const COLUMN_LABEL_FONT_SIZE = 13.2; // 11 * 1.2
@@ -223,13 +236,42 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
       return labels;
     }, [dimensions.height, COLUMN_LABEL_FONT_SIZE]);
 
+    const railCols = useMemo(() => {
+      const pivot = { x: dimensions.width / 2, y: dimensions.height / 2 };
+
+      const pickTopCol = (colA: number, colB: number): { top: number; bottom: number } => {
+        // Compare the rotated positions of the two rail columns. Smaller rotated Y is closer to
+        // the top of the screen.
+        const aLocal = positionToPixels({ row: 0, col: colA });
+        const bLocal = positionToPixels({ row: 0, col: colB });
+
+        const a = rotatePoint(aLocal, orientation, pivot);
+        const b = rotatePoint(bLocal, orientation, pivot);
+
+        if (a.y === b.y) {
+          // Tie-breaker: keep a stable ordering.
+          return a.x <= b.x ? { top: colA, bottom: colB } : { top: colB, bottom: colA };
+        }
+
+        return a.y < b.y ? { top: colA, bottom: colB } : { top: colB, bottom: colA };
+      };
+
+      return {
+        left: pickTopCol(BreadboardLayout.RAIL_LEFT_POSITIVE, BreadboardLayout.RAIL_LEFT_NEGATIVE),
+        right: pickTopCol(
+          BreadboardLayout.RAIL_RIGHT_POSITIVE,
+          BreadboardLayout.RAIL_RIGHT_NEGATIVE
+        ),
+      };
+    }, [dimensions.width, dimensions.height, orientation]);
+
     // Render rail labels
     const railLabels = useMemo(() => {
       // Place symbols between the stripes (aligned to the rail hole columns), not on top of stripes.
-      const posLeft = positionToPixels({ row: 0, col: BreadboardLayout.RAIL_LEFT_POSITIVE });
-      const negLeft = positionToPixels({ row: 0, col: BreadboardLayout.RAIL_LEFT_NEGATIVE });
-      const posRight = positionToPixels({ row: 0, col: BreadboardLayout.RAIL_RIGHT_POSITIVE });
-      const negRight = positionToPixels({ row: 0, col: BreadboardLayout.RAIL_RIGHT_NEGATIVE });
+      const topLeft = positionToPixels({ row: 0, col: railCols.left.top });
+      const bottomLeft = positionToPixels({ row: 0, col: railCols.left.bottom });
+      const topRight = positionToPixels({ row: 0, col: railCols.right.top });
+      const bottomRight = positionToPixels({ row: 0, col: railCols.right.bottom });
 
       const topY = HEADER_HEIGHT - 10;
       const bottomY = dimensions.height - FOOTER_HEIGHT + 16;
@@ -245,35 +287,35 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
       return (
         <>
           {/* Left rail block */}
-          <text x={posLeft.x} y={topY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
+          <text x={topLeft.x} y={topY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
             +
           </text>
-          <text x={negLeft.x} y={topY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
+          <text x={bottomLeft.x} y={topY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
             −
           </text>
-          <text x={posLeft.x} y={bottomY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
+          <text x={topLeft.x} y={bottomY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
             +
           </text>
-          <text x={negLeft.x} y={bottomY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
+          <text x={bottomLeft.x} y={bottomY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
             −
           </text>
 
           {/* Right rail block */}
-          <text x={posRight.x} y={topY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
+          <text x={topRight.x} y={topY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
             +
           </text>
-          <text x={negRight.x} y={topY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
+          <text x={bottomRight.x} y={topY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
             −
           </text>
-          <text x={posRight.x} y={bottomY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
+          <text x={topRight.x} y={bottomY} fill={BreadboardSkin.colors.railRed} {...commonProps}>
             +
           </text>
-          <text x={negRight.x} y={bottomY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
+          <text x={bottomRight.x} y={bottomY} fill={BreadboardSkin.colors.railBlue} {...commonProps}>
             −
           </text>
         </>
       );
-    }, [dimensions.height, RAIL_SYMBOL_FONT_SIZE]);
+    }, [dimensions.height, RAIL_SYMBOL_FONT_SIZE, railCols]);
 
     // Render center trench (recessed channel)
     const centerDivider = useMemo(() => {
@@ -450,6 +492,10 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
         <g clipPath="url(#bb-body-clip)">
           {/* Sub-panels: rail blocks and terminal region (very subtle) */}
           {(() => {
+            const rightRailStartCol = Math.min(
+              BreadboardLayout.RAIL_RIGHT_POSITIVE,
+              BreadboardLayout.RAIL_RIGHT_NEGATIVE
+            );
             const leftRailX =
               positionToPixels({ row: 0, col: BreadboardLayout.RAIL_LEFT_NEGATIVE }).x -
               HOLE_SPACING / 2;
@@ -457,7 +503,7 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
               positionToPixels({ row: 0, col: BreadboardLayout.STRIP_LEFT_START }).x -
               HOLE_SPACING / 2;
             const rightRailX =
-              positionToPixels({ row: 0, col: BreadboardLayout.RAIL_RIGHT_POSITIVE }).x -
+              positionToPixels({ row: 0, col: rightRailStartCol }).x -
               HOLE_SPACING / 2;
 
             return (
@@ -492,29 +538,69 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
 
           {/* Rail stripes (printed) */}
           {(() => {
+            const leftRailStartCol = Math.min(
+              BreadboardLayout.RAIL_LEFT_POSITIVE,
+              BreadboardLayout.RAIL_LEFT_NEGATIVE
+            );
+            const leftRailEndCol = Math.max(
+              BreadboardLayout.RAIL_LEFT_POSITIVE,
+              BreadboardLayout.RAIL_LEFT_NEGATIVE
+            );
+
+            const rightRailStartCol = Math.min(
+              BreadboardLayout.RAIL_RIGHT_POSITIVE,
+              BreadboardLayout.RAIL_RIGHT_NEGATIVE
+            );
+            const rightRailEndCol = Math.max(
+              BreadboardLayout.RAIL_RIGHT_POSITIVE,
+              BreadboardLayout.RAIL_RIGHT_NEGATIVE
+            );
+
             const railBlockWidth = 2 * HOLE_SPACING;
-            const leftX =
-              positionToPixels({ row: 0, col: BreadboardLayout.RAIL_LEFT_NEGATIVE }).x -
-              HOLE_SPACING / 2;
+            const leftX = positionToPixels({ row: 0, col: leftRailStartCol }).x - HOLE_SPACING / 2;
             const rightX =
-              positionToPixels({ row: 0, col: BreadboardLayout.RAIL_RIGHT_POSITIVE }).x -
+              positionToPixels({ row: 0, col: rightRailStartCol }).x -
               HOLE_SPACING / 2;
 
             const stripeW = BreadboardSkin.geometry.railStripeWidth;
             const inset = BreadboardSkin.geometry.railStripeInset;
 
+            const stripeXForCol = (
+              blockX: number,
+              startCol: number,
+              endCol: number,
+              col: number
+            ): number => {
+              // Stripes are inset from the rail block edges. Choose left-vs-right stripe based on
+              // whether this column is the start or end of the 2-column rail block.
+              const isStart = col === startCol;
+              const isEnd = col === endCol;
+              const offsetFromBlock = isEnd && !isStart ? railBlockWidth - inset : inset;
+              return blockX + offsetFromBlock - stripeW / 2;
+            };
+
             return (
               <>
                 {/* Left rail block stripes */}
                 <rect
-                  x={leftX + inset - stripeW / 2}
+                  x={stripeXForCol(
+                    leftX,
+                    leftRailStartCol,
+                    leftRailEndCol,
+                    railCols.left.top
+                  )}
                   y={0}
                   width={stripeW}
                   height={dimensions.height}
                   fill={BreadboardSkin.colors.railRed}
                 />
                 <rect
-                  x={leftX + railBlockWidth - inset - stripeW / 2}
+                  x={stripeXForCol(
+                    leftX,
+                    leftRailStartCol,
+                    leftRailEndCol,
+                    railCols.left.bottom
+                  )}
                   y={0}
                   width={stripeW}
                   height={dimensions.height}
@@ -523,14 +609,24 @@ export const BreadboardSvg: React.FC<BreadboardSvgProps> = React.memo(
 
                 {/* Right rail block stripes */}
                 <rect
-                  x={rightX + inset - stripeW / 2}
+                  x={stripeXForCol(
+                    rightX,
+                    rightRailStartCol,
+                    rightRailEndCol,
+                    railCols.right.top
+                  )}
                   y={0}
                   width={stripeW}
                   height={dimensions.height}
                   fill={BreadboardSkin.colors.railRed}
                 />
                 <rect
-                  x={rightX + railBlockWidth - inset - stripeW / 2}
+                  x={stripeXForCol(
+                    rightX,
+                    rightRailStartCol,
+                    rightRailEndCol,
+                    railCols.right.bottom
+                  )}
                   y={0}
                   width={stripeW}
                   height={dimensions.height}

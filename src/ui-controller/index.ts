@@ -37,6 +37,7 @@ export function createInitialState(): AppState {
       list: [],
       occupiedHoles: new Map(),
       selectedConnectionId: null,
+      selectedConnectionKind: null,
       rerouteDragState: null,
       appearanceById: {},
       reteCommand: null,

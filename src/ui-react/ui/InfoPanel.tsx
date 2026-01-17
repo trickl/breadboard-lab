@@ -20,6 +20,7 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
   const debugOverlaysOn = Boolean(state.ui.showDebugOverlays);
 
   const selectedConnectionId = state.connections.selectedConnectionId;
+  const selectedConnectionKind = state.connections.selectedConnectionKind;
   const selectedConnectionAppearance: ConnectionAppearance | null = selectedConnectionId
     ? (state.connections.appearanceById[selectedConnectionId] ?? null)
     : null;
@@ -79,6 +80,7 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ controller }) => {
         <WireInspector
           controller={controller}
           connectionId={selectedConnectionId!}
+          connectionKind={selectedConnectionKind}
           appearance={selectedConnectionAppearance}
         />
       ) : !selected ? (

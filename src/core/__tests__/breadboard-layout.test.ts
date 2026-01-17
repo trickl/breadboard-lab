@@ -112,10 +112,15 @@ describe('BreadboardLayout', () => {
       expect(leftNegRail?.side).toBe('left');
       expect(leftNegRail?.holes.length).toBe(30);
 
-      const rightPosRail = BreadboardLayout.getRailForPosition({ row: 5, col: 12 });
+      const rightPosRail = BreadboardLayout.getRailForPosition({ row: 5, col: 13 });
       expect(rightPosRail).not.toBeNull();
       expect(rightPosRail?.type).toBe('positive');
       expect(rightPosRail?.side).toBe('right');
+
+      const rightNegRail = BreadboardLayout.getRailForPosition({ row: 5, col: 12 });
+      expect(rightNegRail).not.toBeNull();
+      expect(rightNegRail?.type).toBe('negative');
+      expect(rightNegRail?.side).toBe('right');
     });
 
     it('should return null for non-rail positions', () => {

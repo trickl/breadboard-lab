@@ -11,6 +11,7 @@ import type {
 export interface WireInspectorProps {
   controller: BreadboardController;
   connectionId: string;
+  connectionKind: 'jumper' | 'component-leg' | null;
   appearance: ConnectionAppearance | null;
 }
 
@@ -27,19 +28,44 @@ const WIRE_COLOR_PRESETS: Array<{ label: string; color: string }> = [
   { label: 'Purple', color: '#7a5bd6' },
 ];
 
-export const WireInspector: React.FC<WireInspectorProps> = ({ controller, connectionId, appearance }) => {
+export const WireInspector: React.FC<WireInspectorProps> = ({
+  controller,
+  connectionId,
+  connectionKind,
+  appearance,
+}) => {
   const id = connectionId;
-  const resolvedAppearance: ConnectionAppearance = appearance ?? {
-    style: 'curved',
-    color: '#3f6fb5',
-    curved: { startOrientation: 'auto', endOrientation: 'auto' },
+  const resolvedAppearance: ConnectionAppearance = {
+    style: appearance?.style ?? 'curved',
+    insulation:
+      (appearance as unknown as { insulation?: unknown })?.insulation === 'bare' ||
+      (appearance as unknown as { insulation?: unknown })?.insulation === 'shielded'
+        ? ((appearance as unknown as { insulation?: 'bare' | 'shielded' }).insulation as
+            | 'bare'
+            | 'shielded')
+        : 'shielded',
+    color: appearance?.color ?? '#3f6fb5',
+    curved: {
+      startOrientation: appearance?.curved?.startOrientation ?? 'auto',
+      endOrientation: appearance?.curved?.endOrientation ?? 'auto',
+    },
   };
+
+  const forcedBare = connectionKind === 'component-leg';
+  const effectiveInsulation: 'shielded' | 'bare' = forcedBare ? 'bare' : resolvedAppearance.insulation;
 
   const setStyle = (style: ConnectionStyle) =>
     controller.dispatch({
       type: 'CONNECTION_APPEARANCE_UPDATED',
       connectionId: id,
       appearance: { style },
+    });
+
+  const setInsulation = (insulation: 'shielded' | 'bare') =>
+    controller.dispatch({
+      type: 'CONNECTION_APPEARANCE_UPDATED',
+      connectionId: id,
+      appearance: { insulation },
     });
 
   const setColor = (color: string) =>
@@ -131,6 +157,80 @@ export const WireInspector: React.FC<WireInspectorProps> = ({ controller, connec
               letterSpacing: '0.05em',
             }}
           >
+            Insulation
+          </Text>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Button
+              onClick={() => setInsulation('shielded')}
+              disabled={forcedBare}
+              sx={{
+                px: 2,
+                py: 1,
+                bg: effectiveInsulation === 'shielded' && !forcedBare ? 'primary' : 'panelBg',
+                border: '1px solid',
+                borderColor:
+                  effectiveInsulation === 'shielded' && !forcedBare ? 'primary' : 'border',
+                borderRadius: 4,
+                color: 'text',
+                fontSize: 0,
+                cursor: forcedBare ? 'not-allowed' : 'pointer',
+                opacity: forcedBare ? 0.6 : 1,
+                ':hover': forcedBare ? undefined : { bg: 'hoverBg' },
+              }}
+              title={forcedBare ? 'This wire is an extension of a component leg and is always bare.' : 'Plastic jacketed jumper wire'}
+            >
+              Shielded
+            </Button>
+            <Button
+              onClick={() => setInsulation('bare')}
+              disabled={forcedBare}
+              sx={{
+                px: 2,
+                py: 1,
+                bg: effectiveInsulation === 'bare' || forcedBare ? 'primary' : 'panelBg',
+                border: '1px solid',
+                borderColor:
+                  effectiveInsulation === 'bare' || forcedBare ? 'primary' : 'border',
+                borderRadius: 4,
+                color: 'text',
+                fontSize: 0,
+                cursor: forcedBare ? 'not-allowed' : 'pointer',
+                opacity: forcedBare ? 1 : 1,
+                ':hover': forcedBare ? undefined : { bg: 'hoverBg' },
+              }}
+              title={forcedBare ? 'This wire is an extension of a component leg and is always bare.' : 'Bare metal wire'}
+            >
+              Bare
+            </Button>
+          </Box>
+
+          {forcedBare ? (
+            <Box
+              sx={{
+                mt: 2,
+                p: 2,
+                bg: 'panelBg',
+                borderRadius: 4,
+                fontSize: 0,
+                color: 'secondaryText',
+              }}
+            >
+              Note: wires connected to component legs are always rendered as bare wire.
+            </Box>
+          ) : null}
+        </Box>
+
+        <Box sx={{ mb: 3 }}>
+          <Text
+            as="div"
+            sx={{
+              fontSize: 0,
+              color: 'secondaryText',
+              mb: 2,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
             Style
           </Text>
           <Box sx={{ display: 'flex', gap: 2 }}>
@@ -171,6 +271,7 @@ export const WireInspector: React.FC<WireInspectorProps> = ({ controller, connec
           </Box>
         </Box>
 
+        {effectiveInsulation === 'shielded' && !forcedBare ? (
         <Box sx={{ mb: 3 }}>
           <label
             htmlFor="prop-wire-color"
@@ -251,6 +352,38 @@ export const WireInspector: React.FC<WireInspectorProps> = ({ controller, connec
             <Text sx={{ fontSize: 0, color: 'secondaryText' }}>{resolvedAppearance.color}</Text>
           </Box>
         </Box>
+        ) : (
+          <Box sx={{ mb: 3 }}>
+            <Text
+              as="div"
+              sx={{
+                fontSize: 0,
+                color: 'secondaryText',
+                mb: 2,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
+              Color
+            </Text>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box
+                aria-hidden="true"
+                sx={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: 6,
+                  bg: '#6b7280',
+                  border: '1px solid',
+                  borderColor: 'border',
+                }}
+              />
+              <Text sx={{ fontSize: 0, color: 'secondaryText' }}>
+                Bare wire is always grey.
+              </Text>
+            </Box>
+          </Box>
+        )}
 
         {resolvedAppearance.style === 'curved' && (
           <Box sx={{ mb: 3 }}>
